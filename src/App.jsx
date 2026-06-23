@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Login from './Homepage/login';
 import AdminLayout from './ADMIN/AdminLayout';
 import Dashboard from './ADMIN/Dashboard';
@@ -6,6 +6,10 @@ import UserManagement from './ADMIN/UserManagement';
 import RolePermissionManagement from './ADMIN/RolePermissionManagement';
 import AuditLog from './ADMIN/AuditLog';
 import SystemConfiguration from './ADMIN/SystemConfiguration';
+import AcademicLayout from './ACADEMIC/AcademicLayout';
+import LearnerManagement from './ACADEMIC/LearnerManagement';
+import CourseClassManagement from './ACADEMIC/CourseClassManagement';
+import EtrManagement from './ACADEMIC/EtrManagement';
 import './App.css';
 
 function App() {
@@ -20,6 +24,12 @@ function App() {
 					<Route path="roles" element={<RolePermissionManagement />} />
 					<Route path="audit" element={<AuditLog />} />
 					<Route path="config" element={<SystemConfiguration />} />
+				</Route>
+				<Route path="/academic" element={<AcademicLayout />}>
+					<Route index element={<Navigate to="/academic/learners" replace />} />
+					<Route path="learners" element={<LearnerManagement />} />
+					<Route path="courses" element={<CourseClassManagement />} />
+					<Route path="etr" element={<EtrManagement />} />
 				</Route>
 				<Route path="*" element={<Navigate to="/admin" replace />} />
 			</Routes>

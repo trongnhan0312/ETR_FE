@@ -1,9 +1,19 @@
-import React from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './login.scss';
 
 const Login = () => {
   const navigate = useNavigate();
+  const [username, setUsername] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (username.toLowerCase().includes('academic') || username.toLowerCase().includes('staff')) {
+      navigate('/academic');
+    } else {
+      navigate('/admin');
+    }
+  };
 
   return (
     <div className="login-container">
@@ -34,10 +44,16 @@ const Login = () => {
           <h2 className="login-title">Đăng nhập</h2>
           <p className="login-subtitle">Vui lòng đăng nhập để truy cập hệ thống ETR</p>
 
-          <form className="login-form">
+          <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Tên đăng nhập / Email</label>
-              <input type="text" placeholder="Nhập tên đăng nhập hoặc email" />
+              <input
+                type="text"
+                placeholder="Nhập tên đăng nhập hoặc email"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
             </div>
 
             <div className="form-group">
