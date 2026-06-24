@@ -13,6 +13,15 @@ import EtrManagement from './ACADEMIC/EtrManagement';
 import IntroductorLayout from './Introductor/IntroductorLayout';
 import IntroductorClasses from './Introductor/IntroductorClasses';
 import IntroductorSchedule from './Introductor/IntroductorSchedule';
+import QALayout from './QA/QALayout';
+import QADashboard from './QA/QADashboard';
+import QAEvidenceVerification from './QA/QAEvidenceVerification';
+import QARETRReviewQueue from './QA/QARETRReviewQueue';
+import QARETRDetails from './QA/QARETRDetails';
+import QARETRReturn from './QA/QARETRReturn';
+import QASearchExport from './QA/QASearchExport';
+import QAAuditTrail from './QA/QAAuditTrail';
+import QAAccount from './QA/QAAccount';
 import './App.css';
 
 function App() {
@@ -38,6 +47,21 @@ function App() {
 					<Route index element={<Navigate to="/introductor/classes" replace />} />
 					<Route path="classes" element={<IntroductorClasses />} />
 					<Route path="schedule" element={<IntroductorSchedule />} />
+				</Route>
+				<Route path="/qa" element={<QALayout />}>
+					<Route index element={<QADashboard />} />
+					<Route path="evidence" element={<QAEvidenceVerification />} />
+					<Route path="reviews" element={<QARETRReviewQueue />} />
+					<Route path="details" element={<QARETRDetails />} />
+					<Route path="return" element={<QARETRReturn />} />
+					<Route path="search" element={<QASearchExport />} />
+					<Route path="export" element={<QASearchExport />} />
+					<Route path="audit" element={<QAAuditTrail />} />
+					<Route path="profile" element={<QAAccount />} />
+					<Route path="password" element={<QAAccount />} />
+					<Route path="recent" element={<QADashboard />} />
+					<Route path="rejected" element={<QAEvidenceVerification />} />
+					<Route path="history" element={<QAEvidenceVerification />} />
 				</Route>
 				<Route path="*" element={<Navigate to="/login" replace />} />
 			</Routes>

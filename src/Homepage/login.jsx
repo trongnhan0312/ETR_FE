@@ -9,7 +9,9 @@ const Login = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const userLower = username.toLowerCase();
-    if (userLower.includes('academic') || userLower.includes('staff')) {
+    if (userLower.includes('qa') || userLower.includes('quality')) {
+      navigate('/qa');
+    } else if (userLower.includes('academic') || userLower.includes('staff')) {
       navigate('/academic');
     } else if (userLower.includes('introductor') || userLower.includes('instructor')) {
       navigate('/introductor');
