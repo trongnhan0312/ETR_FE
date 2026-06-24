@@ -265,7 +265,7 @@ const EtrManagement = () => {
   // Conditional Sub-view for Evidence Management
   if (viewMode === 'evidence' && selectedRecord) {
     return (
-      <div className="evidence-management-page flex flex-col justify-start items-start w-[1436px] relative pl-[260px] bg-[#f5f7fa]" style={{ display: 'flex', flexDirection: 'column', gap: '0px', width: '100%', minHeight: '100vh' }}>
+      <div className="evidence-management-page flex flex-col justify-start items-start w-full relative bg-[#f5f7fa]" style={{ display: 'flex', flexDirection: 'column', gap: '0px', minHeight: '100vh' }}>
         <div className="flex flex-col-reverse justify-start items-start self-stretch flex-grow overflow-hidden" style={{ width: '100%' }}>
           
           {/* Content Pane */}
@@ -632,7 +632,7 @@ const EtrManagement = () => {
 
   // Original ETR List View Return Statement
   return (
-    <div className="etr-management-page flex flex-col justify-start items-start w-[1530px] relative pl-[280px] pt-20 bg-[#f4f7fa]">
+    <div className="etr-management-page flex flex-col justify-start items-start w-full relative bg-[#f4f7fa]">
       <div className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 relative gap-6 p-8" style={{ width: '100%' }}>
 
 

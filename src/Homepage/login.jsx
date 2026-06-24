@@ -8,8 +8,11 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (username.toLowerCase().includes('academic') || username.toLowerCase().includes('staff')) {
+    const userLower = username.toLowerCase();
+    if (userLower.includes('academic') || userLower.includes('staff')) {
       navigate('/academic');
+    } else if (userLower.includes('introductor') || userLower.includes('instructor')) {
+      navigate('/introductor');
     } else {
       navigate('/admin');
     }

@@ -10,6 +10,9 @@ import AcademicLayout from './ACADEMIC/AcademicLayout';
 import LearnerManagement from './ACADEMIC/LearnerManagement';
 import CourseClassManagement from './ACADEMIC/CourseClassManagement';
 import EtrManagement from './ACADEMIC/EtrManagement';
+import IntroductorLayout from './Introductor/IntroductorLayout';
+import IntroductorClasses from './Introductor/IntroductorClasses';
+import IntroductorSchedule from './Introductor/IntroductorSchedule';
 import './App.css';
 
 function App() {
@@ -30,6 +33,11 @@ function App() {
 					<Route path="learners" element={<LearnerManagement />} />
 					<Route path="courses" element={<CourseClassManagement />} />
 					<Route path="etr" element={<EtrManagement />} />
+				</Route>
+				<Route path="/introductor" element={<IntroductorLayout />}>
+					<Route index element={<Navigate to="/introductor/classes" replace />} />
+					<Route path="classes" element={<IntroductorClasses />} />
+					<Route path="schedule" element={<IntroductorSchedule />} />
 				</Route>
 				<Route path="*" element={<Navigate to="/admin" replace />} />
 			</Routes>
