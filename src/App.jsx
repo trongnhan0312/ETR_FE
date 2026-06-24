@@ -19,7 +19,7 @@ function App() {
 	return (
 		<BrowserRouter>
 			<Routes>
-				<Route path="/" element={<Navigate to="/admin" replace />} />
+				<Route path="/" element={<Navigate to="/login" replace />} />
 				<Route path="/login" element={<Login />} />
 				<Route path="/admin" element={<AdminLayout />}>
 					<Route index element={<Dashboard />} />
@@ -39,7 +39,7 @@ function App() {
 					<Route path="classes" element={<IntroductorClasses />} />
 					<Route path="schedule" element={<IntroductorSchedule />} />
 				</Route>
-				<Route path="*" element={<Navigate to="/admin" replace />} />
+				<Route path="*" element={<Navigate to="/login" replace />} />
 			</Routes>
 		</BrowserRouter>
 	);
