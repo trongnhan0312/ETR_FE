@@ -15,6 +15,8 @@ const Login = () => {
       navigate('/academic');
     } else if (userLower.includes('introductor') || userLower.includes('instructor')) {
       navigate('/introductor');
+    } else if (userLower.includes('manager') || userLower.includes('training') || userLower.includes('henderson')) {
+      navigate('/training-manager');
     } else {
       navigate('/admin');
     }

@@ -22,6 +22,10 @@ import QARETRReturn from './QA/QARETRReturn';
 import QASearchExport from './QA/QASearchExport';
 import QAAuditTrail from './QA/QAAuditTrail';
 import QAAccount from './QA/QAAccount';
+import TrainingManagerLayout from './TrainingManager/TrainingManagerLayout';
+import TrainingManagerDashboard from './TrainingManager/TrainingManagerDashboard';
+import ClassStatus from './TrainingManager/ClassStatus';
+import EtrApproval from './TrainingManager/EtrApproval';
 import './App.css';
 
 function App() {
@@ -62,6 +66,11 @@ function App() {
 					<Route path="recent" element={<QADashboard />} />
 					<Route path="rejected" element={<QAEvidenceVerification />} />
 					<Route path="history" element={<QAEvidenceVerification />} />
+				</Route>
+				<Route path="/training-manager" element={<TrainingManagerLayout />}>
+					<Route index element={<TrainingManagerDashboard />} />
+					<Route path="classes" element={<ClassStatus />} />
+					<Route path="etr-approval" element={<EtrApproval />} />
 				</Route>
 				<Route path="*" element={<Navigate to="/login" replace />} />
 			</Routes>
