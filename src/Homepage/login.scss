@@ -78,18 +78,20 @@
   gap: 10px;
   color: #ffffff;
   margin-bottom: 12px;
+  margin-top: -180px;
 }
 
 .login-logo .brand-name {
   color: #ffffff;
-  font-size: clamp(1.9rem, 3.4vw, 2.9rem);
+  font-size: clamp(2.6rem, 4.4vw, 4rem);
   font-weight: 800;
   line-height: 0.98;
 }
 
 .login-logo .brand-sub {
   color: rgba(255, 255, 255, 0.78);
-  letter-spacing: 0.18em;
+  font-size: 1.08rem;
+  letter-spacing: 0.22em;
 }
 
 .intro-copy {
