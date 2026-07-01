@@ -104,7 +104,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                 </div>
                 <div className="header-text">
                   <h2>THÔNG TIN CƠ BẢN</h2>
-                  <p>Định danh học viên trong hệ thống AeroMetric</p>
+                  <p>Định danh học viên trong hệ thống ETR</p>
                 </div>
               </div>
 

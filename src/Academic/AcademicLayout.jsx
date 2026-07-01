@@ -46,7 +46,7 @@ const AcademicLayout = () => {
               </svg>
             </div>
             <div className="brand-text">
-              <div className="brand-title">AeroMetric</div>
+              <div className="brand-title">ETR</div>
               <div className="brand-subtitle">Academic Portal</div>
             </div>
           </div>
@@ -82,7 +82,7 @@ const AcademicLayout = () => {
       </aside>
 
       {/* Main Content Pane */}
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <div className="academic-main">
         {/* Topbar */}
         <header className="academic-topbar">
           <div className="search-wrapper">

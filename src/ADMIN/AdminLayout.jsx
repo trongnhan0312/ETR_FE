@@ -53,8 +53,12 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      <main className="admin-content">
+      <main className="admin-main">
+        <div className="admin-main-glow admin-main-glow-left" />
+        <div className="admin-main-glow admin-main-glow-right" />
+        <div className="admin-content">
         <Outlet />
+        </div>
       </main>
     </div>
   );

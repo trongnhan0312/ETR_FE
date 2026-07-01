@@ -632,15 +632,15 @@ const EtrManagement = () => {
 
   // Original ETR List View Return Statement
   return (
-    <div className="etr-management-page flex flex-col justify-start items-start w-full relative bg-[#f4f7fa]">
-      <div className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 relative gap-6 p-8" style={{ width: '100%' }}>
+    <div className="etr-management-page etr-qa-shell flex flex-col justify-start items-start w-full relative bg-[#f4f7fa]">
+      <div className="etr-qa-content flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 relative gap-6 p-8" style={{ width: '100%' }}>
 
 
 
       {/* Progress Steps Card */}
       {selectedRecord && (
         <section
-          className="flex flex-col justify-start items-center self-stretch flex-grow-0 flex-shrink-0 relative overflow-hidden gap-10 px-8 pt-8 pb-12 rounded-xl bg-white/95 border border-slate-200 backdrop-blur"
+          className="etr-qa-surface etr-qa-highlight flex flex-col justify-start items-center self-stretch flex-grow-0 flex-shrink-0 relative overflow-hidden gap-10 px-8 pt-8 pb-12 rounded-xl bg-white/95 border border-slate-200 backdrop-blur"
           style={{ boxShadow: '0px 4px 20px -2px rgba(0,33,71,0.05)' }}
         >
           <div className="flex justify-between items-center self-stretch flex-grow-0 flex-shrink-0" style={{ width: '100%' }}>
@@ -725,7 +725,7 @@ const EtrManagement = () => {
 
       {/* ETR Table List Section */}
       <section
-        className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 overflow-hidden rounded-xl bg-white border border-slate-200"
+        className="etr-qa-surface etr-qa-list-card flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 overflow-hidden rounded-xl bg-white border border-slate-200"
         style={{ boxShadow: '0px 1px 2px 0 rgba(0,0,0,0.05)' }}
       >
         <div className="flex justify-between items-center self-stretch flex-grow-0 flex-shrink-0 p-6 bg-slate-50/50 border-t-0 border-r-0 border-b border-l-0 border-slate-200" style={{ width: '100%' }}>
@@ -818,28 +818,28 @@ const EtrManagement = () => {
                     </span>
                   </div>
                   <div className="col-updated" style={{ fontSize: '12px', color: '#64748b' }}>{record.lastUpdated}</div>
-                  <div className="col-actions" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingRight: '24px' }}>
+                  <div className="col-actions !flex !min-w-0 !flex-row !flex-wrap !items-center !justify-start !gap-2 !pr-0 xl:!justify-end">
                     <button
-                      className="outline-btn font-gold-btn"
+                      className="outline-btn font-gold-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border !border-amber-300/60 !bg-white !px-0 !py-0 !text-amber-600 !shadow-sm !transition hover:-translate-y-0.5 hover:!border-amber-400 xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5"
                       type="button"
-                      style={{ padding: '6px 12px', fontSize: '10px', border: '1px solid rgba(197, 160, 89, 0.4)', color: '#c5a059', background: 'transparent', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}
                       onClick={(e) => handleOpenEvidence(record, e)}
+                      aria-label="Mở minh chứng"
                     >
                       <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M1.33333 12C0.966667 12 0.652778 11.8694 0.391667 11.6083C0.130556 11.3472 0 11.0333 0 10.6667V1.33333C0 0.966667 0.130556 0.652778 0.391667 0.391667C0.652778 0.130556 0.966667 0 1.33333 0H12C12.3667 0 12.6806 0.130556 12.9417 0.391667C13.2028 0.652778 13.3333 0.966667 13.3333 1.33333V10.6667C13.3333 11.0333 13.2028 11.3472 12.9417 11.6083C12.6806 11.8694 12.3667 12 12 12H1.33333ZM1.33333 10.6667H12V1.33333H1.33333V10.6667Z" fill="currentColor" />
                       </svg>
-                      <span>MINH CHỨNG</span>
+                      <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none">MINH CHỨNG</span>
                     </button>
                     <button
-                      className="create-btn gold-gradient-btn"
+                      className="create-btn gold-gradient-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border-0 !bg-[#002147] !px-0 !py-0 !text-[#c5a059] !shadow-sm !transition hover:-translate-y-0.5 hover:!bg-[#003366] xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5"
                       type="button"
-                      style={{ padding: '6px 12px', fontSize: '10px', background: 'linear-gradient(135deg, #002147, #003366)', border: 'none', color: '#ffffff', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}
                       onClick={(e) => handleOpenFinalView(record, e)}
+                      aria-label="Xem final"
                     >
                       <svg width="14" height="10" viewBox="0 0 15 10" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M7.33333 8C8.16667 8 8.875 7.70833 9.45833 7.125C10.0417 6.54167 10.3333 5.83333 10.3333 5C10.3333 4.16667 10.0417 3.45833 9.45833 2.875C8.875 2.29167 8.16667 2 7.33333 2C6.5 2 5.79167 2.29167 5.20833 2.875C4.625 3.45833 4.33333 4.16667 4.33333 5C4.33333 5.83333 4.625 6.54167 5.20833 7.125C5.79167 7.70833 6.5 8 7.33333 8ZM7.33333 10C5.71111 10 4.23333 9.54722 2.9 8.64167C1.56667 7.73611 0.6 6.52222 0 5C0.6 3.47778 1.56667 2.26389 2.9 1.35833C4.23333 0.452778 5.71111 0 7.33333 0C8.95556 0 10.4333 0.452778 11.7667 1.35833C13.1 2.26389 14.0667 3.47778 14.6667 5C14.0667 6.52222 13.1 7.73611 11.7667 8.64167C10.4333 9.54722 8.95556 10 7.33333 10Z" fill="#c5a059" />
                       </svg>
-                      <span style={{ color: '#c5a059', fontWeight: 'bold' }}>VIEW FINAL</span>
+                      <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none xl:text-[#c5a059]">VIEW FINAL</span>
                     </button>
                   </div>
                 </div>
@@ -851,7 +851,7 @@ const EtrManagement = () => {
 
       {/* Bottom Section: Audit Trail table */}
       <section
-        className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 overflow-hidden rounded-xl bg-white border border-slate-200"
+        className="etr-qa-surface etr-qa-list-card flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 overflow-hidden rounded-xl bg-white border border-slate-200"
         style={{ boxShadow: '0px 1px 2px 0 rgba(0,0,0,0.05)' }}
       >
         <div className="flex justify-start items-center self-stretch flex-grow-0 flex-shrink-0 gap-3 p-5 bg-slate-50/50 border-t-0 border-r-0 border-b border-l-0 border-slate-200" style={{ width: '100%' }}>
@@ -1132,7 +1132,7 @@ const EtrManagement = () => {
                           <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" />
                         </svg>
                         <div>
-                          <div className="text-xs font-bold text-slate-800">AEROMETRIC TRAINING SYSTEM</div>
+                          <div className="text-xs font-bold text-slate-800">ETR TRAINING SYSTEM</div>
                           <div className="text-[10px] font-bold text-slate-400" style={{ margin: 0 }}>OFFICIAL TRAINING RECORD</div>
                         </div>
                       </div>
@@ -1184,7 +1184,7 @@ const EtrManagement = () => {
                     </div>
                     <div>
                       <div className="text-xs font-black text-[#002147] tracking-wider" style={{ fontWeight: 'bold' }}>CERTIFIED DIGITAL ID SIGNATURE</div>
-                      <div className="text-[10px] font-bold text-[#c5a059] uppercase mt-1" style={{ color: '#c5a059' }}>AEROMETRIC CERTIFICATION TRUST</div>
+                      <div className="text-[10px] font-bold text-[#c5a059] uppercase mt-1" style={{ color: '#c5a059' }}>ETR CERTIFICATION TRUST</div>
                     </div>
                     
                     <div className="bg-white p-3 rounded-lg border border-slate-200 text-left font-mono text-[9px] w-full text-slate-500 flex flex-col gap-1 shadow-sm" style={{ fontFamily: 'monospace', fontSize: '9px', display: 'flex', flexDirection: 'column', gap: '4px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
@@ -1253,7 +1253,7 @@ const EtrManagement = () => {
             <div className="modal-body" style={{ padding: '32px', maxHeight: '75vh', overflowY: 'auto', backgroundColor: '#fdfdfd' }}>
               {/* ETR Header Title */}
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#002147', textTransform: 'uppercase', margin: '0' }}>AEROMETRIC TRAINING ACADEMY</h3>
+                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#002147', textTransform: 'uppercase', margin: '0' }}>ETR TRAINING ACADEMY</h3>
                 <h4 style={{ fontSize: '15px', fontWeight: '700', color: '#c5a059', margin: '4px 0 0', letterSpacing: '0.05em' }}>ELECTRONIC TRAINING RECORD (ETR)</h4>
                 <div style={{ width: '60px', height: '2px', backgroundColor: '#c5a059', margin: '12px auto 0' }} />
               </div>
