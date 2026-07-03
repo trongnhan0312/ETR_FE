@@ -1,9 +1,10 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import '../Academic/academic.scss';
 import './qa.scss';
 
 const iconDocument = (
   <svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M6.95 16L12.6 10.35L11.15 8.9L6.925 13.125L4.825 11.025L3.4 12.45L6.95 16ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H10L16 6V18C16 18.55 15.8042 19.0208 15.4125 19.4125C15.0208 19.8042 14.55 20 14 20H2ZM9 7V2H2V18H14V7H9ZM2 2V7V2V7V18V2Z" fill="currentColor" />
+    <path d="M6.95 16L12.6 10.35L11.15 8.9L6.925 13.125L4.825 11.025L3.4 12.45L6.95 16ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H10L16 6V18C16 18.55 15.8042 19.0208 15.4125 19.4125C15.0208 19.8042 14.55 20 14 20H2ZM9 7V2H2V18H14V7H9ZM2 2V7V2V7V18V2Z" />
   </svg>
 );
 
@@ -11,41 +12,41 @@ const navigationGroups = [
   {
     label: 'Dashboard',
     items: [
-      { label: 'DASHBOARD', to: '/qa', icon: iconDocument },
-      { label: 'PENDING EVIDENCE', to: '/qa/evidence', icon: iconDocument },
-      { label: 'PENDING ETR REVIEWS', to: '/qa/reviews', icon: iconDocument },
-      { label: 'RECENTLY REVIEWED', to: '/qa/recent', icon: iconDocument },
+      { label: 'DASHBOARD', to: '/qa' },
+      { label: 'PENDING EVIDENCE', to: '/qa/evidence' },
+      { label: 'PENDING ETR REVIEWS', to: '/qa/reviews' },
+      { label: 'RECENTLY REVIEWED', to: '/qa/recent' },
     ],
   },
   {
     label: 'Evidence Management',
     items: [
-      { label: 'VERIFY EVIDENCE', to: '/qa/evidence', icon: iconDocument },
-      { label: 'REJECTED EVIDENCE', to: '/qa/rejected', icon: iconDocument },
-      { label: 'EVIDENCE HISTORY', to: '/qa/history', icon: iconDocument },
+      { label: 'VERIFY EVIDENCE', to: '/qa/evidence' },
+      { label: 'REJECTED EVIDENCE', to: '/qa/rejected' },
+      { label: 'EVIDENCE HISTORY', to: '/qa/history' },
     ],
   },
   {
     label: 'ETR Review',
     items: [
-      { label: 'SUBMITTED ETR QUEUE', to: '/qa/reviews', icon: iconDocument },
-      { label: 'REVIEW ETR', to: '/qa/details', icon: iconDocument },
-      { label: 'RETURN FOR CORRECTION', to: '/qa/return', icon: iconDocument },
+      { label: 'SUBMITTED ETR QUEUE', to: '/qa/reviews' },
+      { label: 'REVIEW ETR', to: '/qa/details' },
+      { label: 'RETURN FOR CORRECTION', to: '/qa/return' },
     ],
   },
   {
     label: 'Compliance',
     items: [
-      { label: 'SEARCH ETR RECORDS', to: '/qa/search', icon: iconDocument },
-      { label: 'EXPORT TRAINING PKG', to: '/qa/export', icon: iconDocument },
-      { label: 'VIEW AUDIT TRAIL', to: '/qa/audit', icon: iconDocument },
+      { label: 'SEARCH ETR RECORDS', to: '/qa/search' },
+      { label: 'EXPORT TRAINING PKG', to: '/qa/export' },
+      { label: 'VIEW AUDIT TRAIL', to: '/qa/audit' },
     ],
   },
   {
     label: 'Account',
     items: [
-      { label: 'MY PROFILE', to: '/qa/profile', icon: iconDocument },
-      { label: 'CHANGE PASSWORD', to: '/qa/password', icon: iconDocument },
+      { label: 'MY PROFILE', to: '/qa/profile' },
+      { label: 'CHANGE PASSWORD', to: '/qa/password' },
     ],
   },
 ];
@@ -54,16 +55,23 @@ const QALayout = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="qa-page">
+    <div className="academic-page">
       {/* Sidebar */}
-      <aside className="qa-sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <div className="qa-brand">
-            <div className="brand-name">ETR</div>
-            <div className="brand-sub">QA Portal</div>
+      <aside className="academic-sidebar qa-sidebar-extended">
+        <div>
+          <div className="sidebar-brand">
+            <div className="logo-box">
+              <svg width="21" height="19" viewBox="0 0 21 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 18.15V16.15H20V18.15H2ZM3.75 13.15L0 6.9L2.4 6.25L5.2 8.6L8.7 7.675L3.525 0.775L6.425 0L13.9 6.275L18.15 5.125C18.6833 4.975 19.1875 5.0375 19.6625 5.3125C20.1375 5.5875 20.45 5.99167 20.6 6.525C20.75 7.05833 20.6875 7.5625 20.4125 8.0375C20.1375 8.5125 19.7333 8.825 19.2 8.975L3.75 13.15Z" />
+              </svg>
+            </div>
+            <div className="brand-text">
+              <div className="brand-title">ETR</div>
+              <div className="brand-subtitle">QA Portal</div>
+            </div>
           </div>
 
-          <nav className="qa-nav">
+          <nav className="sidebar-nav">
             {navigationGroups.map((group) => (
               <div key={group.label} className="qa-nav-group">
                 <div className="qa-nav-label">
@@ -71,12 +79,12 @@ const QALayout = () => {
                 </div>
                 {group.items.map((item) => (
                   <NavLink
-                    key={item.to}
+                    key={item.to + item.label}
                     to={item.to}
                     end={item.to === '/qa'}
-                    className={({ isActive }) => `qa-nav-item${isActive ? ' active' : ''}`}
+                    className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
                   >
-                    {item.icon}
+                    {iconDocument}
                     <span>{item.label}</span>
                   </NavLink>
                 ))}
@@ -85,26 +93,26 @@ const QALayout = () => {
           </nav>
         </div>
 
-        <div className="qa-sidebar-footer">
-          <div className="qa-profile">
-            <div className="qa-avatar">
-              Q
+        <div className="sidebar-footer">
+          <div className="user-profile">
+            <div className="avatar-container">
+              <div className="avatar-fallback">Q</div>
             </div>
-            <div>
-              <div className="qa-user-name">QA Staff</div>
-              <div className="qa-user-role">Quality Assurance</div>
+            <div className="user-info">
+              <div className="user-name">QA Staff</div>
+              <div className="user-role">Quality Assurance</div>
             </div>
           </div>
-          <button className="qa-btn-ghost qa-logout" type="button" onClick={() => navigate('/login')} style={{ marginTop: '16px', width: '100%' }}>
+          <button className="ghost-btn sidebar-logout" type="button" onClick={() => navigate('/login')} style={{ marginTop: '16px', width: '100%' }}>
             Đăng xuất
           </button>
         </div>
       </aside>
 
       {/* Main Content Pane */}
-      <div className="qa-main">
+      <div className="academic-main">
         {/* Topbar */}
-        <header className="qa-topbar">
+        <header className="academic-topbar">
           <div className="search-wrapper">
             <div className="search-icon">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -121,7 +129,9 @@ const QALayout = () => {
               </svg>
               <span className="dot"></span>
             </button>
+
             <div className="divider"></div>
+
             <button className="lang-switcher" type="button">
               <span>VIETNAMESE (VN)</span>
               <svg width="7" height="5" viewBox="0 0 7 5" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -132,7 +142,7 @@ const QALayout = () => {
         </header>
 
         {/* Content Body */}
-        <main className="qa-content">
+        <main className="academic-content">
           <Outlet />
         </main>
       </div>
