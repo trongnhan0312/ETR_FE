@@ -67,7 +67,7 @@ function App() {
 					<Route path="rejected" element={<QAEvidenceVerification />} />
 					<Route path="history" element={<QAEvidenceVerification />} />
 				</Route>
-				<Route path="/training-manager" element={<TrainingManagerLayout />}>
+				<Route path="/trainingmanager" element={<TrainingManagerLayout />}>
 					<Route index element={<TrainingManagerDashboard />} />
 					<Route path="classes" element={<ClassStatus />} />
 					<Route path="etr-approval" element={<EtrApproval />} />
