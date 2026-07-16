@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom';
 import Login from './Homepage/login';
 import AdminLayout from './ADMIN/AdminLayout';
 import Dashboard from './ADMIN/Dashboard';
@@ -28,50 +28,101 @@ import ClassStatus from './TrainingManager/ClassStatus';
 import EtrApproval from './TrainingManager/EtrApproval';
 import './App.css';
 
+// Protected Route Guard based on role stored in localStorage
+const ProtectedRoute = ({ allowedRoles }) => {
+	const token = localStorage.getItem('token');
+	const userJson = localStorage.getItem('user');
+
+	if (!token || !userJson) {
+		return <Navigate to="/login" replace />;
+	}
+
+	try {
+		const user = JSON.parse(userJson);
+		const userRole = (user.roleName || '').toLowerCase();
+		const isAllowed = allowedRoles.some((role) => role.toLowerCase() === userRole);
+
+		if (!isAllowed) {
+			// Redirect authorized users to their respective default home page
+			if (userRole === 'admin') return <Navigate to="/admin" replace />;
+			if (userRole === 'instructor') return <Navigate to="/introductor" replace />;
+			if (userRole === 'qa' || userRole === 'qualityassurance') return <Navigate to="/qa" replace />;
+			if (userRole === 'academic' || userRole === 'academicstaff') return <Navigate to="/academic" replace />;
+			if (userRole === 'trainingmanager') return <Navigate to="/trainingmanager" replace />;
+			return <Navigate to="/login" replace />;
+		}
+
+		return <Outlet />;
+	} catch (e) {
+		return <Navigate to="/login" replace />;
+	}
+};
+
 function App() {
 	return (
 		<BrowserRouter>
 			<Routes>
 				<Route path="/" element={<Navigate to="/login" replace />} />
 				<Route path="/login" element={<Login />} />
-				<Route path="/admin" element={<AdminLayout />}>
-					<Route index element={<Dashboard />} />
-					<Route path="users" element={<UserManagement />} />
-					<Route path="roles" element={<RolePermissionManagement />} />
-					<Route path="audit" element={<AuditLog />} />
-					<Route path="config" element={<SystemConfiguration />} />
+
+				{/* Protected Admin Routes */}
+				<Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+					<Route path="/admin" element={<AdminLayout />}>
+						<Route index element={<Dashboard />} />
+						<Route path="users" element={<UserManagement />} />
+						<Route path="roles" element={<RolePermissionManagement />} />
+						<Route path="audit" element={<AuditLog />} />
+						<Route path="config" element={<SystemConfiguration />} />
+					</Route>
 				</Route>
-				<Route path="/academic" element={<AcademicLayout />}>
-					<Route index element={<Navigate to="/academic/learners" replace />} />
-					<Route path="learners" element={<LearnerManagement />} />
-					<Route path="courses" element={<CourseClassManagement />} />
-					<Route path="etr" element={<EtrManagement />} />
+
+				{/* Protected Academic Routes */}
+				<Route element={<ProtectedRoute allowedRoles={['Academic', 'AcademicStaff']} />}>
+					<Route path="/academic" element={<AcademicLayout />}>
+						<Route index element={<Navigate to="/academic/learners" replace />} />
+						<Route path="learners" element={<LearnerManagement />} />
+						<Route path="courses" element={<CourseClassManagement />} />
+						<Route path="etr" element={<EtrManagement />} />
+					</Route>
 				</Route>
-				<Route path="/introductor" element={<IntroductorLayout />}>
-					<Route index element={<Navigate to="/introductor/classes" replace />} />
-					<Route path="classes" element={<IntroductorClasses />} />
-					<Route path="schedule" element={<IntroductorSchedule />} />
+
+				{/* Protected Instructor Routes */}
+				<Route element={<ProtectedRoute allowedRoles={['Instructor']} />}>
+					<Route path="/introductor" element={<IntroductorLayout />}>
+						<Route index element={<Navigate to="/introductor/classes" replace />} />
+						<Route path="classes" element={<IntroductorClasses />} />
+						<Route path="schedule" element={<IntroductorSchedule />} />
+					</Route>
 				</Route>
-				<Route path="/qa" element={<QALayout />}>
-					<Route index element={<QADashboard />} />
-					<Route path="evidence" element={<QAEvidenceVerification />} />
-					<Route path="reviews" element={<QARETRReviewQueue />} />
-					<Route path="details" element={<QARETRDetails />} />
-					<Route path="return" element={<QARETRReturn />} />
-					<Route path="search" element={<QASearchExport />} />
-					<Route path="export" element={<QASearchExport />} />
-					<Route path="audit" element={<QAAuditTrail />} />
-					<Route path="profile" element={<QAAccount />} />
-					<Route path="password" element={<QAAccount />} />
-					<Route path="recent" element={<QADashboard />} />
-					<Route path="rejected" element={<QAEvidenceVerification />} />
-					<Route path="history" element={<QAEvidenceVerification />} />
+
+				{/* Protected QA Routes */}
+				<Route element={<ProtectedRoute allowedRoles={['QA', 'QualityAssurance']} />}>
+					<Route path="/qa" element={<QALayout />}>
+						<Route index element={<QADashboard />} />
+						<Route path="evidence" element={<QAEvidenceVerification />} />
+						<Route path="reviews" element={<QARETRReviewQueue />} />
+						<Route path="details" element={<QARETRDetails />} />
+						<Route path="return" element={<QARETRReturn />} />
+						<Route path="search" element={<QASearchExport />} />
+						<Route path="export" element={<QASearchExport />} />
+						<Route path="audit" element={<QAAuditTrail />} />
+						<Route path="profile" element={<QAAccount />} />
+						<Route path="password" element={<QAAccount />} />
+						<Route path="recent" element={<QADashboard />} />
+						<Route path="rejected" element={<QAEvidenceVerification />} />
+						<Route path="history" element={<QAEvidenceVerification />} />
+					</Route>
 				</Route>
-				<Route path="/trainingmanager" element={<TrainingManagerLayout />}>
-					<Route index element={<TrainingManagerDashboard />} />
-					<Route path="classes" element={<ClassStatus />} />
-					<Route path="etr-approval" element={<EtrApproval />} />
+
+				{/* Protected Training Manager Routes */}
+				<Route element={<ProtectedRoute allowedRoles={['TrainingManager']} />}>
+					<Route path="/trainingmanager" element={<TrainingManagerLayout />}>
+						<Route index element={<TrainingManagerDashboard />} />
+						<Route path="classes" element={<ClassStatus />} />
+						<Route path="etr-approval" element={<EtrApproval />} />
+					</Route>
 				</Route>
+
 				<Route path="*" element={<Navigate to="/login" replace />} />
 			</Routes>
 		</BrowserRouter>

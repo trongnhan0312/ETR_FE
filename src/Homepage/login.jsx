@@ -8,20 +8,71 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const userLower = username.toLowerCase();
-    if (userLower.includes('qa') || userLower.includes('quality')) {
-      navigate('/qa');
-    } else if (userLower.includes('academic') || userLower.includes('staff')) {
-      navigate('/academic');
-    } else if (userLower.includes('introductor') || userLower.includes('instructor')) {
-      navigate('/introductor');
-    } else if (userLower.includes('manager') || userLower.includes('training') || userLower.includes('henderson')) {
-      navigate('/training-manager');
-    } else {
-      navigate('/admin');
+    setError('');
+    setLoading(true);
+
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5129/api';
+
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMsg = 'Đăng nhập thất bại.';
+        try {
+          const errData = await response.json();
+          errorMsg = errData.message || errData.error || errorMsg;
+        } catch {
+          try {
+            const rawText = await response.text();
+            if (rawText) errorMsg = rawText;
+          } catch {}
+        }
+        setError(errorMsg);
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify({
+        userId: data.userId,
+        username: data.username,
+        fullName: data.fullName,
+        roleName: data.roleName,
+      }));
+
+      const roleLower = (data.roleName || '').toLowerCase();
+      if (roleLower === 'admin') {
+        navigate('/admin');
+      } else if (roleLower === 'instructor') {
+        navigate('/introductor');
+      } else if (roleLower === 'qa' || roleLower === 'qualityassurance') {
+        navigate('/qa');
+      } else if (roleLower === 'academic' || roleLower === 'academicstaff') {
+        navigate('/academic');
+      } else if (roleLower === 'trainingmanager') {
+        navigate('/trainingmanager');
+      } else {
+        navigate('/admin');
+      }
+    } catch (err) {
+      setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -90,6 +141,8 @@ const Login = () => {
           <h2 className="login-title">Đăng nhập</h2>
           <p className="login-subtitle">Vui lòng đăng nhập để truy cập hệ thống ETR</p>
 
+          {error && <div className="error-message" role="alert">{error}</div>}
+
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Tên đăng nhập / Email</label>
@@ -100,6 +153,7 @@ const Login = () => {
                   placeholder="Nhập tên đăng nhập hoặc email"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  disabled={loading}
                   required
                 />
               </div>
@@ -114,12 +168,14 @@ const Login = () => {
                   placeholder="Nhập mật khẩu"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   className="password-toggle"
                   onClick={() => setShowPassword((current) => !current)}
                   aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  disabled={loading}
                 >
                   {showPassword ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
                 </button>
@@ -128,7 +184,7 @@ const Login = () => {
 
             <div className="form-options">
               <label className="remember-me">
-                <input type="checkbox" />
+                <input type="checkbox" disabled={loading} />
                 <span className="custom-checkbox" aria-hidden="true" />
                 <span>Ghi nhớ đăng nhập</span>
               </label>
@@ -137,9 +193,9 @@ const Login = () => {
               </a>
             </div>
 
-            <button type="submit" className="login-submit-btn">
-              <span>Đăng nhập</span>
-              <FaArrowRight aria-hidden="true" />
+            <button type="submit" className="login-submit-btn" disabled={loading}>
+              <span>{loading ? 'Đang đăng nhập...' : 'Đăng nhập'}</span>
+              {!loading && <FaArrowRight aria-hidden="true" />}
             </button>
 
             <div className="login-divider" aria-hidden="true" />
