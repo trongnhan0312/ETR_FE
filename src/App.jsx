@@ -10,9 +10,12 @@ import AcademicLayout from './Academic/AcademicLayout';
 import LearnerManagement from './Academic/LearnerManagement';
 import CourseClassManagement from './Academic/CourseClassManagement';
 import EtrManagement from './Academic/EtrManagement';
-import IntroductorLayout from './Introductor/IntroductorLayout';
-import IntroductorClasses from './Introductor/IntroductorClasses';
-import IntroductorSchedule from './Introductor/IntroductorSchedule';
+import InstructorLayout from './Instructor/InstructorLayout';
+import InstructorDashboard from './Instructor/InstructorDashboard';
+import InstructorClasses from './Instructor/InstructorClasses';
+import InstructorAttendance from './Instructor/InstructorAttendance';
+import InstructorAssessments from './Instructor/InstructorAssessments';
+import InstructorEvidence from './Instructor/InstructorEvidence';
 import QALayout from './QA/QALayout';
 import QADashboard from './QA/QADashboard';
 import QAEvidenceVerification from './QA/QAEvidenceVerification';
@@ -29,7 +32,7 @@ import EtrApproval from './TrainingManager/EtrApproval';
 import './App.css';
 
 // Protected Route Guard based on role stored in localStorage
-const ProtectedRoute = ({ allowedRoles }) => {
+/*const ProtectedRoute = ({ allowedRoles }) => {
 	const token = localStorage.getItem('token');
 	const userJson = localStorage.getItem('user');
 
@@ -45,7 +48,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
 		if (!isAllowed) {
 			// Redirect authorized users to their respective default home page
 			if (userRole === 'admin') return <Navigate to="/admin" replace />;
-			if (userRole === 'instructor') return <Navigate to="/introductor" replace />;
+			if (userRole === 'instructor') return <Navigate to="/instructor" replace />;
 			if (userRole === 'qa' || userRole === 'qualityassurance') return <Navigate to="/qa" replace />;
 			if (userRole === 'academic' || userRole === 'academicstaff') return <Navigate to="/academic" replace />;
 			if (userRole === 'trainingmanager') return <Navigate to="/trainingmanager" replace />;
@@ -56,8 +59,11 @@ const ProtectedRoute = ({ allowedRoles }) => {
 	} catch (e) {
 		return <Navigate to="/login" replace />;
 	}
+};*/
+// Temporary: bypass authentication during development
+const ProtectedRoute = () => {
+	return <Outlet />;
 };
-
 function App() {
 	return (
 		<BrowserRouter>
@@ -88,13 +94,19 @@ function App() {
 
 				{/* Protected Instructor Routes */}
 				<Route element={<ProtectedRoute allowedRoles={['Instructor']} />}>
-					<Route path="/introductor" element={<IntroductorLayout />}>
-						<Route index element={<Navigate to="/introductor/classes" replace />} />
-						<Route path="classes" element={<IntroductorClasses />} />
-						<Route path="schedule" element={<IntroductorSchedule />} />
+					<Route path="/instructor" element={<InstructorLayout />}>
+						<Route
+							index
+							element={<Navigate to="/instructor/dashboard" replace />}
+						/>
+
+						<Route path="dashboard" element={<InstructorDashboard />} />
+						<Route path="classes" element={<InstructorClasses />} />
+						<Route path="attendance" element={<InstructorAttendance />} />
+						<Route path="assessments" element={<InstructorAssessments />} />
+						<Route path="evidence" element={<InstructorEvidence />} />
 					</Route>
 				</Route>
-
 				{/* Protected QA Routes */}
 				<Route element={<ProtectedRoute allowedRoles={['QA', 'QualityAssurance']} />}>
 					<Route path="/qa" element={<QALayout />}>
