@@ -1,28 +1,36 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FaArrowRight, FaEye, FaEyeSlash, FaLock, FaShieldAlt, FaUser } from 'react-icons/fa';
-import './login.scss';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  FaArrowRight,
+  FaEye,
+  FaEyeSlash,
+  FaLock,
+  FaShieldAlt,
+  FaUser,
+} from "react-icons/fa";
+import "./login.scss";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5129/api';
+    const API_URL =
+      import.meta.env.VITE_API_URL || "https://localhost:7169/api";
 
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           username,
@@ -31,7 +39,7 @@ const Login = () => {
       });
 
       if (!response.ok) {
-        let errorMsg = 'Đăng nhập thất bại.';
+        let errorMsg = "Đăng nhập thất bại.";
         try {
           const errData = await response.json();
           errorMsg = errData.message || errData.error || errorMsg;
@@ -47,30 +55,36 @@ const Login = () => {
       }
 
       const data = await response.json();
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({
-        userId: data.userId,
-        username: data.username,
-        fullName: data.fullName,
-        roleName: data.roleName,
-      }));
+      console.log("Dữ liệu API trả về:", data);
+      localStorage.setItem("token", data.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          userId: data.userId,
+          username: data.username,
+          fullName: data.fullName,
+          roleName: data.role,
+        }),
+      );
 
-      const roleLower = (data.roleName || '').toLowerCase();
-      if (roleLower === 'admin') {
-        navigate('/admin');
-      } else if (roleLower === 'instructor') {
-        navigate('/introductor');
-      } else if (roleLower === 'qa' || roleLower === 'qualityassurance') {
-        navigate('/qa');
-      } else if (roleLower === 'academic' || roleLower === 'academicstaff') {
-        navigate('/academic');
-      } else if (roleLower === 'trainingmanager') {
-        navigate('/trainingmanager');
+      const roleLower = (data.role || "").toLowerCase();
+      if (roleLower === "admin") {
+        navigate("/admin");
+      } else if (roleLower === "instructor") {
+        navigate("/introductor");
+      } else if (roleLower === "qa" || roleLower === "qualityassurance") {
+        navigate("/qa");
+      } else if (roleLower === "academic" || roleLower === "academicstaff") {
+        navigate("/academic");
+      } else if (roleLower === "trainingmanager") {
+        navigate("/trainingmanager");
       } else {
-        navigate('/admin');
+        navigate("/admin");
       }
     } catch (err) {
-      setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.');
+      setError(
+        "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.",
+      );
     } finally {
       setLoading(false);
     }
@@ -83,12 +97,23 @@ const Login = () => {
         <div className="aviation-illustration" aria-hidden="true">
           <svg viewBox="0 0 760 640" role="presentation" focusable="false">
             <defs>
-              <linearGradient id="runwayLine" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient
+                id="runwayLine"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
                 <stop offset="0%" stopColor="rgba(255,255,255,0.38)" />
                 <stop offset="100%" stopColor="rgba(212,175,55,0.42)" />
               </linearGradient>
             </defs>
-            <g fill="none" stroke="url(#runwayLine)" strokeLinecap="round" strokeLinejoin="round">
+            <g
+              fill="none"
+              stroke="url(#runwayLine)"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M74 462h540" opacity="0.34" />
               <path d="M108 410h468" opacity="0.22" />
               <path d="M146 358h390" opacity="0.18" />
@@ -122,15 +147,19 @@ const Login = () => {
           <span className="eyebrow">Aviation training operations</span>
           <h1>Secure access for ETR administration and training workflows.</h1>
           <p>
-            Manage learners, courses, attendance, evidence, and ETR approval flows
-            from one central aviation training portal.
+            Manage learners, courses, attendance, evidence, and ETR approval
+            flows from one central aviation training portal.
           </p>
         </div>
       </section>
 
       <section className="login-panel">
         <div className="login-card">
-          <button type="button" className="back-link" onClick={() => navigate('/') }>
+          <button
+            type="button"
+            className="back-link"
+            onClick={() => navigate("/")}
+          >
             ← Về trang chủ
           </button>
 
@@ -139,9 +168,15 @@ const Login = () => {
           </div>
 
           <h2 className="login-title">Đăng nhập</h2>
-          <p className="login-subtitle">Vui lòng đăng nhập để truy cập hệ thống ETR</p>
+          <p className="login-subtitle">
+            Vui lòng đăng nhập để truy cập hệ thống ETR
+          </p>
 
-          {error && <div className="error-message" role="alert">{error}</div>}
+          {error && (
+            <div className="error-message" role="alert">
+              {error}
+            </div>
+          )}
 
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
@@ -164,7 +199,7 @@ const Login = () => {
               <div className="input-shell input-shell--password">
                 <FaLock className="input-icon" aria-hidden="true" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   placeholder="Nhập mật khẩu"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -174,10 +209,14 @@ const Login = () => {
                   type="button"
                   className="password-toggle"
                   onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                   disabled={loading}
                 >
-                  {showPassword ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+                  {showPassword ? (
+                    <FaEyeSlash aria-hidden="true" />
+                  ) : (
+                    <FaEye aria-hidden="true" />
+                  )}
                 </button>
               </div>
             </div>
@@ -193,15 +232,21 @@ const Login = () => {
               </a>
             </div>
 
-            <button type="submit" className="login-submit-btn" disabled={loading}>
-              <span>{loading ? 'Đang đăng nhập...' : 'Đăng nhập'}</span>
+            <button
+              type="submit"
+              className="login-submit-btn"
+              disabled={loading}
+            >
+              <span>{loading ? "Đang đăng nhập..." : "Đăng nhập"}</span>
               {!loading && <FaArrowRight aria-hidden="true" />}
             </button>
 
             <div className="login-divider" aria-hidden="true" />
 
             <p className="assistance-text">Need assistance?</p>
-            <p className="assistance-text assistance-text--muted">Contact your system administrator.</p>
+            <p className="assistance-text assistance-text--muted">
+              Contact your system administrator.
+            </p>
           </form>
         </div>
       </section>
