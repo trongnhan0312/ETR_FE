@@ -132,7 +132,11 @@ const IntroductorLayout = () => {
 
           {/* Logout Button */}
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              navigate('/login');
+            }}
             className="flex justify-start items-center self-stretch gap-4 px-4 py-3 hover:bg-rose-950/20 rounded-lg transition-all text-left w-full"
           >
             <div className="flex flex-col justify-start items-center shrink-0 relative">

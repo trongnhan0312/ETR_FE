@@ -75,7 +75,16 @@ const AcademicLayout = () => {
               <div className="user-role">Premium Access</div>
             </div>
           </div>
-          <button className="ghost-btn sidebar-logout" type="button" onClick={() => navigate('/login')} style={{ marginTop: '16px', width: '100%' }}>
+          <button
+            className="ghost-btn sidebar-logout"
+            type="button"
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              navigate('/login');
+            }}
+            style={{ marginTop: '16px', width: '100%' }}
+          >
             Đăng xuất
           </button>
         </div>
