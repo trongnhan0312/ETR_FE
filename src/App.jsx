@@ -32,18 +32,25 @@ import EtrApproval from './TrainingManager/EtrApproval';
 import './App.css';
 
 // Protected Route Guard based on role stored in localStorage
+// Protected Route Guard based on role stored in localStorage
 /*const ProtectedRoute = ({ allowedRoles }) => {
 	const token = localStorage.getItem('token');
 	const userJson = localStorage.getItem('user');
 
-	if (!token || !userJson) {
-		return <Navigate to="/login" replace />;
-	}
+  if (!token || !userJson) {
+	return <Navigate to="/login" replace />;
+  }
 
-	try {
-		const user = JSON.parse(userJson);
-		const userRole = (user.roleName || '').toLowerCase();
-		const isAllowed = allowedRoles.some((role) => role.toLowerCase() === userRole);
+  try {
+	const user = JSON.parse(userJson);
+
+	// Lấy role ra (hỗ trợ cả trường hợp bạn lưu là roleName hoặc role)
+	const rawRole = user.roleName || user.role || "";
+	const userRole = rawRole.toLowerCase(); // chuyển thành chữ thường ví dụ: "admin"
+
+	const isAllowed = allowedRoles.some(
+	  (role) => role.toLowerCase() === userRole,
+	);
 
 		if (!isAllowed) {
 			// Redirect authorized users to their respective default home page
@@ -72,7 +79,7 @@ function App() {
 				<Route path="/login" element={<Login />} />
 
 				{/* Protected Admin Routes */}
-				<Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+				<Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
 					<Route path="/admin" element={<AdminLayout />}>
 						<Route index element={<Dashboard />} />
 						<Route path="users" element={<UserManagement />} />
@@ -83,9 +90,16 @@ function App() {
 				</Route>
 
 				{/* Protected Academic Routes */}
-				<Route element={<ProtectedRoute allowedRoles={['Academic', 'AcademicStaff']} />}>
+				<Route
+					element={
+						<ProtectedRoute allowedRoles={["Academic", "AcademicStaff"]} />
+					}
+				>
 					<Route path="/academic" element={<AcademicLayout />}>
-						<Route index element={<Navigate to="/academic/learners" replace />} />
+						<Route
+							index
+							element={<Navigate to="/academic/learners" replace />}
+						/>
 						<Route path="learners" element={<LearnerManagement />} />
 						<Route path="courses" element={<CourseClassManagement />} />
 						<Route path="etr" element={<EtrManagement />} />
@@ -127,7 +141,7 @@ function App() {
 				</Route>
 
 				{/* Protected Training Manager Routes */}
-				<Route element={<ProtectedRoute allowedRoles={['TrainingManager']} />}>
+				<Route element={<ProtectedRoute allowedRoles={["TrainingManager"]} />}>
 					<Route path="/trainingmanager" element={<TrainingManagerLayout />}>
 						<Route index element={<TrainingManagerDashboard />} />
 						<Route path="classes" element={<ClassStatus />} />

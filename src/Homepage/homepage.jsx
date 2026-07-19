@@ -111,7 +111,15 @@ const Homepage = () => {
           </div>
 
           <div className="topbar-actions">
-            <button className="ghost-btn" type="button" onClick={() => navigate('/login')}>
+            <button
+              className="ghost-btn"
+              type="button"
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                navigate('/login');
+              }}
+            >
               Logout
             </button>
             <button className="primary-btn" type="button">
