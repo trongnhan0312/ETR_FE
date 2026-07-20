@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import ApprovalHistory from "../components/ApprovalHistory";
 
 const QARETRDetails = () => {
   const [etrList, setEtrList] = useState([]);
@@ -100,7 +101,7 @@ const QARETRDetails = () => {
     if (!window.confirm(`Trả lại ${selectedEtr.id} để chỉnh sửa?`)) return;
     setVerifying(true);
     try {
-      await api.post(`/Etr/${selectedEtr.etrId}/verify`, {
+      await api.post(`/Etr/${selectedEtr.etrId}/return`, {
         comment: reviewNotes,
       });
       setMessage({
@@ -148,7 +149,7 @@ const QARETRDetails = () => {
           <div>
             <h2>Select ETR Record</h2>
           </div>
-          <button className="qa-btn" type="button" onClick={loadEtrs} disabled={loading}>
+          <button className="qa-btn" type="button" onClick={loadData} disabled={loading}>
             Refresh
           </button>
         </div>
@@ -203,6 +204,8 @@ const QARETRDetails = () => {
         <section className="qa-detail-grid">
           <div className="qa-panel">
             <h2 className="qa-section-title">Record Summary</h2>
+            <h2 className="qa-section-title" style={{ marginTop: "24px" }}>Approval History</h2>
+            <ApprovalHistory etrId={selectedEtr.etrId} />
             <div className="qa-kv-grid">
               <div className="qa-kv">
                 <strong>ETR ID</strong>

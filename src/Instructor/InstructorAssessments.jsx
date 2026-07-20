@@ -284,12 +284,14 @@ const InstructorAssessments = () => {
         let practicalIsPublished = false;
 
         const etrDetails = etrDetailsMap[student.accountId];
+        let attendanceRate = null;
         if (etrDetails && etrDetails.subjectResults) {
           const subRes = etrDetails.subjectResults.find(
             (sr) => sr.subjectId === session.subjectId,
           );
           if (subRes) {
             subjectResultId = subRes.subjectResultId;
+            attendanceRate = subRes.attendanceRate != null ? subRes.attendanceRate : null;
 
             if (selectedTypes.includes("assessment")) {
               // Filter pre-fetched assessment results by accountId, assessmentId, AND sessionId.
@@ -378,6 +380,7 @@ const InstructorAssessments = () => {
           assessmentIsPublished,
           practicalIsPublished,
           isPublished,
+          attendanceRate,
         });
       }
 
@@ -999,9 +1002,9 @@ const InstructorAssessments = () => {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "60px 140px 220px 140px 1fr 100px",
+              gridTemplateColumns: "60px 100px 200px 80px 140px 1fr 100px",
               alignItems: "center",
-              gap: "12px",
+              gap: "8px",
               background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
               color: "#ffffff",
               padding: "14px 20px",
@@ -1012,11 +1015,12 @@ const InstructorAssessments = () => {
             }}
           >
             <div style={{ textAlign: "center" }}>STT</div>
-            <div>Mã học viên</div>
+            <div style={{ textAlign: "center" }}>Mã HV</div>
             <div>Học viên</div>
-            <div style={{ textAlign: "center" }}>Điểm số (0 - 100)</div>
-            <div>Ghi chú nhận xét chuyên môn</div>
-            <div style={{ textAlign: "center" }}>Khóa sửa</div>
+            <div style={{ textAlign: "center" }}>Điểm danh</div>
+            <div style={{ textAlign: "center" }}>Điểm số (0-100)</div>
+            <div>Nhận xét chuyên môn</div>
+            <div style={{ textAlign: "center" }}>Khóa</div>
           </div>
 
           <div className="table-body">
@@ -1038,7 +1042,7 @@ const InstructorAssessments = () => {
                   className="table-row"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "60px 140px 220px 140px 1fr 100px",
+                    gridTemplateColumns: "60px 100px 200px 80px 140px 1fr 100px",
                     alignItems: "center",
                     gap: "12px",
                     padding: "14px 20px",
@@ -1072,6 +1076,39 @@ const InstructorAssessments = () => {
                   >
                     {student.name}
                   </span>
+
+                  {/* Attendance Rate cell */}
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    {student.attendanceRate != null ? (
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          backgroundColor:
+                            student.attendanceRate >= 80
+                              ? "rgba(34,197,94,0.1)"
+                              : "rgba(239,68,68,0.1)",
+                          color:
+                            student.attendanceRate >= 80
+                              ? "#16a34a"
+                              : "#ef4444",
+                        }}
+                      >
+                        {student.attendanceRate}%
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: "rgba(0,33,71,0.3)",
+                        }}
+                      >
+                        N/A
+                      </span>
+                    )}
+                  </div>
 
                   {/* Score input cell */}
                   <div style={{ display: "flex", justifyContent: "center" }}>

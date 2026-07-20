@@ -1,6 +1,9 @@
 import { useState, useCallback } from "react";
 import { api } from "../utils/api";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "https://localhost:7169/api";
+
 const QASearchExport = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -37,10 +40,20 @@ const QASearchExport = () => {
   const handleExportPackage = useCallback(async () => {
     setExporting(true);
     try {
-      await api.get("/Exports/package").catch(() => {
-        // Fallback for demo
-      });
-      setMessage({ type: "success", text: "Yêu cầu xuất gói training đã được tạo." });
+      const result = await api.post("/Exports/training-package", {});
+      if (result && result.exportJobId) {
+        // Open download in new tab
+        window.open(
+          `${API_BASE_URL}/Exports/download/${result.exportJobId}`,
+          "_blank"
+        );
+        setMessage({
+          type: "success",
+          text: `Gói training đã được xuất. Tải file: ${result.fileName || "training_package.zip"}`,
+        });
+      } else {
+        setMessage({ type: "success", text: "Yêu cầu xuất gói training đã được tạo." });
+      }
     } catch (err) {
       setMessage({ type: "error", text: "Xuất thất bại: " + (err.message || "") });
     } finally {
@@ -51,10 +64,19 @@ const QASearchExport = () => {
   const handleExportAudit = useCallback(async () => {
     setExporting(true);
     try {
-      await api.get("/Exports/audit").catch(() => {
-        // Fallback for demo
-      });
-      setMessage({ type: "success", text: "Yêu cầu xuất audit trail đã được tạo." });
+      const result = await api.post("/Exports/pdf", {});
+      if (result && result.exportJobId) {
+        window.open(
+          `${API_BASE_URL}/Exports/download/${result.exportJobId}`,
+          "_blank"
+        );
+        setMessage({
+          type: "success",
+          text: `Audit trail PDF đã được xuất.`,
+        });
+      } else {
+        setMessage({ type: "success", text: "Yêu cầu xuất audit trail đã được tạo." });
+      }
     } catch (err) {
       setMessage({ type: "error", text: "Xuất thất bại: " + (err.message || "") });
     } finally {
