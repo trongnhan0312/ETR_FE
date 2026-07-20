@@ -325,6 +325,22 @@
         color: #ffffff;
       }
     }
+
+    &.status-au {
+      color: rgba(0, 33, 71, 0.6);
+      &.active {
+        background-color: #ef4444;
+        color: #ffffff;
+      }
+    }
+
+    &.status-t {
+      color: rgba(0, 33, 71, 0.6);
+      &.active {
+        background-color: #3b82f6;
+        color: #ffffff;
+      }
+    }
   }
 }
 

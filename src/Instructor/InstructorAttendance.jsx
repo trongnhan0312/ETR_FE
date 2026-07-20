@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "../utils/api";
+import { useToast } from "../components/Toast";
+import ConfirmModal from "../components/ConfirmModal";
 import "./instructor.scss";
 
 const InstructorAttendance = () => {
@@ -20,6 +22,11 @@ const InstructorAttendance = () => {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Confirm modal & toast
+  const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const toast = useToast();
 
   // Load all assigned classes on mount
   useEffect(() => {
@@ -101,21 +108,26 @@ const InstructorAttendance = () => {
     setSelectedSession(session);
     setLoading(true);
     try {
-      // 1. Get class details and enrollments to get students
-      const [allEnrollments, allProfiles] = await Promise.all([
+      // 1. Get class details, enrollments, and class-student mappings
+      const [allEnrollments, allProfiles, allClassStudents] = await Promise.all([
         api.get("/enrollments").catch(() => []),
-        api.get("/userprofiles").catch(() => [])
+        api.get("/userprofiles").catch(() => []),
+        api.get("/classStudents").catch(() => [])
       ]);
       
       const classEnrollments = allEnrollments.filter(e => e.classId === parseInt(selectedClassId));
       const mappedStudents = classEnrollments.map((en, idx) => {
         const profile = allProfiles.find(p => p.accountId === en.accountId);
+        // Find the correct ClassStudent record by CourseEnrollmentId
+        const classStudentRec = Array.isArray(allClassStudents)
+          ? allClassStudents.find(cs => cs.courseEnrollmentId === en.enrollmentId)
+          : null;
         return {
           code: profile ? profile.employeeCode || `HV${en.accountId}` : `HV${en.accountId}`,
           name: profile ? profile.fullName : "Học viên",
           accountId: en.accountId,
           enrollmentId: en.enrollmentId,
-          classStudentId: en.enrollmentId
+          classStudentId: classStudentRec ? classStudentRec.classStudentId : en.enrollmentId
         };
       });
       setStudents(mappedStudents);
@@ -130,7 +142,8 @@ const InstructorAttendance = () => {
       setIsConfirmed(isSessionLocked);
 
       const mappedAttendance = mappedStudents.map(student => {
-        const record = sessionRecords.find(r => r.accountId === student.accountId);
+        // Match by classStudentId instead of accountId (API response has classStudentId, not accountId)
+        const record = sessionRecords.find(r => r.classStudentId === student.classStudentId);
         return {
           code: student.code,
           name: student.name,
@@ -182,12 +195,15 @@ const InstructorAttendance = () => {
         })
       );
       
-      alert("Lưu thông tin điểm danh thành công!");
+      toast.success(
+        "Lưu điểm danh thành công!",
+        "Đã cập nhật thông tin điểm danh.",
+      );
       // Reload records to fetch new IDs
       loadAttendance(selectedSession);
     } catch (err) {
       console.error("Lỗi khi lưu điểm danh:", err);
-      alert("Đã xảy ra lỗi khi lưu: " + err.message);
+      toast.error("Lưu điểm danh thất bại!", err.message);
     } finally {
       setSaving(false);
     }
@@ -195,9 +211,8 @@ const InstructorAttendance = () => {
 
   const handleConfirmAttendance = async () => {
     if (isConfirmed) return;
-    if (!window.confirm("Bạn có chắc chắn muốn chốt và khóa bảng điểm danh? Sau khi chốt sẽ không thể sửa đổi.")) return;
-    
-    setSaving(true);
+
+    setPublishing(true);
     try {
       // First save any unsaved changes
       await Promise.all(
@@ -222,16 +237,20 @@ const InstructorAttendance = () => {
 
       // Confirm / Lock session
       await api.post(`/attendance/sessions/${selectedSession.sessionId}/confirm`);
+      setConfirmPublishOpen(false);
       setIsConfirmed(true);
-      alert("Đã xác nhận và khóa bảng điểm danh thành công!");
+      toast.success(
+        "Chốt điểm danh thành công!",
+        "Bảng điểm danh đã được khóa.",
+      );
       
       // Update local sessions state
       setSessions(prev => prev.map(s => s.sessionId === selectedSession.sessionId ? { ...s, isConfirmed: true, attendance: "Đã chốt" } : s));
     } catch (err) {
       console.error("Lỗi khi chốt điểm danh:", err);
-      alert("Đã xảy ra lỗi: " + err.message);
+      toast.error("Chốt điểm danh thất bại!", err.message);
     } finally {
-      setSaving(false);
+      setPublishing(false);
     }
   };
 
@@ -261,7 +280,7 @@ const InstructorAttendance = () => {
               onClick={handleSaveAttendance}
               className="create-btn"
               type="button"
-              disabled={isConfirmed || saving}
+              disabled={isConfirmed || saving || publishing}
               style={{
                 opacity: isConfirmed ? 0.6 : 1,
                 cursor: isConfirmed ? "not-allowed" : "pointer"
@@ -271,7 +290,7 @@ const InstructorAttendance = () => {
             </button>
 
             <button
-              onClick={handleConfirmAttendance}
+              onClick={() => setConfirmPublishOpen(true)}
               className="create-btn"
               type="button"
               disabled={isConfirmed || saving}
@@ -432,6 +451,22 @@ const InstructorAttendance = () => {
             </div>
           </div>
         )}
+
+        {/* Toast notifications */}
+        <toast.ToastContainer />
+
+        {/* Confirm publish modal */}
+        <ConfirmModal
+          isOpen={confirmPublishOpen}
+          onClose={() => setConfirmPublishOpen(false)}
+          onConfirm={handleConfirmAttendance}
+          title="Xác nhận chốt điểm danh"
+          message="Bạn có chắc chắn muốn chốt và khóa bảng điểm danh này?"
+          confirmText="CHỐT ĐIỂM DANH"
+          cancelText="HỦY BỎ"
+          confirmVariant="danger"
+          loading={publishing}
+        />
       </div>
     );
   }

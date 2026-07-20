@@ -170,6 +170,46 @@ export const api = {
     }
   },
 
+  patch: async (endpoint, data) => {
+    console.log(
+      `[API PATCH] Requesting: ${API_BASE_URL}${endpoint} with Payload:`,
+      data,
+    );
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: data ? JSON.stringify(data) : undefined,
+      });
+      console.log(
+        `[API PATCH] Response Status: ${response.status} for ${endpoint}`,
+      );
+      if (!response.ok) {
+        const err = await response.text();
+        console.error(
+          `[API PATCH] Failed: Status ${response.status}, Error:`,
+          err,
+        );
+        throw new Error(err || `Request failed with status ${response.status}`);
+      }
+      if (response.status === 204) {
+        console.log(`[API PATCH] Success (No Content) for ${endpoint}`);
+        return null;
+      }
+      try {
+        const resData = await response.json();
+        console.log(`[API PATCH] Success data for ${endpoint}:`, resData);
+        return resData;
+      } catch {
+        console.log(`[API PATCH] Success (Empty Body) for ${endpoint}`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`[API PATCH] Error calling ${endpoint}:`, error);
+      throw error;
+    }
+  },
+
   delete: async (endpoint) => {
     console.log(`[API DELETE] Requesting: ${API_BASE_URL}${endpoint}`);
     try {

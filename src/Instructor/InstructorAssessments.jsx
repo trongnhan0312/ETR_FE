@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "../utils/api";
+import { useToast } from "../components/Toast";
+import ConfirmModal from "../components/ConfirmModal";
 import "./instructor.scss";
 
 const InstructorAssessments = () => {
@@ -16,6 +18,13 @@ const InstructorAssessments = () => {
   const [isEditingScores, setIsEditingScores] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Confirm publish modal state
+  const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  // Toast notifications
+  const toast = useToast();
 
   // Remarks note modal state
   const [assessmentsList, setAssessmentsList] = useState([]);
@@ -192,12 +201,10 @@ const InstructorAssessments = () => {
     }
   };
 
-  // Load assessment results for a student — CORRECT endpoint
-  const getAssessmentResultsByStudent = async (classStudentId) => {
-    // Backend: GET /api/AssessmentResults/student/{classStudentId}
-    const result = await api
-      .get(`/AssessmentResults/student/${classStudentId}`)
-      .catch(() => null);
+  // Load all assessment results at once — filter by accountId/assessmentId in caller
+  const getAllAssessmentResults = async () => {
+    // Backend: GET /api/AssessmentResults
+    const result = await api.get("/AssessmentResults").catch(() => []);
     return Array.isArray(result) ? result : [];
   };
 
@@ -226,114 +233,149 @@ const InstructorAssessments = () => {
         selectedTypes,
       });
 
+      // Pre-fetch all assessment results once (instead of per-student)
+      const allAssessmentResults = selectedTypes.includes("assessment")
+        ? await getAllAssessmentResults()
+        : [];
+
       // Pre-fetch all practical results once (instead of per-student)
       const allPracticalResults = selectedTypes.includes("practical")
         ? await getAllPracticalResults()
         : [];
 
-      // Get the assessmentId for this session to filter results correctly
+      // Get the assessmentId and sessionId for this session to filter results correctly
       const sessionAssessmentId = getAssessmentIdForSession(session);
+      const currentSessionId = session?.sessionId;
 
+      // Pre-fetch ETR details for all students in parallel (batch)
+      const etrDetailsMap = {};
       await Promise.all(
         mappedStudents.map(async (student) => {
-          let assessmentScore = 0;
-          let assessmentComment = "";
-          let assessmentResultId = null;
-          let practicalScore = 0;
-          let practicalComment = "";
-          let practicalResultId = null;
-          let subjectResultId = 1;
-          let assessmentIsPublished = false;
-          let practicalIsPublished = false;
-
           const studentEtr = allEtrs.find(
             (e) =>
               e.accountId === student.accountId ||
               e.enrollmentId === student.enrollmentId,
           );
           if (studentEtr) {
-            const etrDetails = await api
+            const details = await api
               .get(`/etr/${studentEtr.etrCourseRecordId}`)
               .catch(() => null);
-            if (etrDetails && etrDetails.subjectResults) {
-              const subRes = etrDetails.subjectResults.find(
-                (sr) => sr.subjectId === session.subjectId,
+            if (details) {
+              etrDetailsMap[student.accountId] = details;
+            }
+          }
+        }),
+      )
+
+      // Build list of students with their scores
+      for (const student of mappedStudents) {
+        let assessmentScore = 0;
+        let assessmentComment = "";
+        let assessmentResultId = null;
+        let practicalScore = 0;
+        let practicalComment = "";
+        let practicalResultId = null;
+        let subjectResultId = 1;
+        let assessmentIsPublished = false;
+        let practicalIsPublished = false;
+
+        const etrDetails = etrDetailsMap[student.accountId];
+        if (etrDetails && etrDetails.subjectResults) {
+          const subRes = etrDetails.subjectResults.find(
+            (sr) => sr.subjectId === session.subjectId,
+          );
+          if (subRes) {
+            subjectResultId = subRes.subjectResultId;
+
+            if (selectedTypes.includes("assessment")) {
+              // Filter pre-fetched assessment results by accountId, assessmentId, AND sessionId.
+              // Fallback: if no session-specific result found, look for legacy records with null sessionId.
+              let sessionScore = allAssessmentResults.find(
+                (ar) =>
+                  ar.accountId === student.accountId &&
+                  ar.assessmentId === sessionAssessmentId &&
+                  ar.subjectResultId === subRes.subjectResultId &&
+                  ar.sessionId === currentSessionId,
               );
-              if (subRes) {
-                subjectResultId = subRes.subjectResultId;
-                const studentKey =
-                  student.classStudentId || student.enrollmentId;
+              // Fallback: allow legacy records (sessionId == null) to show up
+              if (!sessionScore) {
+                sessionScore = allAssessmentResults.find(
+                  (ar) =>
+                    ar.accountId === student.accountId &&
+                    ar.assessmentId === sessionAssessmentId &&
+                    ar.subjectResultId === subRes.subjectResultId &&
+                    ar.sessionId == null,
+                );
+              }
+              if (sessionScore) {
+                assessmentScore = sessionScore.score || 0;
+                assessmentComment = sessionScore.remark || "";
+                assessmentResultId =
+                  sessionScore.assessmentResultId ||
+                  sessionScore.resultId ||
+                  sessionScore.id ||
+                  null;
+                assessmentIsPublished = sessionScore.isPublished || false;
+              }
+            }
 
-                if (selectedTypes.includes("assessment")) {
-                  const assessmentResults =
-                    await getAssessmentResultsByStudent(studentKey);
-                  // Filter by both subjectResultId AND assessmentId to avoid
-                  // picking up results from a different session
-                  const sessionScore = assessmentResults.find(
-                    (ar) =>
-                      ar.subjectResultId === subRes.subjectResultId &&
-                      ar.assessmentId === sessionAssessmentId,
-                  );
-                  if (sessionScore) {
-                    assessmentScore = sessionScore.score || 0;
-                    assessmentComment = sessionScore.remark || "";
-                    assessmentResultId =
-                      sessionScore.assessmentResultId ||
-                      sessionScore.resultId ||
-                      sessionScore.id ||
-                      null;
-                    assessmentIsPublished = sessionScore.isPublished || false;
-                  }
-                }
-
-                if (selectedTypes.includes("practical")) {
-                  // Filter pre-fetched practical results by subjectResultId
-                  const sessionScore = allPracticalResults.find(
-                    (pr) =>
-                      pr.subjectResultId === subRes.subjectResultId ||
-                      pr.subjectId === session.subjectId,
-                  );
-                  if (sessionScore) {
-                    practicalScore = sessionScore.score || 0;
-                    practicalComment = sessionScore.remark || "";
-                    practicalResultId =
-                      sessionScore.practicalChecklistResultId ||
-                      sessionScore.resultId ||
-                      sessionScore.id ||
-                      null;
-                    practicalIsPublished = sessionScore.isPublished || false;
-                  }
-                }
+            if (selectedTypes.includes("practical")) {
+              // Filter pre-fetched practical results by subjectResultId AND sessionId
+              // Fallback: if no session-specific result found, look for legacy records with null sessionId
+              let sessionScore = allPracticalResults.find(
+                (pr) =>
+                  pr.subjectResultId === subRes.subjectResultId &&
+                  pr.sessionId === currentSessionId,
+              );
+              // Fallback: allow legacy records (sessionId == null) to show up
+              if (!sessionScore) {
+                sessionScore = allPracticalResults.find(
+                  (pr) =>
+                    pr.subjectResultId === subRes.subjectResultId &&
+                    pr.sessionId == null,
+                );
+              }
+              if (sessionScore) {
+                // PracticalChecklistResult now has Score field
+                practicalScore = sessionScore.score || 0;
+                practicalComment = sessionScore.verificationComment || "";
+                practicalResultId =
+                  sessionScore.practicalChecklistResultId ||
+                  sessionScore.resultId ||
+                  sessionScore.id ||
+                  null;
+                // Published status from API
+                practicalIsPublished = sessionScore.isPublished || false;
               }
             }
           }
+        }
 
-          const isPublished =
-            type === "assessment"
-              ? assessmentIsPublished
-              : type === "practical"
-                ? practicalIsPublished
-                : assessmentIsPublished || practicalIsPublished;
+        const isPublished =
+          type === "assessment"
+            ? assessmentIsPublished
+            : type === "practical"
+              ? practicalIsPublished
+              : assessmentIsPublished || practicalIsPublished;
 
-          scoresData.push({
-            code: student.code,
-            name: student.name,
-            accountId: student.accountId,
-            enrollmentId: student.enrollmentId,
-            classStudentId: student.classStudentId,
-            subjectResultId,
-            assessmentResultId,
-            assessmentScore,
-            assessmentComment,
-            practicalResultId,
-            practicalScore,
-            practicalComment,
-            assessmentIsPublished,
-            practicalIsPublished,
-            isPublished,
-          });
-        }),
-      );
+        scoresData.push({
+          code: student.code,
+          name: student.name,
+          accountId: student.accountId,
+          enrollmentId: student.enrollmentId,
+          classStudentId: student.classStudentId,
+          subjectResultId,
+          assessmentResultId,
+          assessmentScore,
+          assessmentComment,
+          practicalResultId,
+          practicalScore,
+          practicalComment,
+          assessmentIsPublished,
+          practicalIsPublished,
+          isPublished,
+        });
+      }
 
       setStudentScores(scoresData);
     } catch (err) {
@@ -441,8 +483,9 @@ const InstructorAssessments = () => {
       if (changedScores.length === 0) {
         setIsEditingScores(false);
         setSaving(false);
-        alert(
-          "Không có điểm nào cần lưu vì các bản ghi đã được công bố hoặc không có thay đổi.",
+        toast.warning(
+          "Không có thay đổi!",
+          "Các bản ghi đã được công bố hoặc không có thay đổi.",
         );
         return;
       }
@@ -459,6 +502,7 @@ const InstructorAssessments = () => {
               assessmentId: assessmentId,
               accountId: student.accountId,
               subjectResultId: student.subjectResultId || 1,
+              sessionId: selectedSession?.sessionId,
               score: parseFloat(student.assessmentScore) || 0,
               remark: student.assessmentComment || "",
             },
@@ -470,19 +514,29 @@ const InstructorAssessments = () => {
         for (const student of changedScores) {
           if (student.practicalResultId) {
             // Update existing practical result
+            const practicalScore = parseFloat(student.practicalScore) || 0;
             saveRequests.push({
               endpoint: `/PracticalChecklistResults/${student.practicalResultId}/progress`,
               method: "put",
               body: {
-                score: parseFloat(student.practicalScore) || 0,
-                remark: student.practicalComment || "",
+                score: practicalScore,
+                verificationComment: student.practicalComment || "",
+                sessionId: selectedSession?.sessionId,
               },
             });
           } else {
-            // No existing result — cannot create via PUT, log warning
-            console.warn(
-              `[InstructorAssessments] No practical result ID for student ${student.code}. Cannot update via PUT /PracticalChecklistResults/{id}/progress`,
-            );
+            // No existing result — create a new PracticalChecklistResult via POST
+            const practicalScore = parseFloat(student.practicalScore) || 0;
+            saveRequests.push({
+              endpoint: "/PracticalChecklistResults",
+              method: "post",
+              body: {
+                subjectResultId: student.subjectResultId || 1,
+                sessionId: selectedSession?.sessionId,
+                score: practicalScore,
+                verificationComment: student.practicalComment || "",
+              },
+            });
           }
         }
       }
@@ -512,10 +566,13 @@ const InstructorAssessments = () => {
 
       setStudentScores(editingScores);
       setIsEditingScores(false);
-      alert("Lưu điểm đánh giá thành công!");
+      toast.success(
+        "Lưu điểm thành công!",
+        "Đã cập nhật bảng điểm đánh giá.",
+      );
     } catch (err) {
       console.error("Lỗi khi lưu bảng điểm:", err);
-      alert("Đã xảy ra lỗi khi lưu bảng điểm: " + err.message);
+      toast.error("Lưu điểm thất bại!", err.message);
     } finally {
       setSaving(false);
     }
@@ -532,6 +589,172 @@ const InstructorAssessments = () => {
   const selectedClass = useMemo(() => {
     return classesData.find((c) => c.classId === parseInt(selectedClassId));
   }, [classesData, selectedClassId]);
+
+  // Check if all scores are published (for lock button state)
+  const allPublished = useMemo(() => {
+    const displayScores = isEditingScores ? editingScores : studentScores;
+    if (displayScores.length === 0) return false;
+    return displayScores.every((s) => s.isPublished);
+  }, [isEditingScores, editingScores, studentScores]);
+
+  // Publish (confirm + lock) all scores — called after ConfirmModal confirms
+  const handlePublishScores = async () => {
+    if (allPublished) return;
+
+    setPublishing(true);
+    try {
+      // Step 1: Save any pending changed scores first
+      const changedScores = editingScores.filter((student) => {
+        const original = studentScores.find(
+          (s) => s.enrollmentId === student.enrollmentId,
+        );
+        if (student.isPublished || original?.isPublished) return false;
+        if (!original) return true;
+
+        if (selectedAssessmentType === "assessment") {
+          return (
+            student.assessmentScore !== original.assessmentScore ||
+            student.assessmentComment !== original.assessmentComment
+          );
+        }
+        if (selectedAssessmentType === "practical") {
+          return (
+            student.practicalScore !== original.practicalScore ||
+            student.practicalComment !== original.practicalComment
+          );
+        }
+        return (
+          student.assessmentScore !== original.assessmentScore ||
+          student.assessmentComment !== original.assessmentComment ||
+          student.practicalScore !== original.practicalScore ||
+          student.practicalComment !== original.practicalComment
+        );
+      });
+
+      if (changedScores.length > 0) {
+        const assessmentId = getAssessmentIdForSession(selectedSession);
+        const selectedTypes = getSelectedTypes(selectedAssessmentType);
+        const saveRequests = [];
+
+        if (selectedTypes.includes("assessment")) {
+          saveRequests.push(
+            ...changedScores.map((student) => ({
+              endpoint: "/AssessmentResults/record",
+              body: {
+                assessmentId: assessmentId,
+                accountId: student.accountId,
+                subjectResultId: student.subjectResultId || 1,
+                sessionId: selectedSession?.sessionId,
+                score: parseFloat(student.assessmentScore) || 0,
+                remark: student.assessmentComment || "",
+              },
+            })),
+          );
+        }
+
+        if (selectedTypes.includes("practical")) {
+          for (const student of changedScores) {
+            const practicalScore = parseFloat(student.practicalScore) || 0;
+            if (student.practicalResultId) {
+              saveRequests.push({
+                endpoint: `/PracticalChecklistResults/${student.practicalResultId}/progress`,
+                method: "put",
+                body: {
+                  score: practicalScore,
+                  verificationComment: student.practicalComment || "",
+                  sessionId: selectedSession?.sessionId,
+                },
+              });
+            } else {
+              saveRequests.push({
+                endpoint: "/PracticalChecklistResults",
+                method: "post",
+                body: {
+                  subjectResultId: student.subjectResultId || 1,
+                  sessionId: selectedSession?.sessionId,
+                  score: practicalScore,
+                  verificationComment: student.practicalComment || "",
+                },
+              });
+            }
+          }
+        }
+
+        await Promise.all(
+          saveRequests.map((request) =>
+            request.method === "put"
+              ? api.put(request.endpoint, request.body)
+              : api.post(request.endpoint, request.body),
+          ),
+        );
+
+        await Promise.all(
+          changedScores.map((student) => {
+            if (student.subjectResultId) {
+              return api
+                .post("/AssessmentResults/signoff", {
+                  subjectResultId: student.subjectResultId,
+                  role: "Instructor",
+                  comment: "Đã hoàn thành đánh giá chuyên đề.",
+                })
+                .catch(() => null);
+            }
+            return Promise.resolve(null);
+          }),
+        );
+
+        setStudentScores(editingScores);
+      }
+
+      // Step 2: Publish all unpublished results
+      // Use editingScores (latest data) instead of studentScores (stale closure)
+      const selectedTypes = getSelectedTypes(selectedAssessmentType);
+      const publishRequests = [];
+
+      const scoresToPublish = changedScores.length > 0 ? editingScores : studentScores;
+      for (const student of scoresToPublish) {
+        if (
+          selectedTypes.includes("assessment") &&
+          student.assessmentResultId &&
+          !student.assessmentIsPublished
+        ) {
+          publishRequests.push(
+            api.patch(
+              `/AssessmentResults/${student.assessmentResultId}/publish`,
+            ),
+          );
+        }
+        if (
+          selectedTypes.includes("practical") &&
+          student.practicalResultId &&
+          !student.practicalIsPublished
+        ) {
+          publishRequests.push(
+            api.patch(
+              `/PracticalChecklistResults/${student.practicalResultId}/publish`,
+            ),
+          );
+        }
+      }
+
+      if (publishRequests.length > 0) {
+        await Promise.all(publishRequests);
+      }
+
+      setConfirmPublishOpen(false);
+      toast.success(
+        "Chốt điểm thành công!",
+        "Bảng điểm đã được khóa.",
+      );
+      setIsEditingScores(false);
+      loadSessionScores(selectedSession, selectedAssessmentType);
+    } catch (err) {
+      console.error("Lỗi khi chốt điểm:", err);
+      toast.error("Chốt điểm thất bại!", err.message);
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   // Grading Spreadsheet View
   if (selectedSession) {
@@ -626,6 +849,44 @@ const InstructorAssessments = () => {
                 <span>NHẬP ĐIỂM ĐÁNH GIÁ</span>
               </button>
             )}
+
+            {/* Publish / Lock button — always visible, matching attendance style */}
+            <button
+              onClick={() => setConfirmPublishOpen(true)}
+              className="create-btn"
+              type="button"
+              disabled={allPublished || saving || publishing}
+              style={{
+                background: allPublished
+                  ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
+                  : "linear-gradient(159.93deg, #e11d48 -27.55%, #be123c 127.55%)",
+                opacity: allPublished ? 0.9 : 1,
+                cursor: allPublished ? "not-allowed" : "pointer",
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                style={{ marginRight: "4px" }}
+              >
+                <rect
+                  x="3"
+                  y="11"
+                  width="18"
+                  height="11"
+                  rx="2"
+                  ry="2"
+                />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span>
+                {allPublished ? "ĐÃ KHÓA ĐIỂM" : "CHỐT ĐIỂM"}
+              </span>
+            </button>
           </div>
         </section>
 
@@ -1106,6 +1367,22 @@ const InstructorAssessments = () => {
             )}
           </div>
         </section>
+
+        {/* Toast notifications */}
+        <toast.ToastContainer />
+
+        {/* Confirm publish modal */}
+        <ConfirmModal
+          isOpen={confirmPublishOpen}
+          onClose={() => setConfirmPublishOpen(false)}
+          onConfirm={handlePublishScores}
+          title="Xác nhận chốt điểm"
+          message="Bạn có chắc chắn muốn chốt và khóa bảng điểm này?"
+          confirmText="CHỐT ĐIỂM"
+          cancelText="HỦY BỎ"
+          confirmVariant="danger"
+          loading={publishing}
+        />
       </div>
     );
   }
@@ -1230,11 +1507,17 @@ const InstructorAssessments = () => {
                     </div>
                     <button
                       onClick={() => handleOpenGradingSheet(session)}
-                      className="create-btn"
+                      className="ghost-btn"
                       type="button"
                       disabled={loading}
+                      style={{
+                        padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700',
+                        backgroundColor: '#c5a059', color: 'white', border: 'none', cursor: 'pointer',
+                        textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s',
+                        boxShadow: '0 2px 4px rgba(197, 160, 89, 0.2)'
+                      }}
                     >
-                      <span>NHẬP ĐIỂM BUỔI HỌC</span>
+                      NHẬP ĐIỂM BUỔI HỌC
                     </button>
                   </div>
                 ))}
