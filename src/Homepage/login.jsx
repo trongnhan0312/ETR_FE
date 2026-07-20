@@ -4,11 +4,23 @@ import {
   FaArrowRight,
   FaEye,
   FaEyeSlash,
+  FaExclamationCircle,
   FaLock,
   FaShieldAlt,
   FaUser,
 } from "react-icons/fa";
 import "./login.scss";
+
+const VALIDATION_RULES = {
+  username: {
+    required: "Vui lòng nhập tên đăng nhập.",
+    minLength: { value: 3, message: "Tên đăng nhập phải có ít nhất 3 ký tự." },
+  },
+  password: {
+    required: "Vui lòng nhập mật khẩu.",
+    minLength: { value: 6, message: "Mật khẩu phải có ít nhất 6 ký tự." },
+  },
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -16,11 +28,59 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
+
+  const validateField = (field, value) => {
+    const rules = VALIDATION_RULES[field];
+    if (!rules) return "";
+
+    // Don't trim password — preserve intentional whitespace
+    const checkValue = field === "password" ? (value || "") : (value || "").trim();
+
+    if (!checkValue && rules.required) {
+      return rules.required;
+    }
+    if (rules.minLength && checkValue.length < rules.minLength.value) {
+      return rules.minLength.message;
+    }
+    return "";
+  };
+
+  const clearFieldError = (field) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const handleUsernameChange = (e) => {
+    const value = e.target.value;
+    setUsername(value);
+    if (fieldErrors.username) clearFieldError("username");
+    if (error) setError("");
+  };
+
+  const handlePasswordChange = (e) => {
+    const value = e.target.value;
+    setPassword(value);
+    if (fieldErrors.password) clearFieldError("password");
+    if (error) setError("");
+  };
+
+  const validate = () => {
+    const errors = {
+      username: validateField("username", username),
+      password: validateField("password", password),
+    };
+    setFieldErrors(errors);
+    return !errors.username && !errors.password;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Client-side validation
+    if (!validate()) return;
+
     setLoading(true);
 
     const API_URL =
@@ -33,20 +93,29 @@ const Login = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username,
+          username: username.trim(),
           password,
         }),
       });
 
       if (!response.ok) {
-        let errorMsg = "Đăng nhập thất bại.";
+        let errorMsg = "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.";
         try {
           const errData = await response.json();
           errorMsg = errData.message || errData.error || errorMsg;
         } catch {
           try {
             const rawText = await response.text();
-            if (rawText) errorMsg = rawText;
+            if (rawText) {
+              // Map English backend messages to Vietnamese
+              if (rawText.includes("Invalid credentials")) {
+                errorMsg = "Tên đăng nhập hoặc mật khẩu không chính xác.";
+              } else if (rawText.includes("account is inactive")) {
+                errorMsg = "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.";
+              } else {
+                errorMsg = rawText;
+              }
+            }
           } catch {}
         }
         setError(errorMsg);
@@ -175,36 +244,58 @@ const Login = () => {
 
           {error && (
             <div className="error-message" role="alert">
-              {error}
+              <FaExclamationCircle className="error-icon" aria-hidden="true" />
+              <span>{error}</span>
             </div>
           )}
 
-          <form className="login-form" onSubmit={handleSubmit}>
+          <form className="login-form" onSubmit={handleSubmit} noValidate>
             <div className="form-group">
-              <label>Tên đăng nhập / Email</label>
-              <div className="input-shell">
+              <label htmlFor="login-username">Tên đăng nhập / Email</label>
+              <div className={`input-shell ${fieldErrors.username ? "input-shell--error" : ""}`}>
                 <FaUser className="input-icon" aria-hidden="true" />
                 <input
+                  id="login-username"
                   type="text"
                   placeholder="Nhập tên đăng nhập hoặc email"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={handleUsernameChange}
+                  onBlur={() => {
+                    const err = validateField("username", username);
+                    setFieldErrors((prev) => ({ ...prev, username: err }));
+                  }}
                   disabled={loading}
-                  required
+                  autoComplete="username"
+                  aria-invalid={!!fieldErrors.username}
+                  aria-describedby={fieldErrors.username ? "username-error" : undefined}
                 />
               </div>
+              {fieldErrors.username && (
+                <p className="field-error" id="username-error" role="alert">
+                  <FaExclamationCircle aria-hidden="true" />
+                  {fieldErrors.username}
+                </p>
+              )}
             </div>
 
             <div className="form-group">
-              <label>Mật khẩu</label>
-              <div className="input-shell input-shell--password">
+              <label htmlFor="login-password">Mật khẩu</label>
+              <div className={`input-shell input-shell--password ${fieldErrors.password ? "input-shell--error" : ""}`}>
                 <FaLock className="input-icon" aria-hidden="true" />
                 <input
+                  id="login-password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Nhập mật khẩu"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
+                  onBlur={() => {
+                    const err = validateField("password", password);
+                    setFieldErrors((prev) => ({ ...prev, password: err }));
+                  }}
                   disabled={loading}
+                  autoComplete="current-password"
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby={fieldErrors.password ? "password-error" : undefined}
                 />
                 <button
                   type="button"
@@ -220,6 +311,12 @@ const Login = () => {
                   )}
                 </button>
               </div>
+              {fieldErrors.password && (
+                <p className="field-error" id="password-error" role="alert">
+                  <FaExclamationCircle aria-hidden="true" />
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
 
             <div className="form-options">
@@ -238,8 +335,17 @@ const Login = () => {
               className="login-submit-btn"
               disabled={loading}
             >
-              <span>{loading ? "Đang đăng nhập..." : "Đăng nhập"}</span>
-              {!loading && <FaArrowRight aria-hidden="true" />}
+              {loading ? (
+                <span className="btn-loading">
+                  <span className="spinner" aria-hidden="true" />
+                  Đang đăng nhập...
+                </span>
+              ) : (
+                <>
+                  <span>Đăng nhập</span>
+                  <FaArrowRight aria-hidden="true" />
+                </>
+              )}
             </button>
 
             <div className="login-divider" aria-hidden="true" />
