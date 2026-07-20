@@ -1058,7 +1058,7 @@ const EtrApproval = () => {
                       fontSize: "12px",
                     }}
                   >
-                    No ETR records found in this category.
+                    Không có dữ liệu
                   </td>
                 </tr>
               )}
