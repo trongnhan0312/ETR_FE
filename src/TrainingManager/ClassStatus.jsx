@@ -64,194 +64,19 @@ const ClassStatus = () => {
         };
       });
 
-      setClasses(mapped.length > 0 ? mapped : getFallbackClasses());
+      setClasses(mapped);
     } catch (err) {
       console.error("Error loading classes:", err);
-      setClasses(getFallbackClasses());
+      setClasses([]);
     } finally {
       setClassesLoading(false);
     }
   };
 
-  // Fallback mock data when API is unavailable
-  const getFallbackClasses = () => [
-    { id: "CL-001", name: "A320 Type Rating", subName: "Sim Phase", instructor: "Capt. Nguyen Van A", startDate: "01/10", endDate: "15/11", progress: 85, attendance: "98%", status: "IN PROGRESS", simRoom: "SIM-04", trainees: 18, type: "Type Rating", historyLogs: [] },
-    { id: "CL-002", name: "B787 Conversion", subName: "Ground School", instructor: "Capt. Le Quang B", startDate: "20/10", endDate: "30/12", progress: 42, attendance: "92%", status: "IN PROGRESS", simRoom: "SIM-01", trainees: 15, type: "Conversion", historyLogs: [] },
-    { id: "CL-003", name: "CRM Advanced", subName: "Theory Module", instructor: "Dr. Hoang Thuy D", startDate: "05/11", endDate: "10/11", progress: 0, attendance: "--", status: "SCHEDULED", simRoom: "ROOM-102", trainees: 20, type: "Workshop", historyLogs: [] },
-    { id: "CL-004", name: "A350 Initial Cert", subName: "Sim Maintenance", instructor: "Capt. Tran Minh E", startDate: "15/09", endDate: "01/11", progress: 60, attendance: "100%", status: "DELAYED", simRoom: "SIM-02", trainees: 12, type: "Certification", historyLogs: [] },
-  ];
+  const getFallbackClasses = () => [];
 
   // Sample students attendance data by class
-  const [studentsData, setStudentsData] = useState({
-    "BATCH-320-A": [
-      {
-        id: 1,
-        name: "Nguyễn Hoàng Nam",
-        code: "VNA-7829",
-        rate: 95,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "NH",
-      },
-      {
-        id: 2,
-        name: "Trần Minh Quân",
-        code: "VNA-4432",
-        rate: 70,
-        s10: "A",
-        s11: "P",
-        s12: "A",
-        avatar: "TM",
-      },
-      {
-        id: 3,
-        name: "Lê Thị Mai",
-        code: "VNA-1109",
-        rate: 88,
-        s10: "P",
-        s11: "L",
-        s12: "P",
-        avatar: "LT",
-      },
-      {
-        id: 4,
-        name: "Phan Anh Đức",
-        code: "VNA-9921",
-        rate: 92,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "PA",
-      },
-    ],
-    "BATCH-787-C": [
-      {
-        id: 1,
-        name: "Phạm Thanh Sơn",
-        code: "VNA-1049",
-        rate: 92,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "PT",
-      },
-      {
-        id: 2,
-        name: "Vũ Quốc Anh",
-        code: "VNA-2234",
-        rate: 85,
-        s10: "P",
-        s11: "L",
-        s12: "P",
-        avatar: "VQ",
-      },
-      {
-        id: 3,
-        name: "Đỗ Thúy Vy",
-        code: "VNA-6729",
-        rate: 75,
-        s10: "A",
-        s11: "P",
-        s12: "A",
-        avatar: "DT",
-      },
-      {
-        id: 4,
-        name: "Bùi Gia Huy",
-        code: "VNA-8812",
-        rate: 96,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "BG",
-      },
-    ],
-    "BATCH-CRM-01": [
-      {
-        id: 1,
-        name: "Hoàng Quốc Việt",
-        code: "VNA-5521",
-        rate: 100,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "HQ",
-      },
-      {
-        id: 2,
-        name: "Nguyễn Thị Hồng",
-        code: "VNA-9910",
-        rate: 100,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "NT",
-      },
-      {
-        id: 3,
-        name: "Trần Gia Bảo",
-        code: "VNA-4431",
-        rate: 100,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "TG",
-      },
-      {
-        id: 4,
-        name: "Phan Thanh Bình",
-        code: "VNA-3329",
-        rate: 100,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "PT",
-      },
-    ],
-    "BATCH-350-X": [
-      {
-        id: 1,
-        name: "Nguyễn Văn Hải",
-        code: "VNA-1234",
-        rate: 92,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "NV",
-      },
-      {
-        id: 2,
-        name: "Lê Văn Đạt",
-        code: "VNA-5678",
-        rate: 75,
-        s10: "A",
-        s11: "P",
-        s12: "A",
-        avatar: "LV",
-      },
-      {
-        id: 3,
-        name: "Phạm Minh Trí",
-        code: "VNA-9012",
-        rate: 83,
-        s10: "P",
-        s11: "L",
-        s12: "A",
-        avatar: "PM",
-      },
-      {
-        id: 4,
-        name: "Đặng Hoài Nam",
-        code: "VNA-3456",
-        rate: 96,
-        s10: "P",
-        s11: "P",
-        s12: "P",
-        avatar: "DH",
-      },
-    ],
-  });
+  const [studentsData, setStudentsData] = useState({});
 
   // Filtering Logic for Class List
   const filteredClasses = classes.filter((cls) => {
@@ -312,30 +137,7 @@ const ClassStatus = () => {
   };
 
   const getStudentsForClass = (classId) => {
-    return (
-      studentsData[classId] || [
-        {
-          id: 1,
-          name: "Học viên Mẫu A",
-          code: "VNA-9901",
-          rate: 100,
-          s10: "P",
-          s11: "P",
-          s12: "P",
-          avatar: "HA",
-        },
-        {
-          id: 2,
-          name: "Học viên Mẫu B",
-          code: "VNA-9902",
-          rate: 100,
-          s10: "P",
-          s11: "P",
-          s12: "P",
-          avatar: "HB",
-        },
-      ]
-    );
+    return studentsData[classId] || [];
   };
 
   // Cycling student attendance states: P (Present) -> A (Absent) -> L (Late)
