@@ -25,6 +25,7 @@ import QARETRReturn from './QA/QARETRReturn';
 import QASearchExport from './QA/QASearchExport';
 import QAAuditTrail from './QA/QAAuditTrail';
 import QAAccount from './QA/QAAccount';
+import QARetakeHistory from './QA/QARetakeHistory';
 import TrainingManagerLayout from './TrainingManager/TrainingManagerLayout';
 import TrainingManagerDashboard from './TrainingManager/TrainingManagerDashboard';
 import ClassStatus from './TrainingManager/ClassStatus';
@@ -125,12 +126,13 @@ function App() {
 						<Route path="return" element={<QARETRReturn />} />
 						<Route path="search" element={<QASearchExport />} />
 						<Route path="export" element={<QASearchExport />} />
+						<Route path="retake-history" element={<QARetakeHistory />} />
 						<Route path="audit" element={<QAAuditTrail />} />
 						<Route path="profile" element={<QAAccount />} />
 						<Route path="password" element={<QAAccount />} />
 						<Route path="recent" element={<QADashboard />} />
 						<Route path="rejected" element={<QAEvidenceVerification />} />
-						<Route path="history" element={<QAEvidenceVerification />} />
+						<Route path="history" element={<QARetakeHistory />} />
 					</Route>
 				</Route>
 

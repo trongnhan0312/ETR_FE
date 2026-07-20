@@ -40,6 +40,7 @@ const navigationGroups = [
       { label: 'SEARCH ETR RECORDS', to: '/qa/search' },
       { label: 'EXPORT TRAINING PKG', to: '/qa/export' },
       { label: 'VIEW AUDIT TRAIL', to: '/qa/audit' },
+      { label: 'RETAKE HISTORY', to: '/qa/retake-history' },
     ],
   },
   {

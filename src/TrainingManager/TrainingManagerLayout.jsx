@@ -15,9 +15,9 @@ const iconClass = (
 );
 
 const navigationItems = [
-  { label: 'ANALYTICS DASHBOARD', to: '/training-manager', icon: iconDocument },
-  { label: 'ETR FINAL APPROVAL', to: '/training-manager/etr-approval', icon: iconDocument },
-  { label: 'TRẠNG THÁI LỚP HỌC', to: '/training-manager/classes', icon: iconClass },
+  { label: 'ANALYTICS DASHBOARD', to: '/trainingmanager', icon: iconDocument },
+  { label: 'ETR FINAL APPROVAL', to: '/trainingmanager/etr-approval', icon: iconDocument },
+  { label: 'TRẠNG THÁI LỚP HỌC', to: '/trainingmanager/classes', icon: iconClass },
 ];
 
 const TrainingManagerLayout = () => {
@@ -64,7 +64,7 @@ const TrainingManagerLayout = () => {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === '/training-manager'}
+                end={item.to === '/trainingmanager'}
                 className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
               >
                 {item.icon}

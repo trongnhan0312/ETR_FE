@@ -69,7 +69,7 @@ const QARETRReturn = () => {
     }
     setSending(true);
     try {
-      await api.post(`/Etr/${selectedEtrId}/verify`, {
+      await api.post(`/Etr/${selectedEtrId}/return`, {
         comment: returnReason,
       });
       setMessage({ type: "warning", text: `ETR #${String(selectedEtrId).padStart(4, "0")} đã được trả lại.` });
