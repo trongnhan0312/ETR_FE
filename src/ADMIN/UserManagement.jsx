@@ -1,30 +1,49 @@
-import React from 'react';
-
-const users = [
-  {
-    username: 'admin01',
-    fullName: 'Nguyen Van A',
-    email: 'vana.nguyen@example.com',
-    role: 'Administrator',
-    status: 'Active',
-  },
-  {
-    username: 'staff02',
-    fullName: 'Tran Thi B',
-    email: 'tha.b@example.com',
-    role: 'Academic Staff',
-    status: 'Locked',
-  },
-  {
-    username: 'qa03',
-    fullName: 'Le Hoang C',
-    email: 'hoang.c@example.com',
-    role: 'QA Staff',
-    status: 'Active',
-  },
-];
+import { useState, useEffect } from 'react';
+import { api } from '../utils/api';
 
 const UserManagement = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const [accounts, profiles] = await Promise.all([
+        api.get("/Accounts").catch(() => []),
+        api.get("/UserProfiles").catch(() => []),
+      ]);
+      const accs = Array.isArray(accounts) ? accounts : [];
+      const profs = Array.isArray(profiles) ? profiles : [];
+
+      const mapped = accs.map((acc) => {
+        const profile = profs.find((p) => p.accountId === acc.accountId);
+        return {
+          username: acc.username || `user_${acc.accountId}`,
+          fullName: profile?.fullName || 'Chưa cập nhật',
+          email: profile?.email || '',
+          role: profile?.roleName || acc.role || 'User',
+          status: acc.isLocked ? 'Locked' : 'Active',
+          accountId: acc.accountId,
+        };
+      });
+      setUsers(mapped);
+    } catch (err) {
+      console.error("Error loading users:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const filteredUsers = users.filter((u) => {
+    if (!searchTerm) return true;
+    const q = searchTerm.toLowerCase();
+    return u.username.toLowerCase().includes(q) || u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+  });
   return (
     <div className="page-shell">
       <section className="page-header-card">
@@ -71,9 +90,13 @@ const UserManagement = () => {
             <p className="section-label">Account list</p>
             <h2>Searchable pseudo user table</h2>
           </div>
-          <button className="ghost-btn" type="button">
-            Search User
-          </button>
+        <input
+          type="text"
+          placeholder="Tìm kiếm người dùng..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e1e4e8', fontSize: '13px', outline: 'none', width: '250px' }}
+        />
         </div>
 
         <div className="data-table user-table">
@@ -86,7 +109,16 @@ const UserManagement = () => {
             <div>Action</div>
           </div>
 
-          {users.map((user) => (
+          {loading ? (
+            <div className="table-row table-layout user-layout" style={{ justifyContent: 'center', padding: '24px', color: '#64748b' }}>
+              Đang tải...
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="table-row table-layout user-layout" style={{ justifyContent: 'center', padding: '24px', color: '#64748b', fontStyle: 'italic' }}>
+              Không tìm thấy người dùng nào.
+            </div>
+          ) : (
+            filteredUsers.map((user) => (
             <div key={user.username} className="table-row table-layout user-layout">
               <div className="font-medium">{user.username}</div>
               <div className="text-gray">{user.fullName}</div>

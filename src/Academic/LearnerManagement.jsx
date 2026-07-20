@@ -1,56 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EditLearner from "./EditLearner";
-
-const initialLearners = [
-  {
-    code: "AM-2409-001",
-    fullName: "Nguyễn Văn A",
-    dob: "2000-08-15",
-    gender: "Nam",
-    phone: "0987 654 321",
-    email: "vana.nguyen@example.com",
-    cccd: "012345678901",
-    organization: "Vietnam Airlines",
-    learnerType: "Kỹ thuật viên",
-    address: "123 Đường Láng, Quận Đống Đa, TP. Hà Nội",
-    className: "AERO-B1-2024",
-    status: "ĐANG HỌC",
-    isActive: true,
-  },
-  {
-    code: "AM-2409-002",
-    fullName: "Trần Thị B",
-    dob: "2002-05-20",
-    gender: "Nữ",
-    phone: "0912 345 678",
-    email: "thib.tran@example.com",
-    cccd: "098765432109",
-    organization: "Bamboo Airways",
-    learnerType: "Tiếp viên",
-    address: "456 Lê Lợi, Quận 1, TP. Hồ Chí Minh",
-    className: "",
-    status: "CHỜ GHI DANH",
-    isActive: false,
-  },
-  {
-    code: "AM-2409-003",
-    fullName: "Lê Hoàng C",
-    dob: "1998-11-30",
-    gender: "Nam",
-    phone: "0909 888 777",
-    email: "hoangc.le@example.com",
-    cccd: "055201004567",
-    organization: "Vietjet Air",
-    learnerType: "Phi công",
-    address: "789 Nguyễn Văn Linh, Quận Hải Châu, TP. Đà Nẵng",
-    className: "AERO-A2-2024",
-    status: "ĐANG HỌC",
-    isActive: true,
-  },
-];
+import { api } from "../utils/api";
 
 const LearnerManagement = () => {
-  const [learners, setLearners] = useState(initialLearners);
+  const [learners, setLearners] = useState([]);
+  const [allAccounts, setAllAccounts] = useState([]);
+  const [allProfiles, setAllProfiles] = useState([]);
+  const [allEnrollments, setAllEnrollments] = useState([]);
+  const [allClasses, setAllClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLearner, setEditingLearner] = useState(null);
   const [enrollingLearner, setEnrollingLearner] = useState(null);
@@ -66,20 +24,106 @@ const LearnerManagement = () => {
   const [organization, setOrganization] = useState("");
   const [learnerType, setLearnerType] = useState("Kỹ thuật viên");
   const [address, setAddress] = useState("");
-  const [className, setClassName] = useState("");
   const [status, setStatus] = useState("ĐANG HỌC");
 
   // Form states for enrolling learner
-  const [enrollClass, setEnrollClass] = useState("AERO-B1-2024");
-  const [enrollDate, setEnrollDate] = useState("2026-06-23");
+  const [enrollClassId, setEnrollClassId] = useState("");
+  const [enrollDate, setEnrollDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Load all data from APIs on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [accounts, profiles, enrollments, classes] = await Promise.all([
+          api.get("/Accounts").catch(() => []),
+          api.get("/UserProfiles/learners").catch(() => []),
+          api.get("/Enrollments").catch(() => []),
+          api.get("/Classes").catch(() => []),
+        ]);
+
+        setAllAccounts(Array.isArray(accounts) ? accounts : []);
+        setAllProfiles(Array.isArray(profiles) ? profiles : []);
+        setAllEnrollments(Array.isArray(enrollments) ? enrollments : []);
+        setAllClasses(Array.isArray(classes) ? classes : []);
+
+        // Merge data into learner rows
+        const mergedLearners = mergeLearnerData(
+          Array.isArray(accounts) ? accounts : [],
+          Array.isArray(profiles) ? profiles : [],
+          Array.isArray(enrollments) ? enrollments : [],
+          Array.isArray(classes) ? classes : []
+        );
+        setLearners(mergedLearners);
+      } catch (error) {
+        console.error("Error loading learner data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const mergeLearnerData = (accounts, profiles, enrollments, classes) => {
+    return accounts.map((account) => {
+      const profile = profiles.find((p) => p.accountId === account.accountId);
+      const enrollment = enrollments.find((e) => e.accountId === account.accountId);
+      const classObj = enrollment
+        ? classes.find((c) => c.classId === enrollment.classId)
+        : null;
+
+      return {
+        accountId: account.accountId,
+        code: profile?.userCode || account.username || `ACC-${account.accountId}`,
+        fullName: profile?.fullName || account.username || "Chưa có tên",
+        email: profile?.email || "",
+        dob: profile?.dateOfBirth
+          ? new Date(profile.dateOfBirth).toISOString().split('T')[0]
+          : "",
+        gender: profile?.gender || "",
+        phone: profile?.phone || "",
+        organization: profile?.organization || "",
+        cccd: "",
+        learnerType: "Kỹ thuật viên",
+        address: "",
+        className: classObj?.className || "",
+        classId: classObj?.classId || null,
+        enrollmentId: enrollment?.enrollmentId || null,
+        status: enrollment ? "ĐANG HỌC" : account.status === "Active" ? "CHỜ GHI DANH" : "NGHỈ HỌC",
+        isActive: !!enrollment || account.status === "Active",
+      };
+    });
+  };
+
+  const refreshData = async () => {
+    try {
+      const [accounts, profiles, enrollments, classes] = await Promise.all([
+        api.get("/Accounts").catch(() => []),
+        api.get("/UserProfiles/learners").catch(() => []),
+        api.get("/Enrollments").catch(() => []),
+        api.get("/Classes").catch(() => []),
+      ]);
+
+      const accArr = Array.isArray(accounts) ? accounts : [];
+      const profArr = Array.isArray(profiles) ? profiles : [];
+      const enrArr = Array.isArray(enrollments) ? enrollments : [];
+      const clsArr = Array.isArray(classes) ? classes : [];
+
+      setAllAccounts(accArr);
+      setAllProfiles(profArr);
+      setAllEnrollments(enrArr);
+      setAllClasses(clsArr);
+      setLearners(mergeLearnerData(accArr, profArr, enrArr, clsArr));
+    } catch (error) {
+      console.error("Error refreshing learner data:", error);
+    }
+  };
 
   const handleOpenCreateModal = () => {
-    // Preset next auto code but user can edit it
-    const nextNum = learners.length + 1;
+    const nextNum = allAccounts.length + 1;
     const formattedNum = String(nextNum).padStart(3, "0");
-    setCode(`AM-2409-${formattedNum}`);
+    setCode(`AM-${new Date().getFullYear()}-${formattedNum}`);
 
-    // Clear form states
     setFullName("");
     setDob("");
     setGender("Nam");
@@ -89,61 +133,78 @@ const LearnerManagement = () => {
     setOrganization("");
     setLearnerType("Kỹ thuật viên");
     setAddress("");
-    setClassName("");
     setStatus("ĐANG HỌC");
 
     setIsModalOpen(true);
   };
 
-  const handleCreateLearner = (e) => {
+  const handleCreateLearner = async (e) => {
     e.preventDefault();
 
-    const newLearner = {
-      code: code || `AM-2409-${String(learners.length + 1).padStart(3, "0")}`,
-      fullName,
-      dob,
-      gender,
-      phone,
-      email,
-      cccd,
-      organization,
-      learnerType,
-      address: address || "123 Đường Láng, Quận Đống Đa, TP. Hà Nội",
-      className,
-      status,
-      isActive: status === "ĐANG HỌC",
-    };
+    try {
+      // 1. Create account
+      const newAccount = await api.post("/Accounts", {
+        username: code,
+        password: "Default@123",
+        roleId: 5, // Student role
+        departmentId: 1,
+      });
 
-    setLearners([...learners, newLearner]);
-    setIsModalOpen(false);
+      // 2. Create user profile
+      await api.post(`/UserProfiles/${newAccount.accountId}`, {
+        userCode: code,
+        fullName,
+        email,
+        phone,
+        dateOfBirth: new Date(dob).toISOString(),
+        gender,
+        organization,
+      });
+
+      // Reload data
+      await refreshData();
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error creating learner:", error);
+      alert("Tạo học viên thất bại: " + (error.message || "Lỗi không xác định"));
+    }
   };
 
-  const handleSaveLearner = (updatedLearner) => {
-    setLearners(
-      learners.map((l) =>
-        l.code === updatedLearner.code ? updatedLearner : l,
-      ),
-    );
-    setEditingLearner(null);
+  const handleSaveLearner = async (updatedLearner) => {
+    try {
+      await api.put(`/UserProfiles/${updatedLearner.accountId}`, {
+        fullName: updatedLearner.fullName,
+        email: updatedLearner.email,
+        phone: updatedLearner.phone,
+        dateOfBirth: new Date(updatedLearner.dob).toISOString(),
+        gender: updatedLearner.gender,
+        organization: updatedLearner.organization,
+      });
+
+      await refreshData();
+      setEditingLearner(null);
+    } catch (error) {
+      console.error("Error updating learner:", error);
+      alert("Cập nhật thất bại: " + (error.message || "Lỗi không xác định"));
+    }
   };
 
-  const handleConfirmEnroll = (e) => {
+  const handleConfirmEnroll = async (e) => {
     e.preventDefault();
-    if (!enrollingLearner) return;
+    if (!enrollingLearner || !enrollClassId) return;
 
-    const updatedLearner = {
-      ...enrollingLearner,
-      className: enrollClass,
-      status: "ĐANG HỌC",
-      isActive: true,
-    };
+    try {
+      await api.post("/Enrollments", {
+        accountId: enrollingLearner.accountId,
+        classId: parseInt(enrollClassId),
+      });
 
-    setLearners(
-      learners.map((l) =>
-        l.code === enrollingLearner.code ? updatedLearner : l,
-      ),
-    );
-    setEnrollingLearner(null);
+      await refreshData();
+      setEnrollingLearner(null);
+    } catch (error) {
+      console.error("Error enrolling learner:", error);
+      alert("Ghi danh thất bại: " + (error.message || "Lỗi không xác định"));
+    }
   };
 
   // If in edit mode, render the EditLearner component
@@ -191,133 +252,141 @@ const LearnerManagement = () => {
         </button>
       </section>
 
-      {/* Table Section */}
-      <section className="table-card">
-        <div className="table-header data-table-layout">
-          <div>Mã học viên</div>
-          <div>Họ và tên</div>
-          <div>Email</div>
-          <div>CCCD/ID</div>
-          <div>Lớp</div>
-          <div>Trạng thái</div>
-          <div style={{ textAlign: "right" }}>Hành động</div>
-        </div>
+      {/* Loading State */}
+      {loading ? (
+        <section className="table-card">
+          <div style={{ textAlign: "center", padding: "60px 20px", color: "#64748b" }}>
+            <div style={{ fontSize: "14px", fontWeight: 600 }}>Đang tải dữ liệu...</div>
+          </div>
+        </section>
+      ) : (
+        <>
+          {/* Table Section */}
+          <section className="table-card">
+            <div className="table-header data-table-layout">
+              <div>Mã học viên</div>
+              <div>Họ và tên</div>
+              <div>Email</div>
+              <div>CCCD/ID</div>
+              <div>Lớp</div>
+              <div>Trạng thái</div>
+              <div style={{ textAlign: "right" }}>Hành động</div>
+            </div>
 
-        <div className="table-body">
-          {learners.map((learner) => (
-            <div key={learner.code} className="table-row data-table-layout">
-              <div className="col-id" data-label="Mã học viên">
-                {learner.code}
-              </div>
-              <div className="col-name" data-label="Họ và tên">
-                {learner.fullName}
-              </div>
-              <div className="col-email" data-label="Email">
-                {learner.email}
-              </div>
-              <div className="col-cccd" data-label="CCCD/ID">
-                {learner.cccd}
-              </div>
-              <div className="col-class" data-label="Lớp">
-                {learner.className ? (
-                  <span className="class-badge">{learner.className}</span>
-                ) : (
-                  <span className="no-class">Chưa ghi danh</span>
-                )}
-              </div>
-              <div className="col-status" data-label="Trạng thái">
-                <span
-                  className={`status-indicator ${learner.isActive ? "active" : "pending"}`}
-                />
-                <span
-                  className={`status-text ${learner.isActive ? "active" : "pending"}`}
-                >
-                  {learner.status}
-                </span>
-              </div>
-              <div className="col-actions" data-label="Hành động">
+            <div className="table-body">
+              {learners.map((learner) => (
+                <div key={learner.code} className="table-row data-table-layout">
+                  <div className="col-id" data-label="Mã học viên">
+                    {learner.code}
+                  </div>
+                  <div className="col-name" data-label="Họ và tên">
+                    {learner.fullName}
+                  </div>
+                  <div className="col-email" data-label="Email">
+                    {learner.email}
+                  </div>
+                  <div className="col-cccd" data-label="CCCD/ID">
+                    {learner.cccd || "—"}
+                  </div>
+                  <div className="col-class" data-label="Lớp">
+                    {learner.className ? (
+                      <span className="class-badge">{learner.className}</span>
+                    ) : (
+                      <span className="no-class">Chưa ghi danh</span>
+                    )}
+                  </div>
+                  <div className="col-status" data-label="Trạng thái">
+                    <span
+                      className={`status-indicator ${learner.isActive ? "active" : "pending"}`}
+                    />
+                    <span
+                      className={`status-text ${learner.isActive ? "active" : "pending"}`}
+                    >
+                      {learner.status}
+                    </span>
+                  </div>
+                  <div className="col-actions" data-label="Hành động">
+                    <button
+                      className="edit-icon-btn"
+                      type="button"
+                      aria-label="Sửa học viên"
+                      onClick={() => setEditingLearner(learner)}
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 15 15"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3507 0.208333 11.5521 0.125C11.7535 0.0416667 11.9653 0 12.1875 0C12.4097 0 12.625 0.0416667 12.8333 0.125C13.0417 0.208333 13.2222 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.809 2 14.8854 2.20833C14.9618 2.41667 15 2.625 15 2.83333C15 3.05556 14.9618 3.26736 14.8854 3.46875C14.809 3.67014 14.6875 3.85417 14.5208 4.02083L3.54167 15H0ZM13.3333 2.83333L12.1667 1.66667L13.3333 2.83333ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      className="enroll-btn"
+                      type="button"
+                      onClick={() => {
+                        setEnrollingLearner(learner);
+                        setEnrollClassId(learner.classId || "");
+                      }}
+                    >
+                      Ghi danh
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Table Footer / Pagination */}
+            <div className="table-footer">
+              <span className="footer-info">
+                Hiển thị {learners.length} trên {allAccounts.length} tài khoản
+              </span>
+              <div className="pagination">
                 <button
-                  className="edit-icon-btn"
+                  className="page-arrow"
                   type="button"
-                  aria-label="Sửa học viên"
-                  onClick={() => setEditingLearner(learner)}
+                  aria-label="Trang trước"
+                  disabled
                 >
                   <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 15 15"
+                    width="7"
+                    height="10"
+                    viewBox="0 0 7 10"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
-                      d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3507 0.208333 11.5521 0.125C11.7535 0.0416667 11.9653 0 12.1875 0C12.4097 0 12.625 0.0416667 12.8333 0.125C13.0417 0.208333 13.2222 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.809 2 14.8854 2.20833C14.9618 2.41667 15 2.625 15 2.83333C15 3.05556 14.9618 3.26736 14.8854 3.46875C14.809 3.67014 14.6875 3.85417 14.5208 4.02083L3.54167 15H0ZM13.3333 2.83333L12.1667 1.66667L13.3333 2.83333ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z"
+                      d="M5 10L0 5L5 0L6.16667 1.16667L2.33333 5L6.16667 8.83333L5 10Z"
                       fill="currentColor"
                     />
                   </svg>
                 </button>
-                <button
-                  className="enroll-btn"
-                  type="button"
-                  onClick={() => {
-                    setEnrollingLearner(learner);
-                    setEnrollClass(learner.className || "AERO-B1-2024");
-                  }}
-                >
-                  Ghi danh
+                <button className="page-num active" type="button">
+                  1
+                </button>
+                <button className="page-arrow" type="button" aria-label="Trang sau">
+                  <svg
+                    width="7"
+                    height="10"
+                    viewBox="0 0 7 10"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M3.83333 5L0 1.16667L1.16667 0L6.16667 5L1.16667 10L0 8.83333L3.83333 5Z"
+                      fill="currentColor"
+                    />
+                  </svg>
                 </button>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Table Footer / Pagination */}
-        <div className="table-footer">
-          <span className="footer-info">
-            Hiển thị {learners.length} trên 128 học viên
-          </span>
-          <div className="pagination">
-            <button
-              className="page-arrow"
-              type="button"
-              aria-label="Trang trước"
-              disabled
-            >
-              <svg
-                width="7"
-                height="10"
-                viewBox="0 0 7 10"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M5 10L0 5L5 0L6.16667 1.16667L2.33333 5L6.16667 8.83333L5 10Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-            <button className="page-num active" type="button">
-              1
-            </button>
-            <button className="page-num" type="button">
-              2
-            </button>
-            <button className="page-arrow" type="button" aria-label="Trang sau">
-              <svg
-                width="7"
-                height="10"
-                viewBox="0 0 7 10"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M3.83333 5L0 1.16667L1.16667 0L6.16667 5L1.16667 10L0 8.83333L3.83333 5Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </section>
+          </section>
+        </>
+      )}
 
       {/* Modal - Tạo hồ sơ học viên */}
       {isModalOpen && (
@@ -457,45 +526,6 @@ const LearnerManagement = () => {
                       <option value="Khác">Khác</option>
                     </select>
                   </div>
-
-                  {/* <div className="form-group">
-                    <label htmlFor="learner-class">Lớp học ban đầu</label>
-                    <select
-                      id="learner-class"
-                      value={className}
-                      onChange={(e) => setClassName(e.target.value)}
-                    >
-                      <option value="">Chưa ghi danh</option>
-                      <option value="AERO-B1-2024">AERO-B1-2024</option>
-                      <option value="AERO-A2-2024">AERO-A2-2024</option>
-                    </select>
-                  </div> */}
-                </div>
-
-                <div className="form-row">
-                  {/* <div className="form-group">
-                    <label htmlFor="learner-status">Trạng thái học vụ</label>
-                    <select
-                      id="learner-status"
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                    >
-                      <option value="ĐANG HỌC">Đang học</option>
-                      <option value="CHỜ GHI DANH">Chờ ghi danh</option>
-                    </select>
-                  </div> */}
-
-                  {/* <div className="form-group">
-                    <label htmlFor="learner-address">Địa chỉ thường trú</label>
-                    <input
-                      id="learner-address"
-                      type="text"
-                      placeholder="Nhập địa chỉ thường trú học viên"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      required
-                    />
-                  </div> */}
                 </div>
               </div>
 
@@ -575,16 +605,16 @@ const LearnerManagement = () => {
                   </label>
                   <select
                     id="enroll-class-select"
-                    value={enrollClass}
-                    onChange={(e) => setEnrollClass(e.target.value)}
+                    value={enrollClassId}
+                    onChange={(e) => setEnrollClassId(e.target.value)}
                     required
                   >
-                    <option value="AERO-B1-2024">
-                      AERO-B1-2024 - Kỹ thuật Hàng không Cơ bản (B1)
-                    </option>
-                    <option value="AERO-A2-2024">
-                      AERO-A2-2024 - Thiết kế Động cơ phản lực (A2)
-                    </option>
+                    <option value="">-- Chọn lớp --</option>
+                    {allClasses.map((cls) => (
+                      <option key={cls.classId} value={cls.classId}>
+                        {cls.classCode} - {cls.className}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

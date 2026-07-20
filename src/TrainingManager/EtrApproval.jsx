@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
+import { api } from "../utils/api";
 import "./training-manager.scss";
 
 const EtrApproval = () => {
@@ -16,7 +17,68 @@ const EtrApproval = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Initial ETR records data
+  const [loadingEtrs, setLoadingEtrs] = useState(false);
+
+  // Load ETRs from API on mount
+  useEffect(() => {
+    loadEtrsFromApi();
+  }, []);
+
+  const loadEtrsFromApi = async () => {
+    setLoadingEtrs(true);
+    try {
+      const [etrData, enrollmentsData, profilesData] = await Promise.all([
+        api.get("/Etr").catch(() => []),
+        api.get("/Enrollments").catch(() => []),
+        api.get("/UserProfiles/learners").catch(() => []),
+      ]);
+
+      const etrsArr = Array.isArray(etrData) ? etrData : [];
+      const enrollmentsArr = Array.isArray(enrollmentsData) ? enrollmentsData : [];
+      const profilesArr = Array.isArray(profilesData) ? profilesData : [];
+
+      const mapped = etrsArr
+        .filter((e) => e.status === "Verified" || e.status === "Completed")
+        .map((etr) => {
+          const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
+          const enrollment = enrollmentsArr.find(
+            (enr) => enr.enrollmentId === etr.enrollmentId
+          );
+          const profile = enrollment
+            ? profilesArr.find((p) => p.accountId === enrollment.accountId)
+            : null;
+          return {
+            id: `#ETR-${String(etrId).padStart(4, "0")}`,
+            etrId,
+            traineeName: profile?.fullName || `Học viên #${enrollment?.accountId || ""}`,
+            traineeCode: `ID: ${profile?.employeeCode || `AV-${enrollment?.accountId || ""}`}`,
+            initials: (profile?.fullName || "XX").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "XX",
+            className: `Lớp #${enrollment?.classId || ""}`,
+            avgScore: 0,
+            qaVerified: true,
+            qaVerifier: "QA Staff",
+            submissionDate: etr.submittedAt
+              ? new Date(etr.submittedAt).toISOString().split("T")[0]
+              : "",
+            status: etr.status === "Completed" ? "APPROVED" : "PENDING",
+            approvedBy: etr.approvedBy || "",
+            approvalDate: etr.completedAt
+              ? new Date(etr.completedAt).toISOString().split("T")[0]
+              : "",
+            instructor: "",
+            assessments: [],
+          };
+        });
+
+      setEtrs(mapped);
+    } catch (err) {
+      console.error("Lỗi tải ETR:", err);
+    } finally {
+      setLoadingEtrs(false);
+    }
+  };
+
+  // Initial ETR records data (fallback mock)
   const [etrs, setEtrs] = useState([
     {
       id: "#ETR-2023-0042",
@@ -121,24 +183,18 @@ const EtrApproval = () => {
     }, 4000);
   };
 
-  const handleApprove = (etrId) => {
-    setEtrs(
-      etrs.map((item) =>
-        item.id === etrId
-          ? {
-              ...item,
-              status: "APPROVED",
-              approvedBy: "Capt. Henderson",
-              approvalDate: new Date().toISOString().split("T")[0],
-            }
-          : item,
-      ),
-    );
-    setShowActionModal(null);
-    setSelectedEtr(null);
-    showAlert(
-      `ETR ${etrId} APPROVED SUCCESSFULLY & SYNCED TO THE AVIATION REGISTRY.`,
-    );
+  const handleApprove = async (etrId) => {
+    try {
+      await api.post(`/Etr/${etrId}/complete`, {});
+      await loadEtrsFromApi();
+      setShowActionModal(null);
+      setSelectedEtr(null);
+      showAlert(
+        `ETR ${etrId} APPROVED SUCCESSFULLY & SYNCED TO THE AVIATION REGISTRY.`,
+      );
+    } catch (err) {
+      showAlert(`APPROVAL FAILED: ${err.message}`, "error");
+    }
   };
 
   const handleReturn = (etrId) => {

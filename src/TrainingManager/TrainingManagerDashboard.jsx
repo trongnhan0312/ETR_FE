@@ -1,17 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../utils/api';
 import './training-manager.scss';
 
 const TrainingManagerDashboard = () => {
   const [hoveredMonth, setHoveredMonth] = useState(null);
+  const [totalTrainees, setTotalTrainees] = useState('...');
+  const [pendingEtrs, setPendingEtrs] = useState('...');
+  const [approvedCount, setApprovedCount] = useState('...');
+  const [etrVolume, setEtrVolume] = useState(null);
 
-  const monthlyVolume = [
-    { month: 'JAN', volume: 120, height: '120px', active: false },
-    { month: 'FEB', volume: 160, height: '160px', active: false },
-    { month: 'MAR', volume: 245, height: '240px', active: true },
-    { month: 'APR', volume: 180, height: '180px', active: false },
-    { month: 'MAY', volume: 210, height: '210px', active: false },
-    { month: 'JUN', volume: 260, height: '260px', active: false },
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [enrollments, etrs] = await Promise.all([
+          api.get("/Enrollments").catch(() => []),
+          api.get("/Etr").catch(() => []),
+        ]);
+        const enrArr = Array.isArray(enrollments) ? enrollments : [];
+        const etrArr = Array.isArray(etrs) ? etrs : [];
+        const pendingCount = etrArr.filter(e => e.status === 'Submitted' || e.status === 'Draft').length;
+        const completedCount = etrArr.filter(e => e.status === 'Completed').length;
+        const totalEt = etrArr.filter(e => e.status === 'Completed').length + pendingCount;
+
+        setTotalTrainees(String(enrArr.length));
+        setPendingEtrs(String(pendingCount));
+        setApprovedCount(String(completedCount));
+
+        // Monthly volume from etr timestamps (approximation)
+        const now = new Date();
+        const monthlyData = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN'].map((month, i) => {
+          const monthCount = etrArr.filter(e => {
+            if (!e.submittedAt && !e.createdAt) return false;
+            const d = new Date(e.submittedAt || e.createdAt);
+            return d.getMonth() === i && d.getFullYear() === now.getFullYear();
+          }).length;
+          const vol = Math.max(monthCount, 10);
+          return {
+            month,
+            volume: vol,
+            height: `${vol}px`,
+            active: i === now.getMonth(),
+          };
+        });
+        setEtrVolume(monthlyData);
+      } catch (err) {
+        console.error('Error loading TM dashboard:', err);
+      }
+    };
+    loadData();
+  }, []);
+
+  const monthlyVolume = etrVolume || [
+    { month: 'JAN', volume: 0, height: '50px', active: false },
+    { month: 'FEB', volume: 0, height: '50px', active: false },
+    { month: 'MAR', volume: 0, height: '50px', active: true },
+    { month: 'APR', volume: 0, height: '50px', active: false },
+    { month: 'MAY', volume: 0, height: '50px', active: false },
+    { month: 'JUN', volume: 0, height: '50px', active: false },
   ];
+
+  // Calculate approval rate from real data
+  const approvalRate = pendingEtrs !== '...' && approvedCount !== '...' ? {
+    value: (parseInt(approvedCount) / Math.max(parseInt(approvedCount) + parseInt(pendingEtrs), 1) * 100).toFixed(1),
+    label: `${approvedCount}A / ${parseInt(approvedCount) + parseInt(pendingEtrs)}T`
+  } : { value: '...', label: '...' };
 
   return (
     <div className="tm-dashboard-container">
@@ -48,7 +100,7 @@ const TrainingManagerDashboard = () => {
             </svg>
           </div>
           <div className="tm-card-value-row">
-            <span className="tm-card-value">1,482</span>
+            <span className="tm-card-value">{totalTrainees}</span>
             <span className="tm-badge success">+12%</span>
           </div>
           <div className="tm-progress-bar">
@@ -69,8 +121,8 @@ const TrainingManagerDashboard = () => {
             </svg>
           </div>
           <div className="tm-card-value-row">
-            <span className="tm-card-value">98%</span>
-            <span className="tm-badge gold">ELITE</span>
+            <span className="tm-card-value">{approvalRate.value}%</span>
+            <span className="tm-badge gold">{approvalRate.label}</span>
           </div>
           <div className="tm-progress-bar">
             <div className="tm-progress-fill bg-[#002147]" style={{ width: '98%' }} />
@@ -90,7 +142,7 @@ const TrainingManagerDashboard = () => {
             </svg>
           </div>
           <div className="tm-card-value-row">
-            <span className="tm-card-value">16</span>
+            <span className="tm-card-value">{pendingEtrs}</span>
             <span className="tm-badge warn">URGENT</span>
           </div>
           <div className="tm-progress-bar">
@@ -111,7 +163,7 @@ const TrainingManagerDashboard = () => {
             </svg>
           </div>
           <div className="tm-card-value-row">
-            <span className="tm-card-value">95.4%</span>
+            <span className="tm-card-value">{approvalRate.value}%</span>
             <span className="tm-badge success">HIGH</span>
           </div>
           <div className="tm-progress-bar">
