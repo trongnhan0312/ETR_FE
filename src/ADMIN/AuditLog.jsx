@@ -1,12 +1,29 @@
-import React from 'react';
-
-const auditLogs = [
-  { user: 'Administrator', action: 'Created user account', date: '2026-06-22', status: 'Success' },
-  { user: 'QA Staff', action: 'Viewed pending ETRs', date: '2026-06-22', status: 'Success' },
-  { user: 'Training Manager', action: 'Exported report', date: '2026-06-21', status: 'Success' },
-];
+import { useState, useEffect } from 'react';
+import { api } from '../utils/api';
 
 const AuditLog = () => {
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await api.get("/Audit").catch(() => []);
+        const audits = Array.isArray(data) ? data : [];
+        setAuditLogs(audits.slice(0, 50).map((a) => ({
+          user: `Account #${a.accountId || 'System'}`,
+          action: a.actionType || a.entityName || 'UPDATE',
+          date: a.recordedAt ? new Date(a.recordedAt).toLocaleDateString('vi-VN') : 'N/A',
+          status: 'Success',
+        })));
+      } catch (err) {
+        console.error("Error loading audit logs:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
   return (
     <div className="page-shell">
       <section className="page-header-card">
@@ -59,7 +76,16 @@ const AuditLog = () => {
             <div>Status</div>
           </div>
 
-          {auditLogs.map((entry) => (
+          {loading ? (
+            <div className="table-row table-layout audit-layout" style={{ justifyContent: 'center', padding: '24px', color: '#64748b' }}>
+              Đang tải...
+            </div>
+          ) : auditLogs.length === 0 ? (
+            <div className="table-row table-layout audit-layout" style={{ justifyContent: 'center', padding: '24px', color: '#64748b', fontStyle: 'italic' }}>
+              Chưa có bản ghi audit nào.
+            </div>
+          ) : (
+            auditLogs.map((entry) => (
             <div key={`${entry.user}-${entry.action}`} className="table-row table-layout audit-layout">
               <div className="font-medium">{entry.user}</div>
               <div className="text-gray">{entry.action}</div>

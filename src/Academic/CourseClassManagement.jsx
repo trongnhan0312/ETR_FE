@@ -1,89 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CreateCourse from './CreateCourse';
 import CreateClass from './CreateClass';
 import ClassAttendanceHistory from './ClassAttendanceHistory';
-
-const initialCourses = [
-  {
-    code: 'AV-MNT-101',
-    name: 'Cơ bản về Động cơ Jet Engine',
-    duration: 450,
-    structure: { mid: 30, final: 50, other: 20 },
-    attendanceProgress: 95,
-    activeClassesCount: 4,
-    classes: [
-      {
-        code: 'JET-2024-Q1',
-        name: 'Lớp Động cơ Jet - Khóa 1/2024',
-        startDate: '2024-03-01',
-        endDate: '2024-06-30',
-        status: 'Đang diễn ra',
-        attendanceRate: 88,
-        instructor: 'Nguyễn Văn A'
-      },
-      {
-        code: 'JET-2024-Q2',
-        name: 'Lớp Động cơ Jet - Khóa 2/2024',
-        startDate: '2024-07-01',
-        endDate: '2024-10-31',
-        status: 'Sắp diễn ra',
-        attendanceRate: 0,
-        instructor: 'Trần Văn B'
-      }
-    ]
-  },
-  {
-    code: 'FLT-OPS-202',
-    name: 'Quản trị Vận hành Chuyến bay',
-    duration: 320,
-    structure: { practice: 60, theory: 40 },
-    attendanceProgress: 72,
-    activeClassesCount: 2,
-    classes: [
-      {
-        code: 'FLT-2024-Q1',
-        name: 'Lớp Vận hành Chuyến bay - Khóa 1/2024',
-        startDate: '2024-01-15',
-        endDate: '2024-05-15',
-        status: 'Đã kết thúc',
-        attendanceRate: 92,
-        instructor: 'Lê Hoàng C'
-      },
-      {
-        code: 'FLT-2024-Q2',
-        name: 'Lớp Vận hành Chuyến bay - Khóa 2/2024',
-        startDate: '2024-04-15',
-        endDate: '2024-08-15',
-        status: 'Đang diễn ra',
-        attendanceRate: 90,
-        instructor: 'Nguyễn Văn A'
-      }
-    ]
-  },
-  {
-    code: 'SEC-AV-009',
-    name: 'An ninh Hàng không Nâng cao',
-    duration: 180,
-    structure: { assignment: 100 },
-    attendanceProgress: 91,
-    activeClassesCount: 3,
-    classes: [
-      {
-        code: 'SEC-2024-Q1',
-        name: 'Lớp An ninh Hàng không - Khóa 1/2024',
-        startDate: '2024-02-10',
-        endDate: '2024-05-10',
-        status: 'Đã kết thúc',
-        attendanceRate: 95,
-        instructor: 'Trần Văn B'
-      }
-    ]
-  }
-];
+import { api } from '../utils/api';
 
 const CourseClassManagement = () => {
-  const [courses, setCourses] = useState(initialCourses);
-  const [expandedCourses, setExpandedCourses] = useState({ 'AV-MNT-101': true }); // Default expand JET
+  const [courses, setCourses] = useState([]);
+  const [allCoursesRaw, setAllCoursesRaw] = useState([]);
+  const [allClassesRaw, setAllClassesRaw] = useState([]);
+  const [allSubjects, setAllSubjects] = useState([]);
+  const [allSessions, setAllSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedCourses, setExpandedCourses] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
@@ -92,6 +20,96 @@ const CourseClassManagement = () => {
   const [isCreatingClass, setIsCreatingClass] = useState(false);
   const [selectedClassForHistory, setSelectedClassForHistory] = useState(null);
 
+  // Load all data from APIs on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [courseData, classData, subjectData, sessionData, statsData] = await Promise.all([
+          api.get("/Courses").catch(() => []),
+          api.get("/Classes").catch(() => []),
+          api.get("/Subjects").catch(() => []),
+          api.get("/Sessions").catch(() => []),
+          api.get("/Dashboard/stats").catch(() => ({}))
+        ]);
+
+        const coursesArr = Array.isArray(courseData) ? courseData : [];
+        const classesArr = Array.isArray(classData) ? classData : [];
+        const subjectsArr = Array.isArray(subjectData) ? subjectData : [];
+        const sessionsArr = Array.isArray(sessionData) ? sessionData : [];
+
+        setAllCoursesRaw(coursesArr);
+        setAllClassesRaw(classesArr);
+        setAllSubjects(subjectsArr);
+        setAllSessions(sessionsArr);
+
+        // Merge courses + classes into display format
+        const mergedCourses = mergeCourseData(coursesArr, classesArr, sessionsArr, statsData);
+        setCourses(mergedCourses);
+
+        // Auto-expand first course
+        if (mergedCourses.length > 0) {
+          setExpandedCourses({ [mergedCourses[0].code]: true });
+        }
+      } catch (error) {
+        console.error("Error loading course data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const mergeCourseData = (coursesArr, classesArr, sessionsArr, statsData) => {
+    return coursesArr.map((course) => {
+      const courseClasses = classesArr.filter((c) => c.courseId === course.courseId);
+      const sessionCount = sessionsArr.filter((s) => 
+        courseClasses.some((cc) => cc.classId === s.classId)
+      ).length;
+
+      return {
+        courseId: course.courseId,
+        code: course.courseCode,
+        name: course.courseName,
+        description: course.description || '',
+        duration: course.durationHours || 0,
+        structure: { theory: 40, practice: 40, assignment: 10, attendance: 10 },
+        attendanceProgress: Math.min(100, sessionCount > 0 ? 100 : 0),
+        activeClassesCount: courseClasses.filter((c) => c.status === 'Active' || c.status === 'Đang diễn ra').length,
+        classes: courseClasses.map((cls) => ({
+          classId: cls.classId,
+          code: cls.classCode,
+          name: cls.className,
+          startDate: cls.startDate ? new Date(cls.startDate).toLocaleDateString('vi-VN') : '',
+          endDate: cls.endDate ? new Date(cls.endDate).toLocaleDateString('vi-VN') : '',
+          status: cls.status === 'Active' ? 'Đang diễn ra' : cls.status === 'Upcoming' ? 'Sắp diễn ra' : cls.status === 'Completed' ? 'Đã kết thúc' : cls.status,
+          attendanceRate: 0,
+          instructor: 'Đang cập nhật'
+        }))
+      };
+    });
+  };
+
+  const refreshData = async () => {
+    try {
+      const [courseData, classData, sessionData] = await Promise.all([
+        api.get("/Courses").catch(() => []),
+        api.get("/Classes").catch(() => []),
+        api.get("/Sessions").catch(() => [])
+      ]);
+
+      const coursesArr = Array.isArray(courseData) ? courseData : [];
+      const classesArr = Array.isArray(classData) ? classData : [];
+      const sessionsArr = Array.isArray(sessionData) ? sessionData : [];
+
+      setAllCoursesRaw(coursesArr);
+      setAllClassesRaw(classesArr);
+      setCourses(mergeCourseData(coursesArr, classesArr, sessionsArr, {}));
+    } catch (error) {
+      console.error("Error refreshing course data:", error);
+    }
+  };
+
   const toggleCourseExpand = (courseCode) => {
     setExpandedCourses((prev) => ({
       ...prev,
@@ -99,50 +117,61 @@ const CourseClassManagement = () => {
     }));
   };
 
-  const handleSaveCourse = (newCourse) => {
-    setCourses([...courses, newCourse]);
-    setIsCreatingCourse(false);
+  const handleSaveCourse = async (newCourse) => {
+    try {
+      await api.post("/Courses", {
+        courseCode: newCourse.code,
+        courseName: newCourse.name,
+        description: newCourse.description || '',
+        durationHours: parseInt(newCourse.duration) || 0,
+        status: 'Active'
+      });
+      await refreshData();
+      setIsCreatingCourse(false);
+    } catch (error) {
+      console.error("Error creating course:", error);
+      alert("Tạo khóa học thất bại: " + (error.message || "Lỗi không xác định"));
+    }
   };
 
-  const handleSaveClass = (parentCourseCode, newClass) => {
-    setCourses(
-      courses.map((course) => {
-        if (course.code === parentCourseCode) {
-          const isCompleted = newClass.status === 'Đã kết thúc';
-          return {
-            ...course,
-            activeClassesCount: course.activeClassesCount + (isCompleted ? 0 : 1),
-            classes: [...course.classes, newClass]
-          };
-        }
-        return course;
-      })
-    );
+  const handleSaveClass = async (parentCourseId, newClass) => {
+    try {
+      await api.post("/Classes", {
+        courseId: parentCourseId,
+        classCode: newClass.code,
+        className: newClass.name,
+        startDate: new Date(newClass.startDate).toISOString(),
+        endDate: new Date(newClass.endDate).toISOString(),
+        location: '',
+        capacity: 30,
+        status: newClass.status === 'Đang diễn ra' ? 'Active' : newClass.status === 'Sắp diễn ra' ? 'Upcoming' : 'Completed'
+      });
+      await refreshData();
+      setIsCreatingClass(false);
 
-    // Auto expand the parent course
-    setExpandedCourses((prev) => ({
-      ...prev,
-      [parentCourseCode]: true
-    }));
-
-    setIsCreatingClass(false);
+      // Auto expand the parent course
+      const course = courses.find(c => c.courseId === parentCourseId);
+      if (course) {
+        setExpandedCourses((prev) => ({ ...prev, [course.code]: true }));
+      }
+    } catch (error) {
+      console.error("Error creating class:", error);
+      alert("Tạo lớp học thất bại: " + (error.message || "Lỗi không xác định"));
+    }
   };
 
   // Filter & Search Logic
   const filteredCourses = courses.map((course) => {
-    // Search filter
     const matchesCourseSearch =
       course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Search classes
     const matchedClasses = course.classes.filter((cls) => {
       const matchesClassSearch =
         cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         cls.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         cls.instructor.toLowerCase().includes(searchTerm.toLowerCase());
 
-      // Status filter
       if (statusFilter === 'ALL') return matchesClassSearch;
       if (statusFilter === 'ACTIVE') return matchesClassSearch && cls.status === 'Đang diễn ra';
       if (statusFilter === 'UPCOMING') return matchesClassSearch && cls.status === 'Sắp diễn ra';
@@ -163,9 +192,7 @@ const CourseClassManagement = () => {
   const totalClasses = courses.reduce((sum, course) => sum + course.classes.length, 0);
   const totalInstructors = new Set(
     courses.flatMap((course) => course.classes.map((c) => c.instructor))
-  ).size || 2; // Default fallback to 2 if none
-
-
+  ).size || Math.min(totalClasses, 2);
 
   // Conditional rendering for Attendance History view
   if (selectedClassForHistory) {
@@ -206,9 +233,8 @@ const CourseClassManagement = () => {
         </div>
       </section>
 
-      {/* Top dashboard row: Stats and Featured */}
+      {/* Stats Dashboard */}
       <section className="courses-dashboard-top">
-        {/* Dark Stats Card */}
         <div className="stats-card-dark">
           <div className="card-bg-icon">
             <svg width="104" height="105" viewBox="0 0 104 105" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -219,22 +245,21 @@ const CourseClassManagement = () => {
             <p className="stats-title-label">THỐNG KÊ ĐÀO TẠO</p>
             <div className="stats-row">
               <div className="stat-box">
+                <p className="stat-label">KHÓA HỌC</p>
+                <p className="stat-value">{String(allCoursesRaw.length).padStart(2, '0')}</p>
+              </div>
+              <div className="stat-box">
                 <p className="stat-label">LỚP HỌC</p>
                 <p className="stat-value">{String(totalClasses).padStart(2, '0')}</p>
               </div>
               <div className="stat-box">
-                <p className="stat-label">GIẢNG VIÊN</p>
-                <p className="stat-value">{String(totalInstructors).padStart(2, '0')}</p>
-              </div>
-              <div className="stat-box">
-                <p className="stat-label">THAM DỰ</p>
-                <p className="stat-value">92%</p>
+                <p className="stat-label">MÔN HỌC</p>
+                <p className="stat-value">{String(allSubjects.length).padStart(2, '0')}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Featured Course Card */}
         <div className="featured-course-card">
           <div className="featured-left">
             <div className="featured-header">
@@ -275,164 +300,173 @@ const CourseClassManagement = () => {
         </div>
       </section>
 
-      {/* Course List Section */}
-      <section className="table-card">
-        {/* Table Toolbar */}
-        <div className="table-toolbar">
-          <div className="toolbar-left">
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Tìm khóa học, lớp học hoặc giảng viên..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="search-icon">
-                <path d="M11.5 6.5C11.5 9.26142 9.26142 11.5 6.5 11.5C3.73858 11.5 1.5 9.26142 1.5 6.5C1.5 3.73858 3.73858 1.5 6.5 1.5C9.26142 1.5 11.5 3.73858 11.5 6.5ZM16 14.5L11.5 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
+      {/* Loading State */}
+      {loading ? (
+        <section className="table-card">
+          <div style={{ textAlign: "center", padding: "60px 20px", color: "#64748b" }}>
+            <div style={{ fontSize: "14px", fontWeight: 600 }}>Đang tải dữ liệu...</div>
+          </div>
+        </section>
+      ) : (
+        <section className="table-card">
+          {/* Table Toolbar */}
+          <div className="table-toolbar">
+            <div className="toolbar-left">
+              <div className="search-box">
+                <input
+                  type="text"
+                  placeholder="Tìm khóa học, lớp học hoặc giảng viên..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="search-icon">
+                  <path d="M11.5 6.5C11.5 9.26142 9.26142 11.5 6.5 11.5C3.73858 11.5 1.5 9.26142 1.5 6.5C1.5 3.73858 3.73858 1.5 6.5 1.5C9.26142 1.5 11.5 3.73858 11.5 6.5ZM16 14.5L11.5 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="toolbar-right">
+              <button
+                className={`filter-btn ${statusFilter === 'ALL' ? 'active' : ''}`}
+                onClick={() => setStatusFilter('ALL')}
+              >
+                TẤT CẢ
+              </button>
+              <button
+                className={`filter-btn ${statusFilter === 'ACTIVE' ? 'active' : ''}`}
+                onClick={() => setStatusFilter('ACTIVE')}
+              >
+                ĐANG DIỄN RA
+              </button>
+              <button
+                className={`filter-btn ${statusFilter === 'UPCOMING' ? 'active' : ''}`}
+                onClick={() => setStatusFilter('UPCOMING')}
+              >
+                SẮP DIỄN RA
+              </button>
             </div>
           </div>
 
-          <div className="toolbar-right">
-            <button
-              className={`filter-btn ${statusFilter === 'ALL' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('ALL')}
-            >
-              TẤT CẢ
-            </button>
-            <button
-              className={`filter-btn ${statusFilter === 'ACTIVE' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('ACTIVE')}
-            >
-              ĐANG DIỄN RA
-            </button>
-            <button
-              className={`filter-btn ${statusFilter === 'UPCOMING' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('UPCOMING')}
-            >
-              SẮP DIỄN RA
-            </button>
-          </div>
-        </div>
-
-        {/* Table Core Layout */}
-        <div className="table-responsive-scroll">
-          <div className="table-header course-table-grid">
-          <div className="col-expand-trigger"></div>
-          <div>MÃ KHÓA/LỚP</div>
-          <div>TÊN KHÓA HỌC/LỚP</div>
-          <div>THỜI LƯỢNG/LỊCH TRÌNH</div>
-          <div>CHI TIẾT CẤU TRÚC</div>
-          <div>CHUYÊN CẦN / TRẠNG THÁI</div>
-          <div style={{ textAlign: 'right' }}>NHÂN SỰ / LỚP HỌC</div>
-        </div>
-
-        <div className="table-body">
-          {filteredCourses.length === 0 ? (
-            <div className="empty-table-state">
-              Không tìm thấy khóa học hoặc lớp học nào phù hợp.
+          {/* Table Core Layout */}
+          <div className="table-responsive-scroll">
+            <div className="table-header course-table-grid">
+              <div className="col-expand-trigger"></div>
+              <div>MÃ KHÓA/LỚP</div>
+              <div>TÊN KHÓA HỌC/LỚP</div>
+              <div>THỜI LƯỢNG/LỊCH TRÌNH</div>
+              <div>CHI TIẾT CẤU TRÚC</div>
+              <div>CHUYÊN CẦN / TRẠNG THÁI</div>
+              <div style={{ textAlign: 'right' }}>NHÂN SỰ / LỚP HỌC</div>
             </div>
-          ) : (
-            filteredCourses.map((course) => {
-              const isExpanded = !!expandedCourses[course.code];
-              return (
-                <div key={course.code} className="course-group">
-                  {/* Course Row */}
-                  <div
-                    className={`table-row course-table-grid course-row ${isExpanded ? 'is-expanded' : ''}`}
-                    onClick={() => toggleCourseExpand(course.code)}
-                  >
-                    <div className="col-expand-trigger">
-                      <svg
-                        width="10"
-                        height="6"
-                        viewBox="0 0 10 6"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        style={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
+
+            <div className="table-body">
+              {filteredCourses.length === 0 ? (
+                <div className="empty-table-state">
+                  Không tìm thấy khóa học hoặc lớp học nào phù hợp.
+                </div>
+              ) : (
+                filteredCourses.map((course) => {
+                  const isExpanded = !!expandedCourses[course.code];
+                  return (
+                    <div key={course.code} className="course-group">
+                      {/* Course Row */}
+                      <div
+                        className={`table-row course-table-grid course-row ${isExpanded ? 'is-expanded' : ''}`}
+                        onClick={() => toggleCourseExpand(course.code)}
                       >
-                        <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                    <div className="col-code course-code-text">{course.code}</div>
-                    <div className="col-name course-title-text">{course.name}</div>
-                    <div className="col-duration">{course.duration} Giờ</div>
-                    <div className="col-structure">
-                      <div className="structure-badges-row">
-                        {Object.entries(course.structure).map(([key, val]) => (
-                          <span key={key} className="structure-badge">
-                            {key.toUpperCase()} ({val}%)
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="col-progress">
-                      <div className="progress-bar-wrapper">
-                        <div className="progress-bar-container">
-                          <div className="progress-bar-fill" style={{ width: `${course.attendanceProgress}%` }}></div>
+                        <div className="col-expand-trigger">
+                          <svg
+                            width="10"
+                            height="6"
+                            viewBox="0 0 10 6"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            style={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
+                          >
+                            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                         </div>
-                        <span className="progress-percentage">{course.attendanceProgress}%</span>
-                      </div>
-                    </div>
-                    <div className="col-count text-right" style={{ fontWeight: 600 }}>
-                      {course.classes.length} Lớp học
-                    </div>
-                  </div>
-
-                  {/* Nested Class Rows */}
-                  {isExpanded && (
-                    <div className="classes-nested-container">
-                      {course.filteredClasses.length === 0 ? (
-                        <div className="no-nested-classes">
-                          Không có lớp học nào phù hợp bộ lọc hiện tại.
-                        </div>
-                      ) : (
-                        course.filteredClasses.map((cls) => (
-                          <div key={cls.code} className="table-row course-table-grid class-nested-row" style={{ cursor: 'pointer' }} onClick={() => setSelectedClassForHistory(cls)}>
-                            <div className="col-expand-trigger"></div>
-                            <div className="col-code nested-class-code">{cls.code}</div>
-                            <div className="col-name nested-class-name">{cls.name}</div>
-                            <div className="col-schedule">
-                              {cls.startDate} - {cls.endDate}
-                            </div>
-                            <div className="col-status-badge">
-                              <span className={`class-status ${
-                                cls.status === 'Đang diễn ra' ? 'status-active' :
-                                cls.status === 'Sắp diễn ra' ? 'status-pending' : 'status-completed'
-                              }`}>
-                                {cls.status}
+                        <div className="col-code course-code-text">{course.code}</div>
+                        <div className="col-name course-title-text">{course.name}</div>
+                        <div className="col-duration">{course.duration} Giờ</div>
+                        <div className="col-structure">
+                          <div className="structure-badges-row">
+                            {Object.entries(course.structure).map(([key, val]) => (
+                              <span key={key} className="structure-badge">
+                                {key.toUpperCase()} ({val}%)
                               </span>
-                            </div>
-                            <div className="col-progress">
-                              {cls.status !== 'Sắp diễn ra' ? (
-                                <div className="progress-bar-wrapper">
-                                  <div className="progress-bar-container bar-dark-blue">
-                                    <div className="progress-bar-fill" style={{ width: `${cls.attendanceRate}%` }}></div>
-                                  </div>
-                                  <span className="progress-percentage">{cls.attendanceRate}%</span>
-                                </div>
-                              ) : (
-                                <span className="no-progress-label">Chưa bắt đầu</span>
-                              )}
-                            </div>
-                            <div className="col-instructor text-right">
-                              GV: {cls.instructor}
-                            </div>
+                            ))}
                           </div>
-                        ))
+                        </div>
+                        <div className="col-progress">
+                          <div className="progress-bar-wrapper">
+                            <div className="progress-bar-container">
+                              <div className="progress-bar-fill" style={{ width: `${course.attendanceProgress}%` }}></div>
+                            </div>
+                            <span className="progress-percentage">{course.attendanceProgress}%</span>
+                          </div>
+                        </div>
+                        <div className="col-count text-right" style={{ fontWeight: 600 }}>
+                          {course.classes.length} Lớp học
+                        </div>
+                      </div>
+
+                      {/* Nested Class Rows */}
+                      {isExpanded && (
+                        <div className="classes-nested-container">
+                          {course.filteredClasses.length === 0 ? (
+                            <div className="no-nested-classes">
+                              Không có lớp học nào phù hợp bộ lọc hiện tại.
+                            </div>
+                          ) : (
+                            course.filteredClasses.map((cls) => (
+                              <div key={cls.code} className="table-row course-table-grid class-nested-row" style={{ cursor: 'pointer' }} onClick={() => setSelectedClassForHistory(cls)}>
+                                <div className="col-expand-trigger"></div>
+                                <div className="col-code nested-class-code">{cls.code}</div>
+                                <div className="col-name nested-class-name">{cls.name}</div>
+                                <div className="col-schedule">
+                                  {cls.startDate} - {cls.endDate}
+                                </div>
+                                <div className="col-status-badge">
+                                  <span className={`class-status ${
+                                    cls.status === 'Đang diễn ra' ? 'status-active' :
+                                    cls.status === 'Sắp diễn ra' ? 'status-pending' : 'status-completed'
+                                  }`}>
+                                    {cls.status}
+                                  </span>
+                                </div>
+                                <div className="col-progress">
+                                  {cls.status !== 'Sắp diễn ra' ? (
+                                    <div className="progress-bar-wrapper">
+                                      <div className="progress-bar-container bar-dark-blue">
+                                        <div className="progress-bar-fill" style={{ width: `${cls.attendanceRate}%` }}></div>
+                                      </div>
+                                      <span className="progress-percentage">{cls.attendanceRate}%</span>
+                                    </div>
+                                  ) : (
+                                    <span className="no-progress-label">Chưa bắt đầu</span>
+                                  )}
+                                </div>
+                                <div className="col-instructor text-right">
+                                  GV: {cls.instructor}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-        </div>
-      </section>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {isCreatingCourse && (
         <CreateCourse
-          nextCourseCode={`AV-MNT-${String(courses.length + 1).padStart(3, '0')}`}
+          nextCourseCode={`AV-MNT-${String(allCoursesRaw.length + 1).padStart(3, '0')}`}
           onSave={handleSaveCourse}
           onCancel={() => setIsCreatingCourse(false)}
         />
@@ -440,7 +474,7 @@ const CourseClassManagement = () => {
 
       {isCreatingClass && (
         <CreateClass
-          courses={courses}
+          courses={allCoursesRaw}
           onSave={handleSaveClass}
           onCancel={() => setIsCreatingClass(false)}
         />

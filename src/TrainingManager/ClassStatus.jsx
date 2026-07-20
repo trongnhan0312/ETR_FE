@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
+import { api } from "../utils/api";
 import "./training-manager.scss";
 
 const ClassStatus = () => {
@@ -20,82 +21,65 @@ const ClassStatus = () => {
   const [newTraineesCount, setNewTraineesCount] = useState(15);
   const [newClassType, setNewClassType] = useState("Type Rating");
 
-  // Sample classes data
-  const [classes, setClasses] = useState([
-    {
-      id: "BATCH-320-A",
-      name: "A320 Type Rating",
-      subName: "Sim Phase: Final Check",
-      instructor: "Capt. Nguyen Van A",
-      startDate: "01/10",
-      endDate: "15/11",
-      progress: 85,
-      attendance: "98%",
-      status: "IN PROGRESS",
-      simRoom: "SIM-04",
-      trainees: 18,
-      type: "Type Rating",
-      historyLogs: [
-        {
-          date: "2026-06-20",
-          event: "Simulator session 6 complete: Engine failure procedures.",
-        },
-        {
-          date: "2026-06-15",
-          event: "Mid-term evaluation completed. Average score: 87.2%.",
-        },
-      ],
-    },
-    {
-      id: "BATCH-787-C",
-      name: "B787 Conversion",
-      subName: "Ground School",
-      instructor: "Capt. Le Quang B",
-      startDate: "20/10",
-      endDate: "30/12",
-      progress: 42,
-      attendance: "92%",
-      status: "IN PROGRESS",
-      simRoom: "SIM-01",
-      trainees: 15,
-      type: "Conversion",
-      historyLogs: [
-        { date: "2026-06-22", event: "Ground school module 1 completed." },
-      ],
-    },
-    {
-      id: "BATCH-CRM-01",
-      name: "CRM Advanced",
-      subName: "Theory Module",
-      instructor: "Dr. Hoang Thuy D",
-      startDate: "05/11",
-      endDate: "10/11",
-      progress: 0,
-      attendance: "--",
-      status: "SCHEDULED",
-      simRoom: "ROOM-102",
-      trainees: 20,
-      type: "Workshop",
-      historyLogs: [],
-    },
-    {
-      id: "BATCH-350-X",
-      name: "A350 Initial Cert",
-      subName: "Simulator Maintenance",
-      instructor: "Capt. Tran Minh E",
-      startDate: "15/09",
-      endDate: "01/11",
-      progress: 60,
-      attendance: "100%",
-      status: "DELAYED",
-      simRoom: "SIM-02",
-      trainees: 12,
-      type: "Certification",
-      historyLogs: [
-        { date: "2026-09-20", event: "Simulator maintenance scheduled." },
-      ],
-    },
-  ]);
+  // Load classes from API
+  const [classes, setClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+
+  useEffect(() => {
+    loadClasses();
+  }, []);
+
+  const loadClasses = async () => {
+    setClassesLoading(true);
+    try {
+      const [classData, enrollmentData, profileData] = await Promise.all([
+        api.get("/Classes").catch(() => []),
+        api.get("/Enrollments").catch(() => []),
+        api.get("/UserProfiles").catch(() => []),
+      ]);
+
+      const clsArr = Array.isArray(classData) ? classData : [];
+      const enrArr = Array.isArray(enrollmentData) ? enrollmentData : [];
+      const profArr = Array.isArray(profileData) ? profileData : [];
+
+      const mapped = clsArr.slice(0, 10).map((cls) => {
+        const classEnrollments = enrArr.filter((e) => e.classId === cls.classId);
+        const instructors = profArr.filter((p) =>
+          classEnrollments.some((e) => e.accountId === p.accountId)
+        );
+        return {
+          id: cls.classCode || `CL-${cls.classId}`,
+          name: cls.className || `Lớp #${cls.classId}`,
+          subName: cls.description || cls.courseName || "",
+          instructor: instructors.length > 0 ? instructors[0]?.fullName || "Instructor" : "Chưa phân công",
+          startDate: cls.startDate ? new Date(cls.startDate).toLocaleDateString("vi-VN") : "TBD",
+          endDate: cls.endDate ? new Date(cls.endDate).toLocaleDateString("vi-VN") : "TBD",
+          progress: 0,
+          attendance: "--",
+          status: cls.status === "Active" ? "IN PROGRESS" : cls.status === "Scheduled" ? "SCHEDULED" : "IN PROGRESS",
+          simRoom: "",
+          trainees: classEnrollments.length,
+          type: "",
+          historyLogs: cls.createdAt ? [{ date: new Date(cls.createdAt).toISOString().split("T")[0], event: "Lớp được khởi tạo." }] : [],
+        };
+      });
+
+      setClasses(mapped.length > 0 ? mapped : getFallbackClasses());
+    } catch (err) {
+      console.error("Error loading classes:", err);
+      setClasses(getFallbackClasses());
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
+  // Fallback mock data when API is unavailable
+  const getFallbackClasses = () => [
+    { id: "CL-001", name: "A320 Type Rating", subName: "Sim Phase", instructor: "Capt. Nguyen Van A", startDate: "01/10", endDate: "15/11", progress: 85, attendance: "98%", status: "IN PROGRESS", simRoom: "SIM-04", trainees: 18, type: "Type Rating", historyLogs: [] },
+    { id: "CL-002", name: "B787 Conversion", subName: "Ground School", instructor: "Capt. Le Quang B", startDate: "20/10", endDate: "30/12", progress: 42, attendance: "92%", status: "IN PROGRESS", simRoom: "SIM-01", trainees: 15, type: "Conversion", historyLogs: [] },
+    { id: "CL-003", name: "CRM Advanced", subName: "Theory Module", instructor: "Dr. Hoang Thuy D", startDate: "05/11", endDate: "10/11", progress: 0, attendance: "--", status: "SCHEDULED", simRoom: "ROOM-102", trainees: 20, type: "Workshop", historyLogs: [] },
+    { id: "CL-004", name: "A350 Initial Cert", subName: "Sim Maintenance", instructor: "Capt. Tran Minh E", startDate: "15/09", endDate: "01/11", progress: 60, attendance: "100%", status: "DELAYED", simRoom: "SIM-02", trainees: 12, type: "Certification", historyLogs: [] },
+  ];
 
   // Sample students attendance data by class
   const [studentsData, setStudentsData] = useState({

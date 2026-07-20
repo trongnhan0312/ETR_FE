@@ -23,6 +23,10 @@ const InstructorAssessments = () => {
   const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
+  // SubjectSignoff state
+  const [signingOff, setSigningOff] = useState(false);
+  const [confirmSignoffOpen, setConfirmSignoffOpen] = useState(false);
+
   // Toast notifications
   const toast = useToast();
 
@@ -598,6 +602,39 @@ const InstructorAssessments = () => {
   }, [isEditingScores, editingScores, studentScores]);
 
   // Publish (confirm + lock) all scores — called after ConfirmModal confirms
+  // Subject Signoff handler
+  const handleSignoffAllSubjects = async () => {
+    setSigningOff(true);
+    try {
+      const subjectResultIds = [...new Set(displayScores.map(s => s.subjectResultId).filter(Boolean))];
+      
+      if (subjectResultIds.length === 0) {
+        toast.warning("Không có môn học để ký!", "Vui lòng nhập điểm trước khi ký xác nhận.");
+        setConfirmSignoffOpen(false);
+        return;
+      }
+
+      await Promise.all(
+        subjectResultIds.map((subjectResultId) =>
+          api.post("/SubjectSignoff", {
+            subjectResultId,
+            role: "Instructor",
+            comment: "Đã hoàn thành đánh giá và ký xác nhận chuyên đề.",
+          })
+        )
+      );
+
+      setConfirmSignoffOpen(false);
+      toast.success("Ký xác nhận thành công!", `Đã ký ${subjectResultIds.length} môn học.`);
+      loadSessionScores(selectedSession, selectedAssessmentType);
+    } catch (err) {
+      console.error("Lỗi khi ký xác nhận:", err);
+      toast.error("Ký xác nhận thất bại!", err.message);
+    } finally {
+      setSigningOff(false);
+    }
+  };
+
   const handlePublishScores = async () => {
     if (allPublished) return;
 
@@ -692,7 +729,7 @@ const InstructorAssessments = () => {
           changedScores.map((student) => {
             if (student.subjectResultId) {
               return api
-                .post("/AssessmentResults/signoff", {
+                .post("/SubjectSignoff", {
                   subjectResultId: student.subjectResultId,
                   role: "Instructor",
                   comment: "Đã hoàn thành đánh giá chuyên đề.",
@@ -849,6 +886,29 @@ const InstructorAssessments = () => {
                 <span>NHẬP ĐIỂM ĐÁNH GIÁ</span>
               </button>
             )}
+
+            {/* Ký xác nhận (Subject Signoff) button */}
+            <button
+              onClick={() => setConfirmSignoffOpen(true)}
+              className="create-btn"
+              type="button"
+              disabled={loading || signingOff || allPublished}
+              style={{
+                background: allPublished
+                  ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
+                  : "linear-gradient(159.93deg, #2563eb -27.55%, #1d4ed8 127.55%)",
+                opacity: allPublished ? 0.9 : 1,
+                cursor: allPublished ? "not-allowed" : "pointer",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "4px" }}>
+                <path d="M9 12l2 2 4-4" />
+                <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+              </svg>
+              <span>
+                {allPublished ? "ĐÃ KÝ" : "KÝ XÁC NHẬN"}
+              </span>
+            </button>
 
             {/* Publish / Lock button — always visible, matching attendance style */}
             <button
@@ -1370,6 +1430,19 @@ const InstructorAssessments = () => {
 
         {/* Toast notifications */}
         <toast.ToastContainer />
+
+        {/* Confirm signoff modal */}
+        <ConfirmModal
+          isOpen={confirmSignoffOpen}
+          onClose={() => setConfirmSignoffOpen(false)}
+          onConfirm={handleSignoffAllSubjects}
+          title="Xác nhận ký xác nhận môn học"
+          message="Bạn có chắc chắn muốn ký xác nhận (Subject Signoff) cho tất cả môn học trong buổi này? Sau khi ký, hệ thống sẽ tự động đánh giá Pass/Fail."
+          confirmText="KÝ XÁC NHẬN"
+          cancelText="HỦY BỎ"
+          confirmVariant="primary"
+          loading={signingOff}
+        />
 
         {/* Confirm publish modal */}
         <ConfirmModal

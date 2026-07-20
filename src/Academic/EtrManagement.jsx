@@ -1,59 +1,12 @@
-import { useState } from 'react';
-
-const initialEtrRecords = [
-  {
-    id: '#AM-2024-0892',
-    studentCode: 'AM-2409-001',
-    studentName: 'Trần Hoàng Nam',
-    course: 'Aerospace Structural Analysis',
-    status: 'PENDING QA',
-    lastUpdated: '24/05/2024 14:30',
-    steps: { personal: true, attendance: true, results: true, evidence: false },
-    evidenceList: [
-      { name: 'Bao-Cao-Khao-Sat-Thuc-Dia.pdf', type: 'PDF DOC', tag: 'AEROSPACE STRUCTURAL ANALYSIS', date: '15 Th08, 2024', size: '2.4 MB', status: 'Verified' },
-      { name: 'Canh-Canh-May-Bay-Repair-01.jpg', type: 'PHOTO', tag: 'STRUCTURAL INTEGRITY CHECK', date: '18 Th08, 2024', size: '1.1 MB', status: 'Pending QA' },
-      { name: 'Digital_Signature_Instructor.png', type: 'SIGNATURE', tag: 'FINAL APPROVAL TOKEN', date: '20 Th08, 2024', size: '450 KB', status: 'Rejected', rejectReason: 'Hình ảnh mờ, không nhìn rõ chữ ký và dấu mộc của đơn vị.' },
-      { name: 'Xac-Nhan-Hoc-Vien-0892.svg', type: 'SIGNATURE', tag: 'DIGITAL ID CERTIFICATE', date: '21 Th08, 2024', size: '15 KB', status: 'Verified' }
-    ]
-  },
-  {
-    id: '#AM-2024-0650',
-    studentCode: 'AM-2409-003',
-    studentName: 'Nguyễn Văn Bình',
-    course: 'Propulsion Systems',
-    status: 'APPROVED',
-    lastUpdated: '20/05/2024 16:45',
-    steps: { personal: true, attendance: true, results: true, evidence: true },
-    evidenceList: [
-      { name: 'CCCD_NguyenVanBinh.pdf', type: 'PDF DOC', tag: 'PERSONAL FILE', date: '10 Th05, 2024', size: '1.1 MB', status: 'Verified' },
-      { name: 'BangDiem_Chung.pdf', type: 'PDF DOC', tag: 'ACADEMIC TRANSCRIPT', date: '15 Th05, 2024', size: '920 KB', status: 'Verified' }
-    ]
-  },
-  {
-    id: '#AM-2024-0320',
-    studentCode: 'AM-2409-002',
-    studentName: 'Trần Thị B',
-    course: 'A320 Maintenance Basics',
-    status: 'UNDER REVIEW',
-    lastUpdated: '18/05/2024 10:15',
-    steps: { personal: true, attendance: true, results: false, evidence: false },
-    evidenceList: [
-      { name: 'CCCD_TranThiB.pdf', type: 'PDF DOC', tag: 'PERSONAL FILE', date: '12 Th05, 2024', size: '1.5 MB', status: 'Verified' }
-    ]
-  }
-];
-
-const initialAuditTrail = [
-  { time: '24/05/2024 14:32', actor: 'Academic Staff', action: 'UPDATE', desc: 'Đã cập nhật điểm danh lớp L1-M2' },
-  { time: '24/05/2024 10:15', actor: 'Academic Staff', action: 'VALIDATE', desc: 'Xác nhận checklist hồ sơ Trần Hoàng Nam' },
-  { time: '20/05/2024 16:47', actor: 'QA Officer', action: 'VALIDATE', desc: 'Phê duyệt ETR #AM-2024-0650 của Nguyễn Văn Bình' },
-  { time: '18/05/2024 10:20', actor: 'Academic Staff', action: 'UPDATE', desc: 'Tạo mới hồ sơ ETR #AM-2024-0320' }
-];
+import { useState, useEffect } from 'react';
+import { api } from '../utils/api';
+import ConfirmModal from "../components/ConfirmModal";
 
 const EtrManagement = () => {
-  const [etrRecords, setEtrRecords] = useState(initialEtrRecords);
-  const [selectedRecord, setSelectedRecord] = useState(initialEtrRecords[0]);
-  const [auditTrail, setAuditTrail] = useState(initialAuditTrail);
+  const [etrRecords, setEtrRecords] = useState([]);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [auditTrail, setAuditTrail] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -69,60 +22,176 @@ const EtrManagement = () => {
   const [isEvidenceUploadOpen, setIsEvidenceUploadOpen] = useState(false);
   const [isFinalViewOpen, setIsFinalViewOpen] = useState(false);
   const [finalViewRecord, setFinalViewRecord] = useState(null);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+  const [recordToSubmit, setRecordToSubmit] = useState(null);
+  const [submittingEtr, setSubmittingEtr] = useState(false);
 
   // New ETR form state
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentCode, setNewStudentCode] = useState('');
-  const [newCourse, setNewCourse] = useState('Propulsion Systems');
+  const [newCourse, setNewCourse] = useState('');
   const [newStatus, setNewStatus] = useState('UNDER REVIEW');
+  const [allEnrollments, setAllEnrollments] = useState([]);
+  const [allAccounts, setAllAccounts] = useState([]);
+  const [allProfiles, setAllProfiles] = useState([]);
 
   // New Evidence upload form state
   const [uploadFileName, setUploadFileName] = useState('');
   const [uploadFileType, setUploadFileType] = useState('PDF DOC');
-  const [uploadFileTag, setUploadFileTag] = useState('AEROSPACE STRUCTURAL ANALYSIS');
+  const [uploadFileTag, setUploadFileTag] = useState('');
   const [uploadFileSize, setUploadFileSize] = useState('1.5 MB');
+
+  // Load data from APIs
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [etrs, evfs, audits, enrollments, accounts, profiles] = await Promise.all([
+          api.get("/Etr").catch(() => []),
+          api.get("/Evidences").catch(() => []),
+          api.get("/Audit").catch(() => []),
+          api.get("/Enrollments").catch(() => []),
+          api.get("/Accounts").catch(() => []),
+          api.get("/UserProfiles/learners").catch(() => [])
+        ]);
+
+        const etrsArr = Array.isArray(etrs) ? etrs : [];
+        const evfsArr = Array.isArray(evfs) ? evfs : [];
+        const accountsArr = Array.isArray(accounts) ? accounts : [];
+        const profilesArr = Array.isArray(profiles) ? profiles : [];
+        const enrollmentsArr = Array.isArray(enrollments) ? enrollments : [];
+
+        setAllAccounts(accountsArr);
+        setAllProfiles(profilesArr);
+        setAllEnrollments(enrollmentsArr);
+
+        // Merge ETR records with enrollment/profile/evidence data
+        const merged = mergeEtrData(etrsArr, enrollmentsArr, accountsArr, profilesArr, evfsArr);
+        setEtrRecords(merged);
+        if (merged.length > 0) {
+          setSelectedRecord(merged[0]);
+        }
+
+        // Merge audit trail
+        const auditsArr = Array.isArray(audits) ? audits : [];
+        setAuditTrail(auditsArr.map((a, idx) => ({
+          time: a.recordedAt ? new Date(a.recordedAt).toLocaleString('vi-VN') : '',
+          actor: `Account #${a.accountId || 'N/A'}`,
+          action: a.actionType || (a.entityName || 'UPDATE'),
+          desc: a.description || `${a.actionType || 'Cập nhật'} ${a.entityName || 'hồ sơ'} #${a.recordId || ''}`
+        })));
+      } catch (error) {
+        console.error("Error loading ETR data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const mergeEtrData = (etrs, enrollments, accounts, profiles, evidenceFiles = []) => {
+    const evfsArr = Array.isArray(evidenceFiles) ? evidenceFiles : [];
+
+    return etrs.map((etr) => {
+      const enrollment = enrollments.find((e) => e.enrollmentId === etr.enrollmentId);
+      const account = enrollment ? accounts.find((a) => a.accountId === enrollment.accountId) : null;
+      const profile = account ? profiles.find((p) => p.accountId === account.accountId) : null;
+      const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
+
+      const statusMap = {
+        'Draft': 'UNDER REVIEW',
+        'Submitted': 'PENDING QA',
+        'Verified': 'APPROVED',
+        'Completed': 'APPROVED',
+        'Active': 'UNDER REVIEW'
+      };
+
+      // Find evidence files for this ETR record
+      const etrEvidences = evfsArr.filter(
+        (ev) => (ev.eTRCourseRecordId || ev.etrCourseRecordId) === etrId
+      ).map((ev) => ({
+        name: ev.fileName || `evidence-${ev.evidenceFileId}`,
+        type: ev.mimeType === 'application/pdf' ? 'PDF DOC' :
+              ev.mimeType?.startsWith('image/') ? 'PHOTO' : 'SIGNATURE',
+        tag: ev.fileExtension?.toUpperCase() || 'DOCUMENT',
+        date: ev.uploadedAt ? new Date(ev.uploadedAt).toLocaleDateString('vi-VN') : '',
+        size: ev.fileSize ? `${(ev.fileSize / (1024 * 1024)).toFixed(1)} MB` : '0 MB',
+        status: ev.verificationStatus === 'Verified' ? 'Verified' :
+                ev.verificationStatus === 'Rejected' ? 'Rejected' : 'Pending QA',
+        rejectReason: ev.qAComment || ev.qaComment || ''
+      }));
+
+      return {
+        id: `#ETR-${String(etrId).padStart(4, '0')}`,
+        etrId: etrId,
+        enrollmentId: etr.enrollmentId,
+        studentCode: profile?.userCode || account?.username || '',
+        studentName: profile?.fullName || account?.username || `Học viên #${enrollment?.accountId || ''}`,
+        course: `Khóa học #${enrollment?.classId || ''}`,
+        status: statusMap[etr.status] || etr.status || 'UNDER REVIEW',
+        lastUpdated: etr.submittedAt ? new Date(etr.submittedAt).toLocaleString('vi-VN') :
+                     etr.verifiedAt ? new Date(etr.verifiedAt).toLocaleString('vi-VN') : '',
+        steps: {
+          personal: true,
+          attendance: etr.status !== 'Draft',
+          results: etr.status === 'Verified' || etr.status === 'Completed',
+          evidence: etr.status === 'Verified' || etr.status === 'Completed'
+        },
+        evidenceList: etrEvidences
+      };
+    });
+  };
+
+  const refreshData = async () => {
+    try {
+      const [etrs, audits] = await Promise.all([
+        api.get("/Etr").catch(() => []),
+        api.get("/Audit").catch(() => [])
+      ]);
+      const merged = mergeEtrData(
+        Array.isArray(etrs) ? etrs : [],
+        allEnrollments, allAccounts, allProfiles
+      );
+      setEtrRecords(merged);
+      setAuditTrail(Array.isArray(audits) ? audits.map((a) => ({
+        time: a.recordedAt ? new Date(a.recordedAt).toLocaleString('vi-VN') : '',
+        actor: `Account #${a.accountId || 'N/A'}`,
+        action: a.actionType || 'UPDATE',
+        desc: a.description || 'Cập nhật hồ sơ'
+      })) : []);
+    } catch (error) {
+      console.error("Error refreshing ETR data:", error);
+    }
+  };
 
   const handleSelectRecord = (record) => {
     setSelectedRecord(record);
   };
 
-  const handleCreateEtr = (e) => {
+  const handleCreateEtr = async (e) => {
     e.preventDefault();
 
-    const recordId = `#AM-2024-${String(Math.floor(1000 + Math.random() * 9000))}`;
-    const nowStr = new Date().toLocaleString('vi-VN', { hour12: false }).replace(',', '');
+    try {
+      const profile = allProfiles.find((p) => p.fullName === newStudentName);
+      const account = profile ? allAccounts.find((a) => a.accountId === profile.accountId) : null;
+      const enrollment = account ? allEnrollments.find((enr) => enr.accountId === account.accountId) : null;
 
-    const newRecord = {
-      id: recordId,
-      studentCode: newStudentCode || 'AM-2409-999',
-      studentName: newStudentName,
-      course: newCourse,
-      status: newStatus,
-      lastUpdated: nowStr,
-      steps: {
-        personal: true,
-        attendance: newStatus !== 'UNDER REVIEW',
-        results: newStatus === 'APPROVED',
-        evidence: newStatus === 'APPROVED'
-      },
-      evidenceList: [
-        { name: `CCCD_${newStudentName.replace(/\s+/g, '')}.pdf`, type: 'PDF DOC', tag: 'PERSONAL FILE', date: nowStr.split(' ')[0], size: '1.0 MB', status: 'Verified' }
-      ]
-    };
+      if (!enrollment) {
+        alert('Không tìm thấy thông tin ghi danh của học viên này. Vui lòng ghi danh trước.');
+        return;
+      }
 
-    setEtrRecords([newRecord, ...etrRecords]);
-    setSelectedRecord(newRecord);
+      const newEtr = await api.post("/Etr", {
+        enrollmentId: enrollment.enrollmentId,
+        status: 'Draft'
+      });
 
-    // Append to Audit Trail
-    const newLog = {
-      time: nowStr,
-      actor: 'Academic Staff',
-      action: 'UPDATE',
-      desc: `Tạo mới hồ sơ ETR ${recordId} của ${newStudentName}`
-    };
-    setAuditTrail([newLog, ...auditTrail]);
-
-    setIsCreateOpen(false);
+      await refreshData();
+      setIsCreateOpen(false);
+    } catch (error) {
+      console.error("Error creating ETR:", error);
+      alert("Tạo ETR thất bại: " + (error.message || "Lỗi không xác định"));
+    }
   };
 
   const handleOpenEvidence = (record, e) => {
@@ -134,43 +203,26 @@ const EtrManagement = () => {
     setSelectedFiles([]);
   };
 
-  const handleUploadEvidence = (e) => {
+  const handleUploadEvidence = async (e) => {
     e.preventDefault();
     if (!selectedRecord) return;
 
-    const nowStr = new Date().toLocaleString('vi-VN', { hour12: false }).replace(',', '');
-    const today = new Date();
-    const months = ['Th01', 'Th02', 'Th03', 'Th04', 'Th05', 'Th06', 'Th07', 'Th08', 'Th09', 'Th10', 'Th11', 'Th12'];
-    const dateFormatted = `${today.getDate()} ${months[today.getMonth()]}, ${today.getFullYear()}`;
+    try {
+      // Use POST /api/Evidences to upload
+      const formData = new FormData();
+      formData.append('fileName', uploadFileName || 'Document.pdf');
+      formData.append('evidenceTypeId', uploadFileType === 'PDF DOC' ? '1' : uploadFileType === 'PHOTO' ? '2' : '3');
+      formData.append('eTRCourseRecordId', selectedRecord.etrId || 0);
 
-    const newFile = {
-      name: uploadFileName || 'Document.pdf',
-      type: uploadFileType,
-      tag: uploadFileTag.toUpperCase(),
-      date: dateFormatted,
-      size: uploadFileSize,
-      status: 'Pending QA'
-    };
+      api.postFormData("/Evidences", formData);
 
-    const updatedRecord = {
-      ...selectedRecord,
-      evidenceList: [...selectedRecord.evidenceList, newFile]
-    };
-
-    setEtrRecords(etrRecords.map(r => r.id === selectedRecord.id ? updatedRecord : r));
-    setSelectedRecord(updatedRecord);
-
-    // Append to Audit Trail
-    const newLog = {
-      time: nowStr,
-      actor: 'Academic Staff',
-      action: 'UPDATE',
-      desc: `Tải lên minh chứng ${newFile.name} cho hồ sơ ETR ${selectedRecord.id}`
-    };
-    setAuditTrail([newLog, ...auditTrail]);
-
-    setIsEvidenceUploadOpen(false);
-    setUploadFileName('');
+      await refreshData();
+      setIsEvidenceUploadOpen(false);
+      setUploadFileName('');
+    } catch (error) {
+      console.error("Error uploading evidence:", error);
+      alert("Tải lên thất bại: " + (error.message || "Lỗi không xác định"));
+    }
   };
 
   const handleOpenFinalView = (record, e) => {
@@ -179,40 +231,46 @@ const EtrManagement = () => {
     setIsFinalViewOpen(true);
   };
 
-  const handleDownloadFile = (fileName) => {
-    alert(`Đang tải xuống tệp tin: ${fileName}`);
-    const nowStr = new Date().toLocaleString('vi-VN', { hour12: false }).replace(',', '');
-    const newLog = {
-      time: nowStr,
-      actor: 'Academic Staff',
-      action: 'UPDATE',
-      desc: `Tải xuống minh chứng ${fileName} thuộc hồ sơ ETR ${selectedRecord ? selectedRecord.id : ''}`
-    };
-    setAuditTrail([newLog, ...auditTrail]);
+  const handleSubmitEtr = async () => {
+    if (!recordToSubmit) return;
+    setSubmittingEtr(true);
+    try {
+      await api.post(`/Etr/${recordToSubmit.etrId}/submit`, {});
+      await refreshData();
+      setConfirmSubmitOpen(false);
+      setRecordToSubmit(null);
+      alert(`ETR ${recordToSubmit.id} đã được gửi lên QA thành công!`);
+    } catch (error) {
+      console.error("Error submitting ETR:", error);
+      alert("Gửi ETR thất bại: " + (error.message || "Lỗi không xác định"));
+    } finally {
+      setSubmittingEtr(false);
+    }
+  };
+
+  const handleDownloadFile = async (fileName) => {
+    try {
+      await api.get(`/Evidences/download?fileName=${encodeURIComponent(fileName)}`);
+      await refreshData();
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      alert("Tải xuống thất bại: " + (error.message || "Lỗi không xác định"));
+    }
   };
 
   const [previewFile, setPreviewFile] = useState(null);
 
-  const handleDeleteFile = (fileName, e) => {
+  const handleDeleteFile = async (fileName, e) => {
     e.stopPropagation();
     if (!selectedRecord) return;
-    if (confirm(`Bạn có chắc chắn muốn xóa minh chứng ${fileName}?`)) {
-      const updatedRecord = {
-        ...selectedRecord,
-        evidenceList: selectedRecord.evidenceList.filter(f => f.name !== fileName)
-      };
-      setEtrRecords(etrRecords.map(r => r.id === selectedRecord.id ? updatedRecord : r));
-      setSelectedRecord(updatedRecord);
-
-      // Append to Audit Trail
-      const nowStr = new Date().toLocaleString('vi-VN', { hour12: false }).replace(',', '');
-      const newLog = {
-        time: nowStr,
-        actor: 'Academic Staff',
-        action: 'UPDATE',
-        desc: `Xóa minh chứng ${fileName} khỏi hồ sơ ETR ${selectedRecord.id}`
-      };
-      setAuditTrail([newLog, ...auditTrail]);
+    if (window.confirm(`Bạn có chắc chắn muốn xóa minh chứng ${fileName}?`)) {
+      try {
+        await api.delete(`/Evidences/${encodeURIComponent(fileName)}`);
+        await refreshData();
+      } catch (error) {
+        console.error("Error deleting file:", error);
+        alert("Xóa thất bại: " + (error.message || "Lỗi không xác định"));
+      }
     }
   };
 
@@ -841,6 +899,27 @@ const EtrManagement = () => {
                       </svg>
                       <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none xl:text-[#c5a059]">VIEW FINAL</span>
                     </button>
+
+                    {/* Submit ETR button — only for Draft/UNDER REVIEW records */}
+                    {record.status === 'UNDER REVIEW' && (
+                      <button
+                        className="create-btn gold-gradient-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border-0 !bg-emerald-600 !px-0 !py-0 !text-white !shadow-sm !transition hover:-translate-y-0.5 hover:!bg-emerald-700 xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRecordToSubmit(record);
+                          setConfirmSubmitOpen(true);
+                        }}
+                        aria-label="Gửi ETR"
+                      >
+                        <svg width="14" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M22 2L11 13" />
+                          <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                        </svg>
+                        <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none">SUBMIT ETR</span>
+                      </button>
+                    )}
+
                   </div>
                 </div>
               );
@@ -898,6 +977,22 @@ const EtrManagement = () => {
           </div>
         </div>
       </section>
+
+      {/* Modal - Xác nhận gửi ETR lên QA */}
+      <ConfirmModal
+        isOpen={confirmSubmitOpen}
+        onClose={() => {
+          setConfirmSubmitOpen(false);
+          setRecordToSubmit(null);
+        }}
+        onConfirm={handleSubmitEtr}
+        title="Xác nhận gửi ETR"
+        message={`Bạn có chắc chắn muốn gửi hồ sơ ${recordToSubmit?.id || ''} lên QA để xác thực? Sau khi gửi, bạn không thể chỉnh sửa hồ sơ này nữa.`}
+        confirmText="GỬI ETR"
+        cancelText="HỦY BỎ"
+        confirmVariant="primary"
+        loading={submittingEtr}
+      />
 
       {/* Modal - Tạo mới ETR */}
       {isCreateOpen && (

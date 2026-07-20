@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 const CreateClass = ({ courses, onSave, onCancel }) => {
-  const [parentCourse, setParentCourse] = useState(courses[0]?.code || '');
+  const [parentCourse, setParentCourse] = useState(courses[0]?.courseId || '');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -49,10 +49,9 @@ const CreateClass = ({ courses, onSave, onCancel }) => {
                 value={parentCourse}
                 onChange={(e) => setParentCourse(e.target.value)}
                 required
-              >
-                {courses.map((course) => (
-                  <option key={course.code} value={course.code}>
-                    {course.code} - {course.name}
+              >                  {courses.map((course) => (
+                  <option key={course.courseId} value={course.courseId}>
+                    {course.courseCode} - {course.courseName}
                   </option>
                 ))}
               </select>

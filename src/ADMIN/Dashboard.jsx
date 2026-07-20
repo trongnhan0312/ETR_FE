@@ -1,13 +1,5 @@
-import React from 'react';
-
-const dashboardMetrics = [
-  { label: 'Total Users', value: '48' },
-  { label: 'Total Learners', value: '126' },
-  { label: 'Total Courses', value: '12' },
-  { label: 'Total Classes', value: '21' },
-  { label: 'Total ETRs', value: '94' },
-  { label: 'Pending Reviews', value: '16' },
-];
+import { useState, useEffect } from 'react';
+import { api } from '../utils/api';
 
 const readOnlyItems = ['Learners', 'Courses', 'Classes', 'ETRs'];
 
@@ -23,6 +15,45 @@ const blockedActions = [
 ];
 
 const Dashboard = () => {
+  const [metrics, setMetrics] = useState([
+    { label: 'Total Users', value: '...' },
+    { label: 'Total Learners', value: '...' },
+    { label: 'Total Courses', value: '...' },
+    { label: 'Total Classes', value: '...' },
+    { label: 'Total ETRs', value: '...' },
+    { label: 'Pending Reviews', value: '...' },
+  ]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [accounts, profiles, courses, classes, etrs] = await Promise.all([
+          api.get("/Accounts").catch(() => []),
+          api.get("/UserProfiles/learners").catch(() => []),
+          api.get("/Courses").catch(() => []),
+          api.get("/Classes").catch(() => []),
+          api.get("/Etr").catch(() => []),
+        ]);
+        const etrsArr = Array.isArray(etrs) ? etrs : [];
+        const pendingCount = etrsArr.filter((e) => e.status === "Submitted" || e.status === "Draft").length;
+        setMetrics([
+          { label: 'Total Users', value: String(Array.isArray(accounts) ? accounts.length : 0) },
+          { label: 'Total Learners', value: String(Array.isArray(profiles) ? profiles.length : 0) },
+          { label: 'Total Courses', value: String(Array.isArray(courses) ? courses.length : 0) },
+          { label: 'Total Classes', value: String(Array.isArray(classes) ? classes.length : 0) },
+          { label: 'Total ETRs', value: String(etrsArr.length) },
+          { label: 'Pending Reviews', value: String(pendingCount) },
+        ]);
+      } catch (err) {
+        console.error("Error loading admin dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
   return (
     <div className="page-shell">
       <section className="page-header-card">
@@ -42,10 +73,10 @@ const Dashboard = () => {
       </section>
 
       <section className="metrics-grid admin-grid-6">
-        {dashboardMetrics.map((metric) => (
+        {metrics.map((metric) => (
           <article key={metric.label} className="metric-card">
             <span className="metric-label">{metric.label}</span>
-            <strong className="metric-value">{metric.value}</strong>
+            <strong className="metric-value">{loading ? "..." : metric.value}</strong>
           </article>
         ))}
       </section>

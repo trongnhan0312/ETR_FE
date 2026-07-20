@@ -48,15 +48,50 @@ const quickUseCases = [
   'Review ETR records pending verification or approval',
 ];
 
-const dashboardMetrics = [
-  { label: 'Active users', value: '48' },
-  { label: 'Roles configured', value: '8' },
-  { label: 'ETR awaiting review', value: '16' },
-  { label: 'Audit logs today', value: '124' },
-];
-
 const Homepage = () => {
   const navigate = useNavigate();
+  const [dashboardMetrics, setDashboardMetrics] = useState([
+    { label: 'Active users', value: '...' },
+    { label: 'Roles configured', value: '...' },
+    { label: 'ETR awaiting review', value: '...' },
+    { label: 'Audit logs today', value: '...' },
+  ]);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const [accounts, etrs, audit] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:7169/api'}/Accounts`).catch(() => null),
+          fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:7169/api'}/Etr`).catch(() => null),
+          fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:7169/api'}/Audit`).catch(() => null),
+        ]);
+        const accs = accounts?.ok ? await accounts.json() : [];
+        const etrsData = etrs?.ok ? await etrs.json() : [];
+        const auditData = audit?.ok ? await audit.json() : [];
+        const pendingEtrs = (Array.isArray(etrsData) ? etrsData : []).filter((e) => e.status === 'Submitted' || e.status === 'Draft').length;
+        const todayLogs = (Array.isArray(auditData) ? auditData : []).filter((a) => {
+          if (!a.recordedAt) return false;
+          return new Date(a.recordedAt).toDateString() === new Date().toDateString();
+        }).length;
+        setDashboardMetrics([
+          { label: 'Active users', value: String(Array.isArray(accs) ? accs.length : 0) },
+          { label: 'Roles configured', value: '6' },
+          { label: 'ETR awaiting review', value: String(pendingEtrs) },
+          { label: 'Audit logs today', value: String(todayLogs) },
+        ]);
+      } catch (err) {
+        console.error('Error loading dashboard:', err);
+      }
+    };
+    loadDashboard();
+  }, []);
+
+  // Keep existing mock user table data
+  const [userRows] = useState([
+    { name: 'Nguyen Van A', role: 'Academic Staff', email: 'vana.nguyen@example.com', status: 'Active', updated: 'Today' },
+    { name: 'Tran Thi B', role: 'QA Staff', email: 'tha.b@example.com', status: 'Locked', updated: '2 days ago' },
+    { name: 'Le Hoang C', role: 'Training Manager', email: 'hoang.c@example.com', status: 'Active', updated: 'Yesterday' },
+  ]);
 
   return (
     <div className="admin-page">
@@ -192,32 +227,16 @@ const Homepage = () => {
               <div>Action</div>
             </div>
 
-            <div className="table-row table-layout">
-              <div className="font-medium">Nguyen Van A</div>
-              <div className="text-gray">Academic Staff</div>
-              <div className="text-gray">vana.nguyen@example.com</div>
-              <div><span className="status status-active">Active</span></div>
-              <div className="text-gray">Today</div>
-              <div><button className="action-btn" type="button">Edit</button></div>
-            </div>
-
-            <div className="table-row table-layout">
-              <div className="font-medium">Tran Thi B</div>
-              <div className="text-gray">QA Staff</div>
-              <div className="text-gray">tha.b@example.com</div>
-              <div><span className="status status-pending">Locked</span></div>
-              <div className="text-gray">2 days ago</div>
-              <div><button className="action-btn" type="button">Unlock</button></div>
-            </div>
-
-            <div className="table-row table-layout">
-              <div className="font-medium">Le Hoang C</div>
-              <div className="text-gray">Training Manager</div>
-              <div className="text-gray">hoang.c@example.com</div>
-              <div><span className="status status-active">Active</span></div>
-              <div className="text-gray">Yesterday</div>
-              <div><button className="action-btn" type="button">Edit</button></div>
-            </div>
+            {userRows.map((row, idx) => (
+              <div key={idx} className="table-row table-layout">
+                <div className="font-medium">{row.name}</div>
+                <div className="text-gray">{row.role}</div>
+                <div className="text-gray">{row.email}</div>
+                <div><span className={`status ${row.status === 'Active' ? 'status-active' : 'status-pending'}`}>{row.status}</span></div>
+                <div className="text-gray">{row.updated}</div>
+                <div><button className="action-btn" type="button">Edit</button></div>
+              </div>
+            ))}
           </div>
         </section>
       </main>
