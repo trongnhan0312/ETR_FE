@@ -94,7 +94,7 @@ const AuditLog = () => {
                 <span className="status status-active">{entry.status}</span>
               </div>
             </div>
-          ))}
+          )))}
         </div>
       </section>
     </div>

@@ -32,8 +32,7 @@ import EtrApproval from './TrainingManager/EtrApproval';
 import './App.css';
 
 // Protected Route Guard based on role stored in localStorage
-// Protected Route Guard based on role stored in localStorage
-/*const ProtectedRoute = ({ allowedRoles }) => {
+const ProtectedRoute = ({ allowedRoles }) => {
 	const token = localStorage.getItem('token');
 	const userJson = localStorage.getItem('user');
 
@@ -46,30 +45,26 @@ import './App.css';
 
 	// Lấy role ra (hỗ trợ cả trường hợp bạn lưu là roleName hoặc role)
 	const rawRole = user.roleName || user.role || "";
-	const userRole = rawRole.toLowerCase(); // chuyển thành chữ thường ví dụ: "admin"
+	const userRole = rawRole.toLowerCase();
 
 	const isAllowed = allowedRoles.some(
 	  (role) => role.toLowerCase() === userRole,
 	);
 
-		if (!isAllowed) {
-			// Redirect authorized users to their respective default home page
-			if (userRole === 'admin') return <Navigate to="/admin" replace />;
-			if (userRole === 'instructor') return <Navigate to="/instructor" replace />;
-			if (userRole === 'qa' || userRole === 'qualityassurance') return <Navigate to="/qa" replace />;
-			if (userRole === 'academic' || userRole === 'academicstaff') return <Navigate to="/academic" replace />;
-			if (userRole === 'trainingmanager') return <Navigate to="/trainingmanager" replace />;
-			return <Navigate to="/login" replace />;
-		}
-
-		return <Outlet />;
-	} catch (e) {
+	if (!isAllowed) {
+		// Redirect to role-appropriate home page instead of showing forbidden page
+		if (userRole === 'admin') return <Navigate to="/admin" replace />;
+		if (userRole === 'instructor') return <Navigate to="/instructor" replace />;
+		if (userRole === 'qa' || userRole === 'qualityassurance') return <Navigate to="/qa" replace />;
+		if (userRole === 'academic' || userRole === 'academicstaff') return <Navigate to="/academic" replace />;
+		if (userRole === 'trainingmanager') return <Navigate to="/trainingmanager" replace />;
 		return <Navigate to="/login" replace />;
 	}
-};*/
-// Temporary: bypass authentication during development
-const ProtectedRoute = () => {
+
 	return <Outlet />;
+  } catch (e) {
+	return <Navigate to="/login" replace />;
+  }
 };
 function App() {
 	return (

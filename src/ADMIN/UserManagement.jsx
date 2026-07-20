@@ -131,7 +131,7 @@ const UserManagement = () => {
               </div>
               <div><button className="action-btn" type="button">Edit</button></div>
             </div>
-          ))}
+          )))}
         </div>
       </section>
     </div>
