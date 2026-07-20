@@ -11,8 +11,8 @@ import LearnerManagement from './Academic/LearnerManagement';
 import CourseClassManagement from './Academic/CourseClassManagement';
 import EtrManagement from './Academic/EtrManagement';
 import InstructorLayout from './Instructor/InstructorLayout';
-import InstructorDashboard from './Instructor/InstructorDashboard';
 import InstructorClasses from './Instructor/InstructorClasses';
+import InstructorSchedule from './Instructor/InstructorSchedule';
 import InstructorAttendance from './Instructor/InstructorAttendance';
 import InstructorAssessments from './Instructor/InstructorAssessments';
 import InstructorEvidence from './Instructor/InstructorEvidence';
@@ -111,14 +111,13 @@ function App() {
 					<Route path="/instructor" element={<InstructorLayout />}>
 						<Route
 							index
-							element={<Navigate to="/instructor/dashboard" replace />}
+							element={<Navigate to="/instructor/classes" replace />}
 						/>
-
-						<Route path="dashboard" element={<InstructorDashboard />} />
 						<Route path="classes" element={<InstructorClasses />} />
 						<Route path="attendance" element={<InstructorAttendance />} />
 						<Route path="assessments" element={<InstructorAssessments />} />
 						<Route path="evidence" element={<InstructorEvidence />} />
+						<Route path="schedule" element={<InstructorSchedule />} />
 					</Route>
 				</Route>
 				{/* Protected QA Routes */}

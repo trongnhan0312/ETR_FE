@@ -406,3 +406,13 @@
     color: rgba(0, 33, 71, 0.5);
   }
 }
+
+// Spinner animation for evidence upload
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

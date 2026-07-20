@@ -60,7 +60,8 @@ const Login = () => {
       localStorage.setItem(
         "user",
         JSON.stringify({
-          userId: data.userId,
+          accountId: data.accountId || data.userId,
+          userId: data.userId || data.accountId,
           username: data.username,
           fullName: data.fullName,
           roleName: data.role,
@@ -71,7 +72,7 @@ const Login = () => {
       if (roleLower === "admin") {
         navigate("/admin");
       } else if (roleLower === "instructor") {
-        navigate("/introductor");
+        navigate("/instructor");
       } else if (roleLower === "qa" || roleLower === "qualityassurance") {
         navigate("/qa");
       } else if (roleLower === "academic" || roleLower === "academicstaff") {

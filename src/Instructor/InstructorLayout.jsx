@@ -1,14 +1,8 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { FaHome, FaChalkboardTeacher, FaCalendarCheck, FaClipboardList, FaFileAlt, FaUserCheck, FaCalendarAlt, FaUser } from 'react-icons/fa';
+import { FaChalkboardTeacher, FaCalendarCheck, FaClipboardList, FaFileAlt, FaCalendarAlt } from 'react-icons/fa';
 import './instructor.scss';
 
 const navigationItems = [
-  {
-    label: 'TRANG CHỦ',
-    to: '/instructor',
-    end: true,
-    icon: <FaHome size={18} />,
-  },
   {
     label: 'LỚP CỦA TÔI',
     to: '/instructor/classes',
@@ -30,19 +24,9 @@ const navigationItems = [
     icon: <FaFileAlt size={18} />,
   },
   {
-    label: 'TIẾN ĐỘ HỌC VIÊN',
-    to: '/instructor/progress',
-    icon: <FaUserCheck size={18} />,
-  },
-  {
     label: 'LỊCH GIẢNG DẠY',
     to: '/instructor/schedule',
     icon: <FaCalendarAlt size={18} />,
-  },
-  {
-    label: 'HỒ SƠ CÁ NHÂN',
-    to: '/instructor/profile',
-    icon: <FaUser size={16} />,
   },
 ];
 
@@ -69,7 +53,7 @@ const InstructorLayout = () => {
 
   return (
     <div className="academic-page">
-      {/* Sidebar - Shared layout structure with Academic */}
+      {/* Sidebar - Shared layout structure with Instructor */}
       <aside className="academic-sidebar">
         <div>
           <div className="sidebar-brand">
@@ -89,7 +73,6 @@ const InstructorLayout = () => {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.end}
                 className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
               >
                 {item.icon}
