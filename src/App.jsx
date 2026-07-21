@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom';
+import Homepage from './Homepage/homepage';
 import Login from './Homepage/login';
 import AdminLayout from './ADMIN/AdminLayout';
 import Dashboard from './ADMIN/Dashboard';
@@ -71,7 +72,7 @@ function App() {
 	return (
 		<BrowserRouter>
 			<Routes>
-				<Route path="/" element={<Navigate to="/login" replace />} />
+				<Route path="/" element={<Homepage />} />
 				<Route path="/login" element={<Login />} />
 
 				{/* Protected Admin Routes */}
