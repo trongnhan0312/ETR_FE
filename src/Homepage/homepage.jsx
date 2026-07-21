@@ -37,15 +37,11 @@ const Homepage = () => {
           <button type="button" onClick={() => handleScrollToSection('solutions')}>Solutions</button>
           <button type="button" onClick={() => handleScrollToSection('compliance')}>Compliance</button>
           <button type="button" onClick={() => handleScrollToSection('workflow')}>Workflow</button>
-          <button type="button" onClick={() => handleScrollToSection('pricing')}>Pricing</button>
         </nav>
 
         <div className="nav-actions">
           <button type="button" className="btn-sign-in" onClick={handleGoToLogin}>
             Sign in
-          </button>
-          <button type="button" className="btn-request-demo" onClick={handleGoToLogin}>
-            Request demo &rarr;
           </button>
         </div>
       </header>
@@ -67,9 +63,6 @@ const Homepage = () => {
           </p>
 
           <div className="hero-cta-group">
-            <button type="button" className="btn-primary-hero" onClick={handleGoToLogin}>
-              Book a live demo &rarr;
-            </button>
             <button type="button" className="btn-secondary-hero" onClick={() => handleScrollToSection('platform')}>
               Explore the platform
             </button>
@@ -374,7 +367,7 @@ const Homepage = () => {
                   <span>FAA Part 145 Audit</span>
                   <span className="text-cyan font-bold">100% READY</span>
                 </div>
-                <button type="button" className="btn-export-preview">
+                <button type="button" className="btn-export-preview" onClick={handleGoToLogin}>
                   Export PDF Package &rarr;
                 </button>
               </div>
@@ -430,8 +423,8 @@ const Homepage = () => {
         </div>
       </section>
 
-      {/* ================= BOTTOM CTA ================= */}
-      <section id="pricing" className="bottom-cta-section">
+      {/* ================= BOTTOM SECTION ================= */}
+      <section className="bottom-cta-section">
         <div className="cta-container">
           <h2 className="cta-title">
             See the training record <br />
@@ -441,8 +434,6 @@ const Homepage = () => {
             30-minute technical walkthrough with an ETR aviation specialist.
             No slideware — just your workflows in the product.
           </p>
-
-
         </div>
       </section>
 
