@@ -224,7 +224,14 @@ const InstructorLayout = () => {
               className="notification-btn"
               type="button"
               aria-label="Notifications"
-              onClick={() => alert("Không có thông báo mới.")}
+              onClick={async () => {
+                try {
+                  // Notifications will be implemented in a future update
+                  alert("Hiện tại không có thông báo mới.");
+                } catch (e) {
+                  console.error("Error fetching notifications:", e);
+                }
+              }}
             >
               <svg
                 width="16"
@@ -247,7 +254,10 @@ const InstructorLayout = () => {
             <button
               className="lang-switcher"
               type="button"
-              onClick={() => alert("Chuyển đổi ngôn ngữ đang được phát triển.")}
+              onClick={() => {
+                // Language switching to be implemented with i18n library in future
+                alert("Tính năng chuyển đổi ngôn ngữ sẽ được phát triển trong phiên bản tiếp theo.");
+              }}
             >
               <span>VIETNAMESE (VN)</span>
               <svg

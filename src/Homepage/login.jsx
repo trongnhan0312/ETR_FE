@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  FaArrowLeft,
   FaArrowRight,
   FaEye,
   FaEyeSlash,
   FaExclamationCircle,
   FaLock,
+  FaPaperPlane,
   FaShieldAlt,
   FaUser,
 } from "react-icons/fa";
@@ -28,15 +30,39 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState({ username: "", password: "" });
+  const [fieldErrors, setFieldErrors] = useState({
+    username: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
+
+  // Remember me
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem("rememberMe") === "true";
+  });
+
+  // Load remembered username on mount
+  useEffect(() => {
+    const savedUsername = localStorage.getItem("rememberedUsername");
+    if (savedUsername) {
+      setUsername(savedUsername);
+      setRememberMe(true);
+    }
+  }, []);
+
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMessage, setForgotMessage] = useState({ type: "", text: "" });
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const validateField = (field, value) => {
     const rules = VALIDATION_RULES[field];
     if (!rules) return "";
 
     // Don't trim password — preserve intentional whitespace
-    const checkValue = field === "password" ? (value || "") : (value || "").trim();
+    const checkValue =
+      field === "password" ? value || "" : (value || "").trim();
 
     if (!checkValue && rules.required) {
       return rules.required;
@@ -99,7 +125,8 @@ const Login = () => {
       });
 
       if (!response.ok) {
-        let errorMsg = "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.";
+        let errorMsg =
+          "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.";
         try {
           const errData = await response.json();
           errorMsg = errData.message || errData.error || errorMsg;
@@ -111,7 +138,8 @@ const Login = () => {
               if (rawText.includes("Invalid credentials")) {
                 errorMsg = "Tên đăng nhập hoặc mật khẩu không chính xác.";
               } else if (rawText.includes("account is inactive")) {
-                errorMsg = "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.";
+                errorMsg =
+                  "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.";
               } else {
                 errorMsg = rawText;
               }
@@ -136,6 +164,15 @@ const Login = () => {
           roleName: data.role,
         }),
       );
+
+      // Handle remember me
+      if (rememberMe) {
+        localStorage.setItem("rememberMe", "true");
+        localStorage.setItem("rememberedUsername", data.username || username.trim());
+      } else {
+        localStorage.removeItem("rememberMe");
+        localStorage.removeItem("rememberedUsername");
+      }
 
       const roleLower = (data.role || "").toLowerCase();
       if (roleLower === "admin") {
@@ -225,136 +262,270 @@ const Login = () => {
 
       <section className="login-panel">
         <div className="login-card">
-          <button
-            type="button"
-            className="back-link"
-            onClick={() => navigate("/")}
-          >
-            ← Về trang chủ
-          </button>
+          {showForgotPassword ? (
+            /* ── Forgot Password View ── */
+            <div className="forgot-password-view">
+              <button
+                type="button"
+                className="forgot-back-btn"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setForgotMessage({ type: "", text: "" });
+                  setForgotEmail("");
+                }}
+              >
+                <FaArrowLeft />
+                <span>Quay lại đăng nhập</span>
+              </button>
 
-          <div className="login-badge" aria-hidden="true">
-            <FaShieldAlt />
-          </div>
+              <h2 className="login-title">Quên mật khẩu</h2>
+              <p className="login-subtitle">
+                Nhập email của bạn để nhận hướng dẫn đặt lại mật khẩu
+              </p>
 
-          <h2 className="login-title">Đăng nhập</h2>
-          <p className="login-subtitle">
-            Vui lòng đăng nhập để truy cập hệ thống ETR
-          </p>
-
-          {error && (
-            <div className="error-message" role="alert">
-              <FaExclamationCircle className="error-icon" aria-hidden="true" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form className="login-form" onSubmit={handleSubmit} noValidate>
-            <div className="form-group">
-              <label htmlFor="login-username">Tên đăng nhập / Email</label>
-              <div className={`input-shell ${fieldErrors.username ? "input-shell--error" : ""}`}>
-                <FaUser className="input-icon" aria-hidden="true" />
-                <input
-                  id="login-username"
-                  type="text"
-                  placeholder="Nhập tên đăng nhập hoặc email"
-                  value={username}
-                  onChange={handleUsernameChange}
-                  onBlur={() => {
-                    const err = validateField("username", username);
-                    setFieldErrors((prev) => ({ ...prev, username: err }));
-                  }}
-                  disabled={loading}
-                  autoComplete="username"
-                  aria-invalid={!!fieldErrors.username}
-                  aria-describedby={fieldErrors.username ? "username-error" : undefined}
-                />
-              </div>
-              {fieldErrors.username && (
-                <p className="field-error" id="username-error" role="alert">
-                  <FaExclamationCircle aria-hidden="true" />
-                  {fieldErrors.username}
-                </p>
+              {forgotMessage.text && (
+                <div className={`forgot-message ${forgotMessage.type}`}>
+                  <FaExclamationCircle className="forgot-message-icon" />
+                  <span>{forgotMessage.text}</span>
+                </div>
               )}
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="login-password">Mật khẩu</label>
-              <div className={`input-shell input-shell--password ${fieldErrors.password ? "input-shell--error" : ""}`}>
-                <FaLock className="input-icon" aria-hidden="true" />
-                <input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Nhập mật khẩu"
-                  value={password}
-                  onChange={handlePasswordChange}
-                  onBlur={() => {
-                    const err = validateField("password", password);
-                    setFieldErrors((prev) => ({ ...prev, password: err }));
-                  }}
-                  disabled={loading}
-                  autoComplete="current-password"
-                  aria-invalid={!!fieldErrors.password}
-                  aria-describedby={fieldErrors.password ? "password-error" : undefined}
-                />
+              <form
+                className="login-form"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!forgotEmail.trim()) {
+                    setForgotMessage({
+                      type: "error",
+                      text: "Vui lòng nhập email.",
+                    });
+                    return;
+                  }
+                  setForgotLoading(true);
+                  setForgotMessage({ type: "", text: "" });
+                  try {
+                    const API_URL =
+                      import.meta.env.VITE_API_URL ||
+                      "https://localhost:7169/api";
+                    const response = await fetch(
+                      `${API_URL}/auth/forgot-password`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: forgotEmail.trim() }),
+                      },
+                    );
+                    if (response.ok) {
+                      setForgotMessage({
+                        type: "success",
+                        text: "Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
+                      });
+                    } else {
+                      const errText = await response.text().catch(() => "");
+                      setForgotMessage({
+                        type: "error",
+                        text:
+                          errText ||
+                          "Không thể gửi yêu cầu. Vui lòng thử lại sau.",
+                      });
+                    }
+                  } catch (err) {
+                    setForgotMessage({
+                      type: "error",
+                      text: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.",
+                    });
+                  } finally {
+                    setForgotLoading(false);
+                  }
+                }}
+                noValidate
+              >
+                <div className="form-group">
+                  <label htmlFor="forgot-email">Email của bạn</label>
+                  <div className="input-shell">
+                    <FaPaperPlane className="input-icon" aria-hidden="true" />
+                    <input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="Nhập địa chỉ email"
+                      value={forgotEmail}
+                      onChange={(e) => {
+                        setForgotEmail(e.target.value);
+                        setForgotMessage({ type: "", text: "" });
+                      }}
+                      disabled={forgotLoading}
+                      autoComplete="email"
+                    />
+                  </div>
+                </div>
+
                 <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  disabled={loading}
+                  type="submit"
+                  className="login-submit-btn"
+                  disabled={forgotLoading}
                 >
-                  {showPassword ? (
-                    <FaEyeSlash aria-hidden="true" />
+                  {forgotLoading ? (
+                    <span className="btn-loading">
+                      <span className="spinner" aria-hidden="true" />
+                      Đang gửi...
+                    </span>
                   ) : (
-                    <FaEye aria-hidden="true" />
+                    <>
+                      <span>Gửi yêu cầu</span>
+                      <FaArrowRight aria-hidden="true" />
+                    </>
                   )}
                 </button>
-              </div>
-              {fieldErrors.password && (
-                <p className="field-error" id="password-error" role="alert">
-                  <FaExclamationCircle aria-hidden="true" />
-                  {fieldErrors.password}
+              </form>
+            </div>
+          ) : (
+            /* ── Login Form ── */
+            <>
+              <h2 className="login-title">Đăng nhập</h2>
+              <p className="login-subtitle">
+                Vui lòng đăng nhập để truy cập hệ thống ETR
+              </p>
+
+              {error && (
+                <div className="error-message" role="alert">
+                  <FaExclamationCircle
+                    className="error-icon"
+                    aria-hidden="true"
+                  />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <form className="login-form" onSubmit={handleSubmit} noValidate>
+                <div className="form-group">
+                  <label htmlFor="login-username">Tên đăng nhập / Email</label>
+                  <div
+                    className={`input-shell ${fieldErrors.username ? "input-shell--error" : ""}`}
+                  >
+                    <FaUser className="input-icon" aria-hidden="true" />
+                    <input
+                      id="login-username"
+                      type="text"
+                      placeholder="Nhập tên đăng nhập hoặc email"
+                      value={username}
+                      onChange={handleUsernameChange}
+                      onBlur={() => {
+                        const err = validateField("username", username);
+                        setFieldErrors((prev) => ({ ...prev, username: err }));
+                      }}
+                      disabled={loading}
+                      autoComplete="username"
+                      aria-invalid={!!fieldErrors.username}
+                      aria-describedby={
+                        fieldErrors.username ? "username-error" : undefined
+                      }
+                    />
+                  </div>
+                  {fieldErrors.username && (
+                    <p className="field-error" id="username-error" role="alert">
+                      <FaExclamationCircle aria-hidden="true" />
+                      {fieldErrors.username}
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="login-password">Mật khẩu</label>
+                  <div
+                    className={`input-shell input-shell--password ${fieldErrors.password ? "input-shell--error" : ""}`}
+                  >
+                    <FaLock className="input-icon" aria-hidden="true" />
+                    <input
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Nhập mật khẩu"
+                      value={password}
+                      onChange={handlePasswordChange}
+                      onBlur={() => {
+                        const err = validateField("password", password);
+                        setFieldErrors((prev) => ({ ...prev, password: err }));
+                      }}
+                      disabled={loading}
+                      autoComplete="current-password"
+                      aria-invalid={!!fieldErrors.password}
+                      aria-describedby={
+                        fieldErrors.password ? "password-error" : undefined
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword((current) => !current)}
+                      aria-label={
+                        showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                      }
+                      disabled={loading}
+                    >
+                      {showPassword ? (
+                        <FaEyeSlash aria-hidden="true" />
+                      ) : (
+                        <FaEye aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                  {fieldErrors.password && (
+                    <p className="field-error" id="password-error" role="alert">
+                      <FaExclamationCircle aria-hidden="true" />
+                      {fieldErrors.password}
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-options">
+                  <label className="remember-me">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      disabled={loading}
+                    />
+                    <span className="custom-checkbox" aria-hidden="true" />
+                    <span>Ghi nhớ đăng nhập</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="forgot-password"
+                    onClick={() => {
+                      setShowForgotPassword(true);
+                      setForgotMessage({ type: "", text: "" });
+                    }}
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  className="login-submit-btn"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="btn-loading">
+                      <span className="spinner" aria-hidden="true" />
+                      Đang đăng nhập...
+                    </span>
+                  ) : (
+                    <>
+                      <span>Đăng nhập</span>
+                      <FaArrowRight aria-hidden="true" />
+                    </>
+                  )}
+                </button>
+
+                <div className="login-divider" aria-hidden="true" />
+
+                <p className="assistance-text">Need assistance?</p>
+                <p className="assistance-text assistance-text--muted">
+                  Contact your system administrator.
                 </p>
-              )}
-            </div>
-
-            <div className="form-options">
-              <label className="remember-me">
-                <input type="checkbox" disabled={loading} />
-                <span className="custom-checkbox" aria-hidden="true" />
-                <span>Ghi nhớ đăng nhập</span>
-              </label>
-              <a href="#" className="forgot-password">
-                Quên mật khẩu?
-              </a>
-            </div>
-
-            <button
-              type="submit"
-              className="login-submit-btn"
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="btn-loading">
-                  <span className="spinner" aria-hidden="true" />
-                  Đang đăng nhập...
-                </span>
-              ) : (
-                <>
-                  <span>Đăng nhập</span>
-                  <FaArrowRight aria-hidden="true" />
-                </>
-              )}
-            </button>
-
-            <div className="login-divider" aria-hidden="true" />
-
-            <p className="assistance-text">Need assistance?</p>
-            <p className="assistance-text assistance-text--muted">
-              Contact your system administrator.
-            </p>
-          </form>
+              </form>
+            </>
+          )}
         </div>
       </section>
     </div>
