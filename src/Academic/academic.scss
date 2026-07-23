@@ -252,40 +252,51 @@
     position: relative;
     display: flex;
     align-items: center;
+    gap: 0;
 
-    .search-icon {
-      position: absolute;
-      left: 14px;
-      color: #0d2f5b;
-      opacity: 0.42;
-      pointer-events: none;
-    }
+    .search-field {
+      position: relative;
+      margin-left: 14px;
 
-    .search-input {
-      width: 320px;
-      padding: 12px 14px 12px 42px;
-      border-radius: 16px;
-      background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
-      border: 1px solid #d9e1ec;
-      font-size: 13px;
-      color: #17314f;
-      outline: none;
-      box-shadow: 0 1px 0 rgba(17, 34, 68, 0.02), 0 8px 18px rgba(16, 35, 63, 0.03);
-      transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
-
-      &::placeholder {
-        color: #6b7280;
+      .search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #0d2f5b;
+        opacity: 0.42;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        z-index: 1;
       }
 
-      &:hover {
-        transform: translateY(-1px);
-        border-color: #c8d4e4;
-      }
+      .search-input {
+        width: 320px;
+        padding: 12px 14px 12px 42px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+        border: 1px solid #d9e1ec;
+        font-size: 13px;
+        color: #17314f;
+        outline: none;
+        box-shadow: 0 1px 0 rgba(17, 34, 68, 0.02), 0 8px 18px rgba(16, 35, 63, 0.03);
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 
-      &:focus {
-        background-color: #ffffff;
-        border-color: #0f3770;
-        box-shadow: 0 0 0 4px rgba(15, 55, 112, 0.12), 0 14px 24px rgba(16, 35, 63, 0.08);
+        &::placeholder {
+          color: #6b7280;
+        }
+
+        &:hover {
+          transform: translateY(-1px);
+          border-color: #c8d4e4;
+        }
+
+        &:focus {
+          background-color: #ffffff;
+          border-color: #0f3770;
+          box-shadow: 0 0 0 4px rgba(15, 55, 112, 0.12), 0 14px 24px rgba(16, 35, 63, 0.08);
+        }
       }
     }
   }
