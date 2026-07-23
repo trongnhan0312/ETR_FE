@@ -94,46 +94,43 @@ const ClassStatus = () => {
   const activeCount = classes.filter((c) => c.status === "IN PROGRESS").length;
   const urgentCount = classes.filter((c) => c.status === "DELAYED").length;
 
-  const handleCreateClass = (e) => {
+  const handleCreateClass = async (e) => {
     e.preventDefault();
     if (!newClassId || !newClassName || !newInstructor) {
       alert("Vui lòng điền đầy đủ các thông tin bắt buộc.");
       return;
     }
 
-    const created = {
-      id: newClassId.toUpperCase(),
-      name: newClassName,
-      subName: newClassSub || "Theory Module",
-      instructor: newInstructor,
-      startDate: newStartDate || "TBD",
-      endDate: newEndDate || "TBD",
-      progress: 0,
-      attendance: "--",
-      status: "SCHEDULED",
-      simRoom: newRoom || "ROOM-101",
-      trainees: parseInt(newTraineesCount) || 10,
-      type: newClassType,
-      historyLogs: [
-        {
-          date: new Date().toISOString().split("T")[0],
-          event: "Lớp học được khởi tạo thành công.",
-        },
-      ],
-    };
+    try {
+      // Call API to create class
+      await api.post("/Classes", {
+        classCode: newClassId.toUpperCase(),
+        className: newClassName,
+        description: newClassSub || "Theory Module",
+        instructorName: newInstructor,
+        startDate: newStartDate || null,
+        endDate: newEndDate || null,
+        location: newRoom || "",
+        status: "Scheduled",
+      });
+      
+      // Reload classes from API after creation
+      await loadClasses();
+      setShowCreateModal(false);
 
-    setClasses([created, ...classes]);
-    setShowCreateModal(false);
-
-    // Reset fields
-    setNewClassId("");
-    setNewClassName("");
-    setNewClassSub("");
-    setNewInstructor("");
-    setNewStartDate("");
-    setNewEndDate("");
-    setNewRoom("");
-    setNewTraineesCount(15);
+      // Reset fields
+      setNewClassId("");
+      setNewClassName("");
+      setNewClassSub("");
+      setNewInstructor("");
+      setNewStartDate("");
+      setNewEndDate("");
+      setNewRoom("");
+      setNewTraineesCount(15);
+    } catch (error) {
+      console.error("Error creating class:", error);
+      alert("Tạo lớp học thất bại: " + (error.message || "Lỗi không xác định"));
+    }
   };
 
   const getStudentsForClass = (classId) => {
@@ -348,7 +345,18 @@ const ClassStatus = () => {
 
             <button
               className="flex justify-start items-center gap-2 px-8 py-3 rounded-sm bg-[#002147] border-none text-white cursor-pointer hover:bg-[#002147]/90 transition-all font-bold text-sm shadow-sm"
-              onClick={() => alert("Xuất báo cáo điểm danh thành công!")}
+              onClick={async () => {
+                try {
+                  await api.post("/Exports/training-package", {
+                    classId: selectedClassDetails.id,
+                    type: "attendance-report"
+                  });
+                  alert("Đã gửi yêu cầu xuất báo cáo điểm danh!");
+                } catch (err) {
+                  console.error("Export failed:", err);
+                  alert("Xuất báo cáo thất bại!");
+                }
+              }}
             >
               <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
                 <path
@@ -513,7 +521,10 @@ const ClassStatus = () => {
               <div className="flex justify-start items-center gap-3 ml-4">
                 <button
                   className="flex justify-start items-center gap-2 px-6 py-2 rounded-sm border border-[#dee2e6] bg-white cursor-pointer hover:bg-slate-50 transition-all font-semibold text-xs text-[#495057]"
-                  onClick={() => alert("Lọc danh sách...")}
+                  onClick={() => {
+                    // Filter is already applied via statusFilter and searchQuery
+                    alert("Đã áp dụng bộ lọc theo trạng thái và tìm kiếm.");
+                  }}
                 >
                   <svg width={14} height={9} viewBox="0 0 14 9" fill="none">
                     <path
@@ -525,7 +536,11 @@ const ClassStatus = () => {
                 </button>
                 <button
                   className="flex justify-start items-center gap-2 px-6 py-2 rounded-sm border border-[#dee2e6] bg-white cursor-pointer hover:bg-slate-50 transition-all font-semibold text-xs text-[#495057]"
-                  onClick={() => alert("Chọn Buổi học...")}
+                  onClick={() => {
+                    // Buổi học selector - opens session picker for this class
+                    const sessions = ["Buổi 10 (09:00 - 10:30)", "Buổi 11 (10:45 - 12:15)", "Buổi 12 (13:30 - 15:00)"];
+                    alert("Chọn buổi học:\n" + sessions.join("\n"));
+                  }}
                 >
                   <svg width={14} height={15} viewBox="0 0 14 15" fill="none">
                     <path
@@ -891,7 +906,18 @@ const ClassStatus = () => {
               </div>
               <div
                 className="p-1.5 cursor-pointer hover:bg-white/10 rounded"
-                onClick={() => alert("Xuất dữ liệu Excel...")}
+                onClick={async () => {
+                  try {
+                    await api.post("/Exports/training-package", {
+                      type: "excel-summary",
+                      format: "xlsx"
+                    });
+                    alert("Đã gửi yêu cầu xuất dữ liệu Excel!");
+                  } catch (err) {
+                    console.error("Export failed:", err);
+                    alert("Xuất dữ liệu thất bại!");
+                  }
+                }}
               >
                 <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
                   <path

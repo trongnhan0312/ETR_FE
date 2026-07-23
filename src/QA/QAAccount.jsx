@@ -39,7 +39,7 @@ const QAAccount = () => {
     }
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      await api.put(`/Accounts/${userData.accountId}/password`, {
+      await api.post("/auth/change-password", {
         currentPassword: currentPwd,
         newPassword: newPwd,
       });
