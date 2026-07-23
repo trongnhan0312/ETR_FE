@@ -31,6 +31,10 @@ import TrainingManagerLayout from './TrainingManager/TrainingManagerLayout';
 import TrainingManagerDashboard from './TrainingManager/TrainingManagerDashboard';
 import ClassStatus from './TrainingManager/ClassStatus';
 import EtrApproval from './TrainingManager/EtrApproval';
+import StudentLayout from './Student/StudentLayout';
+import StudentDashboard from './Student/StudentDashboard';
+import StudentMyETR from './Student/StudentMyETR';
+import StudentProfile from './Student/StudentProfile';
 import './App.css';
 
 // Protected Route Guard based on role stored in localStorage
@@ -60,6 +64,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
 		if (userRole === 'qa' || userRole === 'qualityassurance') return <Navigate to="/qa" replace />;
 		if (userRole === 'academic' || userRole === 'academicstaff') return <Navigate to="/academic" replace />;
 		if (userRole === 'trainingmanager') return <Navigate to="/trainingmanager" replace />;
+		if (userRole === 'student' || userRole === 'learner') return <Navigate to="/student" replace />;
 		return <Navigate to="/login" replace />;
 	}
 
@@ -143,6 +148,15 @@ function App() {
 						<Route index element={<TrainingManagerDashboard />} />
 						<Route path="classes" element={<ClassStatus />} />
 						<Route path="etr-approval" element={<EtrApproval />} />
+					</Route>
+				</Route>
+
+				{/* Protected Student Routes */}
+				<Route element={<ProtectedRoute allowedRoles={["Student", "Learner"]} />}>
+					<Route path="/student" element={<StudentLayout />}>
+						<Route index element={<StudentDashboard />} />
+						<Route path="etr" element={<StudentMyETR />} />
+						<Route path="profile" element={<StudentProfile />} />
 					</Route>
 				</Route>
 

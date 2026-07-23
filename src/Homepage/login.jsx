@@ -185,6 +185,8 @@ const Login = () => {
         navigate("/academic");
       } else if (roleLower === "trainingmanager") {
         navigate("/trainingmanager");
+      } else if (roleLower === "student" || roleLower === "learner") {
+        navigate("/student");
       } else {
         navigate("/admin");
       }
