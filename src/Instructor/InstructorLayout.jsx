@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   FaChalkboardTeacher,
   FaCalendarCheck,
@@ -38,6 +38,8 @@ const navigationItems = [
 
 const InstructorLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHomePage = location.pathname === '/instructor/classes';
 
   // Try to retrieve user information from localStorage
   let user = { fullName: "Giảng viên", roleName: "Instructor" };
@@ -156,48 +158,50 @@ const InstructorLayout = () => {
         {/* Topbar */}
         <header className="academic-topbar">
           <div className="search-wrapper">
-            {/* Back button */}
-            <button
-              onClick={() => navigate(-1)}
-              type="button"
-              aria-label="Quay lại"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "32px",
-                height: "32px",
-                border: "1px solid #dfe6f1",
-                borderRadius: "8px",
-                background: "#ffffff",
-                cursor: "pointer",
-                color: "#c5a059",
-                transition: "all 0.15s",
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#c5a059";
-                e.currentTarget.style.background = "rgba(197, 160, 89, 0.06)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#dfe6f1";
-                e.currentTarget.style.background = "#ffffff";
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            {/* Back button - hidden when on home page */}
+            {!isHomePage && (
+              <button
+                onClick={() => navigate(-1)}
+                type="button"
+                aria-label="Quay lại"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "32px",
+                  height: "32px",
+                  border: "1px solid #dfe6f1",
+                  borderRadius: "8px",
+                  background: "#ffffff",
+                  cursor: "pointer",
+                  color: "#c5a059",
+                  transition: "all 0.15s",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#c5a059";
+                  e.currentTarget.style.background = "rgba(197, 160, 89, 0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#dfe6f1";
+                  e.currentTarget.style.background = "#ffffff";
+                }}
               >
-                <path d="M19 12H5" />
-                <path d="M12 19l-7-7 7-7" />
-              </svg>
-            </button>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5" />
+                  <path d="M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
 
             {/* Quick Breadcrumb indicator */}
             <div
