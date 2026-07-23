@@ -28,7 +28,7 @@ const getAuthHeaders = (isFormData = false) => {
   return headers;
 };
 
-const handleResponse = async (response, method, endpoint) => {
+const handleResponse = async (response, method, endpoint, options = {}) => {
   console.log(
     `[API ${method}] Response Status: ${response.status} for ${endpoint}`,
   );
@@ -36,8 +36,14 @@ const handleResponse = async (response, method, endpoint) => {
   if (!response.ok) {
     // Auto-logout on 401 (token expired or invalid)
     if (response.status === 401) {
-      handleUnauthorized();
-      throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      if (!options.suppressAuthRedirect) {
+        handleUnauthorized();
+        throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      }
+      // If suppressAuthRedirect, just throw without redirecting
+      const errText = await response.text().catch(() => "");
+      console.warn(`[API ${method}] 401 suppressed for ${endpoint}:`, errText);
+      throw new Error(errText || "Unauthorized");
     }
 
     const err = await response.text();
@@ -64,21 +70,21 @@ const handleResponse = async (response, method, endpoint) => {
 };
 
 export const api = {
-  get: async (endpoint) => {
+  get: async (endpoint, options = {}) => {
     console.log(`[API GET] Requesting: ${API_BASE_URL}${endpoint}`);
     try {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "GET",
         headers: getAuthHeaders(),
       });
-      return await handleResponse(response, "GET", endpoint);
+      return await handleResponse(response, "GET", endpoint, options);
     } catch (error) {
       console.error(`[API GET] Error calling ${endpoint}:`, error);
       throw error;
     }
   },
 
-  post: async (endpoint, data) => {
+  post: async (endpoint, data, options = {}) => {
     const isFormData =
       typeof FormData !== "undefined" && data instanceof FormData;
 
@@ -92,7 +98,7 @@ export const api = {
         headers: getAuthHeaders(isFormData),
         body: isFormData ? data : JSON.stringify(data),
       });
-      return await handleResponse(response, "POST", endpoint);
+      return await handleResponse(response, "POST", endpoint, options);
     } catch (error) {
       console.error(`[API POST] Error calling ${endpoint}:`, error);
       throw error;
