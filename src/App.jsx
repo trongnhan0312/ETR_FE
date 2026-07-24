@@ -35,6 +35,15 @@ import StudentLayout from './Student/StudentLayout';
 import StudentDashboard from './Student/StudentDashboard';
 import StudentMyETR from './Student/StudentMyETR';
 import StudentProfile from './Student/StudentProfile';
+import AuditorLayout from './Auditor/AuditorLayout';
+import AuditorDashboard from './Auditor/AuditorDashboard';
+import AuditorLockedETRs from './Auditor/AuditorLockedETRs';
+import AuditorAdvancedSearch from './Auditor/AuditorAdvancedSearch';
+import AuditorETRDetails from './Auditor/AuditorETRDetails';
+import AuditorApprovalHistory from './Auditor/AuditorApprovalHistory';
+import AuditorAuditLogs from './Auditor/AuditorAuditLogs';
+import AuditorExportPackages from './Auditor/AuditorExportPackages';
+import AuditorProfile from './Auditor/AuditorProfile';
 import './App.css';
 
 // Protected Route Guard based on role stored in localStorage
@@ -42,37 +51,39 @@ const ProtectedRoute = ({ allowedRoles }) => {
 	const token = localStorage.getItem('token');
 	const userJson = localStorage.getItem('user');
 
-  if (!token || !userJson) {
-	return <Navigate to="/login" replace />;
-  }
-
-  try {
-	const user = JSON.parse(userJson);
-
-	// Lấy role ra (hỗ trợ cả trường hợp bạn lưu là roleName hoặc role)
-	const rawRole = user.roleName || user.role || "";
-	const userRole = rawRole.toLowerCase();
-
-	const isAllowed = allowedRoles.some(
-	  (role) => role.toLowerCase() === userRole,
-	);
-
-	if (!isAllowed) {
-		// Redirect to role-appropriate home page instead of showing forbidden page
-		if (userRole === 'admin') return <Navigate to="/admin" replace />;
-		if (userRole === 'instructor') return <Navigate to="/instructor" replace />;
-		if (userRole === 'qa' || userRole === 'qualityassurance') return <Navigate to="/qa" replace />;
-		if (userRole === 'academic' || userRole === 'academicstaff') return <Navigate to="/academic" replace />;
-		if (userRole === 'trainingmanager') return <Navigate to="/trainingmanager" replace />;
-		if (userRole === 'student' || userRole === 'learner') return <Navigate to="/student" replace />;
+	if (!token || !userJson) {
 		return <Navigate to="/login" replace />;
 	}
 
-	return <Outlet />;
-  } catch (e) {
-	return <Navigate to="/login" replace />;
-  }
+	try {
+		const user = JSON.parse(userJson);
+
+		// Lấy role ra (hỗ trợ cả trường hợp bạn lưu là roleName hoặc role)
+		const rawRole = user.roleName || user.role || "";
+		const userRole = rawRole.toLowerCase();
+
+		const isAllowed = allowedRoles.some(
+			(role) => role.toLowerCase() === userRole,
+		);
+
+		if (!isAllowed) {
+			// Redirect to role-appropriate home page instead of showing forbidden page
+			if (userRole === 'admin') return <Navigate to="/admin" replace />;
+			if (userRole === 'instructor') return <Navigate to="/instructor" replace />;
+			if (userRole === 'qa' || userRole === 'qualityassurance') return <Navigate to="/qa" replace />;
+			if (userRole === 'academic' || userRole === 'academicstaff') return <Navigate to="/academic" replace />;
+			if (userRole === 'trainingmanager') return <Navigate to="/trainingmanager" replace />;
+			if (userRole === 'student' || userRole === 'learner') return <Navigate to="/student" replace />;
+			if (userRole === 'auditor') return <Navigate to="/auditor" replace />;
+			return <Navigate to="/login" replace />;
+		}
+
+		return <Outlet />;
+	} catch (e) {
+		return <Navigate to="/login" replace />;
+	}
 };
+
 function App() {
 	return (
 		<BrowserRouter>
@@ -122,6 +133,7 @@ function App() {
 						<Route path="schedule" element={<InstructorSchedule />} />
 					</Route>
 				</Route>
+
 				{/* Protected QA Routes */}
 				<Route element={<ProtectedRoute allowedRoles={['QA', 'QualityAssurance']} />}>
 					<Route path="/qa" element={<QALayout />}>
@@ -157,6 +169,20 @@ function App() {
 						<Route index element={<StudentDashboard />} />
 						<Route path="etr" element={<StudentMyETR />} />
 						<Route path="profile" element={<StudentProfile />} />
+					</Route>
+				</Route>
+
+				{/* Protected Auditor Routes */}
+				<Route element={<ProtectedRoute allowedRoles={["Auditor"]} />}>
+					<Route path="/auditor" element={<AuditorLayout />}>
+						<Route index element={<AuditorDashboard />} />
+						<Route path="etrs" element={<AuditorLockedETRs />} />
+						<Route path="search" element={<AuditorAdvancedSearch />} />
+						<Route path="details" element={<AuditorETRDetails />} />
+						<Route path="approval-history" element={<AuditorApprovalHistory />} />
+						<Route path="audit-logs" element={<AuditorAuditLogs />} />
+						<Route path="export-packages" element={<AuditorExportPackages />} />
+						<Route path="profile" element={<AuditorProfile />} />
 					</Route>
 				</Route>
 

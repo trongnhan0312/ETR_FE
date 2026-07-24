@@ -1,0 +1,269 @@
+@import '../Academic/academic.scss';
+
+// Auditor Module Specific Styles (Extends Academic Portal SCSS Design Language)
+
+.auditor-table-grid {
+  display: grid;
+  grid-template-columns: 140px 1.4fr 2fr 130px 150px 1.5fr 130px 1.6fr;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+}
+
+.auditor-logs-grid {
+  display: grid;
+  grid-template-columns: 160px 1.8fr 120px 130px 1.8fr 120px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+}
+
+.auditor-export-grid {
+  display: grid;
+  grid-template-columns: 140px 2fr 130px 160px 120px 110px 120px 120px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+}
+
+// Read-only Lock Badge
+.badge-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: rgba(10, 44, 85, 0.08);
+  border: 1px solid rgba(10, 44, 85, 0.2);
+  color: #0a2c55;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+
+  svg {
+    fill: currentColor;
+  }
+}
+
+.badge-compliant {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #16a34a;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+// Timeline Workflow Styles
+.approval-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  padding-left: 28px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    bottom: 14px;
+    left: 11px;
+    width: 2px;
+    background: linear-gradient(180deg, #c5a059 0%, #0a2c55 100%);
+  }
+
+  .timeline-item {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #dfe6f1;
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 16px rgba(0, 33, 71, 0.04);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0, 33, 71, 0.08);
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -28px;
+      top: 24px;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0a2c55 0%, #123e75 100%);
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 0 2px #c5a059;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .timeline-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #002147;
+    }
+
+    .timeline-user {
+      font-size: 13px;
+      font-weight: 600;
+      color: #c5a059;
+    }
+
+    .timeline-timestamp {
+      font-size: 12px;
+      color: rgba(0, 33, 71, 0.5);
+      font-weight: 600;
+    }
+
+    .timeline-action {
+      font-size: 13.5px;
+      color: #17314f;
+      line-height: 1.5;
+    }
+
+    .timeline-hash {
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      color: rgba(0, 33, 71, 0.6);
+      background: #f4f7fa;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+  }
+}
+
+// Action Button Variations
+.auditor-btn-sm {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  border: 1px solid #dfe6f1;
+  background: #ffffff;
+  color: #002147;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover {
+    border-color: #c5a059;
+    background: rgba(197, 160, 89, 0.08);
+    color: #c5a059;
+  }
+}
+
+// Cards for Export Packages
+.export-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.export-card {
+  background: #ffffff;
+  border: 1px solid #dfe6f1;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 33, 71, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px rgba(0, 33, 71, 0.1);
+    border-color: #c5a059;
+  }
+
+  .export-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #06234a 0%, #041b39 100%);
+    color: #d4af37;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .export-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #002147;
+    margin: 0;
+  }
+
+  .export-desc {
+    font-size: 13px;
+    color: rgba(0, 33, 71, 0.6);
+    line-height: 1.4;
+    margin: 4px 0 0;
+  }
+}
+
+// ETR Detail Tabs
+.auditor-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid #dfe6f1;
+  overflow-x: auto;
+  padding-bottom: 2px;
+
+  .auditor-tab-btn {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(0, 33, 71, 0.6);
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #002147;
+    }
+
+    &.active {
+      color: #002147;
+      border-bottom-color: #c5a059;
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .auditor-table-grid,
+  .auditor-logs-grid,
+  .auditor-export-grid {
+    min-width: 960px;
+  }
+}
