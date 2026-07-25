@@ -187,6 +187,8 @@ const Login = () => {
         navigate("/trainingmanager");
       } else if (roleLower === "student" || roleLower === "learner") {
         navigate("/student");
+      } else if (roleLower === "auditor" || roleLower === "audit") {
+        navigate("/auditor");
       } else {
         navigate("/admin");
       }
