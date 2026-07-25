@@ -1,14 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getLockedETRs } from './mockAuditorData';
+import { fetchEtrList } from './auditorApi';
 
 const AuditorLockedETRs = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [allEtrs, setAllEtrs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const categories = ['All', 'Line Maintenance', 'Flight Operations', 'Quality Assurance', 'Base Maintenance'];
-  const etrs = getLockedETRs(searchQuery, activeCategory);
+
+  useEffect(() => {
+    const loadETRs = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchEtrList();
+        setAllEtrs(data);
+      } catch (err) {
+        console.error('Error fetching locked ETR list:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadETRs();
+  }, []);
+
+  const filteredEtrs = allEtrs.filter((etr) => {
+    const matchesSearch =
+      etr.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      etr.learnerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      etr.courseName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      etr.learnerId?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (activeCategory === 'All') return matchesSearch;
+    return matchesSearch && etr.learnerDepartment?.toLowerCase().includes(activeCategory.toLowerCase());
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -71,10 +98,12 @@ const AuditorLockedETRs = () => {
           </div>
 
           <div className="table-body">
-            {etrs.length === 0 ? (
+            {loading ? (
+              <div className="empty-table-state">Loading locked records...</div>
+            ) : filteredEtrs.length === 0 ? (
               <div className="empty-table-state">No locked ETR records found matching your search criteria.</div>
             ) : (
-              etrs.map((etr) => (
+              filteredEtrs.map((etr) => (
                 <div key={etr.id} className="table-row auditor-table-grid">
                   <div className="col-id">{etr.id}</div>
                   <div className="col-name">{etr.learnerName}</div>
@@ -88,7 +117,7 @@ const AuditorLockedETRs = () => {
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                       </svg>
-                      {etr.status}
+                      {etr.status || 'Locked & Compliant'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
@@ -119,7 +148,7 @@ const AuditorLockedETRs = () => {
 
         {/* Table Footer */}
         <div className="table-footer">
-          <div className="footer-info">Showing {etrs.length} of {etrs.length} locked records</div>
+          <div className="footer-info">Showing {filteredEtrs.length} of {allEtrs.length} locked records</div>
           <div className="pagination">
             <button className="page-arrow" disabled>
               ‹

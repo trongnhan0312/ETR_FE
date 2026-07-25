@@ -1,12 +1,33 @@
-import { useState } from 'react';
-import { getAuditLogs } from './mockAuditorData';
+import { useState, useEffect } from 'react';
+import { fetchAuditLogs, searchAuditLogs } from './auditorApi';
 
 const AuditorAuditLogs = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModule, setSelectedModule] = useState('All');
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const modules = ['All', 'ETR Inspection', 'Export Packages', 'Security Enforcer', 'ETR Workflow', 'QA Verification', 'Advanced Search'];
-  const logs = getAuditLogs(selectedModule, searchQuery);
+
+  useEffect(() => {
+    const loadLogs = async () => {
+      setLoading(true);
+      try {
+        const data = await searchAuditLogs(searchQuery, selectedModule);
+        setLogs(data);
+      } catch (err) {
+        console.error('Error loading audit logs:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      loadLogs();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, selectedModule]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -67,7 +88,9 @@ const AuditorAuditLogs = () => {
           </div>
 
           <div className="table-body">
-            {logs.length === 0 ? (
+            {loading ? (
+              <div className="empty-table-state">Loading audit logs...</div>
+            ) : logs.length === 0 ? (
               <div className="empty-table-state">No audit logs found matching criteria.</div>
             ) : (
               logs.map((log) => (
@@ -79,7 +102,7 @@ const AuditorAuditLogs = () => {
                   <div style={{ fontWeight: '700', color: '#c5a059' }}>{log.action}</div>
                   <div style={{ textAlign: 'right' }}>
                     <span 
-                      className={log.result.includes('FORBIDDEN') ? 'badge-locked' : 'badge-compliant'} 
+                      className={String(log.result).includes('FORBIDDEN') ? 'badge-locked' : 'badge-compliant'} 
                       style={{ fontSize: '10px' }}
                     >
                       {log.result}

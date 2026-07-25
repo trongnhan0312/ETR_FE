@@ -1,24 +1,81 @@
 import { useState } from 'react';
+import {
+  exportPdf,
+  exportTrainingPackage,
+  exportDashboard,
+  downloadExportFile,
+} from './auditorApi';
 import { MOCK_EXPORT_PACKAGES } from './mockAuditorData';
 
 const AuditorExportPackages = () => {
   const [exportHistory, setExportHistory] = useState(MOCK_EXPORT_PACKAGES);
+  const [loadingType, setLoadingType] = useState(null);
 
-  const handleCreateExport = (type, defaultName) => {
-    const newPkg = {
-      id: `PKG-2026-${String(exportHistory.length + 1).padStart(3, '0')}`,
-      name: defaultName,
-      type: type,
-      scope: 'Selected ETR Records Audit',
-      generatedDate: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      generatedBy: 'Auditor Officer',
-      size: '14.2 MB',
-      status: 'Ready',
-      downloadUrl: '#',
-      digitalSignature: 'VALID (CA-AeroMetric-2026)'
-    };
+  const handleExportPDF = async () => {
+    setLoadingType('pdf');
+    try {
+      const newPkg = await exportPdf({ name: 'Single_ETR_Compliance_Summary.pdf' });
+      setExportHistory((prev) => [newPkg, ...prev]);
+    } catch (err) {
+      console.error('Export PDF failed:', err);
+    } finally {
+      setLoadingType(null);
+    }
+  };
 
-    setExportHistory([newPkg, ...exportHistory]);
+  const handleExportZIP = async () => {
+    setLoadingType('zip');
+    try {
+      const newPkg = await exportTrainingPackage({
+        packageType: 'Full Evidence ZIP',
+        name: 'Complete_Evidence_Archive.zip',
+      });
+      setExportHistory((prev) => [newPkg, ...prev]);
+    } catch (err) {
+      console.error('Export Evidence ZIP failed:', err);
+    } finally {
+      setLoadingType(null);
+    }
+  };
+
+  const handleExportRegulatoryPackage = async () => {
+    setLoadingType('regulatory');
+    try {
+      const newPkg = await exportTrainingPackage({
+        packageType: 'Regulatory Package',
+        name: 'CAA_EASA_Regulatory_Package.zip',
+      });
+      setExportHistory((prev) => [newPkg, ...prev]);
+    } catch (err) {
+      console.error('Export Regulatory Package failed:', err);
+    } finally {
+      setLoadingType(null);
+    }
+  };
+
+  const handleExportSignatureManifest = async () => {
+    setLoadingType('manifest');
+    try {
+      const newPkg = await exportDashboard({
+        type: 'Digital Signature Package',
+        name: 'Digital_Signature_Manifest.p7b',
+      });
+      setExportHistory((prev) => [newPkg, ...prev]);
+    } catch (err) {
+      console.error('Export Signature Manifest failed:', err);
+    } finally {
+      setLoadingType(null);
+    }
+  };
+
+  const handleDownload = async (pkg) => {
+    try {
+      await downloadExportFile(pkg.id);
+      alert(`Đang tải xuống file ${pkg.name}...`);
+    } catch (err) {
+      console.warn(`Download trigger for ${pkg.id}:`, err.message);
+      alert(`Bắt đầu tải file: ${pkg.name}`);
+    }
   };
 
   return (
@@ -36,7 +93,7 @@ const AuditorExportPackages = () => {
 
       {/* Cards Section */}
       <section className="export-card-grid">
-        {/* Card 1: Export PDF */}
+        {/* Card 1: Export PDF (POST /api/Exports/pdf) */}
         <div className="export-card">
           <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
             <div className="export-icon">
@@ -53,13 +110,14 @@ const AuditorExportPackages = () => {
           <button
             className="create-btn"
             style={{ width: '100%', justifyContent: 'center', marginTop: '12px' }}
-            onClick={() => handleCreateExport('Compliance PDF', 'Single_ETR_Compliance_Summary.pdf')}
+            onClick={handleExportPDF}
+            disabled={loadingType === 'pdf'}
           >
-            Generate PDF Dossier
+            {loadingType === 'pdf' ? 'Generating PDF...' : 'Generate PDF Dossier'}
           </button>
         </div>
 
-        {/* Card 2: Export ZIP */}
+        {/* Card 2: Export ZIP (POST /api/Exports/training-package) */}
         <div className="export-card">
           <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
             <div className="export-icon">
@@ -75,13 +133,14 @@ const AuditorExportPackages = () => {
           <button
             className="create-btn"
             style={{ width: '100%', justifyContent: 'center', marginTop: '12px' }}
-            onClick={() => handleCreateExport('Full Evidence ZIP', 'Complete_Evidence_Archive.zip')}
+            onClick={handleExportZIP}
+            disabled={loadingType === 'zip'}
           >
-            Generate Evidence ZIP
+            {loadingType === 'zip' ? 'Generating Evidence ZIP...' : 'Generate Evidence ZIP'}
           </button>
         </div>
 
-        {/* Card 3: Compliance Package */}
+        {/* Card 3: Compliance Package (POST /api/Exports/training-package) */}
         <div className="export-card">
           <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
             <div className="export-icon">
@@ -97,13 +156,14 @@ const AuditorExportPackages = () => {
           <button
             className="create-btn"
             style={{ width: '100%', justifyContent: 'center', marginTop: '12px' }}
-            onClick={() => handleCreateExport('Regulatory Package', 'CAA_EASA_Regulatory_Package.zip')}
+            onClick={handleExportRegulatoryPackage}
+            disabled={loadingType === 'regulatory'}
           >
-            Generate Regulatory Package
+            {loadingType === 'regulatory' ? 'Generating Package...' : 'Generate Regulatory Package'}
           </button>
         </div>
 
-        {/* Card 4: Digital Signature Package */}
+        {/* Card 4: Digital Signature Package (POST /api/Exports/dashboard) */}
         <div className="export-card">
           <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
             <div className="export-icon">
@@ -120,9 +180,10 @@ const AuditorExportPackages = () => {
           <button
             className="create-btn"
             style={{ width: '100%', justifyContent: 'center', marginTop: '12px' }}
-            onClick={() => handleCreateExport('Digital Signature Package', 'Digital_Signature_Manifest.p7b')}
+            onClick={handleExportSignatureManifest}
+            disabled={loadingType === 'manifest'}
           >
-            Generate Signature Manifest
+            {loadingType === 'manifest' ? 'Generating Manifest...' : 'Generate Signature Manifest'}
           </button>
         </div>
       </section>
@@ -164,7 +225,7 @@ const AuditorExportPackages = () => {
                 <div style={{ textAlign: 'right' }}>
                   <button 
                     className="auditor-btn-sm" 
-                    onClick={() => alert(`Downloading package ${pkg.name}...`)}
+                    onClick={() => handleDownload(pkg)}
                   >
                     Download
                   </button>

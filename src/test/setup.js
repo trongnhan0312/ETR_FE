@@ -58,22 +58,34 @@ globalThis.fetch = async (url, options) => {
     '/api/attendance': [
       { attendanceRecordId: 1, sessionId: 1, accountId: 6, status: 'P', remarks: '' },
     ],
-  }
-
-  const cleanUrl = url.replace(/https?:\/\/[^/]+\/api/, '/api').split('?')[0].split('/').slice(0, 4).join('/')
-
-  // Match mock data
-  let responseData = null
-  for (const [key, data] of Object.entries(mockData)) {
-    if (url.includes(key)) {
-      responseData = data
-      break
+    '/api/Audit': [
+      { id: 'LOG-001', timestamp: '2026-07-24 14:10:02', user: 'Auditor Officer', role: 'Auditor', module: 'ETR Inspection', action: 'INSPECT_LOCKED_ETR', target: 'ETR-2026-0891', result: 'SUCCESS', details: 'Inspected ETR details' }
+    ],
+    '/api/Approvals': [
+      { stage: 1, roleTitle: 'Academic Staff', user: 'Phạm Thu Hà', role: 'Academic Officer', timestamp: '2026-06-15 16:45', action: 'Verified learner eligibility', status: 'Completed', hash: '0x89A12019BC4F' }
+    ],
+    '/api/Exports': {
+      id: 'PKG-2026-001',
+      name: 'Compliance_Package.pdf',
+      type: 'Compliance PDF',
+      status: 'Ready',
+    },
+    '/api/Dashboard/stats': {
+      totalLockedRecords: 142,
+      complianceRate: 99.4,
+      pendingAudit: 5,
+      auditPackagesExported: 28,
+    },
+    '/api/Reports/summary': {
+      summaryTitle: 'Regulatory Compliance Audit Summary',
+      totalAudited: 142,
+      complianceRate: 99.4,
     }
   }
 
   // Handle specific endpoints with IDs
   if (url.includes('/etr/1')) {
-    responseData = {
+    mockData['/api/etr/1'] = {
       etrCourseRecordId: 1,
       enrollmentId: 1,
       status: 'InProgress',
@@ -82,14 +94,12 @@ globalThis.fetch = async (url, options) => {
       ]
     }
   }
-  if (url.includes('/etr/2')) {
-    responseData = {
-      etrCourseRecordId: 2,
-      enrollmentId: 2,
-      status: 'InProgress',
-      subjectResults: [
-        { subjectResultId: 2, subjectId: 1, status: 'Pending' },
-      ]
+
+  let responseData = null
+  for (const [key, data] of Object.entries(mockData)) {
+    if (url.includes(key)) {
+      responseData = data
+      break
     }
   }
 

@@ -1,11 +1,50 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_AUDITOR_STATS, MOCK_LOCKED_ETRS, MOCK_AUDIT_LOGS, MOCK_EXPORT_PACKAGES } from './mockAuditorData';
+import {
+  fetchDashboardStats,
+  fetchEtrList,
+  fetchAuditLogs,
+  fetchReportsSummary,
+} from './auditorApi';
+import { MOCK_EXPORT_PACKAGES } from './mockAuditorData';
 
 const AuditorDashboard = () => {
   const navigate = useNavigate();
-  const recentETRs = MOCK_LOCKED_ETRS.slice(0, 3);
-  const recentLogs = MOCK_AUDIT_LOGS.slice(0, 3);
-  const recentExports = MOCK_EXPORT_PACKAGES.slice(0, 2);
+  const [stats, setStats] = useState({
+    totalLockedRecords: '...',
+    complianceRate: '...',
+    pendingAudit: '...',
+    auditPackagesExported: '...',
+  });
+  const [recentETRs, setRecentETRs] = useState([]);
+  const [recentLogs, setRecentLogs] = useState([]);
+  const [recentExports, setRecentExports] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      setLoading(true);
+      try {
+        const [statsData, etrsData, logsData, reportData] = await Promise.all([
+          fetchDashboardStats(),
+          fetchEtrList(),
+          fetchAuditLogs(),
+          fetchReportsSummary(),
+        ]);
+
+        if (statsData) setStats(statsData);
+        if (Array.isArray(etrsData)) setRecentETRs(etrsData.slice(0, 3));
+        if (Array.isArray(logsData)) setRecentLogs(logsData.slice(0, 3));
+        setRecentExports(MOCK_EXPORT_PACKAGES.slice(0, 2));
+      } catch (err) {
+        console.error('Error loading Auditor Dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -60,7 +99,7 @@ const AuditorDashboard = () => {
         <div className="stats-card-dark">
           <div className="stats-content">
             <div className="stats-title-label">Total Locked Records</div>
-            <div className="stat-value">{MOCK_AUDITOR_STATS.totalLockedRecords}</div>
+            <div className="stat-value">{stats.totalLockedRecords}</div>
             <div style={{ fontSize: '11px', opacity: '0.6', marginTop: '6px' }}>IsLocked = true Records</div>
           </div>
         </div>
@@ -68,7 +107,7 @@ const AuditorDashboard = () => {
         <div className="stats-card-dark" style={{ background: 'linear-gradient(180deg, #0a2c55 0%, #061e3d 100%)' }}>
           <div className="stats-content">
             <div className="stats-title-label" style={{ color: '#22c55e' }}>Compliance Rate</div>
-            <div className="stat-value" style={{ color: '#22c55e' }}>{MOCK_AUDITOR_STATS.complianceRate}%</div>
+            <div className="stat-value" style={{ color: '#22c55e' }}>{stats.complianceRate}%</div>
             <div style={{ fontSize: '11px', opacity: '0.6', marginTop: '6px' }}>0 Compliance Breaches</div>
           </div>
         </div>
@@ -76,7 +115,7 @@ const AuditorDashboard = () => {
         <div className="stats-card-dark" style={{ background: 'linear-gradient(180deg, #112d4e 0%, #081a30 100%)' }}>
           <div className="stats-content">
             <div className="stats-title-label" style={{ color: '#d4af37' }}>Pending Audit</div>
-            <div className="stat-value" style={{ color: '#d4af37' }}>{MOCK_AUDITOR_STATS.pendingAudit}</div>
+            <div className="stat-value" style={{ color: '#d4af37' }}>{stats.pendingAudit}</div>
             <div style={{ fontSize: '11px', opacity: '0.6', marginTop: '6px' }}>Scheduled Inspections</div>
           </div>
         </div>
@@ -84,7 +123,7 @@ const AuditorDashboard = () => {
         <div className="stats-card-dark">
           <div className="stats-content">
             <div className="stats-title-label">Audit Packages Exported</div>
-            <div className="stat-value">{MOCK_AUDITOR_STATS.auditPackagesExported}</div>
+            <div className="stat-value">{stats.auditPackagesExported}</div>
             <div style={{ fontSize: '11px', opacity: '0.6', marginTop: '6px' }}>Regulatory Archives</div>
           </div>
         </div>
@@ -103,7 +142,7 @@ const AuditorDashboard = () => {
               className="auditor-btn-sm"
               onClick={() => navigate('/auditor/etrs')}
             >
-              View All ({MOCK_LOCKED_ETRS.length}) →
+              View All ({recentETRs.length}) →
             </button>
           </div>
         </div>
@@ -120,39 +159,45 @@ const AuditorDashboard = () => {
             <div style={{ textAlign: 'right' }}>Actions</div>
           </div>
           <div className="table-body">
-            {recentETRs.map((etr) => (
-              <div key={etr.id} className="table-row auditor-table-grid">
-                <div className="col-id">{etr.id}</div>
-                <div className="col-name">{etr.learnerName}</div>
-                <div className="col-course">{etr.courseName}</div>
-                <div>{etr.completionDate}</div>
-                <div>{etr.lockedDate}</div>
-                <div>{etr.approvedBy}</div>
-                <div>
-                  <span className="badge-locked">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                    Locked
-                  </span>
+            {loading ? (
+              <div className="empty-table-state">Loading locked records...</div>
+            ) : recentETRs.length === 0 ? (
+              <div className="empty-table-state">No locked ETR records available.</div>
+            ) : (
+              recentETRs.map((etr) => (
+                <div key={etr.id} className="table-row auditor-table-grid">
+                  <div className="col-id">{etr.id}</div>
+                  <div className="col-name">{etr.learnerName}</div>
+                  <div className="col-course">{etr.courseName}</div>
+                  <div>{etr.completionDate}</div>
+                  <div>{etr.lockedDate}</div>
+                  <div>{etr.approvedBy}</div>
+                  <div>
+                    <span className="badge-locked">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                      {etr.status || 'Locked'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <button 
+                      className="auditor-btn-sm" 
+                      onClick={() => navigate(`/auditor/details?id=${etr.id}`)}
+                    >
+                      View Details
+                    </button>
+                    <button 
+                      className="auditor-btn-sm" 
+                      onClick={() => navigate('/auditor/export-packages')}
+                    >
+                      Export
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <button 
-                    className="auditor-btn-sm" 
-                    onClick={() => navigate(`/auditor/details?id=${etr.id}`)}
-                  >
-                    View Details
-                  </button>
-                  <button 
-                    className="auditor-btn-sm" 
-                    onClick={() => navigate('/auditor/export-packages')}
-                  >
-                    Export
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </section>

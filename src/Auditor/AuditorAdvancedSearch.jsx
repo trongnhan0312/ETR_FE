@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_LOCKED_ETRS } from './mockAuditorData';
+import { fetchEtrList } from './auditorApi';
 
 const AuditorAdvancedSearch = () => {
   const navigate = useNavigate();
@@ -14,25 +14,71 @@ const AuditorAdvancedSearch = () => {
     status: 'All'
   });
 
-  const [filteredResults, setFilteredResults] = useState(MOCK_LOCKED_ETRS);
+  const [allRecords, setAllRecords] = useState([]);
+  const [filteredResults, setFilteredResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRecords = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchEtrList();
+        setAllRecords(data);
+        setFilteredResults(data);
+      } catch (err) {
+        console.error('Error loading ETR records for advanced search:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadRecords();
+  }, []);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    const results = MOCK_LOCKED_ETRS.filter(etr => {
-      const matchLearner = !filters.learner || etr.learnerName.toLowerCase().includes(filters.learner.toLowerCase()) || etr.learnerId.toLowerCase().includes(filters.learner.toLowerCase());
-      const matchCourse = !filters.course || etr.courseName.toLowerCase().includes(filters.course.toLowerCase()) || etr.courseId.toLowerCase().includes(filters.course.toLowerCase());
-      const matchClass = !filters.classId || etr.className.toLowerCase().includes(filters.classId.toLowerCase()) || etr.classId.toLowerCase().includes(filters.classId.toLowerCase());
-      const matchEtr = !filters.etrId || etr.id.toLowerCase().includes(filters.etrId.toLowerCase());
-      const matchCompDate = !filters.completionDate || etr.completionDate.includes(filters.completionDate);
-      const matchLockDate = !filters.lockedDate || etr.lockedDate.includes(filters.lockedDate);
-      const matchStatus = filters.status === 'All' || etr.status.toLowerCase().includes(filters.status.toLowerCase());
+    const results = allRecords.filter((etr) => {
+      const matchLearner =
+        !filters.learner ||
+        etr.learnerName?.toLowerCase().includes(filters.learner.toLowerCase()) ||
+        etr.learnerId?.toLowerCase().includes(filters.learner.toLowerCase());
 
-      return matchLearner && matchCourse && matchClass && matchEtr && matchCompDate && matchLockDate && matchStatus;
+      const matchCourse =
+        !filters.course ||
+        etr.courseName?.toLowerCase().includes(filters.course.toLowerCase()) ||
+        etr.courseId?.toLowerCase().includes(filters.course.toLowerCase());
+
+      const matchClass =
+        !filters.classId ||
+        etr.className?.toLowerCase().includes(filters.classId.toLowerCase()) ||
+        etr.classId?.toLowerCase().includes(filters.classId.toLowerCase());
+
+      const matchEtr =
+        !filters.etrId || etr.id?.toLowerCase().includes(filters.etrId.toLowerCase());
+
+      const matchCompDate =
+        !filters.completionDate || etr.completionDate?.includes(filters.completionDate);
+
+      const matchLockDate =
+        !filters.lockedDate || etr.lockedDate?.includes(filters.lockedDate);
+
+      const matchStatus =
+        filters.status === 'All' ||
+        etr.status?.toLowerCase().includes(filters.status.toLowerCase());
+
+      return (
+        matchLearner &&
+        matchCourse &&
+        matchClass &&
+        matchEtr &&
+        matchCompDate &&
+        matchLockDate &&
+        matchStatus
+      );
     });
 
     setFilteredResults(results);
@@ -48,7 +94,7 @@ const AuditorAdvancedSearch = () => {
       lockedDate: '',
       status: 'All'
     });
-    setFilteredResults(MOCK_LOCKED_ETRS);
+    setFilteredResults(allRecords);
   };
 
   return (
@@ -203,7 +249,9 @@ const AuditorAdvancedSearch = () => {
           </div>
 
           <div className="table-body">
-            {filteredResults.length === 0 ? (
+            {loading ? (
+              <div className="empty-table-state">Searching records...</div>
+            ) : filteredResults.length === 0 ? (
               <div className="empty-table-state">No matching records found for the applied filter parameters.</div>
             ) : (
               filteredResults.map((etr) => (

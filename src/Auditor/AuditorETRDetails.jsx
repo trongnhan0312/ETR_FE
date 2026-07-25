@@ -1,12 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { getETRById, MOCK_APPROVAL_TIMELINE, MOCK_AUDIT_LOGS } from './mockAuditorData';
+import { fetchEtrById, fetchApprovals, fetchAuditLogs, exportPdf } from './auditorApi';
 
 const AuditorETRDetails = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const etrId = searchParams.get('id') || 'ETR-2026-0891';
-  const etr = getETRById(etrId);
+
+  const [etr, setEtr] = useState(null);
+  const [approvals, setApprovals] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   const [activeTab, setActiveTab] = useState('learner');
 
@@ -18,6 +23,50 @@ const AuditorETRDetails = () => {
     { key: 'approval', label: 'Approval History' },
     { key: 'audit', label: 'Audit Trail' },
   ];
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [etrData, approvalsData, logsData] = await Promise.all([
+          fetchEtrById(etrId),
+          fetchApprovals(etrId),
+          fetchAuditLogs(),
+        ]);
+
+        if (etrData) setEtr(etrData);
+        if (Array.isArray(approvalsData)) setApprovals(approvalsData);
+        if (Array.isArray(logsData)) setAuditLogs(logsData);
+      } catch (err) {
+        console.error('Error fetching ETR details:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [etrId]);
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      await exportPdf({ etrId, name: `${etrId}_Compliance_Dossier.pdf` });
+      navigate('/auditor/export-packages');
+    } catch (err) {
+      console.error('Export PDF failed:', err);
+      alert('Tạo file PDF thất bại. Vui lòng thử lại sau.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  if (loading || !etr) {
+    return (
+      <div className="table-card" style={{ padding: '40px', textAlign: 'center' }}>
+        <p style={{ color: '#002147', fontWeight: '600' }}>Loading ETR compliance record {etrId}...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -42,10 +91,11 @@ const AuditorETRDetails = () => {
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
             className="auditor-btn-sm"
-            onClick={() => navigate('/auditor/export-packages')}
+            onClick={handleExportPdf}
+            disabled={exporting}
             style={{ padding: '8px 16px' }}
           >
-            Export Dossier PDF
+            {exporting ? 'Generating PDF...' : 'Export Dossier PDF'}
           </button>
         </div>
       </section>
@@ -115,7 +165,7 @@ const AuditorETRDetails = () => {
               <div>Status</div>
             </div>
             <div className="table-body">
-              {etr.attendanceList.map((att) => (
+              {etr.attendanceList?.map((att) => (
                 <div key={att.session} className="table-row" style={{ display: 'grid', gridTemplateColumns: '80px 140px 1.8fr 120px 120px', padding: '14px 24px', gap: '12px' }}>
                   <div style={{ fontWeight: '700', color: '#c5a059' }}>Session {att.session}</div>
                   <div>{att.date}</div>
@@ -148,7 +198,7 @@ const AuditorETRDetails = () => {
               <div>Instructor</div>
             </div>
             <div className="table-body">
-              {etr.subjects.map((sub) => (
+              {etr.subjects?.map((sub) => (
                 <div key={sub.code} className="table-row" style={{ display: 'grid', gridTemplateColumns: '120px 2fr 100px 100px 120px 1.5fr', padding: '14px 24px', gap: '12px' }}>
                   <div style={{ fontWeight: '700', color: '#c5a059' }}>{sub.code}</div>
                   <div style={{ fontWeight: '600', color: '#002147' }}>{sub.name}</div>
@@ -181,7 +231,7 @@ const AuditorETRDetails = () => {
               <div style={{ textAlign: 'right' }}>SHA-256 Hash</div>
             </div>
             <div className="table-body">
-              {etr.evidences.map((evd) => (
+              {etr.evidences?.map((evd) => (
                 <div key={evd.id} className="table-row" style={{ display: 'grid', gridTemplateColumns: '130px 2fr 100px 150px 1.5fr 150px', padding: '14px 24px', gap: '12px' }}>
                   <div style={{ fontWeight: '700', color: '#c5a059' }}>{evd.id}</div>
                   <div style={{ fontWeight: '600', color: '#002147' }}>{evd.name}</div>
@@ -201,9 +251,9 @@ const AuditorETRDetails = () => {
         <section className="table-card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#002147', marginTop: 0, marginBottom: '20px' }}>Approval Workflow Timeline</h2>
           <div className="approval-timeline">
-            {MOCK_APPROVAL_TIMELINE.map((item) => (
-              <div key={item.stage} className="timeline-item">
-                <div className="timeline-dot">{item.stage}</div>
+            {approvals.map((item) => (
+              <div key={item.stage || item.stepNumber} className="timeline-item">
+                <div className="timeline-dot">{item.stage || item.stepNumber}</div>
                 <div className="timeline-header">
                   <span className="timeline-title">{item.roleTitle}</span>
                   <span className="timeline-timestamp">{item.timestamp}</span>
@@ -233,7 +283,7 @@ const AuditorETRDetails = () => {
               <div>Result</div>
             </div>
             <div className="table-body">
-              {MOCK_AUDIT_LOGS.map((log) => (
+              {auditLogs.map((log) => (
                 <div key={log.id} className="table-row" style={{ display: 'grid', gridTemplateColumns: '160px 1.5fr 120px 150px 2fr 110px', padding: '14px 24px', gap: '12px' }}>
                   <div>{log.timestamp}</div>
                   <div style={{ fontWeight: '600', color: '#002147' }}>{log.user}</div>

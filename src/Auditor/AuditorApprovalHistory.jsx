@@ -1,8 +1,37 @@
-import { useState } from 'react';
-import { MOCK_APPROVAL_TIMELINE, MOCK_LOCKED_ETRS } from './mockAuditorData';
+import { useState, useEffect } from 'react';
+import { fetchApprovals, fetchEtrList } from './auditorApi';
 
 const AuditorApprovalHistory = () => {
   const [selectedEtrId, setSelectedEtrId] = useState('ETR-2026-0891');
+  const [etrList, setEtrList] = useState([]);
+  const [timeline, setTimeline] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [etrs, approvals] = await Promise.all([
+          fetchEtrList(),
+          fetchApprovals(selectedEtrId)
+        ]);
+
+        if (Array.isArray(etrs) && etrs.length > 0) {
+          setEtrList(etrs);
+          if (!selectedEtrId && etrs[0]?.id) {
+            setSelectedEtrId(etrs[0].id);
+          }
+        }
+        setTimeline(approvals);
+      } catch (err) {
+        console.error('Error fetching approval history:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [selectedEtrId]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -26,7 +55,7 @@ const AuditorApprovalHistory = () => {
             value={selectedEtrId}
             onChange={(e) => setSelectedEtrId(e.target.value)}
           >
-            {MOCK_LOCKED_ETRS.map((item) => (
+            {etrList.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.id} - {item.learnerName} ({item.courseId})
               </option>
@@ -78,26 +107,30 @@ const AuditorApprovalHistory = () => {
           Detailed Execution Log for {selectedEtrId}
         </h2>
 
-        <div className="approval-timeline">
-          {MOCK_APPROVAL_TIMELINE.map((step) => (
-            <div key={step.stage} className="timeline-item">
-              <div className="timeline-dot">{step.stage}</div>
-              <div className="timeline-header">
-                <span className="timeline-title">{step.roleTitle}</span>
-                <span className="timeline-timestamp">{step.timestamp}</span>
+        {loading ? (
+          <div className="empty-table-state">Loading approval history...</div>
+        ) : (
+          <div className="approval-timeline">
+            {timeline.map((step) => (
+              <div key={step.stage || step.stepNumber} className="timeline-item">
+                <div className="timeline-dot">{step.stage || step.stepNumber}</div>
+                <div className="timeline-header">
+                  <span className="timeline-title">{step.roleTitle}</span>
+                  <span className="timeline-timestamp">{step.timestamp}</span>
+                </div>
+                <div className="timeline-user">
+                  <strong>User:</strong> {step.user} &nbsp;|&nbsp; <strong>Role:</strong> {step.role}
+                </div>
+                <div className="timeline-action" style={{ marginTop: '6px' }}>
+                  <strong>Action Executed:</strong> {step.action}
+                </div>
+                <div className="timeline-hash">
+                  Cryptographic Signature: {step.hash}
+                </div>
               </div>
-              <div className="timeline-user">
-                <strong>User:</strong> {step.user} &nbsp;|&nbsp; <strong>Role:</strong> {step.role}
-              </div>
-              <div className="timeline-action" style={{ marginTop: '6px' }}>
-                <strong>Action Executed:</strong> {step.action}
-              </div>
-              <div className="timeline-hash">
-                Cryptographic Signature: {step.hash}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
