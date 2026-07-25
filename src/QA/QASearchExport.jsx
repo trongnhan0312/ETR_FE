@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
-import { api } from "../utils/api";
+import { api, API_BASE_URLS } from "../utils/api";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://localhost:7169/api";
+// Use local first, fallback to deploy
+const API_BASE_URL = API_BASE_URLS[0];
 
 const QASearchExport = () => {
   const [searchQuery, setSearchQuery] = useState("");

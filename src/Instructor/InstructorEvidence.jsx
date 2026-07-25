@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { api } from "../utils/api";
+import { api, API_BASE_URLS } from "../utils/api";
 const getAccountIdFromToken = () => {
   try {
     const token = localStorage.getItem("token");
@@ -524,7 +524,7 @@ const InstructorEvidence = () => {
                   </span>
                   <div>
                     <a
-                      href={`${import.meta.env.VITE_API_URL || "https://localhost:7169/api"}/Evidences/${ev.evidenceFileId}/download`}
+                      href={`${API_BASE_URLS[0]}/Evidences/${ev.evidenceFileId}/download`}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{

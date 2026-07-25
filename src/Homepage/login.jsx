@@ -11,7 +11,23 @@ import {
   FaShieldAlt,
   FaUser,
 } from "react-icons/fa";
+import { API_BASE_URLS } from "../utils/api";
 import "./login.scss";
+
+/** Helper: try fetching from each base URL until one succeeds (network-level retry only) */
+async function tryFetchWithFallback(urls, path, fetchOptions) {
+  for (const baseUrl of urls) {
+    try {
+      const url = `${baseUrl}${path}`;
+      console.log(`[Fetch] Trying: ${url}`);
+      const res = await fetch(url, fetchOptions);
+      if (res.ok || res.status >= 400) return res; // server responded, return regardless of status
+    } catch (err) {
+      console.warn(`[Fetch] Cannot reach ${baseUrl}${path}:`, err.message);
+    }
+  }
+  return null;
+}
 
 const VALIDATION_RULES = {
   username: {
@@ -109,21 +125,24 @@ const Login = () => {
 
     setLoading(true);
 
-    const API_URL =
-      import.meta.env.VITE_API_URL || "https://localhost:7169/api";
+    const response = await tryFetchWithFallback(API_BASE_URLS, "/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: username.trim(),
+        password,
+      }),
+    });
+
+    if (!response) {
+      setError(
+        "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.",
+      );
+      setLoading(false);
+      return;
+    }
 
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          password,
-        }),
-      });
-
       if (!response.ok) {
         let errorMsg =
           "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.";
@@ -134,7 +153,6 @@ const Login = () => {
           try {
             const rawText = await response.text();
             if (rawText) {
-              // Map English backend messages to Vietnamese
               if (rawText.includes("Invalid credentials")) {
                 errorMsg = "Tên đăng nhập hoặc mật khẩu không chính xác.";
               } else if (rawText.includes("account is inactive")) {
@@ -165,7 +183,6 @@ const Login = () => {
         }),
       );
 
-      // Handle remember me
       if (rememberMe) {
         localStorage.setItem("rememberMe", "true");
         localStorage.setItem("rememberedUsername", data.username || username.trim());
@@ -199,6 +216,52 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setForgotMessage({
+        type: "error",
+        text: "Vui lòng nhập email.",
+      });
+      return;
+    }
+    setForgotLoading(true);
+    setForgotMessage({ type: "", text: "" });
+
+    const response = await tryFetchWithFallback(
+      API_BASE_URLS,
+      "/auth/forgot-password",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      },
+    );
+
+    if (!response) {
+      setForgotMessage({
+        type: "error",
+        text: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.",
+      });
+      setForgotLoading(false);
+      return;
+    }
+
+    if (response.ok) {
+      setForgotMessage({
+        type: "success",
+        text: "Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
+      });
+    } else {
+      const errText = await response.text().catch(() => "");
+      setForgotMessage({
+        type: "error",
+        text: errText || "Không thể gửi yêu cầu. Vui lòng thử lại sau.",
+      });
+    }
+    setForgotLoading(false);
   };
 
   return (
@@ -294,56 +357,7 @@ const Login = () => {
                 </div>
               )}
 
-              <form
-                className="login-form"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!forgotEmail.trim()) {
-                    setForgotMessage({
-                      type: "error",
-                      text: "Vui lòng nhập email.",
-                    });
-                    return;
-                  }
-                  setForgotLoading(true);
-                  setForgotMessage({ type: "", text: "" });
-                  try {
-                    const API_URL =
-                      import.meta.env.VITE_API_URL ||
-                      "https://localhost:7169/api";
-                    const response = await fetch(
-                      `${API_URL}/auth/forgot-password`,
-                      {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: forgotEmail.trim() }),
-                      },
-                    );
-                    if (response.ok) {
-                      setForgotMessage({
-                        type: "success",
-                        text: "Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
-                      });
-                    } else {
-                      const errText = await response.text().catch(() => "");
-                      setForgotMessage({
-                        type: "error",
-                        text:
-                          errText ||
-                          "Không thể gửi yêu cầu. Vui lòng thử lại sau.",
-                      });
-                    }
-                  } catch (err) {
-                    setForgotMessage({
-                      type: "error",
-                      text: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.",
-                    });
-                  } finally {
-                    setForgotLoading(false);
-                  }
-                }}
-                noValidate
-              >
+              <form className="login-form" onSubmit={handleForgotPassword} noValidate>
                 <div className="form-group">
                   <label htmlFor="forgot-email">Email của bạn</label>
                   <div className="input-shell">
