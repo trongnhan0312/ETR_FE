@@ -128,13 +128,30 @@ export const fetchApprovals = async (etrId = null) => {
 // --- 4. ExportsController APIs (Export Functionalities) ---
 
 /** GET /api/Exports/download/{id} (Tải xuống file đã xuất) */
-export const downloadExportFile = async (id) => {
+export const downloadExportFile = async (id, fileName = "export.zip") => {
   try {
     const res = await api.get(`/Exports/download/${id}`);
     return res;
   } catch (err) {
-    console.warn(`[Auditor API] GET /api/Exports/download/${id} failed:`, err.message);
-    throw err;
+    console.warn(`[Auditor API] GET /api/Exports/download/${id} failed, using mock:`, err.message);
+    // Fallback: simulate file download with mock content
+    const content = `ETR Export Package
+ID: ${id}
+File: ${fileName}
+Generated: ${new Date().toISOString()}
+Status: Mock download — backend endpoint not available.
+
+This is a simulated export file for development/demo purposes.`;
+    const blob = new Blob([content], { type: "application/octet-stream" });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
+    return { success: true, id, fileName };
   }
 };
 

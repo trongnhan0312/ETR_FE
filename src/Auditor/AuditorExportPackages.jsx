@@ -69,13 +69,7 @@ const AuditorExportPackages = () => {
   };
 
   const handleDownload = async (pkg) => {
-    try {
-      await downloadExportFile(pkg.id);
-      alert(`Đang tải xuống file ${pkg.name}...`);
-    } catch (err) {
-      console.warn(`Download trigger for ${pkg.id}:`, err.message);
-      alert(`Bắt đầu tải file: ${pkg.name}`);
-    }
+    await downloadExportFile(pkg.id, pkg.name);
   };
 
   return (

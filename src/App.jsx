@@ -74,7 +74,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
 			if (userRole === 'academic' || userRole === 'academicstaff') return <Navigate to="/academic" replace />;
 			if (userRole === 'trainingmanager') return <Navigate to="/trainingmanager" replace />;
 			if (userRole === 'student' || userRole === 'learner') return <Navigate to="/student" replace />;
-			if (userRole === 'auditor') return <Navigate to="/auditor" replace />;
+			if (userRole === 'auditor' || userRole === 'audit') return <Navigate to="/auditor" replace />;
 			return <Navigate to="/login" replace />;
 		}
 
@@ -173,7 +173,7 @@ function App() {
 				</Route>
 
 				{/* Protected Auditor Routes */}
-				<Route element={<ProtectedRoute allowedRoles={["Auditor"]} />}>
+				<Route element={<ProtectedRoute allowedRoles={["Auditor", "Audit"]} />}>
 					<Route path="/auditor" element={<AuditorLayout />}>
 						<Route index element={<AuditorDashboard />} />
 						<Route path="etrs" element={<AuditorLockedETRs />} />
