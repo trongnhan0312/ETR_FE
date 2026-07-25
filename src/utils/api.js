@@ -1,11 +1,16 @@
 // --- API Base URLs ---
-// Ưu tiên local trước, nếu không kết nối được mới fallback sang deploy
+// Che do dev: uu tien local truoc, fallback sang deploy
+// Che do production (Vercel): chi goi deploy (bo qua localhost de khoi bi cham)
 const API_BASE_URL_LOCAL = "https://localhost:7169/api";
 const API_BASE_URL_DEPLOY =
   "https://etrmanagement-be-fwhvagaxf3f3dmf0.southeastasia-01.azurewebsites.net/api";
 
-// Export để các module khác import và dùng chung
-export const API_BASE_URLS = [API_BASE_URL_LOCAL, API_BASE_URL_DEPLOY];
+// Vite tu dong nhan biet moi truong: import.meta.env.PROD === true khi build production
+const isProduction = import.meta.env.PROD;
+
+export const API_BASE_URLS = isProduction
+  ? [API_BASE_URL_DEPLOY]
+  : [API_BASE_URL_LOCAL, API_BASE_URL_DEPLOY];
 
 /**
  * Try each base URL until one works.
