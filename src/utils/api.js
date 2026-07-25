@@ -1,5 +1,45 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://localhost:7169/api";
+// --- API Base URLs ---
+// Ưu tiên local trước, nếu không kết nối được mới fallback sang deploy
+const API_BASE_URL_LOCAL = "https://localhost:7169/api";
+const API_BASE_URL_DEPLOY =
+  "https://etrmanagement-be-fwhvagaxf3f3dmf0.southeastasia-01.azurewebsites.net/api";
+
+// Export để các module khác import và dùng chung
+export const API_BASE_URLS = [API_BASE_URL_LOCAL, API_BASE_URL_DEPLOY];
+
+/**
+ * Try each base URL until one works.
+ * Only retries on network errors (fetch throws), NOT on API-level errors (4xx/5xx).
+ */
+async function fetchWithFallback(
+  urls,
+  endpoint,
+  fetchOptions,
+  method,
+  options,
+) {
+  for (const baseUrl of urls) {
+    let response;
+    try {
+      const url = `${baseUrl}${endpoint}`;
+      console.log(`[API ${method}] Requesting: ${url}`);
+      response = await fetch(url, fetchOptions);
+    } catch (error) {
+      // Network error - server not reachable, try next URL
+      console.warn(
+        `[API ${method}] Cannot reach ${baseUrl}${endpoint}:`,
+        error.message,
+      );
+      continue;
+    }
+    // Fetch succeeded (server responded), process the response
+    return await handleResponse(response, method, endpoint, options);
+  }
+  // All URLs failed with network errors
+  const errMsg = `Cannot reach any API server for ${endpoint}`;
+  console.error(`[API ${method}] ${errMsg}`);
+  throw new Error(errMsg);
+}
 
 /**
  * Clears authentication data and redirects to login page.
@@ -71,102 +111,76 @@ const handleResponse = async (response, method, endpoint, options = {}) => {
 
 export const api = {
   get: async (endpoint, options = {}) => {
-    console.log(`[API GET] Requesting: ${API_BASE_URL}${endpoint}`);
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
-      return await handleResponse(response, "GET", endpoint, options);
-    } catch (error) {
-      console.error(`[API GET] Error calling ${endpoint}:`, error);
-      throw error;
-    }
+    return fetchWithFallback(
+      API_BASE_URLS,
+      endpoint,
+      { method: "GET", headers: getAuthHeaders() },
+      "GET",
+      options,
+    );
   },
 
   post: async (endpoint, data, options = {}) => {
     const isFormData =
       typeof FormData !== "undefined" && data instanceof FormData;
-
-    console.log(
-      `[API POST] Requesting: ${API_BASE_URL}${endpoint} with Payload:`,
-      data,
-    );
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    return fetchWithFallback(
+      API_BASE_URLS,
+      endpoint,
+      {
         method: "POST",
         headers: getAuthHeaders(isFormData),
         body: isFormData ? data : JSON.stringify(data),
-      });
-      return await handleResponse(response, "POST", endpoint, options);
-    } catch (error) {
-      console.error(`[API POST] Error calling ${endpoint}:`, error);
-      throw error;
-    }
+      },
+      "POST",
+      options,
+    );
   },
 
   postFormData: async (endpoint, formData) => {
-    console.log(`[API FORM DATA POST] Requesting: ${API_BASE_URL}${endpoint}`);
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: getAuthHeaders(true),
-        body: formData,
-      });
-      return await handleResponse(response, "FORMDATA", endpoint);
-    } catch (error) {
-      console.error(`[API FORM DATA POST] Error calling ${endpoint}:`, error);
-      throw error;
-    }
+    return fetchWithFallback(
+      API_BASE_URLS,
+      endpoint,
+      { method: "POST", headers: getAuthHeaders(true), body: formData },
+      "FORMDATA",
+      {},
+    );
   },
 
   put: async (endpoint, data) => {
-    console.log(
-      `[API PUT] Requesting: ${API_BASE_URL}${endpoint} with Payload:`,
-      data,
-    );
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    return fetchWithFallback(
+      API_BASE_URLS,
+      endpoint,
+      {
         method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify(data),
-      });
-      return await handleResponse(response, "PUT", endpoint);
-    } catch (error) {
-      console.error(`[API PUT] Error calling ${endpoint}:`, error);
-      throw error;
-    }
+      },
+      "PUT",
+      {},
+    );
   },
 
   patch: async (endpoint, data) => {
-    console.log(
-      `[API PATCH] Requesting: ${API_BASE_URL}${endpoint} with Payload:`,
-      data,
-    );
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    return fetchWithFallback(
+      API_BASE_URLS,
+      endpoint,
+      {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: data ? JSON.stringify(data) : undefined,
-      });
-      return await handleResponse(response, "PATCH", endpoint);
-    } catch (error) {
-      console.error(`[API PATCH] Error calling ${endpoint}:`, error);
-      throw error;
-    }
+      },
+      "PATCH",
+      {},
+    );
   },
 
   delete: async (endpoint) => {
-    console.log(`[API DELETE] Requesting: ${API_BASE_URL}${endpoint}`);
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
-      return await handleResponse(response, "DELETE", endpoint);
-    } catch (error) {
-      console.error(`[API DELETE] Error calling ${endpoint}:`, error);
-      throw error;
-    }
+    return fetchWithFallback(
+      API_BASE_URLS,
+      endpoint,
+      { method: "DELETE", headers: getAuthHeaders() },
+      "DELETE",
+      {},
+    );
   },
 };
