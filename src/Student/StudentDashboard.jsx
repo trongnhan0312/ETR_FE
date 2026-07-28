@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 
+const VALIDITY_LABELS = {
+  Valid: 'Còn hiệu lực',
+  ExpiringSoon: 'Sắp hết hạn',
+  Expired: 'Đã hết hạn',
+};
+
 const STATUS_MAP = {
   'In Progress': 'progress',
   'Submitted': 'submitted',
@@ -42,18 +48,31 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const [etrs, setEtrs] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [certStatus, setCertStatus] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const [etrData, profileData] = await Promise.all([
+        const [etrData, profileData, certData] = await Promise.all([
           api.get('/Etr/my-etr', { suppressAuthRedirect: true }).catch(() => []),
           api.get('/auth/me', { suppressAuthRedirect: true }).catch(() => null),
+          // Get accountId from localStorage for certificate status
+          (async () => {
+            try {
+              const u = JSON.parse(localStorage.getItem('user') || '{}');
+              const aid = u.accountId || u.userId;
+              if (aid) {
+                return api.get(`/Etr/student/${aid}/current-status`, { suppressAuthRedirect: true }).catch(() => []);
+              }
+              return [];
+            } catch { return []; }
+          })(),
         ]);
         if (Array.isArray(etrData)) setEtrs(etrData);
         if (profileData) setProfile(profileData);
+        if (Array.isArray(certData)) setCertStatus(certData);
       } catch {
         // silent
       } finally {
@@ -84,6 +103,12 @@ const StudentDashboard = () => {
   };
 
   const mapped = etrs.map(mapEtr);
+
+  const certStats = {
+    valid: Array.isArray(certStatus) ? certStatus.filter(c => c.ValidityStatus === 'Valid').length : 0,
+    expiringSoon: Array.isArray(certStatus) ? certStatus.filter(c => c.ValidityStatus === 'ExpiringSoon').length : 0,
+    expired: Array.isArray(certStatus) ? certStatus.filter(c => c.ValidityStatus === 'Expired').length : 0,
+  };
 
   const metrics = [
     { label: 'Tổng số hồ sơ', value: mapped.length, cls: '' },
@@ -179,17 +204,56 @@ const StudentDashboard = () => {
       </section>
 
       {/* ── Quick Actions ── */}
-      <section className="student-actions">
-        <article className="student-action-card" onClick={() => navigate('/student/etr')}>
-          <p className="action-eyebrow">Hồ sơ ETR</p>
-          <h3>Xem chi tiết hồ sơ</h3>
-          <p className="action-desc">Xem toàn bộ hồ sơ đào tạo, điểm danh, điểm số và minh chứng của bạn.</p>
-        </article>
-        <article className="student-action-card" onClick={() => navigate('/student/profile')}>
-          <p className="action-eyebrow">Tài khoản</p>
-          <h3>Quản lý hồ sơ cá nhân</h3>
-          <p className="action-desc">Xem thông tin cá nhân và thay đổi mật khẩu đăng nhập.</p>
-        </article>
+      <section className="student-actions">            {/* ── Certificate Status Summary ── */}
+            {certStatus.length > 0 && (
+              <section className="student-table-section" style={{ marginBottom: 24 }}>
+                <div className="student-table-header">
+                  <div className="student-table-header-left">
+                    <p className="student-section-label">Chứng chỉ đào tạo</p>
+                    <h2>Trạng thái hiệu lực</h2>
+                  </div>
+                  <button className="action-btn" type="button" onClick={() => navigate('/student/certificates')}>
+                    Xem tất cả
+                  </button>
+                </div>
+                <div className="student-cert-mini-list">
+                  {certStatus.slice(0, 4).map((cert, idx) => (
+                    <div key={idx} className="student-cert-mini-item">
+                      <div className="student-cert-mini-info">
+                        <span className="student-cert-mini-course">
+                          {cert.CourseName || `Khóa học #${cert.CourseId}`}
+                        </span>
+                        <span className="student-cert-mini-date">
+                          {cert.ExpiryDate ? `Hết hạn: ${formatDate(cert.ExpiryDate)}` : 'Vĩnh viễn'}
+                        </span>
+                      </div>
+                      <span className={`student-cert-mini-badge student-cert-mini-badge--${(cert.ValidityStatus || '').toLowerCase()}`}>
+                        {VALIDITY_LABELS[cert.ValidityStatus] || cert.ValidityStatus}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── Quick Actions ── */}
+            <section className="student-actions">
+              <article className="student-action-card" onClick={() => navigate('/student/etr')}>
+                <p className="action-eyebrow">Hồ sơ ETR</p>
+                <h3>Xem chi tiết hồ sơ</h3>
+                <p className="action-desc">Xem toàn bộ hồ sơ đào tạo, điểm danh, điểm số và minh chứng của bạn.</p>
+              </article>
+              <article className="student-action-card" onClick={() => navigate('/student/certificates')}>
+                <p className="action-eyebrow">Chứng chỉ</p>
+                <h3>Trạng thái chứng chỉ</h3>
+                <p className="action-desc">Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo và kiểm tra ngày hết hạn.</p>
+              </article>
+              <article className="student-action-card" onClick={() => navigate('/student/profile')}>
+                <p className="action-eyebrow">Tài khoản</p>
+                <h3>Quản lý hồ sơ cá nhân</h3>
+                <p className="action-desc">Xem thông tin cá nhân và thay đổi mật khẩu đăng nhập.</p>
+              </article>
+            </section>
       </section>
     </div>
   );

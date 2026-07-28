@@ -8,19 +8,43 @@ const TrainingManagerDashboard = () => {
   const [pendingEtrs, setPendingEtrs] = useState('...');
   const [approvedCount, setApprovedCount] = useState('...');
   const [etrVolume, setEtrVolume] = useState(null);
+  const [complianceScore, setComplianceScore] = useState('...');
+  const [certificationsDue, setCertificationsDue] = useState('...');
+  const [avgScore, setAvgScore] = useState('...');
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [enrollments, etrs] = await Promise.all([
+        const [enrollments, etrs, statsData, reportData] = await Promise.all([
           api.get("/Enrollments").catch(() => []),
           api.get("/Etr").catch(() => []),
+          api.get("/Dashboard/stats").catch(() => null),
+          api.get("/Reports/summary").catch(() => null),
         ]);
+
+        // Process Dashboard stats
+        if (statsData && typeof statsData === 'object') {
+          setComplianceScore(
+            statsData.complianceRate ?? statsData.ComplianceRate ??
+            statsData.completionRatePercent ?? statsData.CompletionRatePercent ?? '...'
+          );
+          setCertificationsDue(
+            statsData.pendingApprovalCount ?? statsData.PendingApprovalCount ??
+            statsData.pendingAudit ?? statsData.PendingAudit ?? '...'
+          );
+          setAvgScore(
+            statsData.avgScore ?? statsData.AvgScore ??
+            statsData.averageScore ?? statsData.AverageScore ?? '...'
+          );
+        }
+
+        // Process Report summary fields if needed
+        // reportData fields available for future use
+
         const enrArr = Array.isArray(enrollments) ? enrollments : [];
         const etrArr = Array.isArray(etrs) ? etrs : [];
         const pendingCount = etrArr.filter(e => e.status === 'Submitted' || e.status === 'Draft').length;
         const completedCount = etrArr.filter(e => e.status === 'Completed').length;
-        const totalEt = etrArr.filter(e => e.status === 'Completed').length + pendingCount;
 
         setTotalTrainees(String(enrArr.length));
         setPendingEtrs(String(pendingCount));
@@ -163,11 +187,13 @@ const TrainingManagerDashboard = () => {
             </svg>
           </div>
           <div className="tm-card-value-row">
-            <span className="tm-card-value">{approvalRate.value}%</span>
-            <span className="tm-badge success">HIGH</span>
+            <span className="tm-card-value">{complianceScore !== '...' ? `${complianceScore}%` : `${approvalRate.value}%`}</span>
+            <span className="tm-badge success">{complianceScore !== '...' ? 'LIVE' : 'HIGH'}</span>
           </div>
           <div className="tm-progress-bar">
-            <div className="tm-progress-fill bg-[#c5a022]" style={{ width: '95.4%' }} />
+            <div className="tm-progress-fill bg-[#c5a022]" style={{
+              width: complianceScore !== '...' ? `${Math.min(100, Number(complianceScore))}%` : '95.4%'
+            }} />
           </div>
         </div>
       </div>
@@ -317,13 +343,13 @@ const TrainingManagerDashboard = () => {
             {/* Avg Score */}
             <div className="tm-stat-box tm-border-navy">
               <span className="stat-label">AVG ASSESSMENT SCORE</span>
-              <span className="stat-value">88.4</span>
+              <span className="stat-value">{avgScore !== '...' ? avgScore : '88.4'}</span>
             </div>
 
             {/* Certifications Due */}
             <div className="tm-stat-box tm-border-red">
               <span className="stat-label">CERTIFICATIONS DUE</span>
-              <span className="stat-value error">32</span>
+              <span className="stat-value error">{certificationsDue !== '...' ? certificationsDue : '32'}</span>
             </div>
 
             {/* Instructor Load */}

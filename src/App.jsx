@@ -11,6 +11,7 @@ import AcademicLayout from './Academic/AcademicLayout';
 import LearnerManagement from './Academic/LearnerManagement';
 import CourseClassManagement from './Academic/CourseClassManagement';
 import EtrManagement from './Academic/EtrManagement';
+import ExpiringStudents from './Academic/ExpiringStudents';
 import InstructorLayout from './Instructor/InstructorLayout';
 import InstructorClasses from './Instructor/InstructorClasses';
 import InstructorSchedule from './Instructor/InstructorSchedule';
@@ -34,6 +35,7 @@ import EtrApproval from './TrainingManager/EtrApproval';
 import StudentLayout from './Student/StudentLayout';
 import StudentDashboard from './Student/StudentDashboard';
 import StudentMyETR from './Student/StudentMyETR';
+import StudentCertificateStatus from './Student/StudentCertificateStatus';
 import StudentProfile from './Student/StudentProfile';
 import AuditorLayout from './Auditor/AuditorLayout';
 import AuditorDashboard from './Auditor/AuditorDashboard';
@@ -116,6 +118,7 @@ function App() {
 						<Route path="learners" element={<LearnerManagement />} />
 						<Route path="courses" element={<CourseClassManagement />} />
 						<Route path="etr" element={<EtrManagement />} />
+						<Route path="expiring-students" element={<ExpiringStudents />} />
 					</Route>
 				</Route>
 
@@ -160,6 +163,7 @@ function App() {
 						<Route index element={<TrainingManagerDashboard />} />
 						<Route path="classes" element={<ClassStatus />} />
 						<Route path="etr-approval" element={<EtrApproval />} />
+						<Route path="expiring-students" element={<ExpiringStudents />} />
 					</Route>
 				</Route>
 
@@ -168,6 +172,7 @@ function App() {
 					<Route path="/student" element={<StudentLayout />}>
 						<Route index element={<StudentDashboard />} />
 						<Route path="etr" element={<StudentMyETR />} />
+						<Route path="certificates" element={<StudentCertificateStatus />} />
 						<Route path="profile" element={<StudentProfile />} />
 					</Route>
 				</Route>

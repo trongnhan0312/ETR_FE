@@ -18,6 +18,7 @@ const navigationItems = [
   { label: 'ANALYTICS DASHBOARD', to: '/trainingmanager', icon: iconDocument },
   { label: 'ETR FINAL APPROVAL', to: '/trainingmanager/etr-approval', icon: iconDocument },
   { label: 'TRẠNG THÁI LỚP HỌC', to: '/trainingmanager/classes', icon: iconClass },
+  { label: 'CHỨNG CHỈ HẾT HẠN', to: '/trainingmanager/expiring-students', icon: iconDocument },
 ];
 
 const TrainingManagerLayout = () => {
