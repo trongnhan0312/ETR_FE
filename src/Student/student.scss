@@ -733,6 +733,401 @@
   background: #ffffff;
 }
 
+/* ── Certificate Status Filters ── */
+.student-filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.student-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 12px;
+  border: 1px solid #e4eaf3;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(0, 33, 71, 0.6);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.student-filter-tab:hover {
+  border-color: #c5a059;
+  color: #002147;
+}
+
+.student-filter-tab.active {
+  background: #002147;
+  border-color: #002147;
+  color: #ffffff;
+}
+
+.student-filter-count {
+  background: rgba(0, 33, 71, 0.08);
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.student-filter-tab.active .student-filter-count {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ── Certificate Cards ── */
+.student-cert-list {
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.student-cert-card {
+  background: #ffffff;
+  border: 1px solid #e4eaf3;
+  border-radius: 14px;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  align-items: center;
+  transition: box-shadow 0.2s, transform 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.student-cert-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 33, 71, 0.06);
+  transform: translateY(-1px);
+}
+
+.student-cert-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.student-cert-status-icon {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.student-cert-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-cert-course-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #002147;
+  margin: 0;
+}
+
+.student-cert-id {
+  font-size: 12px;
+  color: rgba(0, 33, 71, 0.5);
+  margin: 0;
+}
+
+.student-cert-dates {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.student-cert-date-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+
+.student-cert-date-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0, 33, 71, 0.4);
+}
+
+.student-cert-date-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #002147;
+}
+
+.student-cert-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #f0f4f9;
+}
+
+.student-cert-progress-bar {
+  height: 100%;
+  border-radius: 0 0 0 14px;
+  transition: width 0.5s ease;
+}
+
+/* ── Certificate Mini List (Dashboard) ── */
+.student-cert-mini-list {
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-cert-mini-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.student-cert-mini-item:hover {
+  background: #f8faff;
+}
+
+.student-cert-mini-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-cert-mini-course {
+  font-size: 13px;
+  font-weight: 600;
+  color: #002147;
+}
+
+.student-cert-mini-date {
+  font-size: 11px;
+  color: rgba(0, 33, 71, 0.5);
+}
+
+.student-cert-mini-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.student-cert-mini-badge--valid {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.student-cert-mini-badge--expiringsoon {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.student-cert-mini-badge--expired {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ── Tab Bar ── */
+.student-tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: #ffffff;
+  border: 1px solid #e4eaf3;
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.student-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(0, 33, 71, 0.5);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  font-family: inherit;
+}
+
+.student-tab:hover {
+  color: #002147;
+  background: #f8faff;
+}
+
+.student-tab.active {
+  color: #002147;
+  background: #f0f4f9;
+  font-weight: 700;
+}
+
+.student-tab-count {
+  background: rgba(0, 33, 71, 0.08);
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.student-tab.active .student-tab-count {
+  background: rgba(0, 33, 71, 0.12);
+}
+
+/* ── Training History Timeline ── */
+.student-history-timeline {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.student-history-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+
+.student-history-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.student-history-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f0f4f9;
+  border: 2px solid #d9e1ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(0, 33, 71, 0.4);
+  z-index: 1;
+  transition: all 0.2s;
+}
+
+.student-history-dot.completed {
+  background: #15803d;
+  border-color: #15803d;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.student-history-line {
+  flex: 1;
+  width: 2px;
+  background: #e4eaf3;
+  min-height: 24px;
+}
+
+.student-history-card {
+  flex: 1;
+  background: #f8faff;
+  border: 1px solid #e4eaf3;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.student-history-card:hover {
+  border-color: #c5a059;
+  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.06);
+}
+
+.student-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.student-history-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #002147;
+}
+
+.student-history-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.student-history-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-history-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0, 33, 71, 0.4);
+}
+
+.student-history-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #002147;
+  display: flex;
+  align-items: center;
+}
+
+.student-history-prev-link {
+  color: #c5a059;
+  font-weight: 700;
+}
+
+.student-history-current-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 12px;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1200px) {
   .student-metrics {

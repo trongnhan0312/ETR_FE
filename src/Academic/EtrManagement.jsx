@@ -181,16 +181,15 @@ const EtrManagement = () => {
         return;
       }
 
-      const newEtr = await api.post("/Etr", {
-        enrollmentId: enrollment.enrollmentId,
-        status: 'Draft'
-      });
-
+      // ETR tự động được tạo khi Enrollment được tạo thành công (backend auto-generates)
+      // Nếu ETR chưa tồn tại, hệ thống sẽ tự động tạo khi ghi danh
+      // Chỉ cần refresh dữ liệu để hiển thị ETR mới
+      alert('ETR được tự động tạo khi ghi danh. Vui lòng kiểm tra lại danh sách hoặc tạo Enrollment mới.');
       await refreshData();
       setIsCreateOpen(false);
     } catch (error) {
-      console.error("Error creating ETR:", error);
-      alert("Tạo ETR thất bại: " + (error.message || "Lỗi không xác định"));
+      console.error("Error:", error);
+      alert("Lỗi: " + (error.message || "Lỗi không xác định"));
     }
   };
 
