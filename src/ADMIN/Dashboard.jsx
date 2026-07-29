@@ -35,11 +35,29 @@ const Dashboard = () => {
           api.get("/Classes").catch(() => []),
           api.get("/Etr").catch(() => []),
         ]);
+        const accs = Array.isArray(accounts) ? accounts : [];
+        const profs = Array.isArray(profiles) ? profiles : [];
         const etrsArr = Array.isArray(etrs) ? etrs : [];
         const pendingCount = etrsArr.filter((e) => e.status === "Submitted" || e.status === "Draft").length;
+
+        // Only count accounts/profiles with Student role (roleId 5 or role 'Student')
+        const studentAccounts = accs.filter((acc) => {
+          const rId = Number(acc.roleId);
+          const rName = String(acc.role || '').toLowerCase();
+          return rId === 5 || rName === 'student' || rName === 'learner';
+        });
+
+        const learnerCount = accs.length > 0
+          ? studentAccounts.length
+          : profs.filter((p) => {
+              const rId = Number(p.roleId);
+              const rName = String(p.role || '').toLowerCase();
+              return rId === 5 || rName === 'student' || rName === 'learner';
+            }).length;
+
         setMetrics([
-          { label: 'Total Users', value: String(Array.isArray(accounts) ? accounts.length : 0) },
-          { label: 'Total Learners', value: String(Array.isArray(profiles) ? profiles.length : 0) },
+          { label: 'Total Users', value: String(accs.length) },
+          { label: 'Total Learners', value: String(learnerCount) },
           { label: 'Total Courses', value: String(Array.isArray(courses) ? courses.length : 0) },
           { label: 'Total Classes', value: String(Array.isArray(classes) ? classes.length : 0) },
           { label: 'Total ETRs', value: String(etrsArr.length) },

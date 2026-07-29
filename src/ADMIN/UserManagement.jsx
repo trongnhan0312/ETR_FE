@@ -211,7 +211,8 @@ const UserManagement = () => {
       !searchTerm ||
       u.username.toLowerCase().includes(q) ||
       u.fullName.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q);
+      u.email.toLowerCase().includes(q) ||
+      u.phone.toLowerCase().includes(q);
 
     const matchesRole = roleFilter === 'ALL' || u.role.toLowerCase() === roleFilter.toLowerCase();
     return matchesSearch && matchesRole;
@@ -289,11 +290,13 @@ const UserManagement = () => {
         </div>
 
         <div className="data-table user-table" style={{ marginTop: '16px' }}>
-          <div className="table-header table-layout user-layout" style={{ gridTemplateColumns: '1.2fr 1.5fr 1.5fr 1fr 1fr 1.2fr' }}>
+          <div className="table-header table-layout user-layout" style={{ gridTemplateColumns: '1.1fr 1.3fr 1.3fr 0.9fr 1fr 0.8fr 0.8fr 1fr' }}>
             <div>Username</div>
             <div>Full Name</div>
             <div>Email</div>
             <div>Role</div>
+            <div>Phone Number</div>
+            <div>Gender</div>
             <div>Status</div>
             <div style={{ textAlign: 'right' }}>Actions</div>
           </div>
@@ -308,7 +311,7 @@ const UserManagement = () => {
             </div>
           ) : (
             filteredUsers.map((user) => (
-              <div key={user.accountId} className="table-row table-layout user-layout" style={{ gridTemplateColumns: '1.2fr 1.5fr 1.5fr 1fr 1fr 1.2fr', alignItems: 'center' }}>
+              <div key={user.accountId} className="table-row table-layout user-layout" style={{ gridTemplateColumns: '1.1fr 1.3fr 1.3fr 0.9fr 1fr 0.8fr 0.8fr 1fr', alignItems: 'center' }}>
                 <div className="font-medium" style={{ color: '#0f172a', fontWeight: '600' }}>{user.username}</div>
                 <div className="text-gray">{user.fullName}</div>
                 <div className="text-gray">{user.email || 'N/A'}</div>
@@ -317,6 +320,8 @@ const UserManagement = () => {
                     {user.role}
                   </span>
                 </div>
+                <div className="text-gray">{user.phone || 'N/A'}</div>
+                <div className="text-gray">{user.gender || 'N/A'}</div>
                 <div>
                   <button
                     type="button"

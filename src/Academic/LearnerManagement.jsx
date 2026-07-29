@@ -65,7 +65,14 @@ const LearnerManagement = () => {
   }, []);
 
   const mergeLearnerData = (accounts, profiles, enrollments, classes) => {
-    return accounts.map((account) => {
+    const studentAccounts = accounts.filter((acc) => {
+      const rId = Number(acc.roleId);
+      const rName = String(acc.role || '').toLowerCase();
+      return rId === 5 || rName === 'student' || rName === 'learner';
+    });
+    const targetAccounts = studentAccounts.length > 0 ? studentAccounts : accounts;
+
+    return targetAccounts.map((account) => {
       const profile = profiles.find((p) => p.accountId === account.accountId);
       const enrollment = enrollments.find((e) => e.accountId === account.accountId);
       const classObj = enrollment
