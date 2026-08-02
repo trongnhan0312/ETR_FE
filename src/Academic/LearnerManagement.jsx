@@ -1,240 +1,327 @@
-import { useState, useEffect } from "react";
-import EditLearner from "./EditLearner";
-import { api } from "../utils/api";
+import { useState, useEffect } from 'react';
+import { api } from '../utils/api';
 
 const LearnerManagement = () => {
   const [learners, setLearners] = useState([]);
-  const [allAccounts, setAllAccounts] = useState([]);
-  const [allProfiles, setAllProfiles] = useState([]);
-  const [allEnrollments, setAllEnrollments] = useState([]);
-  const [allClasses, setAllClasses] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingLearner, setEditingLearner] = useState(null);
-  const [enrollingLearner, setEnrollingLearner] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Form states for creating new learner
-  const [code, setCode] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [dob, setDob] = useState("");
-  const [gender, setGender] = useState("Nam");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [cccd, setCccd] = useState("");
-  const [organization, setOrganization] = useState("");
-  const [learnerType, setLearnerType] = useState("Kỹ thuật viên");
-  const [address, setAddress] = useState("");
-  const [status, setStatus] = useState("ĐANG HỌC");
+  // Modals state
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
-  // Form states for enrolling learner
-  const [enrollClassId, setEnrollClassId] = useState("");
-  const [enrollDate, setEnrollDate] = useState(new Date().toISOString().split('T')[0]);
+  // Create Form State (Student only)
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('Default@123');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
+  const [gender, setGender] = useState('Male');
 
-  // Load all data from APIs on mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [accounts, profiles, enrollments, classes] = await Promise.all([
-          api.get("/Accounts").catch(() => []),
-          api.get("/UserProfiles/learners").catch(() => []),
-          api.get("/Enrollments").catch(() => []),
-          api.get("/Classes").catch(() => []),
-        ]);
+  // Edit Form State (Student only - Department editable, Role locked)
+  const [editFullName, setEditFullName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editGender, setEditGender] = useState('Male');
+  const [editDepartmentId, setEditDepartmentId] = useState('');
 
-        setAllAccounts(Array.isArray(accounts) ? accounts : []);
-        setAllProfiles(Array.isArray(profiles) ? profiles : []);
-        setAllEnrollments(Array.isArray(enrollments) ? enrollments : []);
-        setAllClasses(Array.isArray(classes) ? classes : []);
-
-        // Merge data into learner rows
-        const mergedLearners = mergeLearnerData(
-          Array.isArray(accounts) ? accounts : [],
-          Array.isArray(profiles) ? profiles : [],
-          Array.isArray(enrollments) ? enrollments : [],
-          Array.isArray(classes) ? classes : []
-        );
-        setLearners(mergedLearners);
-      } catch (error) {
-        console.error("Error loading learner data:", error);
-      } finally {
-        setLoading(false);
+  // Helper to parse backend error responses into user-friendly messages
+  const parseApiError = (err, fallbackMsg = "Thao tác thất bại.") => {
+    if (!err) return fallbackMsg;
+    const raw = err.message || String(err);
+    try {
+      const json = JSON.parse(raw);
+      if (json.errors && typeof json.errors === 'object') {
+        const fieldMap = {
+          Username: 'Tên đăng nhập',
+          Password: 'Mật khẩu',
+          Email: 'Email',
+          FullName: 'Họ và tên',
+          DepartmentId: 'Phòng ban',
+        };
+        const messages = Object.entries(json.errors).map(([field, errs]) => {
+          const fieldLabel = fieldMap[field] || field;
+          const errStr = Array.isArray(errs) ? errs.join(', ') : String(errs);
+          if (errStr.toLowerCase().includes('valid e-mail address')) {
+            return `${fieldLabel} phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).`;
+          }
+          return `${fieldLabel}: ${errStr}`;
+        });
+        return messages.join('\n');
       }
-    };
-    loadData();
-  }, []);
-
-  const mergeLearnerData = (accounts, profiles, enrollments, classes) => {
-    const studentAccounts = accounts.filter((acc) => {
-      const rId = Number(acc.roleId);
-      const rName = String(acc.role || '').toLowerCase();
-      return rId === 5 || rName === 'student' || rName === 'learner';
-    });
-    const targetAccounts = studentAccounts.length > 0 ? studentAccounts : accounts;
-
-    return targetAccounts.map((account) => {
-      const profile = profiles.find((p) => p.accountId === account.accountId);
-      const enrollment = enrollments.find((e) => e.accountId === account.accountId);
-      const classObj = enrollment
-        ? classes.find((c) => c.classId === enrollment.classId)
-        : null;
-
-      return {
-        accountId: account.accountId,
-        code: profile?.userCode || account.username || `ACC-${account.accountId}`,
-        fullName: profile?.fullName || account.username || "Chưa có tên",
-        email: profile?.email || "",
-        dob: profile?.dateOfBirth
-          ? new Date(profile.dateOfBirth).toISOString().split('T')[0]
-          : "",
-        gender: profile?.gender || "",
-        phone: profile?.phone || "",
-        organization: profile?.organization || "",
-        cccd: "",
-        learnerType: "Kỹ thuật viên",
-        address: "",
-        className: classObj?.className || "",
-        classId: classObj?.classId || null,
-        enrollmentId: enrollment?.enrollmentId || null,
-        status: enrollment ? "ĐANG HỌC" : account.status === "Active" ? "CHỜ GHI DANH" : "NGHỈ HỌC",
-        isActive: !!enrollment || account.status === "Active",
-      };
-    });
+      if (json.title) return json.title;
+      if (json.message) return json.message;
+    } catch {
+      // Not a JSON error string
+    }
+    return raw || fallbackMsg;
   };
 
-  const refreshData = async () => {
+  // Helper to get non-training departments for Student role
+  const getNonTrainingDepts = () => {
+    const filtered = departments.filter(
+      (d) =>
+        !d.name?.toLowerCase().includes('training') &&
+        !d.name?.toLowerCase().includes('đào tạo') &&
+        String(d.id) !== '2'
+    );
+    if (filtered.length > 0) return filtered;
+    return [
+      { id: '1', name: 'Administration' },
+      { id: '3', name: 'Flight Operations' },
+    ];
+  };
+
+  const ROLE_MAP = {
+    1: 'Admin',
+    2: 'Instructor',
+    3: 'QA',
+    4: 'Academic',
+    5: 'TrainingManager',
+    6: 'Student',
+    7: 'Audit',
+  };
+
+  const loadLearners = async () => {
+    setLoading(true);
     try {
-      const [accounts, profiles, enrollments, classes] = await Promise.all([
+      const [accounts, profiles, deptList] = await Promise.all([
         api.get("/Accounts").catch(() => []),
-        api.get("/UserProfiles/learners").catch(() => []),
-        api.get("/Enrollments").catch(() => []),
-        api.get("/Classes").catch(() => []),
+        api.get("/UserProfiles").catch(() => []),
+        api.get("/Departments").catch(() => []),
       ]);
 
-      const accArr = Array.isArray(accounts) ? accounts : [];
-      const profArr = Array.isArray(profiles) ? profiles : [];
-      const enrArr = Array.isArray(enrollments) ? enrollments : [];
-      const clsArr = Array.isArray(classes) ? classes : [];
+      const accs = Array.isArray(accounts) ? accounts : [];
+      const profs = Array.isArray(profiles) ? profiles : [];
+      const depts = Array.isArray(deptList) ? deptList : [];
 
-      setAllAccounts(accArr);
-      setAllProfiles(profArr);
-      setAllEnrollments(enrArr);
-      setAllClasses(clsArr);
-      setLearners(mergeLearnerData(accArr, profArr, enrArr, clsArr));
-    } catch (error) {
-      console.error("Error refreshing learner data:", error);
+      const mappedDepts = depts.map((d) => ({
+        id: String(d.departmentId ?? d.id),
+        name: d.departmentName ?? d.name ?? `Dept #${d.departmentId}`,
+      }));
+      setDepartments(mappedDepts);
+
+      // Filter ONLY Student role accounts (roleId === 6 or mapped role === 'Student' or 'Learner')
+      const studentAccs = accs.filter((acc) => {
+        const rId = Number(acc.roleId);
+        const mappedRole = (ROLE_MAP[acc.roleId] || acc.role || acc.roleName || '').toLowerCase();
+        return rId === 6 || mappedRole === 'student' || mappedRole === 'learner';
+      });
+
+      const mapped = studentAccs.map((acc) => {
+        const profile = profs.find((p) => String(p.accountId) === String(acc.accountId));
+        const deptObj = mappedDepts.find((d) => String(d.id) === String(acc.departmentId));
+        return {
+          accountId: acc.accountId,
+          username: acc.username || `student_${acc.accountId}`,
+          roleId: acc.roleId || 6,
+          role: 'Student',
+          departmentId: acc.departmentId,
+          departmentName: deptObj?.name || (String(acc.departmentId) === '2' ? 'Training' : 'Administration'),
+          status: acc.status || 'Active',
+          fullName: profile?.fullName || acc.username || 'Chưa cập nhật',
+          email: profile?.email || acc.username || '',
+          phone: profile?.phone || '',
+          gender: profile?.gender || 'Male',
+          userCode: profile?.userCode || `USR-${acc.accountId}`,
+        };
+      });
+      setLearners(mapped);
+    } catch (err) {
+      console.error("Error loading student learners:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadLearners();
+  }, []);
+
+  // Open Create Student Modal
   const handleOpenCreateModal = () => {
-    const nextNum = allAccounts.length + 1;
-    const formattedNum = String(nextNum).padStart(3, "0");
-    setCode(`AM-${new Date().getFullYear()}-${formattedNum}`);
-
-    setFullName("");
-    setDob("");
-    setGender("Nam");
-    setPhone("");
-    setEmail("");
-    setCccd("");
-    setOrganization("");
-    setLearnerType("Kỹ thuật viên");
-    setAddress("");
-    setStatus("ĐANG HỌC");
-
-    setIsModalOpen(true);
+    setUsername('');
+    setPassword('Default@123');
+    setFullName('');
+    setPhone('');
+    const nonTraining = getNonTrainingDepts();
+    setDepartmentId(String(nonTraining[0]?.id || '1'));
+    setGender('Male');
+    setFormError('');
+    setIsCreateOpen(true);
   };
 
-  const handleCreateLearner = async (e) => {
+  // Submit Create Student Account
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
+    const trimmedUsername = username.trim();
+    const trimmedFullName = fullName.trim();
 
+    if (!trimmedUsername || !password || !trimmedFullName) {
+      setFormError('Vui lòng nhập Username, Password và Họ tên.');
+      return;
+    }
+
+    if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
+      setFormError('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).');
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      // 1. Create account
-      const newAccount = await api.post("/Accounts", {
-        username: code,
-        password: "Default@123",
-        roleId: 5, // Student role
-        departmentId: 1,
+      // 1. Create account with Student Role (roleId: 6)
+      const newAcc = await api.post("/Accounts", {
+        username: trimmedUsername,
+        password: password,
+        roleId: 6,
+        departmentId: Number(departmentId || getNonTrainingDepts()[0]?.id || 1),
       });
 
       // 2. Create user profile
-      await api.post(`/UserProfiles/${newAccount.accountId}`, {
-        userCode: code,
-        fullName,
-        email,
-        phone,
-        dateOfBirth: new Date(dob).toISOString(),
-        gender,
-        organization,
-      });
+      const accId = newAcc?.accountId || newAcc?.id;
+      if (accId) {
+        await api.post(`/UserProfiles/${accId}`, {
+          userCode: `USR-${accId}`,
+          fullName: trimmedFullName,
+          email: trimmedUsername,
+          phone: phone.trim() || null,
+          dateOfBirth: new Date().toISOString(),
+          gender: gender || "Male",
+          organization: "ETR Aviation",
+        }).catch((err) => console.warn("Failed to create profile details:", err));
+      }
 
-      // Reload data
-      await refreshData();
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error creating learner:", error);
-      alert("Tạo học viên thất bại: " + (error.message || "Lỗi không xác định"));
+      await loadLearners();
+      setIsCreateOpen(false);
+    } catch (err) {
+      console.error("Failed to create student:", err);
+      setFormError(parseApiError(err, "Tạo học viên thất bại."));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleSaveLearner = async (updatedLearner) => {
-    try {
-      await api.put(`/UserProfiles/${updatedLearner.accountId}`, {
-        fullName: updatedLearner.fullName,
-        email: updatedLearner.email,
-        phone: updatedLearner.phone,
-        dateOfBirth: new Date(updatedLearner.dob).toISOString(),
-        gender: updatedLearner.gender,
-        organization: updatedLearner.organization,
-      });
-
-      await refreshData();
-      setEditingLearner(null);
-    } catch (error) {
-      console.error("Error updating learner:", error);
-      alert("Cập nhật thất bại: " + (error.message || "Lỗi không xác định"));
+  // Open Edit Student Modal
+  const handleOpenEditModal = (user) => {
+    setEditingUser(user);
+    setEditFullName(user.fullName === 'Chưa cập nhật' ? '' : user.fullName);
+    setEditEmail(user.email || user.username || '');
+    setEditPhone(user.phone || '');
+    setEditGender(user.gender || 'Male');
+    
+    const nonTraining = getNonTrainingDepts();
+    const currentDeptIdStr = String(user.departmentId || '');
+    if (!nonTraining.some((d) => String(d.id) === currentDeptIdStr)) {
+      setEditDepartmentId(String(nonTraining[0]?.id || '1'));
+    } else {
+      setEditDepartmentId(currentDeptIdStr);
     }
+
+    setFormError('');
+    setIsEditOpen(true);
   };
 
-  const handleConfirmEnroll = async (e) => {
+  // Submit Edit Student (Department editable, Role locked to Student)
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
-    if (!enrollingLearner || !enrollClassId) return;
+    setFormError('');
+    if (!editFullName.trim()) {
+      setFormError('Vui lòng nhập Họ và tên.');
+      return;
+    }
 
+    setSubmitting(true);
     try {
-      await api.post("/Enrollments", {
-        accountId: enrollingLearner.accountId,
-        classId: parseInt(enrollClassId),
+      // 1. Update profile info
+      await api.put(`/UserProfiles/${editingUser.accountId}`, {
+        fullName: editFullName.trim(),
+        email: editEmail.trim() || editingUser.username,
+        phone: editPhone.trim() || null,
+        dateOfBirth: new Date().toISOString(),
+        gender: editGender,
+        organization: "ETR Aviation",
       });
 
-      await refreshData();
-      setEnrollingLearner(null);
-    } catch (error) {
-      console.error("Error enrolling learner:", error);
-      alert("Ghi danh thất bại: " + (error.message || "Lỗi không xác định"));
+      // 2. Update department (role is locked to Student)
+      if (editDepartmentId) {
+        await api.put(`/Accounts/${editingUser.accountId}/department`, {
+          departmentId: Number(editDepartmentId),
+        }).catch(async () => {
+          await api.put(`/Accounts/${editingUser.accountId}`, {
+            departmentId: Number(editDepartmentId),
+          }).catch((err) => console.warn("Failed to update department:", err));
+        });
+      }
+
+      await loadLearners();
+      setIsEditOpen(false);
+    } catch (err) {
+      console.error("Failed to update student profile:", err);
+      setFormError(parseApiError(err, "Cập nhật hồ sơ học viên thất bại."));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // If in edit mode, render the EditLearner component
-  if (editingLearner) {
+  // Soft Delete / Disable Student Account
+  const handleDeleteAccount = async (user) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn vô hiệu hóa tài khoản học viên "${user.username}"?`)) {
+      return;
+    }
+    try {
+      await api.delete(`/Accounts/${user.accountId}`);
+      await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
+      await loadLearners();
+    } catch (err) {
+      console.error("Failed to disable student:", err);
+      try {
+        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
+        await loadLearners();
+      } catch (putErr) {
+        alert("Vô hiệu hóa tài khoản thất bại: " + parseApiError(putErr));
+      }
+    }
+  };
+
+  // Activate Student Account
+  const handleActivateAccount = async (user) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn kích hoạt lại tài khoản học viên "${user.username}" thành Active?`)) {
+      return;
+    }
+    try {
+      await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
+      await loadLearners();
+    } catch (err) {
+      console.error("Failed to activate student account:", err);
+      alert("Kích hoạt tài khoản thất bại: " + parseApiError(err));
+    }
+  };
+
+  const filteredLearners = learners.filter((u) => {
+    const q = searchTerm.toLowerCase();
     return (
-      <EditLearner
-        learner={editingLearner}
-        onSave={handleSaveLearner}
-        onCancel={() => setEditingLearner(null)}
-      />
+      !searchTerm ||
+      u.username.toLowerCase().includes(q) ||
+      u.fullName.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.phone.toLowerCase().includes(q)
     );
-  }
+  });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-      {/* Content Header Section */}
-      <section className="content-header">
-        <div className="header-left">
-          <h1>Danh sách Học viên</h1>
-          <div className="divider-gold" />
-          <p className="header-description">
-            Quản lý hồ sơ và quy trình ghi danh học viên vào các chương trình
-            đào tạo hàng không cao cấp.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Header Section */}
+      <section className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#002147', margin: 0 }}>Danh sách Học viên (Student Accounts)</h1>
+          <div className="divider-gold" style={{ width: '40px', height: '3px', background: '#c5a059', margin: '8px 0 12px' }} />
+          <p className="header-description" style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+            Quản lý danh sách tài khoản học viên: Tạo mới, cập nhật hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.
           </p>
         </div>
 
@@ -242,415 +329,398 @@ const LearnerManagement = () => {
           className="create-btn"
           type="button"
           onClick={handleOpenCreateModal}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: '#002147',
+            color: '#fff',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            border: 'none',
+            fontWeight: '600',
+            fontSize: '13px',
+            cursor: 'pointer',
+          }}
         >
-          <svg
-            width="19"
-            height="14"
-            viewBox="0 0 19 14"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M14.1667 8.33333V5.83333H11.6667V4.16667H14.1667V1.66667H15.8333V4.16667H18.3333V5.83333H15.8333V8.33333H14.1667ZM6.66667 6.66667C5.75 6.66667 4.96528 6.34028 4.3125 5.6875C3.65972 5.03472 3.33333 4.25 3.33333 3.33333C3.33333 2.41667 3.65972 1.63194 4.3125 0.979167C4.96528 0.326389 5.75 0 6.66667 0C7.58333 0 8.36806 0.326389 9.02083 0.979167C9.67361 1.63194 10 2.41667 10 3.33333C10 4.25 9.67361 5.03472 9.02083 5.6875C8.36806 6.34028 7.58333 6.66667 6.66667 6.66667ZM0 13.3333V11C0 10.5278 0.121528 10.0938 0.364583 9.69792C0.607639 9.30208 0.930556 9 1.33333 8.79167C2.19444 8.36111 3.06944 8.03819 3.95833 7.82292C4.84722 7.60764 5.75 7.5 6.66667 7.5C7.58333 7.5 8.48611 7.60764 9.375 7.82292C10.2639 8.03819 11.1389 8.36111 12 8.79167C12.4028 9 12.7257 9.30208 12.9688 9.69792C13.2118 10.0938 13.3333 10.5278 13.3333 11V13.3333H0ZM1.66667 11.6667H11.6667V11C11.6667 10.8472 11.6285 10.7083 11.5521 10.5833C11.4757 10.4583 11.375 10.3611 11.25 10.2917C10.5 9.91667 9.74306 9.63542 8.97917 9.44792C8.21528 9.26042 7.44444 9.16667 6.66667 9.16667C5.88889 9.16667 5.11806 9.26042 4.35417 9.44792C3.59028 9.63542 2.83333 9.91667 2.08333 10.2917C1.95833 10.3611 1.85764 10.4583 1.78125 10.5833C1.70486 10.7083 1.66667 10.8472 1.66667 11V11.6667ZM6.66667 5C7.125 5 7.51736 4.83681 7.84375 4.51042C8.17014 4.18403 8.33333 3.79167 8.33333 3.33333C8.33333 2.875 8.17014 2.48264 7.84375 2.15625C7.51736 1.82986 7.125 1.66667 6.66667 1.66667C6.20833 1.66667 5.81597 1.82986 5.48958 2.15625C5.16319 2.48264 5 2.875 5 3.33333C5 3.79167 5.16319 4.18403 5.48958 4.51042C5.81597 4.83681 6.20833 5 6.66667 5Z"
-              fill="currentColor"
-            />
-          </svg>
-          <span>TẠO HỒ SƠ HỌC VIÊN</span>
+          <span>+ Tạo tài khoản học viên</span>
         </button>
       </section>
 
-      {/* Loading State */}
-      {loading ? (
-        <section className="table-card">
-          <div style={{ textAlign: "center", padding: "60px 20px", color: "#64748b" }}>
-            <div style={{ fontSize: "14px", fontWeight: 600 }}>Đang tải dữ liệu...</div>
+      {/* Main Table Section */}
+      <section className="table-card" style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
+              Tất cả học viên ({filteredLearners.length})
+            </h2>
           </div>
-        </section>
-      ) : (
-        <>
-          {/* Table Section */}
-          <section className="table-card">
-            <div className="table-header data-table-layout">
-              <div>Mã học viên</div>
-              <div>Họ và tên</div>
-              <div>Email</div>
-              <div>CCCD/ID</div>
-              <div>Lớp</div>
-              <div>Trạng thái</div>
-              <div style={{ textAlign: "right" }}>Hành động</div>
-            </div>
+          <input
+            type="text"
+            placeholder="Tìm theo tên, email, mã HV..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              fontSize: '13px',
+              outline: 'none',
+              width: '260px',
+            }}
+          />
+        </div>
 
-            <div className="table-body">
-              {learners.map((learner) => (
-                <div key={learner.code} className="table-row data-table-layout">
-                  <div className="col-id" data-label="Mã học viên">
-                    {learner.code}
-                  </div>
-                  <div className="col-name" data-label="Họ và tên">
-                    {learner.fullName}
-                  </div>
-                  <div className="col-email" data-label="Email">
-                    {learner.email}
-                  </div>
-                  <div className="col-cccd" data-label="CCCD/ID">
-                    {learner.cccd || "—"}
-                  </div>
-                  <div className="col-class" data-label="Lớp">
-                    {learner.className ? (
-                      <span className="class-badge">{learner.className}</span>
-                    ) : (
-                      <span className="no-class">Chưa ghi danh</span>
-                    )}
-                  </div>
-                  <div className="col-status" data-label="Trạng thái">
+        <div className="data-table" style={{ width: '100%' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.2fr 1.3fr 1.3fr 1.1fr 1fr 0.8fr 0.8fr 1.2fr',
+              padding: '12px 16px',
+              background: '#002147',
+              color: '#fff',
+              borderRadius: '8px 8px 0 0',
+              fontWeight: '600',
+              fontSize: '12px',
+              letterSpacing: '0.03em',
+            }}
+          >
+            <div>Username / Mã HV</div>
+            <div>Họ và tên</div>
+            <div>Email</div>
+            <div>Phòng ban</div>
+            <div>Số điện thoại</div>
+            <div>Giới tính</div>
+            <div>Trạng thái</div>
+            <div style={{ textAlign: 'right' }}>Hành động</div>
+          </div>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+              Đang tải danh sách học viên...
+            </div>
+          ) : filteredLearners.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px', color: '#64748b', fontStyle: 'italic' }}>
+              {searchTerm ? 'Không tìm thấy học viên phù hợp.' : 'Chưa có tài khoản học viên nào trong hệ thống.'}
+            </div>
+          ) : (
+            filteredLearners.map((learner) => {
+              const isInactive = learner.status?.toLowerCase() === 'inactive' || learner.status?.toLowerCase() === 'disabled';
+              return (
+                <div
+                  key={learner.accountId}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1.2fr 1.3fr 1.3fr 1.1fr 1fr 0.8fr 0.8fr 1.2fr',
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f1f5f9',
+                    alignItems: 'center',
+                    fontSize: '13px',
+                  }}
+                >
+                  <div style={{ fontWeight: '600', color: '#0f172a' }}>{learner.username}</div>
+                  <div style={{ color: '#334155' }}>{learner.fullName}</div>
+                  <div style={{ color: '#64748b' }}>{learner.email}</div>
+                  <div style={{ color: '#334155', fontWeight: '500' }}>{learner.departmentName}</div>
+                  <div style={{ color: '#64748b' }}>{learner.phone || 'N/A'}</div>
+                  <div style={{ color: '#64748b' }}>{learner.gender || 'N/A'}</div>
+                  <div>
                     <span
-                      className={`status-indicator ${learner.isActive ? "active" : "pending"}`}
-                    />
-                    <span
-                      className={`status-text ${learner.isActive ? "active" : "pending"}`}
-                    >
-                      {learner.status}
-                    </span>
-                  </div>
-                  <div className="col-actions" data-label="Hành động">
-                    <button
-                      className="edit-icon-btn"
-                      type="button"
-                      aria-label="Sửa học viên"
-                      onClick={() => setEditingLearner(learner)}
-                    >
-                      <svg
-                        width="15"
-                        height="15"
-                        viewBox="0 0 15 15"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3507 0.208333 11.5521 0.125C11.7535 0.0416667 11.9653 0 12.1875 0C12.4097 0 12.625 0.0416667 12.8333 0.125C13.0417 0.208333 13.2222 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.809 2 14.8854 2.20833C14.9618 2.41667 15 2.625 15 2.83333C15 3.05556 14.9618 3.26736 14.8854 3.46875C14.809 3.67014 14.6875 3.85417 14.5208 4.02083L3.54167 15H0ZM13.3333 2.83333L12.1667 1.66667L13.3333 2.83333ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      className="enroll-btn"
-                      type="button"
-                      onClick={() => {
-                        setEnrollingLearner(learner);
-                        setEnrollClassId(learner.classId || "");
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        background: isInactive ? '#fef2f2' : '#ecfdf5',
+                        color: isInactive ? '#ef4444' : '#10b981',
                       }}
                     >
-                      Ghi danh
+                      {isInactive ? 'Inactive' : 'Active'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(learner)}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#fff',
+                        color: '#334155',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Edit
                     </button>
+                    {isInactive ? (
+                      <button
+                        type="button"
+                        onClick={() => handleActivateAccount(learner)}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          borderRadius: '6px',
+                          border: '1px solid #a7f3d0',
+                          background: '#ecfdf5',
+                          color: '#059669',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                        }}
+                      >
+                        Activate Account
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAccount(learner)}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          borderRadius: '6px',
+                          border: '1px solid #fca5a5',
+                          background: '#fff5f5',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Disable
+                      </button>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })
+          )}
+        </div>
+      </section>
 
-            {/* Table Footer / Pagination */}
-            <div className="table-footer">
-              <span className="footer-info">
-                Hiển thị {learners.length} trên {allAccounts.length} tài khoản
-              </span>
-              <div className="pagination">
-                <button
-                  className="page-arrow"
-                  type="button"
-                  aria-label="Trang trước"
-                  disabled
-                >
-                  <svg
-                    width="7"
-                    height="10"
-                    viewBox="0 0 7 10"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M5 10L0 5L5 0L6.16667 1.16667L2.33333 5L6.16667 8.83333L5 10Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </button>
-                <button className="page-num active" type="button">
-                  1
-                </button>
-                <button className="page-arrow" type="button" aria-label="Trang sau">
-                  <svg
-                    width="7"
-                    height="10"
-                    viewBox="0 0 7 10"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M3.83333 5L0 1.16667L1.16667 0L6.16667 5L1.16667 10L0 8.83333L3.83333 5Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </button>
+      {/* CREATE STUDENT MODAL */}
+      {isCreateOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>Tạo tài khoản học viên (Student Role)</h2>
+            
+            {formError && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                {formError}
               </div>
-            </div>
-          </section>
-        </>
-      )}
+            )}
 
-      {/* Modal - Tạo hồ sơ học viên */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-container" style={{ width: "700px" }}>
-            <header className="modal-header">
-              <h2>Tạo hồ sơ học viên</h2>
-              <button
-                className="close-btn"
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Đóng"
-              >
-                &times;
-              </button>
-            </header>
+            <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tên đăng nhập (Email / Username) *</label>
+                <input
+                  type="email"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Ví dụ: student@domain.com"
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
 
-            <form onSubmit={handleCreateLearner}>
-              <div className="modal-body">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="learner-code">Mã học viên</label>
-                    <input
-                      id="learner-code"
-                      type="text"
-                      placeholder="Mã học viên (ví dụ: AM-2409-004)"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      required
-                    />
-                  </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Mật khẩu *</label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
 
-                  <div className="form-group">
-                    <label htmlFor="learner-name">Họ và tên</label>
-                    <input
-                      id="learner-name"
-                      type="text"
-                      placeholder="Nhập họ và tên học viên"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                    />
-                  </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Họ và tên *</label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Ví dụ: Nguyễn Văn A"
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Vai trò (Role)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value="Student"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
+                  />
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="learner-dob">Ngày sinh</label>
-                    <input
-                      id="learner-dob"
-                      type="date"
-                      value={dob}
-                      onChange={(e) => setDob(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="learner-gender">Giới tính</label>
-                    <select
-                      id="learner-gender"
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value)}
-                      required
-                    >
-                      <option value="Nam">Nam</option>
-                      <option value="Nữ">Nữ</option>
-                      <option value="Khác">Khác</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="learner-phone">Số điện thoại</label>
-                    <input
-                      id="learner-phone"
-                      type="text"
-                      placeholder="Nhập số điện thoại"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="learner-email">Email</label>
-                    <input
-                      id="learner-email"
-                      type="email"
-                      placeholder="Nhập email học viên"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="learner-cccd">Số CCCD</label>
-                    <input
-                      id="learner-cccd"
-                      type="text"
-                      placeholder="Nhập số CCCD"
-                      value={cccd}
-                      onChange={(e) => setCccd(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="learner-org">Cơ quan / Tổ chức</label>
-                    <input
-                      id="learner-org"
-                      type="text"
-                      placeholder="Nhập tên cơ quan/tổ chức"
-                      value={organization}
-                      onChange={(e) => setOrganization(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="learner-type">Loại học viên</label>
-                    <select
-                      id="learner-type"
-                      value={learnerType}
-                      onChange={(e) => setLearnerType(e.target.value)}
-                      required
-                    >
-                      <option value="Kỹ thuật viên">Kỹ thuật viên</option>
-                      <option value="Phi công">Phi công</option>
-                      <option value="Tiếp viên">Tiếp viên</option>
-                      <option value="Khác">Khác</option>
-                    </select>
-                  </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Phòng ban</label>
+                  <select
+                    value={departmentId}
+                    onChange={(e) => setDepartmentId(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
+                  >
+                    {getNonTrainingDepts().map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              <footer className="modal-footer">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Số điện thoại</label>
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="0901234567"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
+                  >
+                    <option value="Male">Nam (Male)</option>
+                    <option value="Female">Nữ (Female)</option>
+                    <option value="Other">Khác (Other)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
                 <button
-                  className="modal-cancel-btn"
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsCreateOpen(false)}
+                  style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
                 >
-                  Hủy bỏ
+                  Hủy
                 </button>
-                <button className="modal-submit-btn" type="submit">
-                  Tạo hồ sơ
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  {submitting ? 'Đang tạo...' : 'Tạo học viên'}
                 </button>
-              </footer>
+              </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal - Ghi danh học viên */}
-      {enrollingLearner && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <header className="modal-header">
-              <h2>Ghi danh học viên</h2>
-              <button
-                className="close-btn"
-                type="button"
-                onClick={() => setEnrollingLearner(null)}
-                aria-label="Đóng"
-              >
-                &times;
-              </button>
-            </header>
+      {/* EDIT STUDENT MODAL */}
+      {isEditOpen && editingUser && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>Chỉnh sửa hồ sơ học viên</h2>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>Tài khoản: <strong>{editingUser.username}</strong></p>
 
-            <form onSubmit={handleConfirmEnroll}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>Thông tin học viên</label>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      color: "#002147",
-                      fontSize: "14px",
-                      backgroundColor: "#f4f7fa",
-                      padding: "12px 16px",
-                      borderRadius: "8px",
-                      border: "1px solid #e0e4e9",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "4px",
-                    }}
-                  >
-                    <div>
-                      Họ và tên:{" "}
-                      <span style={{ color: "#c5a059" }}>
-                        {enrollingLearner.fullName}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "rgba(0, 33, 71, 0.6)",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Mã số: {enrollingLearner.code} | Email:{" "}
-                      {enrollingLearner.email}
-                    </div>
-                  </div>
+            {formError && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Họ và tên *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Vai trò (Role)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value="Student"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
+                  />
+                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#94a3b8' }}>
+                    * Không thể sửa vai trò của học viên.
+                  </p>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="enroll-class-select">
-                    Chọn lớp học đăng ký
-                  </label>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Phòng ban (Department)</label>
                   <select
-                    id="enroll-class-select"
-                    value={enrollClassId}
-                    onChange={(e) => setEnrollClassId(e.target.value)}
-                    required
+                    value={editDepartmentId}
+                    onChange={(e) => setEditDepartmentId(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                   >
-                    <option value="">-- Chọn lớp --</option>
-                    {allClasses.map((cls) => (
-                      <option key={cls.classId} value={cls.classId}>
-                        {cls.classCode} - {cls.className}
+                    {getNonTrainingDepts().map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
                       </option>
                     ))}
                   </select>
                 </div>
-
-                <div className="form-group">
-                  <label htmlFor="enroll-date-input">
-                    Ngày ghi danh vào lớp
-                  </label>
-                  <input
-                    id="enroll-date-input"
-                    type="date"
-                    value={enrollDate}
-                    onChange={(e) => setEnrollDate(e.target.value)}
-                    required
-                  />
-                </div>
               </div>
 
-              <footer className="modal-footer">
-                <button
-                  className="modal-cancel-btn"
-                  type="button"
-                  onClick={() => setEnrollingLearner(null)}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Email</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Số điện thoại</label>
+                <input
+                  type="text"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
+                <select
+                  value={editGender}
+                  onChange={(e) => setEditGender(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                 >
-                  Hủy bỏ
+                  <option value="Male">Nam (Male)</option>
+                  <option value="Female">Nữ (Female)</option>
+                  <option value="Other">Khác (Other)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditOpen(false)}
+                  style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
+                >
+                  Hủy
                 </button>
-                <button className="modal-submit-btn" type="submit">
-                  Xác nhận ghi danh
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </button>
-              </footer>
+              </div>
             </form>
           </div>
         </div>

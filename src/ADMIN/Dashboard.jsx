@@ -40,11 +40,11 @@ const Dashboard = () => {
         const etrsArr = Array.isArray(etrs) ? etrs : [];
         const pendingCount = etrsArr.filter((e) => e.status === "Submitted" || e.status === "Draft").length;
 
-        // Only count accounts/profiles with Student role (roleId 5 or role 'Student')
+        // Only count accounts/profiles with Student role (roleId 6 or role 'Student')
         const studentAccounts = accs.filter((acc) => {
           const rId = Number(acc.roleId);
           const rName = String(acc.role || '').toLowerCase();
-          return rId === 5 || rName === 'student' || rName === 'learner';
+          return rId === 6 || rName === 'student' || rName === 'learner';
         });
 
         const learnerCount = accs.length > 0
@@ -52,7 +52,7 @@ const Dashboard = () => {
           : profs.filter((p) => {
               const rId = Number(p.roleId);
               const rName = String(p.role || '').toLowerCase();
-              return rId === 5 || rName === 'student' || rName === 'learner';
+              return rId === 6 || rName === 'student' || rName === 'learner';
             }).length;
 
         setMetrics([

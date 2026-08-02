@@ -39,8 +39,8 @@ const UserManagement = () => {
     2: 'Instructor',
     3: 'QA',
     4: 'Academic',
-    5: 'Student',
-    6: 'TrainingManager',
+    5: 'TrainingManager',
+    6: 'Student',
     7: 'Audit',
   };
 
@@ -48,8 +48,8 @@ const UserManagement = () => {
     { id: 2, name: 'Instructor' },
     { id: 3, name: 'QA' },
     { id: 4, name: 'Academic' },
-    { id: 5, name: 'Student' },
-    { id: 6, name: 'TrainingManager' },
+    { id: 5, name: 'TrainingManager' },
+    { id: 6, name: 'Student' },
     { id: 7, name: 'Audit' },
   ];
 
@@ -72,8 +72,8 @@ const UserManagement = () => {
       setDepartments(mappedDepts);
 
       const mapped = accs.map((acc) => {
-        const profile = profs.find((p) => p.accountId === acc.accountId);
-        const deptObj = mappedDepts.find((d) => d.id === String(acc.departmentId));
+        const profile = profs.find((p) => String(p.accountId) === String(acc.accountId));
+        const deptObj = mappedDepts.find((d) => String(d.id) === String(acc.departmentId));
         return {
           accountId: acc.accountId,
           username: acc.username || `user_${acc.accountId}`,
@@ -165,7 +165,7 @@ const UserManagement = () => {
   const handleEditRoleChange = (newRoleId) => {
     setEditRoleId(newRoleId);
     const trainingId = getTrainingDeptId();
-    if (newRoleId !== '5') {
+    if (newRoleId !== '6') {
       // Staff roles: automatically set department to Training
       setEditDepartmentId(trainingId);
     } else {
@@ -184,7 +184,7 @@ const UserManagement = () => {
     setFullName('');
     setEmail('');
     setPhone('');
-    setRoleId('5');
+    setRoleId('6');
     const nonTraining = getNonTrainingDepts();
     setDepartmentId(String(nonTraining[0]?.id || '1'));
     setGender('Male');
@@ -217,7 +217,7 @@ const UserManagement = () => {
         username: trimmedUsername,
         password: password,
         roleId: Number(roleId),
-        departmentId: Number(roleId !== '5' ? getTrainingDeptId() : departmentId),
+        departmentId: Number(roleId !== '6' ? getTrainingDeptId() : departmentId),
       });
 
       // 2. Create user profile
@@ -614,7 +614,7 @@ const UserManagement = () => {
                       const newRole = e.target.value;
                       setRoleId(newRole);
                       const trainingId = getTrainingDeptId();
-                      if (newRole !== '5') {
+                      if (newRole !== '6') {
                         setDepartmentId(trainingId);
                       } else {
                         const nonTraining = getNonTrainingDepts();
@@ -627,15 +627,15 @@ const UserManagement = () => {
                     <option value="2">Instructor</option>
                     <option value="3">QA</option>
                     <option value="4">Academic</option>
-                    <option value="5">Student</option>
-                    <option value="6">Training Manager</option>
+                    <option value="5">Training Manager</option>
+                    <option value="6">Student</option>
                     <option value="7">Audit</option>
                   </select>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Phòng ban</label>
-                  {roleId !== '5' ? (
+                  {roleId !== '6' ? (
                     <select
                       value={getTrainingDeptId()}
                       disabled
@@ -748,7 +748,7 @@ const UserManagement = () => {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Phòng ban (Department)</label>
-                  {editRoleId !== '5' ? (
+                  {editRoleId !== '6' ? (
                     <select
                       value={getTrainingDeptId()}
                       disabled
