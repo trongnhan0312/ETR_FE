@@ -101,6 +101,39 @@ const UserManagement = () => {
     loadUsers();
   }, []);
 
+  // Helper to parse backend error responses into user-friendly messages
+  const parseApiError = (err, fallbackMsg = "Thao tác thất bại.") => {
+    if (!err) return fallbackMsg;
+    const raw = err.message || String(err);
+    try {
+      const json = JSON.parse(raw);
+      if (json.errors && typeof json.errors === 'object') {
+        const fieldMap = {
+          Username: 'Tên đăng nhập',
+          Password: 'Mật khẩu',
+          Email: 'Email',
+          FullName: 'Họ và tên',
+          RoleId: 'Vai trò',
+          DepartmentId: 'Phòng ban',
+        };
+        const messages = Object.entries(json.errors).map(([field, errs]) => {
+          const fieldLabel = fieldMap[field] || field;
+          const errStr = Array.isArray(errs) ? errs.join(', ') : String(errs);
+          if (errStr.toLowerCase().includes('valid e-mail address')) {
+            return `${fieldLabel} phải là một địa chỉ email hợp lệ (Ví dụ: name@company.com).`;
+          }
+          return `${fieldLabel}: ${errStr}`;
+        });
+        return messages.join('\n');
+      }
+      if (json.title) return json.title;
+      if (json.message) return json.message;
+    } catch {
+      // Not a JSON error string
+    }
+    return raw || fallbackMsg;
+  };
+
   // Helper to find Training department ID
   const getTrainingDeptId = () => {
     const tDept = departments.find(
@@ -163,28 +196,37 @@ const UserManagement = () => {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
-    if (!username.trim() || !password || !fullName.trim()) {
+    const trimmedUsername = username.trim();
+    const trimmedFullName = fullName.trim();
+
+    if (!trimmedUsername || !password || !trimmedFullName) {
       setFormError('Vui lòng nhập Username, Password và Họ tên.');
+      return;
+    }
+
+    // Backend requires Username to be a valid email address
+    if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
+      setFormError('Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).');
       return;
     }
 
     setSubmitting(true);
     try {
-      // 1. Create account (POST /api/Accounts)
+      // 1. Create account
       const newAcc = await api.post("/Accounts", {
-        username: username.trim(),
+        username: trimmedUsername,
         password: password,
         roleId: Number(roleId),
         departmentId: Number(roleId !== '5' ? getTrainingDeptId() : departmentId),
       });
 
-      // 2. Create user profile (POST /api/UserProfiles/{accountId})
+      // 2. Create user profile
       const accId = newAcc?.accountId || newAcc?.id;
       if (accId) {
         await api.post(`/UserProfiles/${accId}`, {
           userCode: `USR-${accId}`,
-          fullName: fullName.trim(),
-          email: email.trim(),
+          fullName: trimmedFullName,
+          email: trimmedUsername,
           phone: phone.trim() || null,
           dateOfBirth: new Date().toISOString(),
           gender: gender || "Male",
@@ -196,7 +238,7 @@ const UserManagement = () => {
       setIsCreateOpen(false);
     } catch (err) {
       console.error("Failed to create user:", err);
-      setFormError(err.message || "Tạo tài khoản thất bại.");
+      setFormError(parseApiError(err, "Tạo tài khoản thất bại."));
     } finally {
       setSubmitting(false);
     }
@@ -252,7 +294,7 @@ const UserManagement = () => {
         organization: "ETR Aviation",
       });
 
-      // 2. Update role (PUT /api/Accounts/{id}/role)
+      // 2. Update role
       if (editRoleId && Number(editRoleId) !== 1) {
         await api.put(`/Accounts/${editingUser.accountId}/role`, {
           roleId: Number(editRoleId),
@@ -275,13 +317,13 @@ const UserManagement = () => {
       setIsEditOpen(false);
     } catch (err) {
       console.error("Failed to update user profile:", err);
-      setFormError(err.message || "Cập nhật hồ sơ thất bại.");
+      setFormError(parseApiError(err, "Cập nhật hồ sơ thất bại."));
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Toggle Account Status (PUT /api/Accounts/{id}/status)
+  // Toggle Account Status
   const handleToggleStatus = async (user) => {
     const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
     const nextStatus = isInactive ? 'Active' : 'Inactive';
@@ -293,11 +335,11 @@ const UserManagement = () => {
       await loadUsers();
     } catch (err) {
       console.error("Failed to update status:", err);
-      alert("Cập nhật trạng thái thất bại: " + (err.message || "Lỗi server"));
+      alert("Cập nhật trạng thái thất bại: " + parseApiError(err));
     }
   };
 
-  // Soft Delete Account (DELETE /api/Accounts/{id} -> status changes to Inactive)
+  // Soft Delete Account
   const handleDeleteAccount = async (user) => {
     if (!window.confirm(`Bạn có chắc chắn muốn chuyển tài khoản "${user.username}" sang trạng thái Inactive (Soft Delete)?`)) {
       return;
@@ -312,12 +354,12 @@ const UserManagement = () => {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
         await loadUsers();
       } catch (putErr) {
-        alert("Thực hiện Soft Delete thất bại: " + (putErr.message || "Lỗi server"));
+        alert("Thực hiện Soft Delete thất bại: " + parseApiError(putErr));
       }
     }
   };
 
-  // Activate Account (PUT /api/Accounts/{id}/status -> Active)
+  // Activate Account
   const handleActivateAccount = async (user) => {
     if (!window.confirm(`Bạn có chắc chắn muốn kích hoạt lại tài khoản "${user.username}" thành Active?`)) {
       return;
@@ -327,7 +369,7 @@ const UserManagement = () => {
       await loadUsers();
     } catch (err) {
       console.error("Failed to activate account:", err);
-      alert("Kích hoạt tài khoản thất bại: " + (err.message || "Lỗi server"));
+      alert("Kích hoạt tài khoản thất bại: " + parseApiError(err));
     }
   };
 
@@ -351,7 +393,7 @@ const UserManagement = () => {
           <p className="eyebrow">Administrator Management</p>
           <h1>User Management</h1>
           <p className="page-description">
-            Quản lý tài khoản hệ thống: Tạo mới, cập nhật hồ sơ, đổi vai trò (Role), phòng ban (Department), vô hiệu hóa (Soft Delete) và kích hoạt lại tài khoản via Backend API.
+            Quản lý tài khoản hệ thống: Tạo mới, cập nhật hồ sơ, đổi vai trò (Role), phòng ban (Department), vô hiệu hóa (Soft Delete) và kích hoạt lại tài khoản.
           </p>
         </div>
 
@@ -519,23 +561,23 @@ const UserManagement = () => {
       {isCreateOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>Tạo tài khoản mới (POST /api/Accounts)</h2>
+            <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>Tạo tài khoản mới</h2>
             
             {formError && (
-              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px' }}>
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                 {formError}
               </div>
             )}
 
             <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tên đăng nhập (Username) *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tên đăng nhập (Email / Username) *</label>
                 <input
-                  type="text"
+                  type="email"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ví dụ: instructor_john"
+                  placeholder="Ví dụ: user@domain.com"
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                 />
               </div>
@@ -619,16 +661,6 @@ const UserManagement = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="user@example.com"
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                  />
-                </div>
-                <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Số điện thoại</label>
                   <input
                     type="text"
@@ -637,6 +669,18 @@ const UserManagement = () => {
                     placeholder="0901234567"
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                   />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
+                  >
+                    <option value="Male">Nam (Male)</option>
+                    <option value="Female">Nữ (Female)</option>
+                    <option value="Other">Khác (Other)</option>
+                  </select>
                 </div>
               </div>
 

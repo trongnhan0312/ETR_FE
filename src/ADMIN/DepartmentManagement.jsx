@@ -158,7 +158,7 @@ const DepartmentManagement = () => {
           <div className="eyebrow">QUẢN LÝ TỔ CHỨC / ADMIN</div>
           <h1>Quản lý phòng ban (Departments)</h1>
           <p className="page-description">
-            Quản lý danh sách phòng ban trong hệ thống ETR Management (CRUD API /api/Departments).
+            Quản lý danh sách phòng ban trong hệ thống ETR Management.
           </p>
         </div>
         <div className="page-status-box">
@@ -307,7 +307,7 @@ const DepartmentManagement = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', color: '#002147', fontWeight: '700' }}>
-                Thêm phòng ban mới (POST /api/Departments)
+                Thêm phòng ban mới
               </h2>
               <button
                 type="button"
@@ -547,7 +547,7 @@ const DepartmentManagement = () => {
               Xác nhận xoá phòng ban
             </h2>
             <p style={{ fontSize: '14px', color: '#334155', margin: '0 0 16px', lineHeight: '1.5' }}>
-              Bạn có chắc chắn muốn xoá phòng ban <strong>"{getDeptName(selectedDept)}"</strong> (ID: #{getDeptId(selectedDept)}) không? Hành động này sẽ gọi endpoint <code>DELETE /api/Departments/{getDeptId(selectedDept)}</code> và không thể hoàn tác.
+              Bạn có chắc chắn muốn xoá phòng ban <strong>"{getDeptName(selectedDept)}"</strong> (ID: #{getDeptId(selectedDept)}) không? Hành động này không thể hoàn tác.
             </p>
 
             {formError && (
