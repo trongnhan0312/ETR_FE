@@ -20,6 +20,7 @@ const LearnerManagement = () => {
   const [pFullName, setPFullName] = useState('');
   const [pEmail, setPEmail] = useState('');
   const [pPhone, setPPhone] = useState('');
+  const [pDateOfBirth, setPDateOfBirth] = useState('');
   const [pGender, setPGender] = useState('Male');
 
   // Create Form State (Student only)
@@ -27,6 +28,7 @@ const LearnerManagement = () => {
   const [password, setPassword] = useState('Default@123');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [gender, setGender] = useState('Male');
 
@@ -34,6 +36,7 @@ const LearnerManagement = () => {
   const [editFullName, setEditFullName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editDateOfBirth, setEditDateOfBirth] = useState('');
   const [editGender, setEditGender] = useState('Male');
   const [editDepartmentId, setEditDepartmentId] = useState('');
 
@@ -69,7 +72,24 @@ const LearnerManagement = () => {
     return raw || fallbackMsg;
   };
 
-  // Helper to get non-training departments for Student role
+  // Form validation helpers
+  const isValidFullName = (name) => !/[0-9!@#$%&*()_+]/.test(name);
+  const isValidPhone = (phone) => /^\d{10,11}$/.test(phone);
+  const isValidDateOfBirth = (dob) => {
+    if (!dob) return false;
+    const year = new Date(dob).getFullYear();
+    return !Number.isNaN(year) && year < 2007;
+  };
+  const toDateInputValue = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 10);
+  };
+
+  // Helper to get all departments except Training (staff-related) for Student role.
+  // NOTE: GET /api/Departments is Admin-only (DepartmentsController), so as Academic we
+  // fall back to the authoritative list seeded in BE DataSeeder (ids 1-6, excluding id 2).
   const getNonTrainingDepts = () => {
     const filtered = departments.filter(
       (d) =>
@@ -80,7 +100,10 @@ const LearnerManagement = () => {
     if (filtered.length > 0) return filtered;
     return [
       { id: '1', name: 'Administration' },
-      { id: '3', name: 'Flight Operations' },
+      { id: '3', name: 'Flight Crew' },
+      { id: '4', name: 'Cabin Crew' },
+      { id: '5', name: 'Engineering & Maintenance' },
+      { id: '6', name: 'Ground Operations' },
     ];
   };
 
@@ -136,6 +159,7 @@ const LearnerManagement = () => {
           email: profile?.email || acc.username || '',
           phone: profile?.phone || '',
           gender: profile?.gender || 'Male',
+          dateOfBirth: profile?.dateOfBirth || '',
           userCode: profile?.userCode || `USR-${acc.accountId}`,
         };
       });
@@ -157,6 +181,7 @@ const LearnerManagement = () => {
     setPassword('Default@123');
     setFullName('');
     setPhone('');
+    setDateOfBirth('');
     const nonTraining = getNonTrainingDepts();
     setDepartmentId(String(nonTraining[0]?.id || '1'));
     setGender('Male');
@@ -181,6 +206,21 @@ const LearnerManagement = () => {
       return;
     }
 
+    if (!isValidFullName(trimmedFullName)) {
+      setFormError('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).');
+      return;
+    }
+
+    if (phone.trim() && !isValidPhone(phone.trim())) {
+      setFormError('Số điện thoại phải gồm 10 hoặc 11 chữ số.');
+      return;
+    }
+
+    if (!isValidDateOfBirth(dateOfBirth)) {
+      setFormError('Ngày sinh bắt buộc và phải trước năm 2007.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       // 1. Create account with Student Role (roleId: 6)
@@ -199,7 +239,7 @@ const LearnerManagement = () => {
           fullName: trimmedFullName,
           email: trimmedUsername,
           phone: phone.trim() || null,
-          dateOfBirth: new Date().toISOString(),
+          dateOfBirth: new Date(`${dateOfBirth}T00:00:00`).toISOString(),
           gender: gender || "Male",
           organization: "ETR Aviation",
         }).catch((err) => console.warn("Failed to create profile details:", err));
@@ -221,6 +261,7 @@ const LearnerManagement = () => {
     setPFullName('');
     setPEmail(learner.email || learner.username || '');
     setPPhone('');
+    setPDateOfBirth('');
     setPGender('Male');
     setFormError('');
     setIsProfileOpen(true);
@@ -236,6 +277,21 @@ const LearnerManagement = () => {
       return;
     }
 
+    if (!isValidFullName(pFullName.trim())) {
+      setFormError('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).');
+      return;
+    }
+
+    if (pPhone.trim() && !isValidPhone(pPhone.trim())) {
+      setFormError('Số điện thoại phải gồm 10 hoặc 11 chữ số.');
+      return;
+    }
+
+    if (!isValidDateOfBirth(pDateOfBirth)) {
+      setFormError('Ngày sinh bắt buộc và phải trước năm 2007.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await api.post(`/UserProfiles/${profileAcc.accountId}`, {
@@ -243,7 +299,7 @@ const LearnerManagement = () => {
         fullName: pFullName.trim(),
         email: pEmail.trim() || profileAcc.username,
         phone: pPhone.trim() || null,
-        dateOfBirth: new Date().toISOString(),
+        dateOfBirth: new Date(`${pDateOfBirth}T00:00:00`).toISOString(),
         gender: pGender,
         organization: 'ETR Aviation',
       });
@@ -263,6 +319,7 @@ const LearnerManagement = () => {
     setEditFullName(user.fullName === 'Chưa cập nhật' ? '' : user.fullName);
     setEditEmail(user.email || user.username || '');
     setEditPhone(user.phone || '');
+    setEditDateOfBirth(toDateInputValue(user.dateOfBirth));
     setEditGender(user.gender || 'Male');
     
     const nonTraining = getNonTrainingDepts();
@@ -286,6 +343,21 @@ const LearnerManagement = () => {
       return;
     }
 
+    if (!isValidFullName(editFullName.trim())) {
+      setFormError('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).');
+      return;
+    }
+
+    if (editPhone.trim() && !isValidPhone(editPhone.trim())) {
+      setFormError('Số điện thoại phải gồm 10 hoặc 11 chữ số.');
+      return;
+    }
+
+    if (!isValidDateOfBirth(editDateOfBirth)) {
+      setFormError('Ngày sinh bắt buộc và phải trước năm 2007.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       // 1. Update profile info
@@ -293,7 +365,7 @@ const LearnerManagement = () => {
         fullName: editFullName.trim(),
         email: editEmail.trim() || editingUser.username,
         phone: editPhone.trim() || null,
-        dateOfBirth: new Date().toISOString(),
+        dateOfBirth: new Date(`${editDateOfBirth}T00:00:00`).toISOString(),
         gender: editGender,
         organization: "ETR Aviation",
       });
@@ -687,6 +759,27 @@ const LearnerManagement = () => {
                 </div>
               </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Ngày sinh (phải trước năm 2007) *</label>
+                  <input
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức (khóa)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value="ETR Aviation"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
+                  />
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
                 <button
                   type="button"
@@ -783,6 +876,27 @@ const LearnerManagement = () => {
                 />
               </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Ngày sinh (phải trước năm 2007) *</label>
+                  <input
+                    type="date"
+                    value={editDateOfBirth}
+                    onChange={(e) => setEditDateOfBirth(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức (khóa)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value="ETR Aviation"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
+                  />
+                </div>
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
                 <select
@@ -877,6 +991,27 @@ const LearnerManagement = () => {
                   <option value="Female">Nữ (Female)</option>
                   <option value="Other">Khác (Other)</option>
                 </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Ngày sinh (phải trước năm 2007) *</label>
+                  <input
+                    type="date"
+                    value={pDateOfBirth}
+                    onChange={(e) => setPDateOfBirth(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức (khóa)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value="ETR Aviation"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>

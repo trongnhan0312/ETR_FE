@@ -64,6 +64,15 @@ const parseApiError = (err, fallbackMsg = 'Thao tác thất bại.') => {
   return raw || fallbackMsg;
 };
 
+// Form validation helpers
+const isValidFullName = (name) => !/[0-9!@#$%&*()_+]/.test(name);
+const isValidPhone = (phone) => /^\d{10,11}$/.test(phone);
+const isValidDateOfBirth = (dob) => {
+  if (!dob) return false;
+  const year = new Date(dob).getFullYear();
+  return !Number.isNaN(year) && year < 2007;
+};
+
 const StudentProfiles = () => {
   const [profiles, setProfiles] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -95,7 +104,6 @@ const StudentProfiles = () => {
   const [cPhone, setCPhone] = useState('');
   const [cDateOfBirth, setCDateOfBirth] = useState('');
   const [cGender, setCGender] = useState('Male');
-  const [cOrganization, setCOrganization] = useState('ETR Aviation');
 
   // Edit form state
   const [eFullName, setEFullName] = useState('');
@@ -103,7 +111,6 @@ const StudentProfiles = () => {
   const [ePhone, setEPhone] = useState('');
   const [eDateOfBirth, setEDateOfBirth] = useState('');
   const [eGender, setEGender] = useState('Male');
-  const [eOrganization, setEOrganization] = useState('');
 
   const loadProfiles = async () => {
     try {
@@ -155,7 +162,9 @@ const StudentProfiles = () => {
     loadProfiles();
   }, []);
 
-  // Helper to get non-training departments for Student role
+  // Helper to get all departments except Training (staff-related) for Student role.
+  // NOTE: GET /api/Departments is Admin-only (DepartmentsController), so as Academic we
+  // fall back to the authoritative list seeded in BE DataSeeder (ids 1-6, excluding id 2).
   const getNonTrainingDepts = () => {
     const filtered = departments.filter(
       (d) =>
@@ -166,7 +175,10 @@ const StudentProfiles = () => {
     if (filtered.length > 0) return filtered;
     return [
       { id: '1', name: 'Administration' },
-      { id: '3', name: 'Flight Operations' },
+      { id: '3', name: 'Flight Crew' },
+      { id: '4', name: 'Cabin Crew' },
+      { id: '5', name: 'Engineering & Maintenance' },
+      { id: '6', name: 'Ground Operations' },
     ];
   };
 
@@ -183,7 +195,6 @@ const StudentProfiles = () => {
     setCPhone('');
     setCDateOfBirth('');
     setCGender('Male');
-    setCOrganization('ETR Aviation');
     setFormError('');
     setIsCreateOpen(true);
   };
@@ -248,8 +259,20 @@ const StudentProfiles = () => {
       setFormError('Vui lòng nhập Họ và tên.');
       return;
     }
+    if (!isValidFullName(cFullName.trim())) {
+      setFormError('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).');
+      return;
+    }
     if (!cEmail.trim() || !cEmail.includes('@')) {
       setFormError('Email phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).');
+      return;
+    }
+    if (cPhone.trim() && !isValidPhone(cPhone.trim())) {
+      setFormError('Số điện thoại phải gồm 10 hoặc 11 chữ số.');
+      return;
+    }
+    if (!isValidDateOfBirth(cDateOfBirth)) {
+      setFormError('Ngày sinh bắt buộc và phải trước năm 2007.');
       return;
     }
 
@@ -260,9 +283,9 @@ const StudentProfiles = () => {
         fullName: cFullName.trim(),
         email: cEmail.trim(),
         phone: cPhone.trim() || null,
-        dateOfBirth: cDateOfBirth ? new Date(`${cDateOfBirth}T00:00:00`).toISOString() : new Date().toISOString(),
+        dateOfBirth: new Date(`${cDateOfBirth}T00:00:00`).toISOString(),
         gender: cGender,
-        organization: cOrganization.trim() || null,
+        organization: 'ETR Aviation',
       });
       await loadProfiles();
       setIsCreateOpen(false);
@@ -281,7 +304,6 @@ const StudentProfiles = () => {
     setEPhone(profile.phone || '');
     setEDateOfBirth(toDateInputValue(profile.dateOfBirth));
     setEGender(profile.gender || 'Male');
-    setEOrganization(profile.organization || '');
     setFormError('');
     setIsEditOpen(true);
   };
@@ -294,8 +316,20 @@ const StudentProfiles = () => {
       setFormError('Vui lòng nhập Họ và tên.');
       return;
     }
+    if (!isValidFullName(eFullName.trim())) {
+      setFormError('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).');
+      return;
+    }
     if (!eEmail.trim() || !eEmail.includes('@')) {
       setFormError('Email phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).');
+      return;
+    }
+    if (ePhone.trim() && !isValidPhone(ePhone.trim())) {
+      setFormError('Số điện thoại phải gồm 10 hoặc 11 chữ số.');
+      return;
+    }
+    if (!isValidDateOfBirth(eDateOfBirth)) {
+      setFormError('Ngày sinh bắt buộc và phải trước năm 2007.');
       return;
     }
 
@@ -305,9 +339,9 @@ const StudentProfiles = () => {
         fullName: eFullName.trim(),
         email: eEmail.trim(),
         phone: ePhone.trim() || null,
-        dateOfBirth: eDateOfBirth ? new Date(`${eDateOfBirth}T00:00:00`).toISOString() : new Date().toISOString(),
+        dateOfBirth: new Date(`${eDateOfBirth}T00:00:00`).toISOString(),
         gender: eGender,
-        organization: eOrganization.trim() || null,
+        organization: 'ETR Aviation',
       });
       await loadProfiles();
       setIsEditOpen(false);
@@ -685,14 +719,16 @@ const StudentProfiles = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức (khóa)</label>
                   <input
                     type="text"
-                    value={cOrganization}
-                    onChange={(e) => setCOrganization(e.target.value)}
-                    placeholder="ETR Aviation"
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                    disabled
+                    value="ETR Aviation"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
                   />
+                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#94a3b8' }}>
+                    * Tổ chức không thể thay đổi.
+                  </p>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
@@ -798,13 +834,16 @@ const StudentProfiles = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức (khóa)</label>
                 <input
                   type="text"
-                  value={eOrganization}
-                  onChange={(e) => setEOrganization(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  disabled
+                  value="ETR Aviation"
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
                 />
+                <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#94a3b8' }}>
+                  * Tổ chức không thể thay đổi.
+                </p>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
