@@ -5,6 +5,7 @@ import AdminLayout from './ADMIN/AdminLayout';
 import Dashboard from './ADMIN/Dashboard';
 import UserManagement from './ADMIN/UserManagement';
 import RolePermissionManagement from './ADMIN/RolePermissionManagement';
+import DepartmentManagement from './ADMIN/DepartmentManagement';
 import AuditLog from './ADMIN/AuditLog';
 import SystemConfiguration from './ADMIN/SystemConfiguration';
 import AcademicLayout from './Academic/AcademicLayout';
@@ -99,6 +100,7 @@ function App() {
 						<Route index element={<Dashboard />} />
 						<Route path="users" element={<UserManagement />} />
 						<Route path="roles" element={<RolePermissionManagement />} />
+						<Route path="departments" element={<DepartmentManagement />} />
 						<Route path="audit" element={<AuditLog />} />
 						<Route path="config" element={<SystemConfiguration />} />
 					</Route>
