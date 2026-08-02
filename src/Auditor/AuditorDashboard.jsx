@@ -4,9 +4,8 @@ import {
   fetchDashboardStats,
   fetchEtrList,
   fetchAuditLogs,
-  fetchReportsSummary,
+  fetchExportJobs,
 } from './auditorApi';
-import { MOCK_EXPORT_PACKAGES } from './mockAuditorData';
 
 const AuditorDashboard = () => {
   const navigate = useNavigate();
@@ -25,17 +24,17 @@ const AuditorDashboard = () => {
     const loadDashboardData = async () => {
       setLoading(true);
       try {
-        const [statsData, etrsData, logsData, reportData] = await Promise.all([
+        const [statsData, etrsData, logsData, exportJobs] = await Promise.all([
           fetchDashboardStats(),
           fetchEtrList(),
           fetchAuditLogs(),
-          fetchReportsSummary(),
+          fetchExportJobs(),
         ]);
 
         if (statsData) setStats(statsData);
         if (Array.isArray(etrsData)) setRecentETRs(etrsData.slice(0, 3));
         if (Array.isArray(logsData)) setRecentLogs(logsData.slice(0, 3));
-        setRecentExports(MOCK_EXPORT_PACKAGES.slice(0, 2));
+        if (Array.isArray(exportJobs)) setRecentExports(exportJobs.slice(0, 2));
       } catch (err) {
         console.error('Error loading Auditor Dashboard data:', err);
       } finally {

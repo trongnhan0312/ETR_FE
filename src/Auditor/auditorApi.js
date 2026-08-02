@@ -1,15 +1,9 @@
-import { api } from "../utils/api";
-import {
-  MOCK_AUDITOR_STATS,
-  MOCK_LOCKED_ETRS,
-  MOCK_APPROVAL_TIMELINE,
-  MOCK_AUDIT_LOGS,
-  MOCK_EXPORT_PACKAGES,
-} from "./mockAuditorData";
+import { api, API_BASE_URLS } from "../utils/api";
 
 /**
  * Auditor Compliance API Service Layer
- * Encapsulates backend API communication for Auditor role with robust normalization & fallback handling.
+ * Encapsulates backend API communication for the Auditor (Audit) role.
+ * Read-only: maps real backend responses to the shapes the Auditor UI consumes.
  */
 
 // Helper to extract array from direct Array response or PagedResponse ({ items: [...] } / { Items: [...] })
@@ -17,308 +11,367 @@ const extractList = (data) => {
   if (Array.isArray(data)) return data;
   if (data && Array.isArray(data.items)) return data.items;
   if (data && Array.isArray(data.Items)) return data.Items;
-  return null;
+  return [];
+};
+
+const fmtDate = (d) => {
+  if (!d) return "—";
+  try {
+    const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleString("vi-VN", {
+      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+};
+
+const fmtSize = (bytes) => {
+  if (!bytes && bytes !== 0) return "—";
+  const mb = bytes / (1024 * 1024);
+  return `${mb >= 100 ? mb.toFixed(0) : mb.toFixed(1)} MB`;
+};
+
+const extractEtrId = (raw) => raw?.etrCourseRecordId ?? raw?.eTRCourseRecordId ?? null;
+
+// In-session export job history (BE has no "list export jobs" endpoint)
+const exportJobCache = [];
+
+// --- Lookup data (enrichment cross-references) ---
+
+let lookupPromise = null;
+const loadLookup = () => {
+  if (!lookupPromise) {
+    lookupPromise = Promise.all([
+      api.get("/Enrollments").catch(() => []),
+      api.get("/Accounts").catch(() => []),
+      api.get("/UserProfiles/learners").catch(() => []),
+      api.get("/Classes").catch(() => []),
+      api.get("/Courses").catch(() => []),
+      api.get("/ClassStudents").catch(() => []),
+      api.get("/Evidences").catch(() => []),
+      api.get("/Attendance").catch(() => []),
+      api.get("/AssessmentResults").catch(() => []),
+    ]).then(([enrollments, accounts, profiles, classes, courses, classStudents, evidences, attendance, assessmentResults]) => ({
+      enrollments: extractList(enrollments),
+      accounts: extractList(accounts),
+      profiles: extractList(profiles),
+      classes: extractList(classes),
+      courses: extractList(courses),
+      classStudents: extractList(classStudents),
+      evidences: extractList(evidences),
+      attendance: extractList(attendance),
+      assessmentResults: extractList(assessmentResults),
+    })).finally(() => {
+      lookupPromise = null;
+    });
+  }
+  return lookupPromise;
+};
+
+const accountName = (lookup, accountId) => {
+  const account = lookup.accounts.find((a) => a.accountId === accountId);
+  if (!account) return `Account #${accountId}`;
+  const profile = lookup.profiles.find((p) => p.accountId === accountId);
+  return profile?.fullName || account.username || `Account #${accountId}`;
 };
 
 // --- 1. AuditController APIs (Read-Only) ---
 
-/** GET /api/Audit (Lấy toàn bộ nhật ký) */
-export const fetchAuditLogs = async () => {
-  try {
-    const data = await api.get("/Audit");
-    const list = extractList(data);
-    if (list && list.length > 0) {
-      return list.map(normalizeAuditLog);
-    }
-  } catch (err) {
-    console.warn("[Auditor API] GET /api/Audit failed, falling back to mock:", err.message);
-  }
-  return MOCK_AUDIT_LOGS;
+/** GET /api/Audit?page=&pageSize= (Danh sách nhật ký hệ thống) */
+export const fetchAuditLogs = async (page = 1, pageSize = 50) => {
+  const data = await api.get(`/Audit?page=${page}&pageSize=${pageSize}`);
+  return extractList(data).map(normalizeAuditLog);
 };
 
-/** GET /api/Audit/{id} (Xem chi tiết 1 nhật ký) */
+/** GET /api/Audit/{id} (Chi tiết một nhật ký) */
 export const fetchAuditLogById = async (id) => {
-  try {
-    const data = await api.get(`/Audit/${id}`);
-    if (data) return normalizeAuditLog(data);
-  } catch (err) {
-    console.warn(`[Auditor API] GET /api/Audit/${id} failed, searching mock:`, err.message);
-  }
-  return MOCK_AUDIT_LOGS.find((l) => l.id === id || l.id === String(id)) || MOCK_AUDIT_LOGS[0];
+  const data = await api.get(`/Audit/${id}`);
+  return data ? normalizeAuditLog(data) : null;
 };
 
-/** GET /api/Audit/search (Tìm kiếm nhật ký) */
-export const searchAuditLogs = async (query = "", filterModule = "All") => {
-  try {
-    const queryParams = new URLSearchParams();
-    if (query) queryParams.append("query", query);
-    if (filterModule && filterModule !== "All") queryParams.append("module", filterModule);
-
-    const queryString = queryParams.toString();
-    const endpoint = `/Audit/search${queryString ? `?${queryString}` : ""}`;
-    const data = await api.get(endpoint);
-    const list = extractList(data);
-    if (list && list.length > 0) {
-      return list.map(normalizeAuditLog);
-    }
-  } catch (err) {
-    console.warn("[Auditor API] GET /api/Audit/search failed, filtering mock data:", err.message);
+/** GET /api/Audit/search?query= (Tìm kiếm nhật ký; filterModule lọc client-side theo entityName) */
+export const searchAuditLogs = async (query = "", filterModule = "All", page = 1, pageSize = 50) => {
+  const q = String(query || "").trim();
+  const endpoint = `/Audit/search?query=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`;
+  let logs = extractList(await api.get(endpoint)).map(normalizeAuditLog);
+  if (filterModule && filterModule !== "All") {
+    logs = logs.filter((log) =>
+      String(log.module || "").toLowerCase().includes(String(filterModule).toLowerCase()),
+    );
   }
-
-  return MOCK_AUDIT_LOGS.filter((log) => {
-    const matchesQuery =
-      !query ||
-      log.user?.toLowerCase().includes(query.toLowerCase()) ||
-      log.action?.toLowerCase().includes(query.toLowerCase()) ||
-      log.details?.toLowerCase().includes(query.toLowerCase()) ||
-      log.id?.toLowerCase().includes(query.toLowerCase());
-
-    const matchesModule =
-      filterModule === "All" ||
-      log.module?.toLowerCase().includes(filterModule.toLowerCase());
-
-    return matchesQuery && matchesModule;
-  });
+  return logs;
 };
 
 // --- 2. EtrController APIs (Read-Only for Auditor) ---
 
-/** GET /api/Etr (Lấy danh sách ETR) */
+/** GET /api/Etr (Danh sách ETR, enrich tên học viên / khóa học / lớp) */
 export const fetchEtrList = async () => {
-  try {
-    const data = await api.get("/Etr");
-    const list = extractList(data);
-    if (list && list.length > 0) {
-      return list.map(normalizeEtr);
-    }
-  } catch (err) {
-    console.warn("[Auditor API] GET /api/Etr failed, falling back to mock:", err.message);
-  }
-  return MOCK_LOCKED_ETRS;
+  const lookup = await loadLookup();
+  const etrs = await api.get("/Etr");
+  return extractList(etrs).map((etr) => normalizeEtr(etr, lookup));
 };
 
-/** GET /api/Etr/{id} (Xem chi tiết hồ sơ ETR và Kết quả Môn học) */
+/** GET /api/Etr/{id} (Chi tiết hồ sơ ETR + bằng chứng / điểm danh / kết quả) */
 export const fetchEtrById = async (id) => {
-  try {
-    const data = await api.get(`/Etr/${id}`);
-    if (data) return normalizeEtr(data);
-  } catch (err) {
-    console.warn(`[Auditor API] GET /api/Etr/${id} failed, fetching from mock:`, err.message);
-  }
-  return MOCK_LOCKED_ETRS.find((e) => e.id === id || e.id === String(id)) || MOCK_LOCKED_ETRS[0];
+  const lookup = await loadLookup();
+  const numericId = String(id).replace(/\D/g, "");
+  if (!numericId) return null;
+  const data = await api.get(`/Etr/${numericId}`);
+  if (!data) return null;
+  return normalizeEtr(data, lookup);
+};
+
+/** GET /api/Etr/student/{studentId}/current-status (Trạng thái chứng chỉ hiện tại của học viên) */
+export const fetchStudentEtrStatus = async (studentId) => {
+  const data = await api.get(`/Etr/student/${studentId}/current-status`);
+  return extractList(data);
+};
+
+/** GET /api/Etr/student/{studentId}/history (Lịch sử ETR của học viên) */
+export const fetchStudentEtrHistory = async (studentId) => {
+  const data = await api.get(`/Etr/student/${studentId}/history`);
+  return extractList(data);
 };
 
 // --- 3. ApprovalsController APIs (Read-Only for Auditor) ---
 
-/** GET /api/Approvals (Xem toàn bộ danh sách yêu cầu phê duyệt) */
+/** GET /api/Approvals (Danh sách yêu cầu phê duyệt; lọc theo ETR nếu có etrId) */
 export const fetchApprovals = async (etrId = null) => {
-  try {
-    const endpoint = etrId ? `/Approvals?etrId=${etrId}` : "/Approvals";
-    const data = await api.get(endpoint);
-    const list = extractList(data);
-    if (list && list.length > 0) {
-      return list.map(normalizeApproval);
+  const lookup = await loadLookup();
+  const requests = extractList(await api.get("/Approvals"));
+  let filtered = requests;
+  if (etrId) {
+    const numericId = String(etrId).replace(/\D/g, "");
+    if (numericId) {
+      filtered = requests.filter((r) => r.etrCourseRecordId === Number(numericId));
     }
-  } catch (err) {
-    console.warn("[Auditor API] GET /api/Approvals failed, falling back to mock:", err.message);
   }
-  return MOCK_APPROVAL_TIMELINE;
+  return filtered.map((r) => normalizeApproval(r, lookup));
 };
 
 // --- 4. ExportsController APIs (Export Functionalities) ---
 
-/** GET /api/Exports/download/{id} (Tải xuống file đã xuất) */
-export const downloadExportFile = async (id, fileName = "export.zip") => {
-  try {
-    const res = await api.get(`/Exports/download/${id}`);
-    return res;
-  } catch (err) {
-    console.warn(`[Auditor API] GET /api/Exports/download/${id} failed, using mock:`, err.message);
-    // Fallback: simulate file download with mock content
-    const content = `ETR Export Package
-ID: ${id}
-File: ${fileName}
-Generated: ${new Date().toISOString()}
-Status: Mock download — backend endpoint not available.
+const normalizeExportJob = (raw) => ({
+  id: raw.exportJobId ?? raw.exportJobID ?? "—",
+  name: raw.fileName || "—",
+  type: raw.exportType || "—",
+  generatedDate: fmtDate(raw.requestedAt),
+  generatedBy: raw.requestedByAccountId ? `Account #${raw.requestedByAccountId}` : "—",
+  size: "—",
+  status: raw.status || "—",
+  etrCourseRecordId: raw.etrCourseRecordId || null,
+});
 
-This is a simulated export file for development/demo purposes.`;
-    const blob = new Blob([content], { type: "application/octet-stream" });
-    const url = window.URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = fileName;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    window.URL.revokeObjectURL(url);
-    return { success: true, id, fileName };
-  }
-};
-
-/** POST /api/Exports/training-package (Kích hoạt xuất gói đào tạo) */
-export const exportTrainingPackage = async (payload = {}) => {
-  try {
-    const res = await api.post("/Exports/training-package", payload);
-    return res;
-  } catch (err) {
-    console.warn("[Auditor API] POST /api/Exports/training-package failed:", err.message);
-    return {
-      id: `PKG-2026-${Date.now().toString().slice(-3)}`,
-      name: payload.name || "Complete_Evidence_Archive.zip",
-      type: payload.packageType || "Full Evidence ZIP",
-      scope: "Selected ETR Records Audit",
-      generatedDate: new Date().toISOString().replace("T", " ").substring(0, 16),
-      generatedBy: "Auditor Officer",
-      size: "142.0 MB",
-      status: "Ready",
-      downloadUrl: "#",
-      digitalSignature: "VALID (CA-AeroMetric-2026)",
-    };
-  }
-};
-
-/** POST /api/Exports/pdf (Kích hoạt xuất báo cáo PDF) */
+/** POST /api/Exports/pdf */
 export const exportPdf = async (payload = {}) => {
-  try {
-    const res = await api.post("/Exports/pdf", payload);
-    return res;
-  } catch (err) {
-    console.warn("[Auditor API] POST /api/Exports/pdf failed:", err.message);
-    return {
-      id: `PKG-2026-${Date.now().toString().slice(-3)}`,
-      name: payload.name || "Single_ETR_Compliance_Summary.pdf",
-      type: "Compliance PDF",
-      scope: "ETR Dossier Export",
-      generatedDate: new Date().toISOString().replace("T", " ").substring(0, 16),
-      generatedBy: "Auditor Officer",
-      size: "18.4 MB",
-      status: "Ready",
-      downloadUrl: "#",
-      digitalSignature: "VALID (CA-AeroMetric-2026)",
-    };
-  }
+  const res = await api.post("/Exports/pdf", payload);
+  const pkg = normalizeExportJob(res);
+  exportJobCache.unshift(pkg);
+  return pkg;
 };
 
-/** POST /api/Exports/dashboard (Kích hoạt xuất dữ liệu Dashboard) */
-export const exportDashboard = async (payload = {}) => {
-  try {
-    const res = await api.post("/Exports/dashboard", payload);
-    return res;
-  } catch (err) {
-    console.warn("[Auditor API] POST /api/Exports/dashboard failed:", err.message);
-    return {
-      id: `PKG-2026-${Date.now().toString().slice(-3)}`,
-      name: payload.name || "Digital_Signature_Manifest.p7b",
-      type: payload.type || "Digital Signature Package",
-      scope: "Public Key Certificate Manifest Q2",
-      generatedDate: new Date().toISOString().replace("T", " ").substring(0, 16),
-      generatedBy: "Auditor Officer",
-      size: "2.1 MB",
-      status: "Ready",
-      downloadUrl: "#",
-      digitalSignature: "VALID (CA-AeroMetric-2026)",
-    };
+/** POST /api/Exports/training-package (cần ETRCourseRecordId; tự lấy ETR gần nhất nếu thiếu) */
+export const exportTrainingPackage = async (payload = {}) => {
+  let body = { ...payload };
+  if (!body.ETRCourseRecordId && !body.etrCourseRecordId) {
+    const etrs = await api.get("/Etr").catch(() => []);
+    const first = extractList(etrs)[0];
+    if (first) body.ETRCourseRecordId = extractEtrId(first);
   }
+  const res = await api.post("/Exports/training-package", body);
+  const pkg = normalizeExportJob(res);
+  exportJobCache.unshift(pkg);
+  return pkg;
+};
+
+/** POST /api/Exports/dashboard */
+export const exportDashboard = async (payload = {}) => {
+  const res = await api.post("/Exports/dashboard", payload);
+  const pkg = normalizeExportJob(res);
+  exportJobCache.unshift(pkg);
+  return pkg;
+};
+
+/** Danh sách export job trong phiên (BE không có endpoint list) */
+export const fetchExportJobs = async () => [...exportJobCache];
+
+/** GET /api/Exports/download/{id} — tải file binary qua fetch thuần */
+export const downloadExportFile = async (id, fileName = "export.zip") => {
+  const token = localStorage.getItem("token");
+  for (const baseUrl of API_BASE_URLS) {
+    try {
+      const response = await fetch(`${baseUrl}/Exports/download/${id}`, {
+        method: "GET",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        console.warn(`[Auditor API] GET /Exports/download/${id} status ${response.status}`);
+        continue;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      window.URL.revokeObjectURL(url);
+      return { success: true, id, fileName };
+    } catch (err) {
+      console.warn(`[Auditor API] Cannot reach ${baseUrl} for download:`, err.message);
+    }
+  }
+  throw new Error(`Không thể tải file export #${id}.`);
 };
 
 // --- 5. DashboardController & ReportsController APIs ---
 
-/** GET /api/Dashboard/stats (Xem số liệu thống kê KPIs) */
+/** GET /api/Dashboard/stats (KPIs: totalEtrs, completionRatePercent, pendingApprovalCount, ...) */
 export const fetchDashboardStats = async () => {
-  try {
-    const data = await api.get("/Dashboard/stats");
-    if (data && typeof data === "object") {
-      return {
-        totalLockedRecords: data.totalLockedRecords ?? data.TotalLockedRecords ?? data.totalEtrs ?? data.TotalEtrs ?? MOCK_AUDITOR_STATS.totalLockedRecords,
-        complianceRate: data.complianceRate ?? data.ComplianceRate ?? data.completionRatePercent ?? data.CompletionRatePercent ?? MOCK_AUDITOR_STATS.complianceRate,
-        pendingAudit: data.pendingAudit ?? data.PendingAudit ?? data.pendingApprovalCount ?? data.PendingApprovalCount ?? MOCK_AUDITOR_STATS.pendingAudit,
-        auditPackagesExported: data.auditPackagesExported ?? data.AuditPackagesExported ?? MOCK_AUDITOR_STATS.auditPackagesExported,
-      };
-    }
-  } catch (err) {
-    console.warn("[Auditor API] GET /api/Dashboard/stats failed, using mock:", err.message);
-  }
-  return MOCK_AUDITOR_STATS;
+  const data = await api.get("/Dashboard/stats");
+  return {
+    totalLockedRecords: data?.totalEtrs ?? data?.TotalEtrs ?? "—",
+    complianceRate: data?.completionRatePercent ?? data?.CompletionRatePercent ?? "—",
+    pendingAudit: data?.pendingApprovalCount ?? data?.PendingApprovalCount ?? "—",
+    auditPackagesExported: exportJobCache.length,
+  };
 };
 
-/** GET /api/Reports/summary (Xem báo cáo tổng hợp) */
+/** GET /api/Reports/summary (Tổng hợp lớp học + ETR) */
 export const fetchReportsSummary = async () => {
-  try {
-    const data = await api.get("/Reports/summary");
-    if (data) return data;
-  } catch (err) {
-    console.warn("[Auditor API] GET /api/Reports/summary failed, using mock summary:", err.message);
-  }
+  const data = await api.get("/Reports/summary");
   return {
-    summaryTitle: "Regulatory Compliance Audit Summary",
-    totalAudited: MOCK_AUDITOR_STATS.totalLockedRecords,
-    complianceRate: MOCK_AUDITOR_STATS.complianceRate,
-    generatedAt: new Date().toISOString(),
+    totalClasses: data?.totalClasses ?? data?.TotalClasses ?? "—",
+    totalEtrs: data?.totalEtrs ?? data?.TotalEtrs ?? "—",
+    completedCount: data?.completedCount ?? data?.CompletedCount ?? "—",
+    completionRatePercent: data?.completionRatePercent ?? data?.CompletionRatePercent ?? "—",
+    pendingApprovalCount: data?.pendingApprovalCount ?? data?.PendingApprovalCount ?? "—",
+    rejectedCount: data?.rejectedCount ?? data?.RejectedCount ?? "—",
   };
 };
 
 // --- Normalization Functions ---
+
 function normalizeAuditLog(raw) {
   return {
-    id: raw.id || raw.auditId || raw.AuditId || raw.auditLogId || raw.AuditLogId || `LOG-${Math.random().toString(36).substring(2, 7)}`,
-    timestamp: raw.timestamp || raw.recordedAt || raw.RecordedAt || raw.createdAt || raw.CreatedAt || new Date().toISOString().replace("T", " ").substring(0, 19),
-    user: raw.user || raw.userName || raw.UserName || raw.userEmail || (raw.accountId ? `User #${raw.accountId}` : "Auditor Officer"),
-    role: raw.role || raw.userRole || raw.UserRole || "Auditor",
-    module: raw.module || raw.actionCategory || raw.ActionCategory || raw.entityName || raw.EntityName || "ETR Inspection",
-    action: raw.action || raw.actionName || raw.ActionName || raw.actionType || raw.ActionType || "INSPECT_RECORD",
-    target: raw.target || raw.entityId || raw.EntityId || raw.recordId || raw.RecordId || "-",
-    result: raw.result || raw.status || (raw.isSuccess !== false ? "SUCCESS" : "FAILED"),
-    details: raw.details || raw.description || raw.Description || "Compliance audit verification log",
+    id: raw.auditLogId ?? raw.AuditLogId ?? "—",
+    timestamp: "—",
+    user: raw.accountId ? `Account #${raw.accountId}` : "—",
+    role: "—",
+    module: raw.entityName || raw.EntityName || "—",
+    action: raw.actionType || raw.ActionType || "—",
+    target: raw.recordId ?? raw.RecordId ?? "—",
+    result: "SUCCESS",
+    details: raw.description || raw.Description || `${raw.actionType || ""} ${raw.entityName || ""} #${raw.recordId ?? ""}`.trim(),
   };
 }
 
-function normalizeEtr(raw) {
+function normalizeEtr(raw, lookup) {
+  const etrId = extractEtrId(raw);
+  const enrollment = lookup.enrollments.find((e) => e.enrollmentId === raw.enrollmentId);
+  const account = enrollment
+    ? lookup.accounts.find((a) => a.accountId === enrollment.accountId)
+    : null;
+  const profile = account
+    ? lookup.profiles.find((p) => p.accountId === account.accountId)
+    : null;
+  const cls = enrollment
+    ? lookup.classes.find((c) => c.classId === enrollment.classId)
+    : null;
+  const course = cls ? lookup.courses.find((c) => c.courseId === cls.courseId) : null;
+  const classStudent = account
+    ? lookup.classStudents.find((cs) => cs.accountId === account.accountId && cs.classId === enrollment?.classId)
+    : null;
+
+  // Evidence files linked to this ETR record (if the entity carries the FK) or uploaded by the learner's account
+  const evidences = lookup.evidences.filter(
+    (ev) =>
+      extractEtrId(ev) === etrId ||
+      (account && ev.uploadedBy === account.accountId),
+  );
+
+  // Attendance for the learner's ClassStudent
+  const attendanceList = classStudent
+    ? lookup.attendance
+        .filter((a) => a.classStudentId === classStudent.classStudentId)
+        .map((a) => ({
+          session: a.sessionId,
+          date: fmtDate(a.recordedAt),
+          topic: `Session #${a.sessionId}`,
+          duration: "—",
+          status: a.status || "PRESENT",
+        }))
+    : [];
+
+  // Assessment results for the learner's account
+  const subjectResults = account
+    ? lookup.assessmentResults
+        .filter((ar) => ar.accountId === account.accountId)
+        .map((ar) => ({
+          code: `ASM-${String(ar.assessmentId).padStart(4, "0")}`,
+          name: `Assessment #${ar.assessmentId}`,
+          passScore: "—",
+          score: ar.score ?? "—",
+          result: ar.resultStatus || "—",
+          instructor: ar.gradedByAccountId ? accountName(lookup, ar.gradedByAccountId) : "—",
+        }))
+    : [];
+  const scored = subjectResults.filter((s) => typeof s.score === "number" && !Number.isNaN(s.score));
+  const overallScore = scored.length
+    ? (scored.reduce((sum, s) => sum + s.score, 0) / scored.length).toFixed(1)
+    : "—";
+
   return {
-    id: raw.id || raw.etrCourseRecordId || raw.EtrCourseRecordId || raw.etrId || "ETR-2026-0891",
-    learnerId: raw.learnerId || raw.studentId || raw.StudentId || "HV-8801",
-    learnerName: raw.learnerName || raw.studentName || raw.StudentName || "Learner Name",
-    learnerRole: raw.learnerRole || raw.jobTitle || raw.JobTitle || "Maintenance Specialist",
-    learnerDepartment: raw.learnerDepartment || raw.department || raw.Department || "Line Maintenance",
-    courseId: raw.courseId || raw.courseCode || raw.CourseCode || "CRS-A320-SYS",
-    courseName: raw.courseName || raw.courseTitle || raw.CourseTitle || "A320 Type Rating & Systems",
-    classId: raw.classId || raw.classCode || raw.ClassCode || "CLS-2026-A320-04",
-    className: raw.className || raw.ClassTitle || "A320 Maintenance Systems Class",
-    completionDate: raw.completionDate || raw.completedAt || raw.CompletedAt || "2026-06-15",
-    lockedDate: raw.lockedDate || raw.lockedAt || raw.LockedAt || "2026-06-18 14:32",
-    approvedBy: raw.approvedBy || raw.managerName || "Lê Hoàng Nam (Training Manager)",
-    qaVerifiedBy: raw.qaVerifiedBy || raw.qaLead || "Trần Minh Quang (QA Lead)",
-    academicStaff: raw.academicStaff || raw.staffName || "Phạm Thu Hà (Academic Staff)",
-    instructor: raw.instructor || raw.instructorName || "Đỗ Quốc Việt (Senior Instructor)",
-    status: raw.status || (raw.isLocked !== false ? "Locked & Compliant" : "Completed"),
-    isLocked: raw.isLocked ?? true,
-    verificationHash: raw.verificationHash || raw.hash || "0x8F9A3C72B10E45D9981A64B2",
-    totalSessions: raw.totalSessions || 16,
-    attendedSessions: raw.attendedSessions || 16,
-    attendancePercentage: raw.attendancePercentage || 100,
-    overallScore: raw.overallScore || raw.finalScore || 94.5,
-    resultStatus: raw.resultStatus || raw.result || "PASSED",
-    subjects: raw.subjects || raw.subjectResults || [
-      { code: "MOD-01", name: "A320 Avionics & Flight Controls", score: 96, passScore: 80, result: "PASSED", instructor: "Đỗ Quốc Việt" },
-      { code: "MOD-02", name: "Hydraulics & Fuel Management", score: 92, passScore: 80, result: "PASSED", instructor: "Đỗ Quốc Việt" },
-    ],
-    attendanceList: raw.attendanceList || raw.attendances || [
-      { session: 1, date: "2026-05-02", topic: "Airframe Overview & Safety Guidelines", duration: "4 hours", status: "PRESENT" },
-    ],
-    evidences: raw.evidences || raw.evidenceFiles || [
-      { id: "EVD-891-01", name: "A320_Practical_Assessment_Sheet_Signed.pdf", size: "3.4 MB", uploadedAt: "2026-06-15 16:20", uploadedBy: "Đỗ Quốc Việt", sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", type: "PDF" },
-    ],
+    id: `#ETR-${String(etrId ?? "").padStart(4, "0")}`,
+    etrCourseRecordId: etrId,
+    enrollmentId: raw.enrollmentId,
+    learnerId: profile?.userCode || account?.username || "—",
+    learnerName: profile?.fullName || account?.username || (account ? `Account #${account.accountId}` : "—"),
+    learnerRole: "—",
+    learnerDepartment: "—",
+    courseId: course ? `#${course.courseCode || course.courseId}` : (cls ? `#${cls.courseId}` : "—"),
+    courseName: course?.courseName || "—",
+    classId: cls ? `#${cls.classCode || cls.classId}` : "—",
+    className: cls?.className || "—",
+    completionDate: fmtDate(raw.completedAt),
+    lockedDate: fmtDate(raw.verifiedAt),
+    approvedBy: "—",
+    qaVerifiedBy: "—",
+    academicStaff: "—",
+    instructor: "—",
+    status: raw.isLocked ? "Locked & Compliant" : (raw.status || "—"),
+    isLocked: !!raw.isLocked,
+    verificationHash: "—",
+    totalSessions: "—",
+    attendedSessions: attendanceList.length,
+    attendancePercentage: attendanceList.length ? 100 : "—",
+    overallScore,
+    resultStatus: "—",
+    subjects: subjectResults,
+    attendanceList,
+    evidences: evidences.map((ev) => ({
+      id: `EVD-${String(ev.evidenceFileId ?? "").padStart(4, "0")}`,
+      name: ev.fileName || "—",
+      size: fmtSize(ev.fileSize),
+      uploadedAt: fmtDate(ev.uploadedAt),
+      uploadedBy: ev.uploadedBy ? accountName(lookup, ev.uploadedBy) : "—",
+      type: ev.mimeType?.startsWith("image/") ? "PHOTO" : ev.fileExtension?.toUpperCase() || "—",
+    })),
   };
 }
 
-function normalizeApproval(raw) {
+function normalizeApproval(raw, lookup) {
   return {
-    stage: raw.stage || raw.stepNumber || raw.approvalRequestId || 1,
-    roleTitle: raw.roleTitle || raw.stepName || "Approval Stage",
-    user: raw.user || raw.approverName || (raw.currentApproverId ? `Approver #${raw.currentApproverId}` : "Approver"),
-    role: raw.role || raw.approverRole || "Officer",
-    timestamp: raw.timestamp || raw.actionDate || raw.requestedAt || new Date().toISOString(),
-    action: raw.action || raw.actionDetails || raw.status || "Verified & Approved",
-    status: raw.status || "Completed",
-    hash: raw.hash || raw.signatureHash || "0x89A12019BC4F",
+    stage: raw.approvalRequestId ?? "—",
+    roleTitle: raw.currentStatus || "—",
+    user: raw.submittedBy ? accountName(lookup, raw.submittedBy) : "—",
+    role: "—",
+    timestamp: fmtDate(raw.submittedAt),
+    action: raw.currentStatus || "—",
+    status: raw.currentStatus || "—",
+    hash: "—",
   };
 }

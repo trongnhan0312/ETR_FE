@@ -1,15 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   exportPdf,
   exportTrainingPackage,
   exportDashboard,
   downloadExportFile,
+  fetchExportJobs,
 } from './auditorApi';
-import { MOCK_EXPORT_PACKAGES } from './mockAuditorData';
 
 const AuditorExportPackages = () => {
-  const [exportHistory, setExportHistory] = useState(MOCK_EXPORT_PACKAGES);
+  const [exportHistory, setExportHistory] = useState([]);
   const [loadingType, setLoadingType] = useState(null);
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const jobs = await fetchExportJobs();
+        if (Array.isArray(jobs)) setExportHistory(jobs);
+      } catch (err) {
+        console.error('Error loading export history:', err);
+      }
+    };
+    loadHistory();
+  }, []);
 
   const handleExportPDF = async () => {
     setLoadingType('pdf');
