@@ -14,6 +14,14 @@ const LearnerManagement = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Create Profile (for learner account without a profile yet) Modal State
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileAcc, setProfileAcc] = useState(null);
+  const [pFullName, setPFullName] = useState('');
+  const [pEmail, setPEmail] = useState('');
+  const [pPhone, setPPhone] = useState('');
+  const [pGender, setPGender] = useState('Male');
+
   // Create Form State (Student only)
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('Default@123');
@@ -105,11 +113,11 @@ const LearnerManagement = () => {
       }));
       setDepartments(mappedDepts);
 
-      // Filter ONLY Student role accounts (roleId === 6 or mapped role === 'Student' or 'Learner')
+      // Filter ONLY Student role accounts (roleId === 6 per backend DataSeeder, or role name 'Student')
       const studentAccs = accs.filter((acc) => {
         const rId = Number(acc.roleId);
         const mappedRole = (ROLE_MAP[acc.roleId] || acc.role || acc.roleName || '').toLowerCase();
-        return rId === 6 || mappedRole === 'student' || mappedRole === 'learner';
+        return rId === 6 || mappedRole === 'student';
       });
 
       const mapped = studentAccs.map((acc) => {
@@ -123,6 +131,7 @@ const LearnerManagement = () => {
           departmentId: acc.departmentId,
           departmentName: deptObj?.name || (String(acc.departmentId) === '2' ? 'Training' : 'Administration'),
           status: acc.status || 'Active',
+          hasProfile: !!profile,
           fullName: profile?.fullName || acc.username || 'Chưa cập nhật',
           email: profile?.email || acc.username || '',
           phone: profile?.phone || '',
@@ -201,6 +210,48 @@ const LearnerManagement = () => {
     } catch (err) {
       console.error("Failed to create student:", err);
       setFormError(parseApiError(err, "Tạo học viên thất bại."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Open Create Profile Modal (for a student account that has no profile yet)
+  const handleOpenProfileModal = (learner) => {
+    setProfileAcc(learner);
+    setPFullName('');
+    setPEmail(learner.email || learner.username || '');
+    setPPhone('');
+    setPGender('Male');
+    setFormError('');
+    setIsProfileOpen(true);
+  };
+
+  // Submit Create Profile -> POST /UserProfiles/{accountId} links to the student account
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (!pFullName.trim()) {
+      setFormError('Vui lòng nhập Họ và tên.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.post(`/UserProfiles/${profileAcc.accountId}`, {
+        userCode: `USR-${profileAcc.accountId}`,
+        fullName: pFullName.trim(),
+        email: pEmail.trim() || profileAcc.username,
+        phone: pPhone.trim() || null,
+        dateOfBirth: new Date().toISOString(),
+        gender: pGender,
+        organization: 'ETR Aviation',
+      });
+      await loadLearners();
+      setIsProfileOpen(false);
+    } catch (err) {
+      console.error('Failed to create learner profile:', err);
+      setFormError(parseApiError(err, 'Tạo hồ sơ học viên thất bại.'));
     } finally {
       setSubmitting(false);
     }
@@ -375,7 +426,7 @@ const LearnerManagement = () => {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.2fr 1.3fr 1.3fr 1.1fr 1fr 0.8fr 0.8fr 1.2fr',
+              gridTemplateColumns: '0.7fr 1.2fr 1.3fr 1.3fr 1.1fr 1fr 0.8fr 0.8fr 1.2fr',
               padding: '12px 16px',
               background: '#002147',
               color: '#fff',
@@ -385,6 +436,7 @@ const LearnerManagement = () => {
               letterSpacing: '0.03em',
             }}
           >
+            <div>UserID</div>
             <div>Username / Mã HV</div>
             <div>Họ và tên</div>
             <div>Email</div>
@@ -411,15 +463,35 @@ const LearnerManagement = () => {
                   key={learner.accountId}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1.2fr 1.3fr 1.3fr 1.1fr 1fr 0.8fr 0.8fr 1.2fr',
+                    gridTemplateColumns: '0.7fr 1.2fr 1.3fr 1.3fr 1.1fr 1fr 0.8fr 0.8fr 1.2fr',
                     padding: '12px 16px',
                     borderBottom: '1px solid #f1f5f9',
                     alignItems: 'center',
                     fontSize: '13px',
                   }}
                 >
+                  <div style={{ fontWeight: '700', color: '#c5a059' }}>{learner.accountId}</div>
                   <div style={{ fontWeight: '600', color: '#0f172a' }}>{learner.username}</div>
-                  <div style={{ color: '#334155' }}>{learner.fullName}</div>
+                  <div style={{ color: '#334155' }}>
+                    <span>{learner.fullName}</span>
+                    {!learner.hasProfile && (
+                      <span
+                        style={{
+                          marginLeft: '6px',
+                          padding: '2px 6px',
+                          borderRadius: '999px',
+                          background: '#fffbeb',
+                          border: '1px solid #fde68a',
+                          color: '#b45309',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Chưa có hồ sơ
+                      </span>
+                    )}
+                  </div>
                   <div style={{ color: '#64748b' }}>{learner.email}</div>
                   <div style={{ color: '#334155', fontWeight: '500' }}>{learner.departmentName}</div>
                   <div style={{ color: '#64748b' }}>{learner.phone || 'N/A'}</div>
@@ -439,6 +511,25 @@ const LearnerManagement = () => {
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    {!learner.hasProfile && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenProfileModal(learner)}
+                        title="Tạo hồ sơ cho học viên này"
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          borderRadius: '6px',
+                          border: '1px solid #fbbf24',
+                          background: '#fffbeb',
+                          color: '#b45309',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                        }}
+                      >
+                        + Tạo hồ sơ
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleOpenEditModal(learner)}
@@ -719,6 +810,89 @@ const LearnerManagement = () => {
                   style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
                 >
                   {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* CREATE PROFILE MODAL (student account has no profile yet) */}
+      {isProfileOpen && profileAcc && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>Tạo hồ sơ học viên</h2>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+              Tài khoản: <strong>{profileAcc.username}</strong> (UserID: {profileAcc.accountId}) — hồ sơ sẽ được móc nối tự động vào account này.
+            </p>
+
+            {formError && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Họ và tên *</label>
+                <input
+                  type="text"
+                  required
+                  value={pFullName}
+                  onChange={(e) => setPFullName(e.target.value)}
+                  placeholder="Ví dụ: Nguyễn Văn A"
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Email</label>
+                  <input
+                    type="email"
+                    value={pEmail}
+                    onChange={(e) => setPEmail(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Số điện thoại</label>
+                  <input
+                    type="text"
+                    value={pPhone}
+                    onChange={(e) => setPPhone(e.target.value)}
+                    placeholder="0901234567"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
+                <select
+                  value={pGender}
+                  onChange={(e) => setPGender(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
+                >
+                  <option value="Male">Nam (Male)</option>
+                  <option value="Female">Nữ (Female)</option>
+                  <option value="Other">Khác (Other)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileOpen(false)}
+                  style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  {submitting ? 'Đang lưu...' : 'Tạo hồ sơ'}
                 </button>
               </div>
             </form>

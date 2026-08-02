@@ -10,6 +10,7 @@ import AuditLog from './ADMIN/AuditLog';
 import SystemConfiguration from './ADMIN/SystemConfiguration';
 import AcademicLayout from './Academic/AcademicLayout';
 import LearnerManagement from './Academic/LearnerManagement';
+import StudentProfiles from './Academic/StudentProfiles';
 import CourseClassManagement from './Academic/CourseClassManagement';
 import EtrManagement from './Academic/EtrManagement';
 import ExpiringStudents from './Academic/ExpiringStudents';
@@ -118,6 +119,7 @@ function App() {
 							element={<Navigate to="/academic/learners" replace />}
 						/>
 						<Route path="learners" element={<LearnerManagement />} />
+						<Route path="profiles" element={<StudentProfiles />} />
 						<Route path="courses" element={<CourseClassManagement />} />
 						<Route path="etr" element={<EtrManagement />} />
 						<Route path="expiring-students" element={<ExpiringStudents />} />
