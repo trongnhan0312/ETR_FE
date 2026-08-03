@@ -420,10 +420,9 @@ describe('handleSaveScores - Assessment save logic', () => {
     for (const student of changedScores) {
       if (student.subjectResultId) {
         signoffs.push({
-          endpoint: '/AssessmentResults/signoff',
+          endpoint: '/SubjectSignoff',
           body: {
             subjectResultId: student.subjectResultId,
-            role: 'Instructor',
             comment: 'Đã hoàn thành đánh giá chuyên đề.',
           },
         })
@@ -431,9 +430,10 @@ describe('handleSaveScores - Assessment save logic', () => {
     }
 
     expect(signoffs.length).toBe(2)
+    expect(signoffs[0].endpoint).toBe('/SubjectSignoff')
     expect(signoffs[0].body.subjectResultId).toBe(1)
     expect(signoffs[1].body.subjectResultId).toBe(2)
-    expect(signoffs[0].body.role).toBe('Instructor')
+    expect(signoffs[0].body.role).toBeUndefined()
   })
 })
 

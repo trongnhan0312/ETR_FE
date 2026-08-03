@@ -19,18 +19,22 @@ const CourseClassManagement = () => {
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isCreatingClass, setIsCreatingClass] = useState(false);
   const [selectedClassForHistory, setSelectedClassForHistory] = useState(null);
+  // Instructor accounts (roleId === 2 = Instructor) for Class creation form
+  const [instructorsList, setInstructorsList] = useState([]);
 
   // Load all data from APIs on mount
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [courseData, classData, subjectData, sessionData, statsData] = await Promise.all([
+        const [courseData, classData, subjectData, sessionData, statsData, accountData, profileData] = await Promise.all([
           api.get("/Courses").catch(() => []),
           api.get("/Classes").catch(() => []),
           api.get("/Subjects").catch(() => []),
           api.get("/Sessions").catch(() => []),
-          api.get("/Dashboard/stats").catch(() => ({}))
+          api.get("/Dashboard/stats").catch(() => ({})),
+          api.get("/Accounts").catch(() => []),
+          api.get("/UserProfiles").catch(() => [])
         ]);
 
         const coursesArr = Array.isArray(courseData) ? courseData : [];
@@ -42,6 +46,21 @@ const CourseClassManagement = () => {
         setAllClassesRaw(classesArr);
         setAllSubjects(subjectsArr);
         setAllSessions(sessionsArr);
+
+        // Build instructor list (roleId === 2 = Instructor) for Create Class form
+        const accountsArr = Array.isArray(accountData) ? accountData : [];
+        const profilesArr = Array.isArray(profileData) ? profileData : [];
+        setInstructorsList(
+          accountsArr
+            .filter((a) => a.roleId === 2 || a.roleName === "Instructor")
+            .map((a) => {
+              const profile = profilesArr.find((p) => p.accountId === a.accountId);
+              return {
+                accountId: a.accountId,
+                fullName: profile?.fullName || a.username || `Instructor #${a.accountId}`,
+              };
+            })
+        );
 
         // Merge courses + classes into display format
         const mergedCourses = mergeCourseData(coursesArr, classesArr, sessionsArr, statsData);
@@ -144,7 +163,8 @@ const CourseClassManagement = () => {
         endDate: new Date(newClass.endDate).toISOString(),
         location: '',
         capacity: 30,
-        status: newClass.status === 'Đang diễn ra' ? 'Active' : newClass.status === 'Sắp diễn ra' ? 'Upcoming' : 'Completed'
+        status: newClass.status === 'Đang diễn ra' ? 'Active' : newClass.status === 'Sắp diễn ra' ? 'Upcoming' : 'Completed',
+        instructorAccountId: newClass.instructorAccountId || null
       });
       await refreshData();
       setIsCreatingClass(false);
@@ -475,6 +495,7 @@ const CourseClassManagement = () => {
       {isCreatingClass && (
         <CreateClass
           courses={allCoursesRaw}
+          instructors={instructorsList}
           onSave={handleSaveClass}
           onCancel={() => setIsCreatingClass(false)}
         />

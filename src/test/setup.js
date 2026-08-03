@@ -62,7 +62,7 @@ globalThis.fetch = async (url, options) => {
       { id: 'LOG-001', timestamp: '2026-07-24 14:10:02', user: 'Auditor Officer', role: 'Auditor', module: 'ETR Inspection', action: 'INSPECT_LOCKED_ETR', target: 'ETR-2026-0891', result: 'SUCCESS', details: 'Inspected ETR details' }
     ],
     '/api/Approvals': [
-      { stage: 1, roleTitle: 'Academic Staff', user: 'Phạm Thu Hà', role: 'Academic Officer', timestamp: '2026-06-15 16:45', action: 'Verified learner eligibility', status: 'Completed', hash: '0x89A12019BC4F' }
+      { approvalRequestId: 1, etrCourseRecordId: 20260891, currentStatus: 'Submitted', submittedByAccountId: 4, submittedAt: '2026-06-15T16:45:00', completedAt: null, stage: 1, roleTitle: 'Academic Staff', user: 'Phạm Thu Hà', role: 'Academic Officer', timestamp: '2026-06-15 16:45', action: 'Verified learner eligibility', status: 'Completed', hash: '0x89A12019BC4F' }
     ],
     '/api/Exports': {
       id: 'PKG-2026-001',
@@ -94,14 +94,24 @@ globalThis.fetch = async (url, options) => {
       ]
     }
   }
-
-  let responseData = null
-  for (const [key, data] of Object.entries(mockData)) {
-    if (url.includes(key)) {
-      responseData = data
-      break
+  if (url.includes('/etr/2')) {
+    mockData['/api/etr/2'] = {
+      etrCourseRecordId: 2,
+      enrollmentId: 2,
+      status: 'InProgress',
+      subjectResults: [
+        { subjectResultId: 2, subjectId: 1, status: 'Pending' },
+      ]
     }
   }
+
+  // Match case-insensitively và ưu tiên key dài (cụ thể) hơn key ngắn:
+  // VD: /api/etr/1 phải khớp trước /api/etr; /api/Etr phải khớp /api/etr.
+  const urlLower = url.toLowerCase()
+  const matched = Object.entries(mockData)
+    .filter(([key]) => urlLower.includes(key.toLowerCase()))
+    .sort((a, b) => b[0].length - a[0].length)
+  let responseData = matched.length > 0 ? matched[0][1] : null
 
   return {
     ok: true,

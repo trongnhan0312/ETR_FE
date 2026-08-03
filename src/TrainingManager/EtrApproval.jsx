@@ -8,8 +8,7 @@ const EtrApproval = () => {
   const [activeTab, setActiveTab] = useState("PENDING"); // PENDING, APPROVED, RETURNED
   const [selectedEtr, setSelectedEtr] = useState(null);
   const [viewingHistory, setViewingHistory] = useState(null);
-  const [showActionModal, setShowActionModal] = useState(null); // 'APPROVE' or 'RETURN'
-  const [returnComment, setReturnComment] = useState("");
+  const [showActionModal, setShowActionModal] = useState(null); // 'APPROVE'
   const [alertInfo, setAlertInfo] = useState({
     show: false,
     message: "",
@@ -18,6 +17,14 @@ const EtrApproval = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const [loadingEtrs, setLoadingEtrs] = useState(false);
+  const [approvalRequests, setApprovalRequests] = useState([]);
+  const [metrics, setMetrics] = useState({
+    pending: 0,
+    avgProcessing: null,
+    activeClasses: null,
+    avgAttendance: null,
+    nearCompletion: 0,
+  });
 
   // Load ETRs from API on mount
   useEffect(() => {
@@ -27,19 +34,32 @@ const EtrApproval = () => {
   const loadEtrsFromApi = async () => {
     setLoadingEtrs(true);
     try {
-      const [etrData, enrollmentsData, profilesData] = await Promise.all([
+      const [etrData, enrollmentsData, profilesData, approvalsData] = await Promise.all([
         api.get("/Etr").catch(() => []),
         api.get("/Enrollments").catch(() => []),
         api.get("/UserProfiles/learners").catch(() => []),
+        api.get("/Approvals").catch(() => []),
       ]);
+
+      const approvalsArr = Array.isArray(approvalsData) ? approvalsData : [];
+      setApprovalRequests(approvalsArr);
 
       const etrsArr = Array.isArray(etrData) ? etrData : [];
       const enrollmentsArr = Array.isArray(enrollmentsData) ? enrollmentsData : [];
       const profilesArr = Array.isArray(profilesData) ? profilesData : [];
 
+      // Chi tiết từng ETR (subjectResults) + toàn bộ evidence — dữ liệu thật cho transcript
+      const detailsArr = await Promise.all(
+        etrsArr.map((e) =>
+          api.get(`/Etr/${e.etrCourseRecordId || e.eTRCourseRecordId}`).catch(() => null)
+        )
+      );
+      const evfsRaw = await api.get("/Evidences").catch(() => []);
+      const evfsArr = Array.isArray(evfsRaw) ? evfsRaw : [];
+
       const mapped = etrsArr
         .filter((e) => e.status === "Verified" || e.status === "Completed")
-        .map((etr) => {
+        .map((etr, i) => {
           const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
           const enrollment = enrollmentsArr.find(
             (enr) => enr.enrollmentId === etr.enrollmentId
@@ -47,6 +67,32 @@ const EtrApproval = () => {
           const profile = enrollment
             ? profilesArr.find((p) => p.accountId === enrollment.accountId)
             : null;
+          const detail = detailsArr[i];
+          const subjectResults = (detail?.subjectResults || []).map((sr) => sr);
+          const subjectResultIds = subjectResults.map((sr) => sr.subjectResultId);
+          const evidence = evfsArr.filter((ev) =>
+            subjectResultIds.includes(ev.subjectResultId)
+          );
+          const attendanceValues = subjectResults
+            .map((sr) => sr.attendanceRate)
+            .filter((v) => v != null);
+          const avgAttendance = attendanceValues.length
+            ? Math.round(
+                attendanceValues.reduce((acc, v) => acc + Number(v), 0) /
+                  attendanceValues.length,
+              )
+            : 0;
+          const passedCount = subjectResults.filter(
+            (sr) => sr.status === "Passed" || sr.status === "Exempted",
+          ).length;
+          const completionPct = subjectResults.length
+            ? Math.round((passedCount / subjectResults.length) * 100)
+            : 0;
+          const approval = approvalsArr.find(
+            (r) =>
+              (r.etrCourseRecordId ?? r.eTRCourseRecordId) === Number(etrId) &&
+              r.currentStatus === "Approved",
+          );
           return {
             id: `#ETR-${String(etrId).padStart(4, "0")}`,
             etrId,
@@ -54,23 +100,72 @@ const EtrApproval = () => {
             traineeCode: `ID: ${profile?.employeeCode || `AV-${enrollment?.accountId || ""}`}`,
             initials: (profile?.fullName || "XX").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "XX",
             className: `Lớp #${enrollment?.classId || ""}`,
-            avgScore: 0,
-            qaVerified: true,
+            avgScore: avgAttendance,
+            qaVerified: etr.status === "Verified" || etr.status === "Completed",
             qaVerifier: "QA Staff",
+            qaDate: etr.verifiedAt
+              ? new Date(etr.verifiedAt).toISOString().split("T")[0]
+              : "",
             submissionDate: etr.submittedAt
               ? new Date(etr.submittedAt).toISOString().split("T")[0]
               : "",
             status: etr.status === "Completed" ? "APPROVED" : "PENDING",
-            approvedBy: etr.approvedBy || "",
+            approvedBy: approval?.approvedByAccountId
+              ? `Account #${approval.approvedByAccountId}`
+              : "",
             approvalDate: etr.completedAt
               ? new Date(etr.completedAt).toISOString().split("T")[0]
               : "",
+            submittedAt: etr.submittedAt,
+            completedAt: etr.completedAt,
+            expiryDate: etr.expiryDate,
+            subjectResults,
+            evidence,
+            completionPct,
             instructor: "",
             assessments: [],
           };
         });
 
       setEtrs(mapped);
+
+      // Metrics thật từ dữ liệu API
+      const pendingCount = mapped.filter((e) => e.status === "PENDING").length;
+      const approvedList = mapped.filter(
+        (e) => e.status === "APPROVED" && e.submittedAt && e.completedAt,
+      );
+      const avgProcessing = approvedList.length
+        ? approvedList.reduce(
+            (acc, e) => acc + (new Date(e.completedAt) - new Date(e.submittedAt)),
+            0,
+          ) /
+          approvedList.length /
+          3600000
+        : null;
+      const activeClasses = new Set(
+        enrollmentsArr.map((en) => en.classId).filter((v) => v != null),
+      ).size;
+      const allAttendance = detailsArr
+        .flatMap((d) => d?.subjectResults || [])
+        .map((sr) => sr.attendanceRate)
+        .filter((v) => v != null);
+      const avgAttendanceAll = allAttendance.length
+        ? (
+            allAttendance.reduce((acc, v) => acc + Number(v), 0) /
+            allAttendance.length
+          ).toFixed(1)
+        : null;
+      const nearCompletion = mapped.filter(
+        (e) => e.status === "PENDING" && e.completionPct >= 85,
+      ).length;
+
+      setMetrics({
+        pending: pendingCount,
+        avgProcessing: avgProcessing == null ? null : `${avgProcessing.toFixed(1)}h`,
+        activeClasses: activeClasses || null,
+        avgAttendance: avgAttendanceAll,
+        nearCompletion,
+      });
     } catch (err) {
       console.error("Lỗi tải ETR:", err);
     } finally {
@@ -87,9 +182,23 @@ const EtrApproval = () => {
     }, 4000);
   };
 
+  // TrainingManager/Admin phê duyệt qua ApprovalRequest process (route chính thức duy nhất
+  // TrainingManager được phép — /Etr/{id}/complete bị class-level EtrController chặn 403).
   const handleApprove = async (etrId) => {
     try {
-      await api.post(`/Etr/${etrId}/complete`, {});
+      const request = approvalRequests.find(
+        (r) =>
+          (r.etrCourseRecordId ?? r.eTRCourseRecordId) === Number(etrId) &&
+          r.currentStatus !== "Approved",
+      );
+      if (request) {
+        await api.post(
+          `/Approvals/${request.approvalRequestId}/process?action=Approve`,
+        );
+      } else {
+        // Fallback: không có ApprovalRequest (hiếm gặp) — Admin vẫn gọi complete được.
+        await api.post(`/Etr/${etrId}/complete`, {});
+      }
       await loadEtrsFromApi();
       setShowActionModal(null);
       setSelectedEtr(null);
@@ -101,29 +210,59 @@ const EtrApproval = () => {
     }
   };
 
-  const handleReturn = (etrId) => {
-    if (!returnComment.trim()) {
-      alert("Please specify a return reason.");
+  // Tải xuống minh chứng có xác thực (GET /Evidences/{id}/download yêu cầu Bearer token)
+  const handleDownloadEvidence = async (ev) => {
+    if (!ev) {
+      showAlert("Không có minh chứng để tải xuống.", "warning");
       return;
     }
-    setEtrs(
-      etrs.map((item) =>
-        item.id === etrId
-          ? {
-              ...item,
-              status: "RETURNED",
-              returnedBy: "Capt. Henderson",
-              returnDate: new Date().toISOString().split("T")[0],
-              returnReason: returnComment,
-            }
-          : item,
-      ),
-    );
-    setShowActionModal(null);
-    setSelectedEtr(null);
-    setReturnComment("");
-    showAlert(`ETR ${etrId} RETURNED FOR CORRECTION WITH FEEDBACK.`, "warning");
+    try {
+      const blob = await api.downloadFile(`/Evidences/${ev.evidenceFileId}/download`);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = ev.fileName || `evidence-${ev.evidenceFileId}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      showAlert(`Tải xuống thất bại: ${err.message}`, "error");
+    }
   };
+
+  // Reopen (mở khoá) ETR đã Completed — chỉ Admin (backend chặn role khác)
+  const handleReopen = async (etrId) => {
+    const reason = window.prompt(
+      `Nhập lý do mở lại (Reopen) ETR #${String(etrId).padStart(4, "0")}:`,
+    );
+    if (!reason || !reason.trim()) {
+      showAlert("Cần nêu lý do để mở lại ETR.", "error");
+      return;
+    }
+    try {
+      await api.post(`/Etr/${etrId}/reopen`, { comment: reason.trim() });
+      await loadEtrsFromApi();
+      showAlert(
+        `ETR ${etrId} REOPENED — record unlocked and audit trail updated.`,
+        "warning",
+      );
+    } catch (err) {
+      showAlert(`REOPEN FAILED: ${err.message}`, "error");
+    }
+  };
+
+  // Lấy role hiện tại từ localStorage (lưu khi login)
+  const getCurrentRole = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      return user.roleName || user.role || "";
+    } catch {
+      return "";
+    }
+  };
+  const currentRole = getCurrentRole();
+  const isAdmin = currentRole.toLowerCase() === "admin";
 
   // Filter records
   const filteredEtrs = etrs.filter((item) => {
@@ -183,10 +322,10 @@ const EtrApproval = () => {
                 <svg width={17} height={12} viewBox="0 0 17 12" fill="none">
                   <path d="M0 12V9.9C0 9.475 0.109375 9.08437 0.328125 8.72812C0.546875 8.37187 0.8375 8.1 1.2 7.9125C1.975 7.525 2.7625 7.23438 3.5625 7.04063C4.3625 6.84688 5.175 6.75 6 6.75C6.825 6.75 7.6375 6.84688 8.4375 7.04063C9.2375 7.23438 10.025 7.525 10.8 7.9125C11.1625 8.1 11.4531 8.37187 11.6719 8.72812C11.8906 9.08437 12 9.475 12 9.9V12H0ZM13.5 12V9.75C13.5 9.2 13.3469 8.67188 13.0406 8.16562C12.7344 7.65937 12.3 7.225 11.7375 6.8625C12.375 6.9375 12.975 7.06562 13.5375 7.24687C14.1 7.42812 14.625 7.65 15.1125 7.9125C15.5625 8.1625 15.9062 8.44063 16.1437 8.74687C16.3812 9.05312 16.5 9.3875 16.5 9.75V12H13.5ZM6 6C5.175 6 4.46875 5.70625 3.88125 5.11875C3.29375 4.53125 3 3.825 3 3C3 2.175 3.29375 1.46875 3.88125 0.88125C4.46875 0.29375 5.175 0 6 0C6.825 0 7.53125 0.29375 8.11875 0.88125C8.70625 1.46875 9 2.175 9 3C9 3.825 8.70625 4.53125 8.11875 5.11875C7.53125 5.70625 6.825 6 6 6ZM13.5 3C13.5 3.825 13.2062 4.53125 12.6187 5.11875C12.0312 5.70625 11.325 6 10.5 6C10.3625 6 10.1875 5.98438 9.975 5.95312C9.7625 5.92188 9.5875 5.8875 9.45 5.85C9.7875 5.45 10.0469 5.00625 10.2281 4.51875C10.4094 4.03125 10.5 3.525 10.5 3C10.5 2.475 10.4094 1.96875 10.2281 1.48125C10.0469 0.99375 9.7875 0.55 9.45 0.15C9.625 0.0875 9.8 0.046875 9.975 0.028125C10.15 0.009375 10.325 0 10.5 0C11.325 0 12.0312 0.29375 12.6187 0.88125C13.2062 1.46875 13.5 2.175 13.5 3ZM1.5 10.5H10.5V9.9C10.5 9.7625 10.4656 9.6375 10.3969 9.525C10.3281 9.4125 10.2375 9.325 10.125 9.2625C9.45 8.925 8.76875 8.67188 8.08125 8.50313C7.39375 8.33438 6.7 8.25 6 8.25C5.3 8.25 4.60625 8.33438 3.91875 8.50313C3.23125 8.67188 2.55 8.925 1.875 9.2625C1.7625 9.325 1.67188 9.4125 1.60312 9.525C1.53437 9.6375 1.5 9.7625 1.5 9.9V10.5ZM6 4.5C6.4125 4.5 6.76562 4.35312 7.05937 4.05937C7.35312 3.76562 7.5 3.4125 7.5 3C7.5 2.5875 7.35312 2.23438 7.05937 1.94062C6.76562 1.64687 6.4125 1.5 6 1.5C5.5875 1.5 5.23438 1.64687 4.94063 1.94062C4.64688 2.23438 4.5 2.5875 4.5 3C4.5 3.4125 4.64688 3.76562 4.94063 4.05937C5.23438 4.35312 5.5875 4.5 6 4.5Z" fill="#C5A059" />
                 </svg>
-                <span>CLASS {viewingHistory.className.split(" - ")[0]}: <span className="gold-text">85% COMPLETE</span></span>
+                <span>CLASS {viewingHistory.className.split(" - ")[0]}: <span className="gold-text">{viewingHistory.completionPct}% COMPLETE</span></span>
               </div>
               <div className="progress-bar-container">
-                <div className="progress-bar-fill" style={{ width: "85%" }} />
+                <div className="progress-bar-fill" style={{ width: `${viewingHistory.completionPct}%` }} />
               </div>
             </div>
           </div>
@@ -211,7 +350,7 @@ const EtrApproval = () => {
               {viewingHistory.initials}
             </div>
             <h3 className="profile-name">{viewingHistory.traineeName}</h3>
-            <span className="profile-badge-role">Senior First Officer</span>
+            <span className="profile-badge-role">{viewingHistory.status === "APPROVED" ? "Approved Record" : "Pending Approval"}</span>
 
             <div className="profile-details-divider" />
 
@@ -221,19 +360,19 @@ const EtrApproval = () => {
                 <span className="info-value">#{viewingHistory.traineeCode.replace("ID: ", "")}-EXEC</span>
               </div>
               <div className="info-item">
-                <span className="info-label">Flight Hours</span>
-                <span className="info-value">4,280.5 Hrs</span>
+                <span className="info-label">Attendance Rate</span>
+                <span className="info-value">{viewingHistory.avgScore || 0}%</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Status</span>
                 <div className="info-status">
                   <span className="dot" />
-                  <span>Active Service</span>
+                  <span>{viewingHistory.status === "APPROVED" ? "Completed" : "Pending Approval"}</span>
                 </div>
               </div>
               <div className="info-item">
-                <span className="info-label">Home Base</span>
-                <span className="info-value">VVDN (Da Nang)</span>
+                <span className="info-label">Class</span>
+                <span className="info-value">{viewingHistory.className}</span>
               </div>
             </div>
           </div>
@@ -250,15 +389,19 @@ const EtrApproval = () => {
                       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                     </svg>
                   </div>
-                  <span className="status-badge emerald">Active</span>
+                  <span className="status-badge emerald">{viewingHistory.subjectResults?.[0]?.status === "Passed" || viewingHistory.subjectResults?.[0]?.status === "Exempted" ? "Active" : "Pending"}</span>
                 </div>
                 <div className="cert-title-group">
-                  <h4>A320 Type Rating</h4>
-                  <p>Full Unrestricted Command</p>
+                  <h4>{viewingHistory.subjectResults?.[0] ? `Chuyên đề #${viewingHistory.subjectResults[0].subjectId}` : "Chưa có dữ liệu"}</h4>
+                  <p>{viewingHistory.subjectResults?.[0]?.status || "Chưa có kết quả môn học"}</p>
                 </div>
                 <div className="cert-footer">
                   <span className="footer-label">Expiry Date</span>
-                  <span className="footer-value">12 NOV 2025</span>
+                  <span className="footer-value">
+                    {viewingHistory.expiryDate
+                      ? new Date(viewingHistory.expiryDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase()
+                      : "—"}
+                  </span>
                 </div>
               </div>
 
@@ -271,15 +414,15 @@ const EtrApproval = () => {
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                   </div>
-                  <span className="status-badge gold">Renewing</span>
+                  <span className="status-badge gold">{viewingHistory.subjectResults?.[1]?.status === "Passed" || viewingHistory.subjectResults?.[1]?.status === "Exempted" ? "Active" : "Pending"}</span>
                 </div>
                 <div className="cert-title-group">
-                  <h4>CAT II/III ILS</h4>
-                  <p>Low Visibility Operations</p>
+                  <h4>{viewingHistory.subjectResults?.[1] ? `Chuyên đề #${viewingHistory.subjectResults[1].subjectId}` : "Chưa có dữ liệu"}</h4>
+                  <p>{viewingHistory.subjectResults?.[1]?.status || "Chưa có kết quả môn học"}</p>
                 </div>
                 <div className="cert-footer">
-                  <span className="footer-label">Expiry Date</span>
-                  <span className="footer-value">28 FEB 2025</span>
+                  <span className="footer-label">Issued Date</span>
+                  <span className="footer-value">{viewingHistory.approvalDate || "—"}</span>
                 </div>
               </div>
 
@@ -293,22 +436,22 @@ const EtrApproval = () => {
                       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                     </svg>
                   </div>
-                  <span className="status-badge emerald">Active</span>
+                  <span className="status-badge emerald">{viewingHistory.subjectResults?.[2]?.status === "Passed" || viewingHistory.subjectResults?.[2]?.status === "Exempted" ? "Active" : "Pending"}</span>
                 </div>
                 <div className="cert-title-group">
-                  <h4>ELP Level 5</h4>
-                  <p>English Language Proficiency</p>
+                  <h4>{viewingHistory.subjectResults?.[2] ? `Chuyên đề #${viewingHistory.subjectResults[2].subjectId}` : "Chưa có dữ liệu"}</h4>
+                  <p>{viewingHistory.subjectResults?.[2]?.status || "Chưa có kết quả môn học"}</p>
                 </div>
                 <div className="cert-footer">
-                  <span className="footer-label">Review Date</span>
-                  <span className="footer-value">Permanent</span>
+                  <span className="footer-label">Record Status</span>
+                  <span className="footer-value">{viewingHistory.status === "APPROVED" ? "Completed" : "Pending Approval"}</span>
                 </div>
               </div>
             </div>
 
             {/* Training Timeline */}
             <div className="tm-timeline-container-card">
-              <h3 className="section-title">Training Timeline (2022-2024)</h3>
+              <h3 className="section-title">ETR Approval Timeline</h3>
 
               <div className="tm-timeline-vertical">
                 {/* Timeline Item 1 */}
@@ -316,16 +459,16 @@ const EtrApproval = () => {
                   <div className="timeline-dot" />
                   <div className="timeline-card">
                     <div className="card-info">
-                      <span className="date">Oct 14, 2024</span>
-                      <h4 className="title">B737 to A320 Conversion</h4>
-                      <p className="desc">Intensive aircraft transition training program - Grade A-</p>
+                      <span className="date">{viewingHistory.submissionDate || "—"}</span>
+                      <h4 className="title">ETR Submitted</h4>
+                      <p className="desc">Academic Staff gửi hồ sơ chờ QA thẩm định</p>
                     </div>
                     <div className="card-progress">
                       <div className="status-group">
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: "100%" }} />
+                          <div className="bar-fill" style={{ width: viewingHistory.submissionDate ? "100%" : "0%" }} />
                         </div>
-                        <span className="status-label">Completed</span>
+                        <span className="status-label">{viewingHistory.submissionDate ? "Completed" : "Pending"}</span>
                       </div>
                       <div className="doc-icon">
                         <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
@@ -341,16 +484,16 @@ const EtrApproval = () => {
                   <div className="timeline-dot" />
                   <div className="timeline-card">
                     <div className="card-info">
-                      <span className="date">May 22, 2023</span>
-                      <h4 className="title">Simulator Checkride</h4>
-                      <p className="desc">Annual recurrent training & emergency procedure validation</p>
+                      <span className="date">{viewingHistory.qaDate || "—"}</span>
+                      <h4 className="title">QA Verified</h4>
+                      <p className="desc">QA Staff xác thực hồ sơ và toàn bộ minh chứng</p>
                     </div>
                     <div className="card-progress">
                       <div className="status-group">
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: "100%" }} />
+                          <div className="bar-fill" style={{ width: viewingHistory.qaDate ? "100%" : "0%" }} />
                         </div>
-                        <span className="status-label">Completed</span>
+                        <span className="status-label">{viewingHistory.qaDate ? "Completed" : "Pending"}</span>
                       </div>
                       <div className="doc-icon">
                         <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
@@ -366,16 +509,16 @@ const EtrApproval = () => {
                   <div className="timeline-dot blue-dot" />
                   <div className="timeline-card">
                     <div className="card-info">
-                      <span className="date">Jan 05, 2022</span>
-                      <h4 className="title">Safety Management System (SMS)</h4>
-                      <p className="desc">Corporate executive safety protocols and risk mitigation certification</p>
+                      <span className="date">{viewingHistory.approvalDate || "—"}</span>
+                      <h4 className="title">Training Manager Approved</h4>
+                      <p className="desc">Phê duyệt cuối cùng — hồ sơ chuyển trạng thái Completed</p>
                     </div>
                     <div className="card-progress">
                       <div className="status-group">
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: "100%" }} />
+                          <div className="bar-fill" style={{ width: viewingHistory.approvalDate ? "100%" : "0%" }} />
                         </div>
-                        <span className="status-label">Completed</span>
+                        <span className="status-label">{viewingHistory.approvalDate ? "Completed" : "Pending"}</span>
                       </div>
                       <div className="doc-icon">
                         <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
@@ -404,15 +547,19 @@ const EtrApproval = () => {
 
               <div className="tm-documents-grid">
                 {/* Doc 1 */}
-                <div className="tm-document-card" onClick={() => showAlert("Checkride_Logs_V5.pdf downloaded.")}>
+                <div className="tm-document-card" onClick={() => handleDownloadEvidence(viewingHistory.evidence?.[0])}>
                   <div className="pdf-icon-box">
                     <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
                       <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" fill="currentColor" />
                     </svg>
                   </div>
                   <div className="doc-info">
-                    <span className="name">Checkride_Logs_V5.pdf</span>
-                    <span className="meta">1.8 MB • Verified Log</span>
+                    <span className="name">{viewingHistory.evidence?.[0]?.fileName || "Chưa có minh chứng"}</span>
+                    <span className="meta">
+                      {viewingHistory.evidence?.[0]
+                        ? `${(viewingHistory.evidence[0].fileSize / (1024 * 1024)).toFixed(1)} MB • ${viewingHistory.evidence[0].verificationStatus || "Pending"}`
+                        : "—"}
+                    </span>
                   </div>
                   <div className="download-btn">
                     <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
@@ -422,15 +569,19 @@ const EtrApproval = () => {
                 </div>
 
                 {/* Doc 2 */}
-                <div className="tm-document-card" onClick={() => showAlert("Medical_Class1_2024.pdf downloaded.")}>
+                <div className="tm-document-card" onClick={() => handleDownloadEvidence(viewingHistory.evidence?.[1])}>
                   <div className="pdf-icon-box">
                     <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
                       <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" fill="currentColor" />
                     </svg>
                   </div>
                   <div className="doc-info">
-                    <span className="name">Medical_Class1_2024.pdf</span>
-                    <span className="meta">0.9 MB • Health Cert</span>
+                    <span className="name">{viewingHistory.evidence?.[1]?.fileName || "Chưa có minh chứng"}</span>
+                    <span className="meta">
+                      {viewingHistory.evidence?.[1]
+                        ? `${(viewingHistory.evidence[1].fileSize / (1024 * 1024)).toFixed(1)} MB • ${viewingHistory.evidence[1].verificationStatus || "Pending"}`
+                        : "—"}
+                    </span>
                   </div>
                   <div className="download-btn">
                     <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
@@ -440,15 +591,19 @@ const EtrApproval = () => {
                 </div>
 
                 {/* Doc 3 */}
-                <div className="tm-document-card" onClick={() => showAlert("SMS_Security_Cert.pdf downloaded.")}>
+                <div className="tm-document-card" onClick={() => handleDownloadEvidence(viewingHistory.evidence?.[2])}>
                   <div className="pdf-icon-box">
                     <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
                       <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" fill="currentColor" />
                     </svg>
                   </div>
                   <div className="doc-info">
-                    <span className="name">SMS_Security_Cert.pdf</span>
-                    <span className="meta">3.1 MB • Security Clear</span>
+                    <span className="name">{viewingHistory.evidence?.[2]?.fileName || "Chưa có minh chứng"}</span>
+                    <span className="meta">
+                      {viewingHistory.evidence?.[2]
+                        ? `${(viewingHistory.evidence[2].fileSize / (1024 * 1024)).toFixed(1)} MB • ${viewingHistory.evidence[2].verificationStatus || "Pending"}`
+                        : "—"}
+                    </span>
                   </div>
                   <div className="download-btn">
                     <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
@@ -555,7 +710,7 @@ const EtrApproval = () => {
               fontWeight: "400",
             }}
           >
-            12
+            {metrics.pending}
           </p>
           <div className="tm-zulu-badge" style={{ marginTop: "auto" }}>
             <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
@@ -589,7 +744,7 @@ const EtrApproval = () => {
               fontWeight: "400",
             }}
           >
-            4.2h
+            {metrics.avgProcessing ?? "—"}
           </p>
           <div className="tm-gradient-bar-gold" style={{ marginTop: "auto" }} />
         </div>
@@ -657,7 +812,7 @@ const EtrApproval = () => {
                 fontWeight: "400",
               }}
             >
-              24
+              {metrics.activeClasses ?? "—"}
             </p>
             <div
               style={{
@@ -703,7 +858,7 @@ const EtrApproval = () => {
                 fontWeight: "400",
               }}
             >
-              94.2%
+              {metrics.avgAttendance ?? "—"}%
             </p>
             <div
               className="tm-progress-bar"
@@ -716,7 +871,7 @@ const EtrApproval = () => {
               <div
                 className="tm-progress-fill"
                 style={{
-                  width: "94.2%",
+                  width: `${metrics.avgAttendance ?? 0}%`,
                   backgroundColor: "#002147",
                   borderRadius: "9999px",
                 }}
@@ -744,7 +899,7 @@ const EtrApproval = () => {
                 fontWeight: "400",
               }}
             >
-              08
+              {String(metrics.nearCompletion).padStart(2, "0")}
             </p>
             <span
               style={{
@@ -754,7 +909,7 @@ const EtrApproval = () => {
                 marginTop: "auto",
               }}
             >
-              Final exams scheduled within 48h
+              QA-verified ETRs ≥85% hoàn thành
             </span>
           </div>
         </div>
@@ -1020,20 +1175,6 @@ const EtrApproval = () => {
                             <button
                               onClick={() => {
                                 setSelectedEtr(etr);
-                                setShowActionModal("RETURN");
-                              }}
-                              className="tm-btn-secondary"
-                              style={{
-                                padding: "15px 16px",
-                                color: "#b00020",
-                                border: "1px solid rgba(176,0,32,0.2)",
-                              }}
-                            >
-                              REJECT
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedEtr(etr);
                                 setShowActionModal("APPROVE");
                               }}
                               className="tm-btn-approve-etr"
@@ -1041,6 +1182,19 @@ const EtrApproval = () => {
                               APPROVE ETR
                             </button>
                           </>
+                        )}
+                        {activeTab === "APPROVED" && isAdmin && (
+                          <button
+                            onClick={() => handleReopen(etr.etrId)}
+                            className="tm-btn-secondary"
+                            style={{
+                              padding: "15px 16px",
+                              color: "#b45309",
+                              border: "1px solid rgba(180,83,9,0.35)",
+                            }}
+                          >
+                            REOPEN
+                          </button>
                         )}
                       </div>
                     </td>
@@ -1249,7 +1403,7 @@ const EtrApproval = () => {
                     </div>
                   ))}
                   <div className="summary-row">
-                    <span className="label">Overall Average Score</span>
+                    <span className="label">Average Attendance Rate</span>
                     <span className="value">{selectedEtr.avgScore}%</span>
                   </div>
                 </div>
@@ -1284,7 +1438,7 @@ const EtrApproval = () => {
                     <span style={{ fontWeight: 600, color: "#002147" }}>
                       {selectedEtr.qaVerifier}
                     </span>{" "}
-                    on {selectedEtr.submissionDate}
+                    on {selectedEtr.qaDate || selectedEtr.submissionDate}
                   </span>
                 </div>
                 <div>
@@ -1329,12 +1483,6 @@ const EtrApproval = () => {
               {selectedEtr.status === "PENDING" && (
                 <>
                   <button
-                    onClick={() => setShowActionModal("RETURN")}
-                    className="tm-btn-danger"
-                  >
-                    Return for Correction
-                  </button>
-                  <button
                     onClick={() => setShowActionModal("APPROVE")}
                     className="tm-btn-success"
                   >
@@ -1352,81 +1500,50 @@ const EtrApproval = () => {
         <div className="tm-modal-overlay">
           <div className="tm-modal-card max-w-md">
             <div className="modal-header">
-              <h3>
-                {showActionModal === "APPROVE"
-                  ? "Sign Off & Approve ETR"
-                  : "Return ETR for Correction"}
-              </h3>
+              <h3>Sign Off & Approve ETR</h3>
             </div>
 
             <div className="modal-body">
-              {showActionModal === "APPROVE" ? (
-                <div
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
+                <p
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "16px",
+                    fontSize: "12px",
+                    color: "#4b5563",
+                    lineHeight: "1.5",
+                    margin: 0,
                   }}
                 >
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "#4b5563",
-                      lineHeight: "1.5",
-                      margin: 0,
-                    }}
-                  >
-                    You are signing off on ETR{" "}
-                    <span style={{ fontFamily: "monospace", fontWeight: 700 }}>
-                      {selectedEtr.id}
-                    </span>{" "}
-                    for{" "}
-                    <span style={{ fontWeight: 600 }}>
-                      {selectedEtr.traineeName}
-                    </span>
-                    .
-                  </p>
-                  <div
-                    style={{
-                      padding: "12px",
-                      backgroundColor: "#eff6ff",
-                      border: "1px solid #dbeafe",
-                      fontSize: "11px",
-                      color: "#1e40af",
-                      lineHeight: "1.4",
-                    }}
-                  >
-                    This action will stamp the training certificate, issue the
-                    final approval key, and update the audit log registry
-                    permanently.
-                  </div>
-                </div>
-              ) : (
+                  You are signing off on ETR{" "}
+                  <span style={{ fontFamily: "monospace", fontWeight: 700 }}>
+                    {selectedEtr.id}
+                  </span>{" "}
+                  for{" "}
+                  <span style={{ fontWeight: 600 }}>
+                    {selectedEtr.traineeName}
+                  </span>
+                  .
+                </p>
                 <div
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "16px",
+                    padding: "12px",
+                    backgroundColor: "#eff6ff",
+                    border: "1px solid #dbeafe",
+                    fontSize: "11px",
+                    color: "#1e40af",
+                    lineHeight: "1.4",
                   }}
                 >
-                  <p style={{ fontSize: "12px", color: "#4b5563", margin: 0 }}>
-                    Please specify the reason for returning ETR{" "}
-                    <span style={{ fontFamily: "monospace", fontWeight: 700 }}>
-                      {selectedEtr.id}
-                    </span>{" "}
-                    to the Instructor/Academic staff.
-                  </p>
-                  <div className="tm-input-group">
-                    <label>Correction Feedback</label>
-                    <textarea
-                      placeholder="E.g., Missing simulator log signature on page 4, or assessment score mismatch on ground school module."
-                      value={returnComment}
-                      onChange={(e) => setReturnComment(e.target.value)}
-                      rows="4"
-                    />
-                  </div>
+                  This action will stamp the training certificate, issue the
+                  final approval key, and update the audit log registry
+                  permanently.
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="modal-footer">
@@ -1436,21 +1553,12 @@ const EtrApproval = () => {
               >
                 Cancel
               </button>
-              {showActionModal === "APPROVE" ? (
-                <button
-                  onClick={() => handleApprove(selectedEtr.id)}
-                  className="tm-btn-success"
-                >
-                  Confirm Sign Off
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleReturn(selectedEtr.id)}
-                  className="tm-btn-danger"
-                >
-                  Send Feedback
-                </button>
-              )}
+              <button
+                onClick={() => handleApprove(selectedEtr.etrId)}
+                className="tm-btn-success"
+              >
+                Confirm Sign Off
+              </button>
             </div>
           </div>
         </div>

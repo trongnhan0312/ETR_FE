@@ -4,6 +4,16 @@ import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import "./instructor.scss";
 
+// Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login)
+const getCurrentInstructorName = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.fullName || user.displayName || user.name || "";
+  } catch {
+    return "";
+  }
+};
+
 const InstructorAssessments = () => {
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -148,7 +158,7 @@ const InstructorAssessments = () => {
             date: dateStr,
             name: s.sessionTitle || "Buổi học",
             room: s.location || "Phòng học",
-            instructor: "Nguyễn Văn A",
+            instructor: getCurrentInstructorName(),
             isConfirmed: s.isConfirmed || false,
             subjectId: s.subjectId || 1,
             assessmentId:
@@ -170,9 +180,10 @@ const InstructorAssessments = () => {
   // Load students of selected class
   const loadStudents = async () => {
     try {
-      const [allEnrollments, allProfiles] = await Promise.all([
+      const [allEnrollments, allProfiles, allClassStudents] = await Promise.all([
         api.get("/enrollments").catch(() => []),
         api.get("/userprofiles").catch(() => []),
+        api.get("/classStudents").catch(() => []),
       ]);
 
       const classEnrollments = allEnrollments.filter(
@@ -180,6 +191,10 @@ const InstructorAssessments = () => {
       );
       const mappedStudents = classEnrollments.map((en) => {
         const profile = allProfiles.find((p) => p.accountId === en.accountId);
+        // Lấy ClassStudentId thật (AttendanceRecord dùng classStudentId, không phải enrollmentId)
+        const classStudentRec = Array.isArray(allClassStudents)
+          ? allClassStudents.find((cs) => cs.courseEnrollmentId === en.enrollmentId)
+          : null;
         return {
           code: profile
             ? profile.employeeCode || `HV${en.accountId}`
@@ -187,7 +202,9 @@ const InstructorAssessments = () => {
           name: profile ? profile.fullName : "Học viên",
           accountId: en.accountId,
           enrollmentId: en.enrollmentId,
-          classStudentId: en.enrollmentId,
+          classStudentId: classStudentRec
+            ? classStudentRec.classStudentId
+            : en.enrollmentId,
         };
       });
 
@@ -560,9 +577,8 @@ const InstructorAssessments = () => {
         changedScores.map((student) => {
           if (student.subjectResultId) {
             return api
-              .post("/AssessmentResults/signoff", {
+              .post("/SubjectSignoff", {
                 subjectResultId: student.subjectResultId,
-                role: "Instructor",
                 comment: "Đã hoàn thành đánh giá chuyên đề.",
               })
               .catch(() => null);
@@ -609,7 +625,8 @@ const InstructorAssessments = () => {
   const handleSignoffAllSubjects = async () => {
     setSigningOff(true);
     try {
-      const subjectResultIds = [...new Set(displayScores.map(s => s.subjectResultId).filter(Boolean))];
+      // displayScores là biến trong block render (không truy cập được) — dùng state studentScores
+      const subjectResultIds = [...new Set(studentScores.map(s => s.subjectResultId).filter(Boolean))];
       
       if (subjectResultIds.length === 0) {
         toast.warning("Không có môn học để ký!", "Vui lòng nhập điểm trước khi ký xác nhận.");
@@ -621,7 +638,6 @@ const InstructorAssessments = () => {
         subjectResultIds.map((subjectResultId) =>
           api.post("/SubjectSignoff", {
             subjectResultId,
-            role: "Instructor",
             comment: "Đã hoàn thành đánh giá và ký xác nhận chuyên đề.",
           })
         )
@@ -734,7 +750,6 @@ const InstructorAssessments = () => {
               return api
                 .post("/SubjectSignoff", {
                   subjectResultId: student.subjectResultId,
-                  role: "Instructor",
                   comment: "Đã hoàn thành đánh giá chuyên đề.",
                 })
                 .catch(() => null);

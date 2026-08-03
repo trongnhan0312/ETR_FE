@@ -4,6 +4,7 @@ import { api } from "../utils/api";
 const QAAuditTrail = () => {
   const [auditEntries, setAuditEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [auditError, setAuditError] = useState("");
 
   useEffect(() => {
     loadAudit();
@@ -12,8 +13,24 @@ const QAAuditTrail = () => {
   const loadAudit = async () => {
     setLoading(true);
     try {
-      const data = await api.get("/Audit").catch(() => []);
-      const audits = Array.isArray(data) ? data : [];
+      // Backend /Audit chỉ cho role Admin/Audit — QA sẽ nhận 403, hiển thị thông báo rõ ràng
+      // thay vì im lặng hiển thị danh sách trống.
+      const data = await api.get("/Audit?page=1&pageSize=50").catch((err) => {
+        const isForbidden =
+          /403|Forbidden|không có quyền|unauthorized|not authorized/i.test(
+            err?.message || "",
+          );
+        throw isForbidden
+          ? new Error(
+              "Tài khoản QA không có quyền xem Audit Log hệ thống (chỉ Admin/Audit).",
+            )
+          : err;
+      });
+      const audits = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+          ? data.items
+          : [];
       const mapped = audits.slice(0, 50).map((a) => ({
         time: a.recordedAt
           ? new Date(a.recordedAt).toLocaleString("vi-VN")
@@ -27,6 +44,8 @@ const QAAuditTrail = () => {
       setAuditEntries(mapped);
     } catch (err) {
       console.error("Error loading audit:", err);
+      setAuditEntries([]);
+      setAuditError(err.message || "Không thể tải audit log.");
     } finally {
       setLoading(false);
     }
@@ -76,6 +95,17 @@ const QAAuditTrail = () => {
               }}
             >
               Đang tải...
+            </div>
+          ) : auditError ? (
+            <div
+              style={{
+                padding: "24px",
+                textAlign: "center",
+                color: "#b00020",
+                fontStyle: "italic",
+              }}
+            >
+              {auditError}
             </div>
           ) : auditEntries.length === 0 ? (
             <div

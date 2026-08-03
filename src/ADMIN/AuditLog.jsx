@@ -8,8 +8,8 @@ const AuditLog = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const data = await api.get("/Audit").catch(() => []);
-        const audits = Array.isArray(data) ? data : [];
+        const data = await api.get("/Audit?page=1&pageSize=50").catch(() => []);
+        const audits = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
         setAuditLogs(audits.slice(0, 50).map((a) => ({
           user: `Account #${a.accountId || 'System'}`,
           action: a.actionType || a.entityName || 'UPDATE',

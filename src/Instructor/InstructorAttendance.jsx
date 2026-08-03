@@ -4,6 +4,16 @@ import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import "./instructor.scss";
 
+// Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login)
+const getCurrentInstructorName = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.fullName || user.displayName || user.name || "";
+  } catch {
+    return "";
+  }
+};
+
 const InstructorAttendance = () => {
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -89,10 +99,9 @@ const InstructorAttendance = () => {
             date: dateStr,
             name: s.sessionTitle || "Buổi học",
             room: s.location || "Phòng học",
-            instructor: "Nguyễn Văn A",
+            instructor: getCurrentInstructorName(),
             attendance: s.isConfirmed ? "Đã chốt" : "Chưa chốt",
-            isConfirmed: s.isConfirmed || false,
-            rate: 100
+            isConfirmed: s.isConfirmed || false
           };
         }));
         setSessions(mapped);

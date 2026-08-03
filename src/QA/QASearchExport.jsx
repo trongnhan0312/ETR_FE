@@ -1,15 +1,11 @@
 import { useState, useCallback } from "react";
-import { api, API_BASE_URLS } from "../utils/api";
-
-// Use local first, fallback to deploy
-const API_BASE_URL = API_BASE_URLS[0];
+import { api } from "../utils/api";
 
 const QASearchExport = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [results, setResults] = useState(null);
   const [searching, setSearching] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
   const handleSearch = async () => {
@@ -20,12 +16,40 @@ const QASearchExport = () => {
     setSearching(true);
     setMessage({ type: "", text: "" });
     try {
+      // Backend: GET /api/Search/etrs?query= — trả về các ETR record (kèm trạng thái thực)
       const data = await api
-        .get(`/Search?q=${encodeURIComponent(searchQuery)}&status=${statusFilter}`)
+        .get(`/Search/etrs?query=${encodeURIComponent(searchQuery)}`)
         .catch(() => null);
+
       if (data && Array.isArray(data)) {
-        setResults(data);
-        setMessage({ type: "success", text: `Tìm thấy ${data.length} kết quả.` });
+        // Lọc trạng thái phía client — backend không hỗ trợ tham số status
+        const filtered =
+          statusFilter === "all"
+            ? data
+            : data.filter((r) => (r.status || "") === statusFilter);
+
+        // Enrich tên học viên (nếu backend phân quyền cho phép — nếu 403 sẽ fallback ETR #id)
+        const [enrollments, profiles] = await Promise.all([
+          api.get("/Enrollments").catch(() => []),
+          api.get("/UserProfiles/learners").catch(() => []),
+        ]);
+        const enrollmentsArr = Array.isArray(enrollments) ? enrollments : [];
+        const profilesArr = Array.isArray(profiles) ? profiles : [];
+        const enriched = filtered.map((r) => {
+          const enrollment = enrollmentsArr.find(
+            (e) => e.enrollmentId === r.enrollmentId
+          );
+          const profile = enrollment
+            ? profilesArr.find((p) => p.accountId === enrollment.accountId)
+            : null;
+          return { ...r, learnerName: profile?.fullName || "" };
+        });
+
+        setResults(enriched);
+        setMessage({
+          type: "success",
+          text: `Tìm thấy ${enriched.length} kết quả.`,
+        });
       } else {
         setResults([]);
         setMessage({ type: "warning", text: "Không tìm thấy kết quả nào." });
@@ -37,51 +61,20 @@ const QASearchExport = () => {
     }
   };
 
-  const handleExportPackage = useCallback(async () => {
-    setExporting(true);
-    try {
-      const result = await api.post("/Exports/training-package", {});
-      if (result && result.exportJobId) {
-        // Open download in new tab
-        window.open(
-          `${API_BASE_URL}/Exports/download/${result.exportJobId}`,
-          "_blank"
-        );
-        setMessage({
-          type: "success",
-          text: `Gói training đã được xuất. Tải file: ${result.fileName || "training_package.zip"}`,
-        });
-      } else {
-        setMessage({ type: "success", text: "Yêu cầu xuất gói training đã được tạo." });
-      }
-    } catch (err) {
-      setMessage({ type: "error", text: "Xuất thất bại: " + (err.message || "") });
-    } finally {
-      setExporting(false);
-    }
+  // Export endpoint chỉ cho role Admin/Audit/Academic — QA không có quyền (backend trả 403),
+  // nên thông báo rõ thay vì gọi API.
+  const handleExportPackage = useCallback(() => {
+    setMessage({
+      type: "error",
+      text: "Tài khoản QA không có quyền xuất Training Package (chỉ Admin/Audit/Academic).",
+    });
   }, []);
 
-  const handleExportAudit = useCallback(async () => {
-    setExporting(true);
-    try {
-      const result = await api.post("/Exports/pdf", {});
-      if (result && result.exportJobId) {
-        window.open(
-          `${API_BASE_URL}/Exports/download/${result.exportJobId}`,
-          "_blank"
-        );
-        setMessage({
-          type: "success",
-          text: `Audit trail PDF đã được xuất.`,
-        });
-      } else {
-        setMessage({ type: "success", text: "Yêu cầu xuất audit trail đã được tạo." });
-      }
-    } catch (err) {
-      setMessage({ type: "error", text: "Xuất thất bại: " + (err.message || "") });
-    } finally {
-      setExporting(false);
-    }
+  const handleExportAudit = useCallback(() => {
+    setMessage({
+      type: "error",
+      text: "Tài khoản QA không có quyền xuất Audit Trail (chỉ Admin/Audit/Academic).",
+    });
   }, []);
 
   return (
@@ -117,9 +110,11 @@ const QASearchExport = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="reviewed">Reviewed</option>
-            <option value="rejected">Rejected</option>
+            <option value="InProgress">In Progress</option>
+            <option value="Submitted">Submitted</option>
+            <option value="Verified">QA Verified</option>
+            <option value="Completed">Completed</option>
+            <option value="ReturnedForCorrection">Returned for Correction</option>
           </select>
           <button
             className="qa-btn"
@@ -147,7 +142,7 @@ const QASearchExport = () => {
                       {r.learnerName || r.studentName || `ETR #${r.etrCourseRecordId || r.eTRCourseRecordId || ""}`}
                     </p>
                     <p className="qa-list-desc">
-                      {r.courseName || r.className || ""} - {r.status || ""}
+                      ETR #{r.etrCourseRecordId || r.eTRCourseRecordId || ""} - {r.status || ""}
                     </p>
                   </div>
                   <span className="qa-status neutral">Ready</span>
@@ -194,15 +189,13 @@ const QASearchExport = () => {
             className="qa-btn-secondary"
             type="button"
             onClick={handleExportPackage}
-            disabled={exporting}
           >
-            {exporting ? "Exporting..." : "Export Training Package"}
+            Export Training Package
           </button>
           <button
             className="qa-btn-ghost"
             type="button"
             onClick={handleExportAudit}
-            disabled={exporting}
           >
             Export Audit Trail
           </button>

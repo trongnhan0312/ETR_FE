@@ -1,12 +1,12 @@
 import { useState } from 'react';
 
-const CreateClass = ({ courses, onSave, onCancel }) => {
+const CreateClass = ({ courses, instructors = [], onSave, onCancel }) => {
   const [parentCourse, setParentCourse] = useState(courses[0]?.courseId || '');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [instructor, setInstructor] = useState('Nguyễn Văn A');
+  const [instructorAccountId, setInstructorAccountId] = useState('');
   const [status, setStatus] = useState('Sắp diễn ra');
 
   const handleSubmit = (e) => {
@@ -19,7 +19,7 @@ const CreateClass = ({ courses, onSave, onCancel }) => {
       endDate,
       status,
       attendanceRate: 0,
-      instructor
+      instructorAccountId: instructorAccountId ? Number(instructorAccountId) : null
     };
 
     onSave(parentCourse, newClass);
@@ -78,13 +78,15 @@ const CreateClass = ({ courses, onSave, onCancel }) => {
                   <label htmlFor="class-instructor-select">Giảng viên giảng dạy</label>
                   <select
                     id="class-instructor-select"
-                    value={instructor}
-                    onChange={(e) => setInstructor(e.target.value)}
-                    required
+                    value={instructorAccountId}
+                    onChange={(e) => setInstructorAccountId(e.target.value)}
                   >
-                    <option value="Nguyễn Văn A">Nguyễn Văn A</option>
-                    <option value="Trần Văn B">Trần Văn B</option>
-                    <option value="Lê Hoàng C">Lê Hoàng C</option>
+                    <option value="">Chưa phân công</option>
+                    {instructors.map((ins) => (
+                      <option key={ins.accountId} value={ins.accountId}>
+                        {ins.fullName}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

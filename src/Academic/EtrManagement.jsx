@@ -36,23 +36,26 @@ const EtrManagement = () => {
   const [allProfiles, setAllProfiles] = useState([]);
 
   // New Evidence upload form state
-  const [uploadFileName, setUploadFileName] = useState('');
-  const [uploadFileType, setUploadFileType] = useState('PDF DOC');
-  const [uploadFileTag, setUploadFileTag] = useState('');
-  const [uploadFileSize, setUploadFileSize] = useState('1.5 MB');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadEvidenceTypeId, setUploadEvidenceTypeId] = useState('');
+  const [uploadEvidenceTypes, setUploadEvidenceTypes] = useState([]);
+
+  // Map ETR id -> danh sách SubjectResultId (evidence gắn qua SubjectResultId, không có ETR id trực tiếp)
+  const [subjectResultIdsByEtr, setSubjectResultIdsByEtr] = useState({});
 
   // Load data from APIs
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [etrs, evfs, audits, enrollments, accounts, profiles] = await Promise.all([
+        const [etrs, evfs, audits, enrollments, accounts, profiles, evidenceTypes] = await Promise.all([
           api.get("/Etr").catch(() => []),
           api.get("/Evidences").catch(() => []),
-          api.get("/Audit").catch(() => []),
+          api.get("/Audit?page=1&pageSize=50").catch(() => []),
           api.get("/Enrollments").catch(() => []),
           api.get("/Accounts").catch(() => []),
-          api.get("/UserProfiles/learners").catch(() => [])
+          api.get("/UserProfiles/learners").catch(() => []),
+          api.get("/EvidenceTypes").catch(() => [])
         ]);
 
         const etrsArr = Array.isArray(etrs) ? etrs : [];
@@ -64,9 +67,26 @@ const EtrManagement = () => {
         setAllAccounts(accountsArr);
         setAllProfiles(profilesArr);
         setAllEnrollments(enrollmentsArr);
+        setUploadEvidenceTypes(Array.isArray(evidenceTypes) ? evidenceTypes : []);
+        if (Array.isArray(evidenceTypes) && evidenceTypes.length > 0) {
+          setUploadEvidenceTypeId(String(evidenceTypes[0].evidenceTypeId));
+        }
+
+        // Fetch chi tiết từng ETR để lấy SubjectResultId (evidence liên kết qua SubjectResult, không phải ETR id)
+        const detailsArr = await Promise.all(
+          etrsArr.map((e) =>
+            api.get(`/Etr/${e.etrCourseRecordId || e.eTRCourseRecordId}`).catch(() => null)
+          )
+        );
+        const srMap = {};
+        etrsArr.forEach((e, i) => {
+          const id = e.etrCourseRecordId || e.eTRCourseRecordId;
+          srMap[id] = (detailsArr[i]?.subjectResults || []).map((sr) => sr.subjectResultId);
+        });
+        setSubjectResultIdsByEtr(srMap);
 
         // Merge ETR records with enrollment/profile/evidence data
-        const merged = mergeEtrData(etrsArr, enrollmentsArr, accountsArr, profilesArr, evfsArr);
+        const merged = mergeEtrData(etrsArr, enrollmentsArr, accountsArr, profilesArr, evfsArr, srMap);
         setEtrRecords(merged);
         if (merged.length > 0) {
           setSelectedRecord(merged[0]);
@@ -89,7 +109,7 @@ const EtrManagement = () => {
     loadData();
   }, []);
 
-  const mergeEtrData = (etrs, enrollments, accounts, profiles, evidenceFiles = []) => {
+  const mergeEtrData = (etrs, enrollments, accounts, profiles, evidenceFiles = [], subjectResultIdsByEtr = {}) => {
     const evfsArr = Array.isArray(evidenceFiles) ? evidenceFiles : [];
 
     return etrs.map((etr) => {
@@ -99,17 +119,22 @@ const EtrManagement = () => {
       const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
 
       const statusMap = {
+        'InProgress': 'UNDER REVIEW',
         'Draft': 'UNDER REVIEW',
+        'Active': 'UNDER REVIEW',
         'Submitted': 'PENDING QA',
-        'Verified': 'APPROVED',
-        'Completed': 'APPROVED',
-        'Active': 'UNDER REVIEW'
+        'Verified': 'QA VERIFIED',
+        'ReturnedForCorrection': 'RETURNED FOR CORRECTION',
+        'Reopened': 'UNDER REVIEW',
+        'Completed': 'APPROVED'
       };
 
-      // Find evidence files for this ETR record
+      // Evidence liên kết qua SubjectResultId (không có ETR id trực tiếp trên EvidenceFile)
+      const subjectResultIds = subjectResultIdsByEtr[etrId] || [];
       const etrEvidences = evfsArr.filter(
-        (ev) => (ev.eTRCourseRecordId || ev.etrCourseRecordId) === etrId
+        (ev) => subjectResultIds.includes(ev.subjectResultId)
       ).map((ev) => ({
+        id: ev.evidenceFileId,
         name: ev.fileName || `evidence-${ev.evidenceFileId}`,
         type: ev.mimeType === 'application/pdf' ? 'PDF DOC' :
               ev.mimeType?.startsWith('image/') ? 'PHOTO' : 'SIGNATURE',
@@ -118,13 +143,14 @@ const EtrManagement = () => {
         size: ev.fileSize ? `${(ev.fileSize / (1024 * 1024)).toFixed(1)} MB` : '0 MB',
         status: ev.verificationStatus === 'Verified' ? 'Verified' :
                 ev.verificationStatus === 'Rejected' ? 'Rejected' : 'Pending QA',
-        rejectReason: ev.qAComment || ev.qaComment || ''
+        rejectReason: ev.verificationComment || ''
       }));
 
       return {
         id: `#ETR-${String(etrId).padStart(4, '0')}`,
         etrId: etrId,
         enrollmentId: etr.enrollmentId,
+        accountId: enrollment?.accountId,
         studentCode: profile?.userCode || account?.username || '',
         studentName: profile?.fullName || account?.username || `Học viên #${enrollment?.accountId || ''}`,
         course: `Khóa học #${enrollment?.classId || ''}`,
@@ -144,21 +170,44 @@ const EtrManagement = () => {
 
   const refreshData = async () => {
     try {
-      const [etrs, audits] = await Promise.all([
+      const [etrs, evfs, audits] = await Promise.all([
         api.get("/Etr").catch(() => []),
-        api.get("/Audit").catch(() => [])
+        api.get("/Evidences").catch(() => []),
+        api.get("/Audit?page=1&pageSize=50").catch(() => [])
       ]);
+      const etrsArr = Array.isArray(etrs) ? etrs : [];
+
+      // Cập nhật lại bản đồ SubjectResultId (có thể thay đổi sau khi tải thêm evidence)
+      const detailsArr = await Promise.all(
+        etrsArr.map((e) =>
+          api.get(`/Etr/${e.etrCourseRecordId || e.eTRCourseRecordId}`).catch(() => null)
+        )
+      );
+      const srMap = {};
+      etrsArr.forEach((e, i) => {
+        const id = e.etrCourseRecordId || e.eTRCourseRecordId;
+        srMap[id] = (detailsArr[i]?.subjectResults || []).map((sr) => sr.subjectResultId);
+      });
+      setSubjectResultIdsByEtr(srMap);
+
       const merged = mergeEtrData(
-        Array.isArray(etrs) ? etrs : [],
-        allEnrollments, allAccounts, allProfiles
+        etrsArr,
+        allEnrollments, allAccounts, allProfiles,
+        Array.isArray(evfs) ? evfs : [],
+        srMap
       );
       setEtrRecords(merged);
-      setAuditTrail(Array.isArray(audits) ? audits.map((a) => ({
+      const auditsArr = Array.isArray(audits)
+        ? audits
+        : Array.isArray(audits?.items)
+          ? audits.items
+          : [];
+      setAuditTrail(auditsArr.map((a) => ({
         time: a.recordedAt ? new Date(a.recordedAt).toLocaleString('vi-VN') : '',
         actor: `Account #${a.accountId || 'N/A'}`,
         action: a.actionType || 'UPDATE',
         desc: a.description || 'Cập nhật hồ sơ'
-      })) : []);
+      })));
     } catch (error) {
       console.error("Error refreshing ETR data:", error);
     }
@@ -207,17 +256,40 @@ const EtrManagement = () => {
     if (!selectedRecord) return;
 
     try {
-      // Use POST /api/Evidences to upload
+      if (!uploadFile) {
+        alert("Vui lòng chọn tệp tin trước khi tải lên.");
+        return;
+      }
+      if (!uploadEvidenceTypeId) {
+        alert("Vui lòng chọn loại minh chứng.");
+        return;
+      }
+
+      // Evidence gắn với SubjectResult — lấy SubjectResultId đầu tiên của ETR
+      const etrDetail = await api.get(`/Etr/${selectedRecord.etrId}`).catch(() => null);
+      const subjectResults = etrDetail?.subjectResults || [];
+      const subjectResultId = subjectResults[0]?.subjectResultId;
+      if (!subjectResultId) {
+        alert("ETR chưa có kết quả môn học nào để gắn minh chứng. Vui lòng nhập điểm đánh giá trước.");
+        return;
+      }
+      if (!selectedRecord.accountId) {
+        alert("Không tìm thấy AccountId của học viên (thiếu enrollment hợp lệ). Vui lòng kiểm tra ghi danh.");
+        return;
+      }
+
       const formData = new FormData();
-      formData.append('fileName', uploadFileName || 'Document.pdf');
-      formData.append('evidenceTypeId', uploadFileType === 'PDF DOC' ? '1' : uploadFileType === 'PHOTO' ? '2' : '3');
-      formData.append('eTRCourseRecordId', selectedRecord.etrId || 0);
+      formData.append('EvidenceTypeId', String(uploadEvidenceTypeId));
+      formData.append('AccountId', String(selectedRecord.accountId || 0));
+      formData.append('SubjectResultId', String(subjectResultId));
+      formData.append('File', uploadFile, uploadFile.name);
 
-      api.postFormData("/Evidences", formData);
+      await api.postFormData("/Evidences/upload", formData);
 
-      await refreshData();
+      alert(`Đã tải lên minh chứng: ${uploadFile.name}`);
+      setUploadFile(null);
       setIsEvidenceUploadOpen(false);
-      setUploadFileName('');
+      await refreshData();
     } catch (error) {
       console.error("Error uploading evidence:", error);
       alert("Tải lên thất bại: " + (error.message || "Lỗi không xác định"));
@@ -247,10 +319,17 @@ const EtrManagement = () => {
     }
   };
 
-  const handleDownloadFile = async (fileName) => {
+  const handleDownloadFile = async (fileId, fileName) => {
     try {
-      await api.get(`/Evidences/download?fileName=${encodeURIComponent(fileName)}`);
-      await refreshData();
+      const blob = await api.downloadFile(`/Evidences/${fileId}/download`);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName || `evidence-${fileId}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading file:", error);
       alert("Tải xuống thất bại: " + (error.message || "Lỗi không xác định"));
@@ -259,12 +338,12 @@ const EtrManagement = () => {
 
   const [previewFile, setPreviewFile] = useState(null);
 
-  const handleDeleteFile = async (fileName, e) => {
+  const handleDeleteFile = async (fileId, fileName, e) => {
     e.stopPropagation();
     if (!selectedRecord) return;
     if (window.confirm(`Bạn có chắc chắn muốn xóa minh chứng ${fileName}?`)) {
       try {
-        await api.delete(`/Evidences/${encodeURIComponent(fileName)}`);
+        await api.delete(`/Evidences/${fileId}`);
         await refreshData();
       } catch (error) {
         console.error("Error deleting file:", error);
@@ -401,9 +480,7 @@ const EtrManagement = () => {
                 <div 
                   className="flex justify-start items-center gap-3 px-6 py-2.5 rounded-lg bg-[#002147] cursor-pointer hover:bg-[#002147]/90 transition"
                   onClick={() => {
-                    setUploadFileName('');
-                    setUploadFileType('PDF DOC');
-                    setUploadFileTag(selectedRecord.course);
+                    setUploadFile(null);
                     setIsEvidenceUploadOpen(true);
                   }}
                   style={{ minHeight: '44px' }}
@@ -622,7 +699,7 @@ const EtrManagement = () => {
                             <button 
                               type="button"
                               className="p-2 rounded-lg bg-[#f5f7fa] border border-slate-200 text-[#002147] hover:bg-slate-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
-                              onClick={() => handleDownloadFile(file.name)}
+                              onClick={() => handleDownloadFile(file.id, file.name)}
                               title="Tải xuống"
                             >
                               <svg width={14} height={14} viewBox="0 0 14 17" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -632,7 +709,7 @@ const EtrManagement = () => {
                             <button 
                               type="button"
                               className="p-2 rounded-lg bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
-                              onClick={(e) => handleDeleteFile(file.name, e)}
+                              onClick={(e) => handleDeleteFile(file.id, file.name, e)}
                               title="Xóa minh chứng"
                             >
                               <svg width={12} height={14} viewBox="0 0 448 512" fill="currentColor" style={{ width: '12px', height: '12px' }}>
@@ -1088,55 +1165,45 @@ const EtrManagement = () => {
             <form onSubmit={handleUploadEvidence}>
               <div className="modal-body" style={{ padding: '24px' }}>
                 <div className="form-group">
-                  <label htmlFor="upload-file-name">Tên tập tin</label>
+                  <label htmlFor="upload-file">Tệp minh chứng</label>
                   <input
-                    id="upload-file-name"
-                    type="text"
-                    placeholder="Ví dụ: Bao-Cao-Mon-Hoc.pdf"
-                    value={uploadFileName}
-                    onChange={(e) => setUploadFileName(e.target.value)}
+                    id="upload-file"
+                    type="file"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setUploadFile(e.target.files[0]);
+                      }
+                    }}
                     required
                   />
+                  {uploadFile && (
+                    <p style={{ fontSize: '12px', color: '#64748b', marginTop: 6 }}>
+                      {uploadFile.name} · {(uploadFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  )}
                 </div>
 
                 <div className="form-row" style={{ marginTop: '16px' }}>
                   <div className="form-group">
-                    <label htmlFor="upload-file-type">Phân loại</label>
+                    <label htmlFor="upload-file-type">Loại minh chứng</label>
                     <select
                       id="upload-file-type"
-                      value={uploadFileType}
-                      onChange={(e) => setUploadFileType(e.target.value)}
+                      value={uploadEvidenceTypeId}
+                      onChange={(e) => setUploadEvidenceTypeId(e.target.value)}
                       required
                     >
-                      <option value="PDF DOC">PDF DOC (Tài liệu)</option>
-                      <option value="PHOTO">PHOTO (Hình ảnh)</option>
-                      <option value="SIGNATURE">SIGNATURE (Chữ ký số)</option>
+                      {uploadEvidenceTypes.length === 0 ? (
+                        <option value="">Đang tải danh mục...</option>
+                      ) : (
+                        uploadEvidenceTypes.map((et) => (
+                          <option key={et.evidenceTypeId} value={et.evidenceTypeId}>
+                            {et.typeName || `Loại ${et.evidenceTypeId}`}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="upload-file-size">Dung lượng</label>
-                    <input
-                      id="upload-file-size"
-                      type="text"
-                      placeholder="Ví dụ: 1.5 MB"
-                      value={uploadFileSize}
-                      onChange={(e) => setUploadFileSize(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginTop: '16px' }}>
-                  <label htmlFor="upload-file-tag">Lĩnh vực / Nhãn (Tag)</label>
-                  <input
-                    id="upload-file-tag"
-                    type="text"
-                    placeholder="Ví dụ: AEROSPACE STRUCTURAL ANALYSIS"
-                    value={uploadFileTag}
-                    onChange={(e) => setUploadFileTag(e.target.value)}
-                    required
-                  />
                 </div>
               </div>
 
@@ -1322,7 +1389,7 @@ const EtrManagement = () => {
                 className="modal-submit-btn" 
                 type="button" 
                 onClick={() => {
-                  handleDownloadFile(previewFile.name);
+                  handleDownloadFile(previewFile.id, previewFile.name);
                   setPreviewFile(null);
                 }}
               >

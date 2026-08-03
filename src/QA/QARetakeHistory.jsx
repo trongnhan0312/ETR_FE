@@ -16,11 +16,15 @@ const QARetakeHistory = () => {
     setLoading(true);
     try {
       const [retakeData, profileData] = await Promise.all([
-        api.get("/RetakeHistory").catch(() => []),
+        api.get("/RetakeHistory?page=1&pageSize=100").catch(() => []),
         api.get("/UserProfiles/learners").catch(() => []),
       ]);
 
-      const retakesArr = Array.isArray(retakeData) ? retakeData : [];
+      const retakesArr = Array.isArray(retakeData)
+        ? retakeData
+        : Array.isArray(retakeData?.items)
+          ? retakeData.items
+          : [];
       const profilesArr = Array.isArray(profileData) ? profileData : [];
 
       // Extract unique subject result IDs from retake history

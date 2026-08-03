@@ -13,31 +13,114 @@ export const API_BASE_URLS = isProduction
   : [API_BASE_URL_LOCAL, API_BASE_URL_DEPLOY];
 
 /**
- * Try each base URL until one works.
- * Only retries on network errors (fetch throws), NOT on API-level errors (4xx/5xx).
+ * Gán nhãn LOCAL/DEPLOY cho base URL — dùng để log rõ ràng frontend đang gọi API nào.
  */
-async function fetchWithFallback(
-  urls,
-  endpoint,
-  fetchOptions,
-  method,
-  options,
-) {
+export const getApiBaseLabel = (baseUrl) => {
+  if (baseUrl === API_BASE_URL_LOCAL) return "LOCAL";
+  if (baseUrl === API_BASE_URL_DEPLOY) return "DEPLOY";
+  return "CUSTOM";
+};
+
+// ==================== Chế độ chọn base URL: KHÔNG trộn LOCAL/DEPLOY ====================
+// - PRODUCTION: luôn DEPLOY.
+// - DEV: tự khóa base URL đầu tiên phản hồi được (sticky) — mọi request sau đó chỉ dùng base đó.
+// - Bắt buộc thủ công bằng: localStorage.setItem("apiBaseMode", "local" | "deploy")
+const API_MODE_STORAGE_KEY = "apiBaseMode";
+
+const getManualApiMode = () => {
+  try {
+    const v = localStorage.getItem(API_MODE_STORAGE_KEY);
+    if (v === "local") return "LOCAL";
+    if (v === "deploy") return "DEPLOY";
+  } catch {
+    /* bỏ qua nếu localStorage không khả dụng */
+  }
+  return null;
+};
+
+// Base URL đã khóa — sau request đầu tiên thành công, KHÔNG đổi sang base khác
+let activeBaseUrl = null;
+
+const resolveBaseUrlOrder = () => {
+  if (isProduction) return [API_BASE_URL_DEPLOY];
+  const manual = getManualApiMode();
+  if (manual === "LOCAL") return [API_BASE_URL_LOCAL];
+  if (manual === "DEPLOY") return [API_BASE_URL_DEPLOY];
+  if (activeBaseUrl) return [activeBaseUrl];
+  return API_BASE_URLS;
+};
+
+const lockBaseUrl = (baseUrl) => {
+  if (!activeBaseUrl) {
+    activeBaseUrl = baseUrl;
+    console.info(
+      `[API] 🔒 Đã khóa base URL: ${getApiBaseLabel(baseUrl)} (${baseUrl}) — MỌI request tiếp theo chỉ gọi base này.`,
+    );
+  }
+};
+
+/** Base URL đang dùng (cho các tầng fetch riêng như auditorApi download) */
+export const getActiveApiBaseUrl = () => {
+  if (isProduction) return API_BASE_URL_DEPLOY;
+  const manual = getManualApiMode();
+  if (manual === "LOCAL") return API_BASE_URL_LOCAL;
+  if (manual === "DEPLOY") return API_BASE_URL_DEPLOY;
+  return activeBaseUrl || API_BASE_URLS[0];
+};
+
+// --- Banner khởi động: log rõ chế độ + base URL sẽ dùng (LOCAL hay DEPLOY) ---
+if (typeof console !== "undefined") {
+  const mode = isProduction ? "PRODUCTION" : "DEV";
+  const manual = getManualApiMode();
+  const order = API_BASE_URLS.map(
+    (u) => `${getApiBaseLabel(u)} (${u})`,
+  ).join(" → ");
+  let detail;
+  if (isProduction) {
+    detail =
+      "Bản PRODUCTION: chỉ gọi DEPLOY (Azure) — bỏ qua localhost.";
+  } else if (manual) {
+    detail = `Bắt buộc dùng ${manual} (apiBaseMode=${manual.toLowerCase()}) — bỏ qua auto-fallback.`;
+  } else {
+    detail = `Tự khóa base đầu tiên phản hồi được theo thứ tự: ${order} — sau đó MỌI request chỉ dùng base đó (không trộn LOCAL/DEPLOY).`;
+  }
+  console.info(
+    `%c[API] Chế độ: ${mode}%c — ${detail}`,
+    "color:#0a7d3f;font-weight:bold",
+    "color:inherit",
+  );
+}
+
+/**
+ * Gọi API theo base URL đã khóa (hoặc tự khóa ở request đầu tiên).
+ * KHÔNG fallback sang base khác sau khi đã khóa — tránh trộn LOCAL/DEPLOY.
+ */
+async function fetchWithFallback(endpoint, fetchOptions, method, options) {
+  const urls = resolveBaseUrlOrder();
   for (const baseUrl of urls) {
     let response;
     try {
       const url = `${baseUrl}${endpoint}`;
-      console.log(`[API ${method}] Requesting: ${url}`);
+      console.log(
+        `[API ${method}] Requesting: ${getApiBaseLabel(baseUrl)} (${url})`,
+      );
       response = await fetch(url, fetchOptions);
     } catch (error) {
-      // Network error - server not reachable, try next URL
+      // Network error - server not reachable. Nếu đã khóa base thì KHÔNG đổi base khác.
       console.warn(
-        `[API ${method}] Cannot reach ${baseUrl}${endpoint}:`,
+        `[API ${method}] ⚠️ Không tới được API ${getApiBaseLabel(baseUrl)} (${baseUrl}${endpoint}):`,
         error.message,
+        urls.length > 1
+          ? "→ thử base URL kế tiếp (chỉ ở request đầu tiên)"
+          : "",
       );
       continue;
     }
-    // Fetch succeeded (server responded), process the response
+    // Server đã phản hồi → khóa base URL này cho toàn bộ phiên làm việc
+    lockBaseUrl(baseUrl);
+    console.log(
+      `[API ${method}] ✅ Đang dùng API ${getApiBaseLabel(baseUrl)} cho ${endpoint}`,
+    );
     return await handleResponse(response, method, endpoint, options);
   }
   // All URLs failed with network errors
@@ -117,7 +200,6 @@ const handleResponse = async (response, method, endpoint, options = {}) => {
 export const api = {
   get: async (endpoint, options = {}) => {
     return fetchWithFallback(
-      API_BASE_URLS,
       endpoint,
       { method: "GET", headers: getAuthHeaders() },
       "GET",
@@ -129,7 +211,6 @@ export const api = {
     const isFormData =
       typeof FormData !== "undefined" && data instanceof FormData;
     return fetchWithFallback(
-      API_BASE_URLS,
       endpoint,
       {
         method: "POST",
@@ -143,7 +224,6 @@ export const api = {
 
   postFormData: async (endpoint, formData) => {
     return fetchWithFallback(
-      API_BASE_URLS,
       endpoint,
       { method: "POST", headers: getAuthHeaders(true), body: formData },
       "FORMDATA",
@@ -153,7 +233,6 @@ export const api = {
 
   put: async (endpoint, data) => {
     return fetchWithFallback(
-      API_BASE_URLS,
       endpoint,
       {
         method: "PUT",
@@ -167,7 +246,6 @@ export const api = {
 
   patch: async (endpoint, data) => {
     return fetchWithFallback(
-      API_BASE_URLS,
       endpoint,
       {
         method: "PATCH",
@@ -181,11 +259,56 @@ export const api = {
 
   delete: async (endpoint) => {
     return fetchWithFallback(
-      API_BASE_URLS,
       endpoint,
       { method: "DELETE", headers: getAuthHeaders() },
       "DELETE",
       {},
     );
+  },
+
+  /**
+   * Tải file nhị phân (PDF/ảnh...) với token xác thực — dùng cho các endpoint trả về
+   * PhysicalFile/FileStream (api.get parse JSON nên không dùng được cho blob).
+   */
+  downloadFile: async (endpoint) => {
+    const urls = resolveBaseUrlOrder();
+    for (const baseUrl of urls) {
+      let response;
+      try {
+        const url = `${baseUrl}${endpoint}`;
+        console.log(
+          `[API DOWNLOAD] Requesting: ${getApiBaseLabel(baseUrl)} (${url})`,
+        );
+        response = await fetch(url, { method: "GET", headers: getAuthHeaders() });
+      } catch (error) {
+        // Network error — nếu đã khóa base thì KHÔNG đổi base khác
+        console.warn(
+          `[API DOWNLOAD] ⚠️ Không tới được API ${getApiBaseLabel(baseUrl)} (${baseUrl}${endpoint}):`,
+          error.message,
+          urls.length > 1
+            ? "→ thử base URL kế tiếp (chỉ ở request đầu tiên)"
+            : "",
+        );
+        continue;
+      }
+      if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      }
+      if (!response.ok) {
+        const err = await response.text().catch(() => "");
+        console.error(
+          `[API DOWNLOAD] Failed: Status ${response.status} for ${endpoint}:`,
+          err,
+        );
+        throw new Error(err || `Download failed with status ${response.status}`);
+      }
+      lockBaseUrl(baseUrl);
+      console.log(`[API DOWNLOAD] ✅ Đang dùng API ${getApiBaseLabel(baseUrl)} cho ${endpoint}`);
+      return await response.blob();
+    }
+    const errMsg = `Cannot reach any API server for ${endpoint}`;
+    console.error(`[API DOWNLOAD] ${errMsg}`);
+    throw new Error(errMsg);
   },
 };

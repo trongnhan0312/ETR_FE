@@ -74,7 +74,7 @@ const QARETRReviewQueue = () => {
     if (!reason) return;
     setVerifying(true);
     try {
-      await api.post(`/Etr/${etrId}/verify`, {});
+      await api.post(`/Etr/${etrId}/return`, { comment: reason });
       setMessage({
         type: "warning",
         text: `ETR #${String(etrId).padStart(4, "0")} đã trả lại để chỉnh sửa. Lý do: ${reason}`,

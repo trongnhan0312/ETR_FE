@@ -16,12 +16,16 @@ const QADashboard = () => {
         const [evidences, etrs, audit] = await Promise.all([
           api.get("/Evidences").catch(() => []),
           api.get("/Etr").catch(() => []),
-          api.get("/Audit").catch(() => []),
+          api.get("/Audit?page=1&pageSize=50").catch(() => []),
         ]);
 
         const evfs = Array.isArray(evidences) ? evidences : [];
         const etrsArr = Array.isArray(etrs) ? etrs : [];
-        const audits = Array.isArray(audit) ? audit : [];
+        const audits = Array.isArray(audit)
+          ? audit
+          : Array.isArray(audit?.items)
+            ? audit.items
+            : [];
 
         const pendingEvidence = evfs.filter(
           (e) => e.verificationStatus !== "Verified"
