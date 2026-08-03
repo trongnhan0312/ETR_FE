@@ -1,8 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { api } from "../utils/api";
+import ConfirmModal from "../components/ConfirmModal";
+import { useToast } from "../components/Toast";
 import "./instructor.scss";
 
 const InstructorClasses = () => {
+  const toast = useToast();
   const [classesData, setClassesData] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -240,14 +243,20 @@ const InstructorClasses = () => {
     }
   };
 
-  const handleDeleteSession = async (sessionId) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa buổi học này?")) return;
+  // Xóa buổi học qua ConfirmModal (thay window.confirm)
+  const [confirmDeleteSessionId, setConfirmDeleteSessionId] = useState(null);
+
+  const handleConfirmDeleteSession = async () => {
+    if (!confirmDeleteSessionId) return;
     try {
-      await api.delete(`/sessions/${sessionId}`);
+      await api.delete(`/sessions/${confirmDeleteSessionId}`);
+      toast.success("Xóa thành công", "Đã xóa buổi học.");
       await loadSessions();
     } catch (err) {
       console.error("Lỗi khi xóa buổi học:", err);
-      alert(err.message || "Không thể xóa buổi học.");
+      toast.error("Xóa buổi học thất bại", err.message || "Không thể xóa buổi học.");
+    } finally {
+      setConfirmDeleteSessionId(null);
     }
   };
 
@@ -560,7 +569,7 @@ const InstructorClasses = () => {
                     Sửa
                   </button>
                   <button
-                    onClick={() => handleDeleteSession(session.sessionId)}
+                    onClick={() => setConfirmDeleteSessionId(session.sessionId)}
                     type="button"
                     style={{
                       padding: "6px 10px",
@@ -860,6 +869,22 @@ const InstructorClasses = () => {
             </div>
           </div>
         )}
+
+        {/* Xác nhận xóa buổi học (view chi tiết lớp) */}
+        <ConfirmModal
+          isOpen={!!confirmDeleteSessionId}
+          onClose={() => setConfirmDeleteSessionId(null)}
+          onConfirm={handleConfirmDeleteSession}
+          title="Xóa buổi học"
+          message="Bạn có chắc chắn muốn xóa buổi học này?"
+          confirmText="XÓA"
+          cancelText="HỦY BỎ"
+          confirmVariant="danger"
+          bodyMessage="Lịch sử điểm danh của buổi học này cũng sẽ bị xóa theo."
+        />
+
+        {/* Toast notifications (view chi tiết lớp) */}
+        <toast.ToastContainer />
       </div>
     );
   }
@@ -1411,6 +1436,22 @@ const InstructorClasses = () => {
           </div>
         </div>
       </section>
+
+      {/* Xác nhận xóa buổi học */}
+      <ConfirmModal
+        isOpen={!!confirmDeleteSessionId}
+        onClose={() => setConfirmDeleteSessionId(null)}
+        onConfirm={handleConfirmDeleteSession}
+        title="Xóa buổi học"
+        message="Bạn có chắc chắn muốn xóa buổi học này?"
+        confirmText="XÓA"
+        cancelText="HỦY BỎ"
+        confirmVariant="danger"
+        bodyMessage="Lịch sử điểm danh của buổi học này cũng sẽ bị xóa theo."
+      />
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };

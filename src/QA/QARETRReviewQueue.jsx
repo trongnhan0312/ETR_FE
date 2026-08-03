@@ -1,12 +1,21 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import ConfirmModal from "../components/ConfirmModal";
+import PromptModal from "../components/PromptModal";
+import { useToast } from "../components/Toast";
 
 const QARETRReviewQueue = () => {
   const [etrRecords, setEtrRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEtr, setSelectedEtr] = useState(null);
   const [verifying, setVerifying] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+
+  // Toast notifications
+  const toast = useToast();
+
+  // Confirm Verify + Prompt lý do Return (thay window.confirm / prompt)
+  const [confirmVerifyId, setConfirmVerifyId] = useState(null);
+  const [returnTarget, setReturnTarget] = useState(null);
 
   useEffect(() => {
     loadEtrs();
@@ -48,57 +57,47 @@ const QARETRReviewQueue = () => {
     }
   };
 
-  const handleVerifyEtr = async (etrId) => {
-    if (!window.confirm(`Xác nhận xác thực ETR #${String(etrId).padStart(4, "0")}?`)) return;
+  const confirmVerify = async () => {
+    if (!confirmVerifyId) return;
     setVerifying(true);
     try {
-      await api.post(`/Etr/${etrId}/verify`, {});
-      setMessage({
-        type: "success",
-        text: `ETR #${String(etrId).padStart(4, "0")} đã được xác thực.`,
-      });
+      await api.post(`/Etr/${confirmVerifyId}/verify`, {});
+      toast.success("Xác thực thành công", `ETR #${String(confirmVerifyId).padStart(4, "0")} đã được xác thực.`);
       setSelectedEtr(null);
       await loadEtrs();
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: "Xác thực ETR thất bại: " + (err.message || ""),
-      });
+      toast.error("Xác thực ETR thất bại", err.message || "Lỗi không xác định");
     } finally {
       setVerifying(false);
+      setConfirmVerifyId(null);
     }
   };
 
-  const handleReturnEtr = async (etrId) => {
-    const reason = prompt("Nhập lý do trả lại ETR:");
-    if (!reason) return;
+  const confirmReturn = async (reason) => {
+    if (!returnTarget) return;
+    if (!reason || !reason.trim()) {
+      toast.error("Cần nêu lý do", "Vui lòng nhập lý do trả lại ETR.");
+      setReturnTarget(null);
+      return;
+    }
     setVerifying(true);
     try {
-      await api.post(`/Etr/${etrId}/return`, { comment: reason });
-      setMessage({
-        type: "warning",
-        text: `ETR #${String(etrId).padStart(4, "0")} đã trả lại để chỉnh sửa. Lý do: ${reason}`,
-      });
+      await api.post(`/Etr/${returnTarget}/return`, { comment: reason.trim() });
+      toast.warning("Đã trả lại ETR", `ETR #${String(returnTarget).padStart(4, "0")} đã trả lại để chỉnh sửa.`);
       setSelectedEtr(null);
       await loadEtrs();
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: "Trả lại ETR thất bại: " + (err.message || ""),
-      });
+      toast.error("Trả lại ETR thất bại", err.message || "Lỗi không xác định");
     } finally {
       setVerifying(false);
+      setReturnTarget(null);
     }
   };
 
   return (
     <div className="qa-shell">
-      {message.text && (
-        <div className={`tm-alert-banner ${message.type}`} style={{ marginBottom: "16px" }}>
-          <p>{message.text}</p>
-          <button onClick={() => setMessage({ type: "", text: "" })}>✕</button>
-        </div>
-      )}
+      {/* Toast notifications */}
+      <toast.ToastContainer />
 
       <section className="qa-page-card">
         <p className="qa-eyebrow">ETR review</p>
@@ -186,7 +185,7 @@ const QARETRReviewQueue = () => {
                     <button
                       className="qa-btn"
                       type="button"
-                      onClick={() => handleVerifyEtr(record.etrId)}
+                      onClick={() => setConfirmVerifyId(record.etrId)}
                       disabled={verifying}
                     >
                       Verify ETR
@@ -194,7 +193,7 @@ const QARETRReviewQueue = () => {
                     <button
                       className="qa-btn-secondary"
                       type="button"
-                      onClick={() => handleReturnEtr(record.etrId)}
+                      onClick={() => setReturnTarget(record.etrId)}
                       disabled={verifying}
                     >
                       Return for Correction
@@ -206,6 +205,32 @@ const QARETRReviewQueue = () => {
           )}
         </div>
       </section>
+
+      {/* Xác nhận xác thực ETR */}
+      <ConfirmModal
+        isOpen={!!confirmVerifyId}
+        onClose={() => setConfirmVerifyId(null)}
+        onConfirm={confirmVerify}
+        title="Xác thực ETR"
+        message={`Xác nhận xác thực ETR #${String(confirmVerifyId || "").padStart(4, "0")}?`}
+        confirmText="XÁC THỰC"
+        cancelText="HỦY BỎ"
+        confirmVariant="primary"
+        bodyMessage="Sau khi xác thực, hồ sơ sẽ chuyển sang bước phê duyệt của Training Manager."
+      />
+
+      {/* Modal nhập lý do trả lại ETR (thay prompt) */}
+      <PromptModal
+        isOpen={!!returnTarget}
+        onClose={() => setReturnTarget(null)}
+        onConfirm={confirmReturn}
+        title={`Trả lại ETR #${String(returnTarget || "").padStart(4, "0")}`}
+        message="Học viên/giảng viên sẽ nhận được lý do để chỉnh sửa hồ sơ."
+        placeholder="Nhập lý do trả lại ETR..."
+        confirmText="TRẢ LẠI"
+        cancelText="HỦY BỎ"
+        variant="danger"
+      />
     </div>
   );
 };

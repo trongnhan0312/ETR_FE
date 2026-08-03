@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import ConfirmModal from "../components/ConfirmModal";
+import { useToast } from "../components/Toast";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -302,15 +304,21 @@ const UserManagement = () => {
       }
 
       // 3. Update department
+      // B7: route chính thức là PUT /Accounts/{id}/department (Admin) — backend KHÔNG có route
+      // PUT /Accounts/{id} (404). Bỏ fallback cũ (luôn 404) và hiển thị lỗi rõ ràng nếu thất bại.
       const finalDeptId = editRoleId !== '5' ? getTrainingDeptId() : editDepartmentId;
       if (finalDeptId) {
-        await api.put(`/Accounts/${editingUser.accountId}/department`, {
-          departmentId: Number(finalDeptId),
-        }).catch(async () => {
-          await api.put(`/Accounts/${editingUser.accountId}`, {
+        try {
+          await api.put(`/Accounts/${editingUser.accountId}/department`, {
             departmentId: Number(finalDeptId),
-          }).catch((err) => console.warn("Failed to update department:", err));
-        });
+          });
+        } catch (err) {
+          console.warn("Failed to update department:", err);
+          toast.error(
+            "Cập nhật phòng ban thất bại",
+            parseApiError(err, "Không thể đổi phòng ban.")
+          );
+        }
       }
 
       await loadUsers();
@@ -323,53 +331,44 @@ const UserManagement = () => {
     }
   };
 
-  // Toggle Account Status
-  const handleToggleStatus = async (user) => {
-    const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
-    const nextStatus = isInactive ? 'Active' : 'Inactive';
-    if (!window.confirm(`Bạn có muốn đổi trạng thái tài khoản "${user.username}" thành "${nextStatus}"?`)) {
-      return;
-    }
-    try {
-      await api.put(`/Accounts/${user.accountId}/status`, { status: nextStatus });
-      await loadUsers();
-    } catch (err) {
-      console.error("Failed to update status:", err);
-      alert("Cập nhật trạng thái thất bại: " + parseApiError(err));
-    }
-  };
+  // Toast notifications
+  const toast = useToast();
 
-  // Soft Delete Account
-  const handleDeleteAccount = async (user) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn chuyển tài khoản "${user.username}" sang trạng thái Inactive (Soft Delete)?`)) {
-      return;
-    }
+  // Xác nhận trước các thao tác tài khoản (thay window.confirm)
+  const [confirmAction, setConfirmAction] = useState(null); // { type: 'toggle' | 'delete' | 'activate', user }
+
+  const runAccountAction = async (type, user) => {
     try {
-      await api.delete(`/Accounts/${user.accountId}`);
-      await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-      await loadUsers();
-    } catch (err) {
-      console.error("Failed to soft delete account:", err);
-      try {
-        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
-        await loadUsers();
-      } catch (putErr) {
-        alert("Thực hiện Soft Delete thất bại: " + parseApiError(putErr));
+      if (type === 'toggle') {
+        const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
+        const nextStatus = isInactive ? 'Active' : 'Inactive';
+        await api.put(`/Accounts/${user.accountId}/status`, { status: nextStatus });
+        toast.success("Cập nhật trạng thái", `Tài khoản "${user.username}" đã chuyển sang ${nextStatus}.`);
+      } else if (type === 'delete') {
+        await api.delete(`/Accounts/${user.accountId}`);
+        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
+        toast.success("Soft Delete", `Tài khoản "${user.username}" đã chuyển sang Inactive.`);
+      } else {
+        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
+        toast.success("Kích hoạt thành công", `Tài khoản "${user.username}" đã kích hoạt trở lại.`);
       }
-    }
-  };
-
-  // Activate Account
-  const handleActivateAccount = async (user) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn kích hoạt lại tài khoản "${user.username}" thành Active?`)) {
-      return;
-    }
-    try {
-      await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
       await loadUsers();
     } catch (err) {
-      console.error("Failed to activate account:", err);
-      alert("Kích hoạt tài khoản thất bại: " + parseApiError(err));
+      console.error(`Failed to ${type} account:`, err);
+      if (type === 'delete') {
+        try {
+          await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
+          await loadUsers();
+        } catch (putErr) {
+          toast.error("Soft Delete thất bại", parseApiError(putErr));
+        }
+      } else if (type === 'toggle') {
+        toast.error("Cập nhật trạng thái thất bại", parseApiError(err));
+      } else {
+        toast.error("Kích hoạt tài khoản thất bại", parseApiError(err));
+      }
+    } finally {
+      setConfirmAction(null);
     }
   };
 
@@ -498,7 +497,7 @@ const UserManagement = () => {
                   <div>
                     <button
                       type="button"
-                      onClick={() => handleToggleStatus(user)}
+                      onClick={() => setConfirmAction({ type: 'toggle', user })}
                       className={!isInactive ? 'status status-active' : 'status status-pending'}
                       style={{ cursor: 'pointer', border: 'none' }}
                       title="Click để toggle Active/Inactive"
@@ -519,7 +518,7 @@ const UserManagement = () => {
                       <button
                         className="action-btn"
                         type="button"
-                        onClick={() => handleActivateAccount(user)}
+                        onClick={() => setConfirmAction({ type: 'activate', user })}
                         style={{
                           padding: '4px 10px',
                           fontSize: '12px',
@@ -536,7 +535,7 @@ const UserManagement = () => {
                       <button
                         className="action-btn"
                         type="button"
-                        onClick={() => handleDeleteAccount(user)}
+                        onClick={() => setConfirmAction({ type: 'delete', user })}
                         style={{
                           padding: '4px 10px',
                           fontSize: '12px',
@@ -835,6 +834,44 @@ const UserManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Xác nhận thao tác tài khoản */}
+      <ConfirmModal
+        isOpen={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => runAccountAction(confirmAction?.type, confirmAction?.user)}
+        title={
+          confirmAction?.type === 'delete'
+            ? "Soft Delete tài khoản"
+            : confirmAction?.type === 'toggle'
+            ? "Đổi trạng thái tài khoản"
+            : "Kích hoạt tài khoản"
+        }
+        message={
+          confirmAction?.type === 'delete'
+            ? `Bạn có chắc chắn muốn chuyển tài khoản "${confirmAction?.user?.username || ''}" sang trạng thái Inactive (Soft Delete)?`
+            : confirmAction?.type === 'toggle'
+            ? `Bạn có muốn đổi trạng thái tài khoản "${confirmAction?.user?.username || ''}"?`
+            : `Bạn có chắc chắn muốn kích hoạt lại tài khoản "${confirmAction?.user?.username || ''}" thành Active?`
+        }
+        confirmText={
+          confirmAction?.type === 'delete'
+            ? "SOFT DELETE"
+            : confirmAction?.type === 'toggle'
+            ? "ĐỔI TRẠNG THÁI"
+            : "KÍCH HOẠT"
+        }
+        cancelText="HỦY BỎ"
+        confirmVariant={confirmAction?.type === 'delete' ? "danger" : "primary"}
+        bodyMessage={
+          confirmAction?.type === 'delete'
+            ? "Tài khoản sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo và lịch sử kiểm toán vẫn được giữ nguyên."
+            : "Thay đổi trạng thái sẽ được áp dụng ngay và ghi nhận vào Audit Log."
+        }
+      />
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };

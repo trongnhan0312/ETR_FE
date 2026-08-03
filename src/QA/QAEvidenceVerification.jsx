@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import PromptModal from "../components/PromptModal";
+import { useToast } from "../components/Toast";
 
 const QAEvidenceVerification = () => {
   const [evidenceList, setEvidenceList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
   const [processing, setProcessing] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  // Toast notifications (thay banner + window.prompt cũ)
+  const toast = useToast();
+  const [rejectOpen, setRejectOpen] = useState(false);
 
   useEffect(() => {
     loadEvidences();
@@ -76,45 +80,53 @@ const QAEvidenceVerification = () => {
   const handleVerifySelected = async () => {
     if (selectedIds.length === 0) return;
     setProcessing(true);
-    setMessage({ type: "", text: "" });
     try {
       await Promise.all(
         selectedIds.map((id) =>
           api.put(`/Evidences/${id}/verify`, { VerificationStatus: "Verified" })
         )
       );
-      setMessage({ type: "success", text: `Đã xác thực ${selectedIds.length} evidence.` });
+      toast.success("Xác thực thành công", `Đã xác thực ${selectedIds.length} evidence.`);
       setSelectedIds([]);
       await loadEvidences();
     } catch (err) {
-      setMessage({ type: "error", text: "Xác thực thất bại: " + (err.message || "") });
+      toast.error("Xác thực thất bại", err.message || "Lỗi không xác định");
     } finally {
       setProcessing(false);
     }
   };
 
-  const handleRejectSelected = async () => {
+  // Từ chối qua PromptModal nhập lý do (thay window.prompt)
+  const handleRejectSelected = () => {
     if (selectedIds.length === 0) return;
-    const reason = prompt("Nhập lý do từ chối:");
-    if (!reason) return;
+    setRejectOpen(true);
+  };
+
+  const handleRejectWithReason = async (reason) => {
+    if (selectedIds.length === 0) return;
+    if (!reason || !reason.trim()) {
+      toast.error("Cần nêu lý do", "Vui lòng nhập lý do từ chối.");
+      setRejectOpen(false);
+      return;
+    }
     setProcessing(true);
-    setMessage({ type: "", text: "" });
     try {
       await Promise.all(
         selectedIds.map((id) =>
           api.put(`/Evidences/${id}/verify`, {
             VerificationStatus: "Rejected",
-            VerificationComment: reason,
+            VerificationComment: reason.trim(),
           })
         )
       );
-      setMessage({ type: "warning", text: `Đã từ chối ${selectedIds.length} evidence.` });
+      toast.warning("Đã từ chối", `Đã từ chối ${selectedIds.length} evidence.`);
       setSelectedIds([]);
       await loadEvidences();
     } catch (err) {
-      setMessage({ type: "error", text: "Từ chối thất bại: " + (err.message || "") });
+      toast.error("Từ chối thất bại", err.message || "Lỗi không xác định");
     } finally {
       setProcessing(false);
+      setRejectOpen(false);
     }
   };
 
@@ -122,12 +134,8 @@ const QAEvidenceVerification = () => {
 
   return (
     <div className="qa-shell">
-      {message.text && (
-        <div className={`tm-alert-banner ${message.type}`} style={{ marginBottom: "16px" }}>
-          <p>{message.text}</p>
-          <button onClick={() => setMessage({ type: "", text: "" })}>✕</button>
-        </div>
-      )}
+      {/* Toast notifications */}
+      <toast.ToastContainer />
 
       <section className="qa-page-card">
         <p className="qa-eyebrow">Evidence management</p>
@@ -232,6 +240,19 @@ const QAEvidenceVerification = () => {
           )}
         </div>
       </section>
+
+      {/* Modal nhập lý do từ chối evidence (thay window.prompt) */}
+      <PromptModal
+        isOpen={rejectOpen}
+        onClose={() => setRejectOpen(false)}
+        onConfirm={handleRejectWithReason}
+        title="Từ chối Evidence"
+        message="Lý do từ chối sẽ được lưu vào hồ sơ minh chứng để học viên/giảng viên biết cách chỉnh sửa."
+        placeholder="Nhập lý do từ chối..."
+        confirmText="TỪ CHỐI"
+        cancelText="HỦY BỎ"
+        variant="danger"
+      />
     </div>
   );
 };

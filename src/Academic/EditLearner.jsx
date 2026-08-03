@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { useToast } from "../components/Toast";
 
 const EditLearner = ({ learner, onSave, onCancel }) => {
   // Input states
@@ -11,6 +12,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
   const [organization, setOrganization] = useState(learner.organization || '');
   const [status, setStatus] = useState(learner.status || 'ĐANG HỌC');
   const [statusReason, setStatusReason] = useState('');
+  const toast = useToast();
 
   // API-loaded data
   const [assignedClasses, setAssignedClasses] = useState([]);
@@ -70,7 +72,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
       setAssignedClasses(assignedClasses.filter((c) => c.code !== classCode));
     } catch (error) {
       console.error("Error removing enrollment:", error);
-      alert("Xóa ghi danh thất bại: " + (error.message || "Lỗi không xác định"));
+      toast.error("Xóa ghi danh thất bại", error.message || "Lỗi không xác định");
     }
   };
 
@@ -82,7 +84,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
     );
 
     if (availableClasses.length === 0) {
-      alert("Học viên đã được ghi danh vào tất cả các lớp hiện có.");
+      toast.warning("Không còn lớp khả dụng", "Học viên đã được ghi danh vào tất cả các lớp hiện có.");
       return;
     }
 
@@ -105,7 +107,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
       setAssignedClasses([...assignedClasses, newAssignment]);
     } catch (error) {
       console.error("Error adding enrollment:", error);
-      alert("Ghi danh thất bại: " + (error.message || "Lỗi không xác định"));
+      toast.error("Ghi danh thất bại", error.message || "Lỗi không xác định");
     }
   };
 
@@ -399,6 +401,9 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
           </button>
         </footer>
       </form>
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };

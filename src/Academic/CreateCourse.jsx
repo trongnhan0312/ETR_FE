@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useToast } from "../components/Toast";
 
 const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
   const [code, setCode] = useState(nextCourseCode || 'AV-MNT-102');
   const [name, setName] = useState('');
   const [duration, setDuration] = useState('');
   const [description, setDescription] = useState('');
+  const toast = useToast();
 
   // Grade weights
   const [theory, setTheory] = useState(40);
@@ -20,7 +22,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!isWeightValid) {
-      alert('Tổng trọng số điểm đánh giá phải bằng 100%!');
+      toast.warning("Trọng số không hợp lệ", "Tổng trọng số điểm đánh giá phải bằng 100%!");
       return;
     }
 
@@ -238,6 +240,9 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
           </footer>
         </form>
       </div>
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };
