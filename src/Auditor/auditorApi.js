@@ -1,4 +1,4 @@
-import { api, API_BASE_URLS } from "../utils/api";
+import { api, getApiBaseLabel, getActiveApiBaseUrl } from "../utils/api";
 
 /**
  * Auditor Compliance API Service Layer
@@ -197,34 +197,34 @@ export const exportDashboard = async (payload = {}) => {
 /** Danh sách export job trong phiên (BE không có endpoint list) */
 export const fetchExportJobs = async () => [...exportJobCache];
 
-/** GET /api/Exports/download/{id} — tải file binary qua fetch thuần */
+/** GET /api/Exports/download/{id} — tải file binary qua fetch thuần (dùng đúng base URL đã khóa) */
 export const downloadExportFile = async (id, fileName = "export.zip") => {
   const token = localStorage.getItem("token");
-  for (const baseUrl of API_BASE_URLS) {
-    try {
-      const response = await fetch(`${baseUrl}/Exports/download/${id}`, {
-        method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!response.ok) {
-        console.warn(`[Auditor API] GET /Exports/download/${id} status ${response.status}`);
-        continue;
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = fileName;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      window.URL.revokeObjectURL(url);
-      return { success: true, id, fileName };
-    } catch (err) {
-      console.warn(`[Auditor API] Cannot reach ${baseUrl} for download:`, err.message);
+  const baseUrl = getActiveApiBaseUrl();
+  try {
+    const response = await fetch(`${baseUrl}/Exports/download/${id}`, {
+      method: "GET",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      console.warn(`[Auditor API] GET /Exports/download/${id} status ${response.status}`);
+      throw new Error(`Download failed with status ${response.status}`);
     }
+    console.log(`[Auditor API] ✅ Đang dùng API ${getApiBaseLabel(baseUrl)} để tải export #${id}`);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
+    return { success: true, id, fileName };
+  } catch (err) {
+    console.warn(`[Auditor API] Không tới được ${baseUrl} cho download:`, err.message);
+    throw new Error(`Không thể tải file export #${id}.`);
   }
-  throw new Error(`Không thể tải file export #${id}.`);
 };
 
 // --- 5. DashboardController & ReportsController APIs ---
