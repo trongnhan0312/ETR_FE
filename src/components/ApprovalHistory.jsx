@@ -16,34 +16,74 @@ const ApprovalHistory = ({ etrId, onClose }) => {
     setLoading(true);
     setError("");
     try {
-      const audits = await api.get("/Audit").catch(() => []);
-      const auditsArr = Array.isArray(audits) ? audits : [];
+      // Backend /Audit trả PagedResponse ({ items }) và chỉ cho role Admin/Audit.
+      // QA/Instructor/TrainingManager không đọc được /Audit → fallback sang /Approvals
+      // (role: Admin,Instructor,QA,TrainingManager,Audit) để vẫn hiển thị trạng thái phê duyệt.
+      let audits = null;
+      try {
+        const data = await api.get("/Audit?page=1&pageSize=100");
+        audits = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.items)
+            ? data.items
+            : [];
+      } catch {
+        audits = null;
+      }
 
-      // Filter only ETR-related actions: SUBMIT, VERIFY, APPROVE, RETURN
-      const relevantActions = ["SUBMIT", "VERIFY", "APPROVE", "RETURN"];
-      const etrActions = auditsArr.filter(
-        (a) =>
-          (a.etrRecordId === etrId || a.eTRRecordId === etrId || a.recordId === etrId) &&
-          relevantActions.includes(a.actionType || "")
-      );
+      if (audits !== null) {
+        const relevantActions = ["SUBMIT", "VERIFY", "APPROVE", "RETURN", "REOPEN", "UNLOCK"];
+        const etrActions = audits.filter(
+          (a) =>
+            (a.etrRecordId === etrId ||
+              a.eTRRecordId === etrId ||
+              a.recordId === etrId) &&
+            relevantActions.includes((a.actionType || "").toUpperCase()),
+        );
 
-      const mapped = etrActions
-        .sort(
-          (a, b) =>
-            new Date(b.recordedAt || 0) - new Date(a.recordedAt || 0)
-        )
-        .map((a) => ({
-          time: a.recordedAt
-            ? new Date(a.recordedAt).toLocaleString("vi-VN")
-            : "N/A",
-          action: a.actionType || "—",
-          actor: `Account #${a.accountId || "?"}`,
-          fromStatus: a.oldValue || "—",
-          toStatus: a.newValue || "—",
-          description: a.description || "",
-        }));
+        const mapped = etrActions
+          .sort(
+            (a, b) =>
+              new Date(b.recordedAt || 0) - new Date(a.recordedAt || 0),
+          )
+          .map((a) => ({
+            time: a.recordedAt
+              ? new Date(a.recordedAt).toLocaleString("vi-VN")
+              : "N/A",
+            action: (a.actionType || "—").toUpperCase(),
+            actor: `Account #${a.accountId || "?"}`,
+            fromStatus: a.oldValue || "—",
+            toStatus: a.newValue || "—",
+            description: a.description || "",
+          }));
 
-      setLogEntries(mapped);
+        setLogEntries(mapped);
+      } else {
+        // Fallback: đọc ApprovalRequest theo ETR (QA/Instructor/TrainingManager)
+        const approvals = await api.get("/Approvals").catch(() => []);
+        const reqs = (Array.isArray(approvals) ? approvals : []).filter(
+          (r) =>
+            (r.etrCourseRecordId ?? r.eTRCourseRecordId) === Number(etrId),
+        );
+
+        const mapped = reqs
+          .sort(
+            (a, b) =>
+              new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0),
+          )
+          .map((r) => ({
+            time: r.submittedAt
+              ? new Date(r.submittedAt).toLocaleString("vi-VN")
+              : "N/A",
+            action: (r.currentStatus || "Request").toUpperCase(),
+            actor: `Account #${r.submittedByAccountId ?? r.submittedBy ?? "?"}`,
+            fromStatus: "—",
+            toStatus: r.currentStatus || "—",
+            description: `Approval request #${r.approvalRequestId} for ETR #${etrId}.`,
+          }));
+
+        setLogEntries(mapped);
+      }
     } catch (err) {
       setError("Không thể tải lịch sử phê duyệt: " + (err.message || ""));
     } finally {

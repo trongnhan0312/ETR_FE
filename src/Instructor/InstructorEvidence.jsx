@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { api, API_BASE_URLS } from "../utils/api";
+import { api } from "../utils/api";
 const getAccountIdFromToken = () => {
   try {
     const token = localStorage.getItem("token");
@@ -152,7 +152,12 @@ const InstructorEvidence = () => {
               ? new Date(ev.uploadedAt || ev.createdAt).toLocaleDateString()
               : "N/A",
           size: fileSizeInMB,
-          status: "Verified",
+          status:
+            ev.verificationStatus === "Verified"
+              ? "Verified"
+              : ev.verificationStatus === "Rejected"
+                ? "Rejected"
+                : "Pending",
           fileUrl: ev.filePath || ev.fileUrl,
         };
       });
@@ -361,6 +366,24 @@ const InstructorEvidence = () => {
     }
   };
 
+  // Tải xuống có xác thực (endpoint /Evidences/{id}/download yêu cầu Bearer token)
+  const handleDownloadEvidence = async (id, name) => {
+    try {
+      const blob = await api.downloadFile(`/Evidences/${id}/download`);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name || `evidence-${id}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Lỗi tải xuống minh chứng:", err);
+      alert("Tải xuống thất bại: " + (err.message || "Lỗi không xác định"));
+    }
+  };
+
   const selectedClass = useMemo(() => {
     return classesData.find((c) => c.classId === parseInt(selectedClassId));
   }, [classesData, selectedClassId]);
@@ -524,9 +547,11 @@ const InstructorEvidence = () => {
                   </span>
                   <div>
                     <a
-                      href={`${API_BASE_URLS[0]}/Evidences/${ev.evidenceFileId}/download`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDownloadEvidence(ev.evidenceFileId, ev.name);
+                      }}
                       style={{
                         fontSize: "13px",
                         fontWeight: "700",
@@ -534,6 +559,7 @@ const InstructorEvidence = () => {
                         textDecoration: "none",
                       }}
                       className="hover:underline"
+                      title="Tải xuống"
                     >
                       {ev.name}
                     </a>
@@ -544,7 +570,20 @@ const InstructorEvidence = () => {
                         margin: "2px 0 0",
                       }}
                     >
-                      {ev.size}
+                      {ev.size} ·{" "}
+                      <span
+                        style={{
+                          fontWeight: "700",
+                          color:
+                            ev.status === "Verified"
+                              ? "#16a34a"
+                              : ev.status === "Rejected"
+                                ? "#ef4444"
+                                : "#d97706",
+                        }}
+                      >
+                        {ev.status}
+                      </span>
                     </p>
                   </div>
                   <span

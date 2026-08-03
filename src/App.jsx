@@ -161,8 +161,8 @@ function App() {
 					</Route>
 				</Route>
 
-				{/* Protected Training Manager Routes */}
-				<Route element={<ProtectedRoute allowedRoles={["TrainingManager"]} />}>
+				{/* Protected Training Manager Routes (Admin cũng được vào để duyệt/Reopen ETR) */}
+				<Route element={<ProtectedRoute allowedRoles={["TrainingManager", "Admin"]} />}>
 					<Route path="/trainingmanager" element={<TrainingManagerLayout />}>
 						<Route index element={<TrainingManagerDashboard />} />
 						<Route path="classes" element={<ClassStatus />} />

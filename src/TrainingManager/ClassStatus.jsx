@@ -14,12 +14,17 @@ const ClassStatus = () => {
   const [newClassId, setNewClassId] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [newClassSub, setNewClassSub] = useState("");
-  const [newInstructor, setNewInstructor] = useState("");
+  const [newInstructorAccountId, setNewInstructorAccountId] = useState("");
   const [newStartDate, setNewStartDate] = useState("");
   const [newEndDate, setNewEndDate] = useState("");
   const [newRoom, setNewRoom] = useState("");
   const [newTraineesCount, setNewTraineesCount] = useState(15);
   const [newClassType, setNewClassType] = useState("Type Rating");
+  const [newCourseId, setNewCourseId] = useState("");
+
+  // Options for Class creation form (Course dropdown + Instructor dropdown)
+  const [coursesList, setCoursesList] = useState([]);
+  const [instructorsList, setInstructorsList] = useState([]);
 
   // Load classes from API
   const [classes, setClasses] = useState([]);
@@ -27,7 +32,45 @@ const ClassStatus = () => {
 
   useEffect(() => {
     loadClasses();
+    loadClassFormOptions();
   }, []);
+
+  // Load Courses + Instructor accounts for the Create Class form.
+  // InstructorAccountId must point to an Account whose Role is exactly "Instructor"
+  // (roleId === 2) — backend validates this, so we only offer valid accounts.
+  const loadClassFormOptions = async () => {
+    try {
+      const [courseData, accountData, profileData] = await Promise.all([
+        api.get("/Courses").catch(() => []),
+        api.get("/Accounts").catch(() => []),
+        api.get("/UserProfiles").catch(() => []),
+      ]);
+
+      const coursesArr = Array.isArray(courseData) ? courseData : [];
+      const accountsArr = Array.isArray(accountData) ? accountData : [];
+      const profilesArr = Array.isArray(profileData) ? profileData : [];
+
+      setCoursesList(coursesArr);
+      if (coursesArr.length > 0) {
+        setNewCourseId(String(coursesArr[0].courseId));
+      }
+
+      const instructors = accountsArr
+        .filter((a) => a.roleId === 2 || a.roleName === "Instructor")
+        .map((a) => {
+          const profile = profilesArr.find(
+            (p) => p.accountId === a.accountId,
+          );
+          return {
+            accountId: a.accountId,
+            fullName: profile?.fullName || a.username || `Instructor #${a.accountId}`,
+          };
+        });
+      setInstructorsList(instructors);
+    } catch (err) {
+      console.error("Error loading class form options:", err);
+    }
+  };
 
   const loadClasses = async () => {
     setClassesLoading(true);
@@ -96,24 +139,32 @@ const ClassStatus = () => {
 
   const handleCreateClass = async (e) => {
     e.preventDefault();
-    if (!newClassId || !newClassName || !newInstructor) {
-      alert("Vui lòng điền đầy đủ các thông tin bắt buộc.");
+    if (!newClassId || !newClassName || !newCourseId) {
+      alert("Vui lòng điền đầy đủ các thông tin bắt buộc (Mã lớp, Tên lớp, Khóa đào tạo).");
       return;
     }
 
     try {
-      // Call API to create class
+      // Call API to create class — khớp CreateClassRequest của backend:
+      // { classCode, className, courseId, startDate, endDate, location, capacity, status, instructorAccountId? }
       await api.post("/Classes", {
         classCode: newClassId.toUpperCase(),
         className: newClassName,
-        description: newClassSub || "Theory Module",
-        instructorName: newInstructor,
-        startDate: newStartDate || null,
-        endDate: newEndDate || null,
+        courseId: Number(newCourseId),
+        startDate: newStartDate
+          ? new Date(newStartDate).toISOString()
+          : null,
+        endDate: newEndDate
+          ? new Date(newEndDate).toISOString()
+          : null,
         location: newRoom || "",
+        capacity: Number(newTraineesCount) || 15,
         status: "Scheduled",
+        instructorAccountId: newInstructorAccountId
+          ? Number(newInstructorAccountId)
+          : null,
       });
-      
+
       // Reload classes from API after creation
       await loadClasses();
       setShowCreateModal(false);
@@ -122,7 +173,7 @@ const ClassStatus = () => {
       setNewClassId("");
       setNewClassName("");
       setNewClassSub("");
-      setNewInstructor("");
+      setNewInstructorAccountId("");
       setNewStartDate("");
       setNewEndDate("");
       setNewRoom("");
@@ -345,17 +396,9 @@ const ClassStatus = () => {
 
             <button
               className="flex justify-start items-center gap-2 px-8 py-3 rounded-sm bg-[#002147] border-none text-white cursor-pointer hover:bg-[#002147]/90 transition-all font-bold text-sm shadow-sm"
-              onClick={async () => {
-                try {
-                  await api.post("/Exports/training-package", {
-                    classId: selectedClassDetails.id,
-                    type: "attendance-report"
-                  });
-                  alert("Đã gửi yêu cầu xuất báo cáo điểm danh!");
-                } catch (err) {
-                  console.error("Export failed:", err);
-                  alert("Xuất báo cáo thất bại!");
-                }
+              onClick={() => {
+                // Export endpoint chỉ cho Admin/Audit/Academic — TrainingManager không có quyền
+                alert("Tài khoản TrainingManager không có quyền xuất báo cáo (chỉ Admin/Audit/Academic).");
               }}
             >
               <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
@@ -906,17 +949,9 @@ const ClassStatus = () => {
               </div>
               <div
                 className="p-1.5 cursor-pointer hover:bg-white/10 rounded"
-                onClick={async () => {
-                  try {
-                    await api.post("/Exports/training-package", {
-                      type: "excel-summary",
-                      format: "xlsx"
-                    });
-                    alert("Đã gửi yêu cầu xuất dữ liệu Excel!");
-                  } catch (err) {
-                    console.error("Export failed:", err);
-                    alert("Xuất dữ liệu thất bại!");
-                  }
+                onClick={() => {
+                  // Export endpoint chỉ cho Admin/Audit/Academic — TrainingManager không có quyền
+                  alert("Tài khoản TrainingManager không có quyền xuất dữ liệu (chỉ Admin/Audit/Academic).");
                 }}
               >
                 <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
@@ -1197,10 +1232,29 @@ const ClassStatus = () => {
                 <label className="text-xs font-semibold text-gray-600">
                   KHÓA ĐÀO TẠO (Bắt buộc) *
                 </label>
+                <select
+                  required
+                  value={newCourseId}
+                  onChange={(e) => setNewCourseId(e.target.value)}
+                  className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
+                >
+                  <option value="">Chọn khóa đào tạo...</option>
+                  {coursesList.map((course) => (
+                    <option key={course.courseId} value={course.courseId}>
+                      {course.courseCode} - {course.courseName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-600">
+                  TÊN LỚP (Bắt buộc) *
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="E.g. A320 Type Rating"
+                  placeholder="E.g. A320 Type Rating Class 03"
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
                   className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
@@ -1222,16 +1276,20 @@ const ClassStatus = () => {
 
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-gray-600">
-                  GIẢNG VIÊN PHỤ TRÁCH (Bắt buộc) *
+                  GIẢNG VIÊN PHỤ TRÁCH
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="E.g. Capt. Nguyen Van A"
-                  value={newInstructor}
-                  onChange={(e) => setNewInstructor(e.target.value)}
+                <select
+                  value={newInstructorAccountId}
+                  onChange={(e) => setNewInstructorAccountId(e.target.value)}
                   className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                />
+                >
+                  <option value="">Chưa phân công</option>
+                  {instructorsList.map((ins) => (
+                    <option key={ins.accountId} value={ins.accountId}>
+                      {ins.fullName}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

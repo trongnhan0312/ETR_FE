@@ -80,7 +80,7 @@ const QAEvidenceVerification = () => {
     try {
       await Promise.all(
         selectedIds.map((id) =>
-          api.patch(`/Evidences/${id}/verify`, { verificationStatus: "Verified" })
+          api.put(`/Evidences/${id}/verify`, { VerificationStatus: "Verified" })
         )
       );
       setMessage({ type: "success", text: `Đã xác thực ${selectedIds.length} evidence.` });
@@ -102,9 +102,9 @@ const QAEvidenceVerification = () => {
     try {
       await Promise.all(
         selectedIds.map((id) =>
-          api.patch(`/Evidences/${id}/verify`, {
-            verificationStatus: "Rejected",
-            qAComment: reason,
+          api.put(`/Evidences/${id}/verify`, {
+            VerificationStatus: "Rejected",
+            VerificationComment: reason,
           })
         )
       );

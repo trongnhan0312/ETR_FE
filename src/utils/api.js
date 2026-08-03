@@ -188,4 +188,42 @@ export const api = {
       {},
     );
   },
+
+  /**
+   * Tải file nhị phân (PDF/ảnh...) với token xác thực — dùng cho các endpoint trả về
+   * PhysicalFile/FileStream (api.get parse JSON nên không dùng được cho blob).
+   */
+  downloadFile: async (endpoint) => {
+    for (const baseUrl of API_BASE_URLS) {
+      let response;
+      try {
+        const url = `${baseUrl}${endpoint}`;
+        console.log(`[API DOWNLOAD] Requesting: ${url}`);
+        response = await fetch(url, { method: "GET", headers: getAuthHeaders() });
+      } catch (error) {
+        // Network error — thử base URL kế tiếp
+        console.warn(
+          `[API DOWNLOAD] Cannot reach ${baseUrl}${endpoint}:`,
+          error.message,
+        );
+        continue;
+      }
+      if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      }
+      if (!response.ok) {
+        const err = await response.text().catch(() => "");
+        console.error(
+          `[API DOWNLOAD] Failed: Status ${response.status} for ${endpoint}:`,
+          err,
+        );
+        throw new Error(err || `Download failed with status ${response.status}`);
+      }
+      return await response.blob();
+    }
+    const errMsg = `Cannot reach any API server for ${endpoint}`;
+    console.error(`[API DOWNLOAD] ${errMsg}`);
+    throw new Error(errMsg);
+  },
 };
