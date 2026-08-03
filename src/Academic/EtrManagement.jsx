@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import ConfirmModal from "../components/ConfirmModal";
+import { useToast } from "../components/Toast";
 
 const EtrManagement = () => {
   const [etrRecords, setEtrRecords] = useState([]);
@@ -43,6 +44,10 @@ const EtrManagement = () => {
   // Map ETR id -> danh sách SubjectResultId (evidence gắn qua SubjectResultId, không có ETR id trực tiếp)
   const [subjectResultIdsByEtr, setSubjectResultIdsByEtr] = useState({});
 
+  // B8 (giới hạn backend): GET /Evidences chỉ cho Instructor/QA/Admin — Academic không đọc được
+  // danh sách minh chứng (vẫn upload/xóa được). Hiển thị thông báo rõ ràng thay vì danh sách trống.
+  const [evidenceAccessDenied, setEvidenceAccessDenied] = useState(false);
+
   // Load data from APIs
   useEffect(() => {
     const loadData = async () => {
@@ -50,7 +55,12 @@ const EtrManagement = () => {
         setLoading(true);
         const [etrs, evfs, audits, enrollments, accounts, profiles, evidenceTypes] = await Promise.all([
           api.get("/Etr").catch(() => []),
-          api.get("/Evidences").catch(() => []),
+          api.get("/Evidences").catch((err) => {
+            if (/403|Forbidden|không có quyền|unauthorized|not authorized/i.test(err?.message || "")) {
+              setEvidenceAccessDenied(true);
+            }
+            return [];
+          }),
           api.get("/Audit?page=1&pageSize=50").catch(() => []),
           api.get("/Enrollments").catch(() => []),
           api.get("/Accounts").catch(() => []),
@@ -172,7 +182,12 @@ const EtrManagement = () => {
     try {
       const [etrs, evfs, audits] = await Promise.all([
         api.get("/Etr").catch(() => []),
-        api.get("/Evidences").catch(() => []),
+        api.get("/Evidences").catch((err) => {
+          if (/403|Forbidden|không có quyền|unauthorized|not authorized/i.test(err?.message || "")) {
+            setEvidenceAccessDenied(true);
+          }
+          return [];
+        }),
         api.get("/Audit?page=1&pageSize=50").catch(() => [])
       ]);
       const etrsArr = Array.isArray(etrs) ? etrs : [];
@@ -226,19 +241,19 @@ const EtrManagement = () => {
       const enrollment = account ? allEnrollments.find((enr) => enr.accountId === account.accountId) : null;
 
       if (!enrollment) {
-        alert('Không tìm thấy thông tin ghi danh của học viên này. Vui lòng ghi danh trước.');
+        toast.error("Không tìm thấy ghi danh", "Không tìm thấy thông tin ghi danh của học viên này. Vui lòng ghi danh trước.");
         return;
       }
 
       // ETR tự động được tạo khi Enrollment được tạo thành công (backend auto-generates)
       // Nếu ETR chưa tồn tại, hệ thống sẽ tự động tạo khi ghi danh
       // Chỉ cần refresh dữ liệu để hiển thị ETR mới
-      alert('ETR được tự động tạo khi ghi danh. Vui lòng kiểm tra lại danh sách hoặc tạo Enrollment mới.');
+      toast.success("ETR tự động tạo", "ETR được tự động tạo khi ghi danh. Vui lòng kiểm tra lại danh sách hoặc tạo Enrollment mới.");
       await refreshData();
       setIsCreateOpen(false);
     } catch (error) {
       console.error("Error:", error);
-      alert("Lỗi: " + (error.message || "Lỗi không xác định"));
+      toast.error("Lỗi", error.message || "Lỗi không xác định");
     }
   };
 
@@ -257,11 +272,11 @@ const EtrManagement = () => {
 
     try {
       if (!uploadFile) {
-        alert("Vui lòng chọn tệp tin trước khi tải lên.");
+        toast.warning("Thiếu tệp tin", "Vui lòng chọn tệp tin trước khi tải lên.");
         return;
       }
       if (!uploadEvidenceTypeId) {
-        alert("Vui lòng chọn loại minh chứng.");
+        toast.warning("Thiếu loại minh chứng", "Vui lòng chọn loại minh chứng.");
         return;
       }
 
@@ -270,11 +285,11 @@ const EtrManagement = () => {
       const subjectResults = etrDetail?.subjectResults || [];
       const subjectResultId = subjectResults[0]?.subjectResultId;
       if (!subjectResultId) {
-        alert("ETR chưa có kết quả môn học nào để gắn minh chứng. Vui lòng nhập điểm đánh giá trước.");
+        toast.warning("Chưa có kết quả môn học", "ETR chưa có kết quả môn học nào để gắn minh chứng. Vui lòng nhập điểm đánh giá trước.");
         return;
       }
       if (!selectedRecord.accountId) {
-        alert("Không tìm thấy AccountId của học viên (thiếu enrollment hợp lệ). Vui lòng kiểm tra ghi danh.");
+        toast.error("Thiếu thông tin học viên", "Không tìm thấy AccountId của học viên (thiếu enrollment hợp lệ). Vui lòng kiểm tra ghi danh.");
         return;
       }
 
@@ -286,13 +301,19 @@ const EtrManagement = () => {
 
       await api.postFormData("/Evidences/upload", formData);
 
-      alert(`Đã tải lên minh chứng: ${uploadFile.name}`);
+      toast.success(
+        "Tải lên thành công",
+        `Đã tải lên minh chứng: ${uploadFile.name}` +
+          (evidenceAccessDenied
+            ? " (danh sách minh chứng có thể chưa hiển thị vì tài khoản của bạn chưa có quyền đọc danh sách minh chứng trên backend hiện tại)."
+            : "")
+      );
       setUploadFile(null);
       setIsEvidenceUploadOpen(false);
       await refreshData();
     } catch (error) {
       console.error("Error uploading evidence:", error);
-      alert("Tải lên thất bại: " + (error.message || "Lỗi không xác định"));
+      toast.error("Tải lên thất bại", error.message || "Lỗi không xác định");
     }
   };
 
@@ -310,10 +331,19 @@ const EtrManagement = () => {
       await refreshData();
       setConfirmSubmitOpen(false);
       setRecordToSubmit(null);
-      alert(`ETR ${recordToSubmit.id} đã được gửi lên QA thành công!`);
+      toast.success("Gửi ETR thành công", `ETR ${recordToSubmit.id} đã được gửi lên QA thành công!`);
     } catch (error) {
       console.error("Error submitting ETR:", error);
-      alert("Gửi ETR thất bại: " + (error.message || "Lỗi không xác định"));
+      const isForbidden =
+        /403|Forbidden|không có quyền|unauthorized|not authorized/i.test(
+          error?.message || ""
+        );
+      toast.error(
+        "Gửi ETR thất bại",
+        isForbidden
+          ? "Tài khoản của bạn chưa được backend cho phép Submit ETR (hiện chỉ dành cho Instructor/Admin). Vui lòng dùng tài khoản có quyền hoặc liên hệ Admin."
+          : (error.message || "Lỗi không xác định")
+      );
     } finally {
       setSubmittingEtr(false);
     }
@@ -332,23 +362,35 @@ const EtrManagement = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading file:", error);
-      alert("Tải xuống thất bại: " + (error.message || "Lỗi không xác định"));
+      toast.error("Tải xuống thất bại", error.message || "Lỗi không xác định");
     }
   };
 
   const [previewFile, setPreviewFile] = useState(null);
 
-  const handleDeleteFile = async (fileId, fileName, e) => {
+  // Toast notifications
+  const toast = useToast();
+
+  // Xóa minh chứng qua ConfirmModal (thay window.confirm)
+  const [confirmDeleteFile, setConfirmDeleteFile] = useState(null); // { fileId, fileName }
+
+  const handleDeleteFile = (fileId, fileName, e) => {
     e.stopPropagation();
     if (!selectedRecord) return;
-    if (window.confirm(`Bạn có chắc chắn muốn xóa minh chứng ${fileName}?`)) {
-      try {
-        await api.delete(`/Evidences/${fileId}`);
-        await refreshData();
-      } catch (error) {
-        console.error("Error deleting file:", error);
-        alert("Xóa thất bại: " + (error.message || "Lỗi không xác định"));
-      }
+    setConfirmDeleteFile({ fileId, fileName });
+  };
+
+  const handleConfirmDeleteFile = async () => {
+    if (!confirmDeleteFile) return;
+    try {
+      await api.delete(`/Evidences/${confirmDeleteFile.fileId}`);
+      toast.success("Xóa thành công", `Đã xóa minh chứng ${confirmDeleteFile.fileName}.`);
+      await refreshData();
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      toast.error("Xóa thất bại", error.message || "Lỗi không xác định");
+    } finally {
+      setConfirmDeleteFile(null);
     }
   };
 
@@ -401,6 +443,7 @@ const EtrManagement = () => {
   // Conditional Sub-view for Evidence Management
   if (viewMode === 'evidence' && selectedRecord) {
     return (
+      <>
       <div className="evidence-management-page flex flex-col justify-start items-start w-full relative bg-[#f5f7fa]" style={{ display: 'flex', flexDirection: 'column', gap: '0px', minHeight: '100vh' }}>
         <div className="flex flex-col-reverse justify-start items-start self-stretch flex-grow overflow-hidden" style={{ width: '100%' }}>
           
@@ -554,6 +597,35 @@ const EtrManagement = () => {
                 </div>
               </div>
             </div>
+
+            {/* B8: cảnh báo khi tài khoản không đọc được danh sách minh chứng (GET /Evidences 403) */}
+            {evidenceAccessDenied && (
+              <div
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  color: '#92400e',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                }}
+              >
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+                  <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-7v2h2v-2h-2zm0-8v6h2V7h-2z" fill="#b45309" />
+                </svg>
+                <span>
+                  Tài khoản của bạn chưa được backend cho phép <strong>đọc</strong> danh sách minh chứng
+                  (GET /Evidences hiện chỉ cho Instructor/QA/Admin) — danh sách bên dưới có thể trống.
+                  Bạn vẫn có thể <strong>tải lên</strong> và <strong>xóa</strong> minh chứng; danh sách sẽ
+                  hiển thị đầy đủ khi quyền đọc được cấp ở backend.
+                </span>
+              </div>
+            )}
 
             {/* Evidence List Grid Table */}
             <div 
@@ -761,6 +833,201 @@ const EtrManagement = () => {
 
         </div>
       </div>
+      {previewFile && (
+        <div className="modal-overlay">
+          <div className="modal-container" style={{ width: '650px', maxWidth: '95%' }}>
+            <header className="modal-header">
+              <h2>XEM TRƯỚC TÀI LIỆU MINH CHỨNG</h2>
+              <button className="close-btn" type="button" onClick={() => setPreviewFile(null)} aria-label="Đóng">
+                &times;
+              </button>
+            </header>
+
+            <div className="modal-body" style={{ padding: '24px', backgroundColor: '#f8fafc' }}>
+              {/* File Info Header */}
+              <div className="flex items-start gap-4 p-4 rounded-xl bg-white border border-slate-200 shadow-sm" style={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
+                <div className={`flex justify-center items-center w-12 h-12 rounded-xl flex-shrink-0 ${
+                  previewFile.type === 'PDF DOC' || previewFile.type === 'PDF' ? 'bg-red-50 text-red-600' :
+                  previewFile.type === 'PHOTO' || previewFile.type === 'IMAGE' ? 'bg-orange-50 text-orange-600' :
+                  'bg-blue-50 text-blue-600'
+                }`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  {previewFile.type === 'PDF DOC' || previewFile.type === 'PDF' ? (
+                    <svg width={24} height={24} viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" />
+                    </svg>
+                  ) : previewFile.type === 'PHOTO' || previewFile.type === 'IMAGE' ? (
+                    <svg width={24} height={24} viewBox="0 0 18 18" fill="currentColor">
+                      <path d="M2 18C1.45 18 0.979167 17.8042 0.5875 17.4125C0.195833 17.0208 0 16.55 0 16V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H16C16.55 0 17.0208 0.195833 17.4125 0.5875C17.8042 0.979167 18 1.45 18 2V16C18 16.55 17.8042 17.4125 17.4125 17.4125C17.0208 17.8042 16.55 18 16 18H2ZM2 16H16V2H2V16ZM3 14H15L11.25 9L8.25 13L6 10L3 14ZM2 16V2V16Z" />
+                    </svg>
+                  ) : (
+                    <svg width={24} height={24} viewBox="0 0 19 18" fill="currentColor">
+                      <path d="M1 18V13.75L14.175 0.6C14.375 0.4 14.6 0.25 14.85 0.15C15.1 0.05 15.35 0 15.6 0C15.8667 0 16.1208 0.05 16.3625 0.15C16.6042 0.25 16.8167 0.4 17 0.6L18.4 2C18.6 2.18333 18.75 2.39583 18.85 2.6375C18.95 2.87917 19 3.13333 19 3.4C19 3.65 18.95 3.9 18.85 4.15C18.75 4.4 18.6 4.625 18.4 4.825L5.25 18H1ZM3 16H4.4L14.225 6.2L13.525 5.475L12.8 4.775L3 14.6V16ZM17 3.425L15.575 2L17 3.425ZM13.525 5.475L12.8 4.775L14.225 6.2L13.525 5.475ZM11 18C12.2333 18 13.375 17.6917 14.425 17.075C15.475 16.4583 16 15.6 16 14.5C16 13.9 15.8417 13.3833 15.525 12.95C15.2083 12.5167 14.7833 12.1417 14.25 11.825L12.775 13.3C13.1583 13.4667 13.4583 13.65 13.675 13.85C13.8917 14.05 14 14.2667 14 14.5C14 14.8833 13.6958 15.2292 13.0875 15.5375C12.4792 15.8458 11.7833 16 11 16C10.7167 16 10.4792 16.0958 10.2875 16.2875C10.0958 16.4792 10 16.7167 10 17C10 17.2833 10.0958 17.5208 10.2875 17.7125C10.4792 17.9042 10.7167 18 11 18ZM1.575 10.35L3.075 8.85C2.74167 8.71667 2.47917 8.57917 2.2875 8.4375C2.09583 8.29583 2 8.15 2 8C2 7.8 2.15 7.6 2.45 7.4C2.75 7.2 3.38333 6.89167 4.35 6.475C5.81667 5.84167 6.79167 5.26667 7.275 4.75C7.75833 4.23333 8 3.65 8 3C8 2.08333 7.63333 1.35417 6.9 0.8125C6.16667 0.270833 5.2 0 4 0C3.25 0 2.57917 0.133333 1.9875 0.4C1.39583 0.666667 0.941667 0.991667 0.625 1.375C0.441667 1.59167 0.366667 1.83333 0.4 2.1C0.433333 2.36667 0.558333 2.58333 0.775 2.75C0.991667 2.93333 1.23333 3.00833 1.5 2.975C1.76667 2.94167 1.99167 2.83333 2.175 2.65C2.40833 2.41667 2.66667 2.25 2.95 2.15C3.23333 2.05 3.58333 2 4 2C4.68333 2 5.1875 2.1 5.5125 2.3C5.8375 2.5 6 2.73333 6 3C6 3.23333 5.85417 3.44583 5.5625 3.6375C5.27083 3.82917 4.6 4.16667 3.55 4.65C2.21667 5.23333 1.29167 5.7625 0.775 6.2375C0.258333 6.7125 0 7.3 0 8C0 8.53333 0.141667 8.9875 0.425 9.3625C0.708333 9.7375 1.09167 10.0667 1.575 10.35Z" />
+                    </svg>
+                  )}
+                </div>
+                <div style={{ flexGrow: 1, minWidth: 0, paddingLeft: '16px' }}>
+                  <h3 className="text-base font-bold text-[#002147] truncate" style={{ margin: 0 }} title={previewFile.name}>{previewFile.name}</h3>
+                  <p className="text-xs text-[#002147]/60 font-semibold uppercase mt-0.5" style={{ margin: 0 }}>{previewFile.size} • {previewFile.tag}</p>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <span className={`inline-block px-3 py-1 rounded text-xs font-black ${
+                    previewFile.status === 'Verified' ? 'bg-green-100 text-green-800' :
+                    previewFile.status === 'Pending QA' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {previewFile.status.toUpperCase()}
+                  </span>
+                  <p className="text-[10px] text-slate-400 mt-1 font-bold" style={{ margin: 0 }}>{previewFile.date}</p>
+                </div>
+              </div>
+
+              {/* QA Rejection Reason Box */}
+              {previewFile.status === 'Rejected' && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex flex-col gap-1.5 shadow-sm" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px' }}>
+                  <h4 className="text-xs font-black text-red-800 uppercase tracking-wide" style={{ margin: 0 }}>Lý do từ chối (QA Rejection Reason)</h4>
+                  <p className="text-xs text-red-700 font-medium leading-relaxed" style={{ margin: 0 }}>
+                    {previewFile.rejectReason || 'Hình ảnh mờ, không rõ chữ ký hoặc thông tin không trùng khớp.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Stylized Visual Mockup Document Box */}
+              <div className="flex flex-col items-center justify-center bg-white rounded-xl border border-slate-200 shadow-inner p-6 min-h-[300px] relative overflow-hidden" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', minHeight: '300px', marginTop: '16px' }}>
+                {/* PDF DOC Visual View */}
+                {(previewFile.type === 'PDF DOC' || previewFile.type === 'PDF') && (
+                  <div className="w-full max-w-[400px] border border-slate-200 rounded-lg shadow bg-slate-50 flex flex-col" style={{ minHeight: '260px', display: 'flex', flexDirection: 'column' }}>
+                    <div className="h-10 bg-slate-100 border-b border-slate-200 flex items-center justify-between px-4 rounded-t-lg" style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', height: '40px', padding: '0 16px' }}>
+                      <span className="text-[11px] font-bold text-slate-500">Document Reader v2.0</span>
+                      <span className="text-[10px] font-bold text-slate-400">Page 1 / 1</span>
+                    </div>
+                    <div className="p-6 flex-grow flex flex-col gap-4 bg-white" style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '24px', flexGrow: 1 }}>
+                      <div className="flex items-center gap-3 border-b border-slate-100 pb-3" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
+                        <svg width={32} height={32} viewBox="0 0 20 20" fill="currentColor" className="text-red-500">
+                          <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" />
+                        </svg>
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">ETR TRAINING SYSTEM</div>
+                          <div className="text-[10px] font-bold text-slate-400" style={{ margin: 0 }}>OFFICIAL TRAINING RECORD</div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div className="h-3 w-3/4 bg-slate-100 rounded" style={{ height: '12px', width: '75%', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
+                        <div className="h-3 w-5/6 bg-slate-100 rounded" style={{ height: '12px', width: '83.33%', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
+                        <div className="h-3 w-2/3 bg-slate-100 rounded" style={{ height: '12px', width: '66.67%', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
+                        <div className="h-3 w-1/2 bg-slate-100 rounded" style={{ height: '12px', width: '50%', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
+                      </div>
+                      <div className="mt-auto border-t border-slate-100 pt-3 flex justify-between items-center text-[10px] font-bold text-slate-400" style={{ marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', justifycontent: 'space-between', alignItems: 'center' }}>
+                        <span>Học viên: {selectedRecord.studentName}</span>
+                        <span>Mã: {selectedRecord.studentCode}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* PHOTO Visual View */}
+                {(previewFile.type === 'PHOTO' || previewFile.type === 'IMAGE') && (
+                  <div className="w-full max-w-[450px] border border-slate-200 rounded-lg shadow bg-slate-900 flex flex-col items-center justify-center p-4 relative" style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', padding: '16px', position: 'relative' }}>
+                    <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(#1e293b 1px, transparent 1px)', backgroundSize: '16px 16px', position: 'absolute' }} />
+                    <svg width="220" height="150" viewBox="0 0 200 130" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10 text-[#c5a059]" style={{ position: 'relative', zIndex: 10 }}>
+                      <path d="M20 60 L100 20 L180 50 L100 110 Z" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" fill="rgba(197,160,89,0.05)" />
+                      <line x1="100" y1="20" x2="100" y2="110" stroke="currentColor" strokeWidth="1" />
+                      <line x1="20" y1="60" x2="180" y2="50" stroke="currentColor" strokeWidth="1" />
+                      <circle cx="100" cy="55" r="30" stroke="currentColor" strokeWidth="1" strokeDasharray="4 2" />
+                      <path d="M20 75 L20 85 M180 65 L180 75" stroke="currentColor" strokeWidth="0.8" />
+                      <path d="M20 80 L180 70" stroke="currentColor" strokeWidth="0.8" />
+                      <text x="75" y="92" fill="currentColor" fontSize="8" fontFamily="monospace">SPAN: 34.1m</text>
+                      <rect x="135" y="95" width="60" height="30" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                      <text x="140" y="105" fill="currentColor" fontSize="5" fontFamily="monospace">DWG NO: AM-0892</text>
+                      <text x="140" y="112" fill="currentColor" fontSize="5" fontFamily="monospace">SCALE: 1:100</text>
+                      <text x="140" y="119" fill="currentColor" fontSize="5" fontFamily="monospace">DATE: 2024-08</text>
+                    </svg>
+                    <div className="absolute bottom-2 left-2 right-2 flex justify-between text-[9px] font-bold text-slate-500 z-10" style={{ display: 'flex', justifycontent: 'space-between', width: '100%', position: 'absolute', bottom: '8px', padding: '0 8px' }}>
+                      <span>Camera: INSPECTION UNIT A3</span>
+                      <span>ISO 200 • 1/120s • f/4.0</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* SIGNATURE Visual View */}
+                {previewFile.type === 'SIGNATURE' && (
+                  <div className="w-full max-w-[400px] border-2 border-dashed border-[#c5a059]/40 rounded-xl bg-[#002147]/5 p-6 flex flex-col items-center justify-center gap-4 text-center" style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', gap: '16px', padding: '24px' }}>
+                    <div className="w-14 h-14 rounded-full bg-[#002147]/10 flex items-center justify-center text-[#002147]" style={{ width: '56px', height: '56px', borderRadius: '50%', display: 'flex', justifycontent: 'center', alignItems: 'center', color: '#002147', backgroundColor: 'rgba(0,33,71,0.1)' }}>
+                      <svg width={28} height={28} viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M2.166 4.9C2.044 5.02 2 5.19 2 5.37v9.26c0 .18.044.35.166.47.66.66 2.052 1.9 4.334 1.9 2.282 0 3.674-1.24 4.334-1.9.122-.12.166-.29.166-.47V5.37c0-.18-.044-.35-.166-.47C10.174 4.24 8.782 3 6.5 3c-2.282 0-3.674 1.24-4.334 1.9zm13.168.03c-.2-.06-.412-.03-.59.09-.176.12-.278.33-.278.55v9.12c0 .24.12.46.326.58.156.09.336.12.504.07 1.488-.41 2.376-.14 3.012.38.12.1.28.15.44.15.38 0 .7-.32.7-.7V6.04c0-.28-.16-.54-.42-.64-1.04-.4-2.58-.62-3.804-.47z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-[#002147] tracking-wider" style={{ fontWeight: 'bold' }}>CERTIFIED DIGITAL ID SIGNATURE</div>
+                      <div className="text-[10px] font-bold text-[#c5a059] uppercase mt-1" style={{ color: '#c5a059' }}>ETR CERTIFICATION TRUST</div>
+                    </div>
+                    
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 text-left font-mono text-[9px] w-full text-slate-500 flex flex-col gap-1 shadow-sm" style={{ fontFamily: 'monospace', fontSize: '9px', display: 'flex', flexDirection: 'column', gap: '4px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
+                      <div><strong>ISSUER:</strong> Dr. Elena Sterling / QA Officer</div>
+                      <div><strong>TIMESTAMP:</strong> {previewFile.date} @ 14:20:05 GMT+7</div>
+                      <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}><strong>HASH:</strong> SHA256:7f9b8c3a1e5d7f8a9c2b0d3e5f6a7b8c9d0e1f</div>
+                      <div><strong>KEY STATUS:</strong> VALIDATED & ACTIVE</div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-2" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {previewFile.status === 'Verified' ? (
+                        <div className="flex items-center gap-1 text-green-700 font-bold text-xs bg-green-50 border border-green-200 px-3 py-1 rounded-full" style={{ color: '#15803d', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 12px', borderRadius: '9999px', fontSize: '11px', fontWeight: 'bold' }}>
+                          ✓ TRUSTED ROOT SIGNATURE
+                        </div>
+                      ) : previewFile.status === 'Pending' || previewFile.status === 'Pending QA' ? (
+                        <div className="flex items-center gap-1 text-amber-700 font-bold text-xs bg-amber-50 border border-amber-200 px-3 py-1 rounded-full" style={{ color: '#b45309', backgroundColor: '#fffbeb', border: '1px solid #fde68a', padding: '4px 12px', borderRadius: '9999px', fontSize: '11px', fontWeight: 'bold' }}>
+                          ⌛ WAITING QA COMPLIANCE
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-red-700 font-bold text-xs bg-red-50 border border-red-200 px-3 py-1 rounded-full" style={{ color: '#b91c1c', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', padding: '4px 12px', borderRadius: '9999px', fontSize: '11px', fontWeight: 'bold' }}>
+                          ✗ UNTRUSTED OR INVALID
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <footer className="modal-footer">
+              <button 
+                className="modal-cancel-btn" 
+                type="button" 
+                onClick={() => {
+                  setPreviewFile(null);
+                }}
+              >
+                Đóng
+              </button>
+              <button 
+                className="modal-submit-btn" 
+                type="button" 
+                onClick={() => {
+                  handleDownloadFile(previewFile.id, previewFile.name);
+                  setPreviewFile(null);
+                }}
+              >
+                Tải Xuống Minh Chứng
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* Modal - Xác nhận xóa minh chứng (hiển thị trong view Evidence) */}
+      <ConfirmModal
+        isOpen={!!confirmDeleteFile}
+        onClose={() => setConfirmDeleteFile(null)}
+        onConfirm={handleConfirmDeleteFile}
+        title="Xóa minh chứng"
+        message={`Bạn có chắc chắn muốn xóa minh chứng ${confirmDeleteFile?.fileName || ''}?`}
+        confirmText="XÓA"
+        cancelText="HỦY BỎ"
+        confirmVariant="danger"
+        bodyMessage="Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này."
+      />
+
+      {/* Toast notifications (view Evidence) */}
+      <toast.ToastContainer />
+      </>
     );
   }
 
@@ -1068,7 +1335,24 @@ const EtrManagement = () => {
         cancelText="HỦY BỎ"
         confirmVariant="primary"
         loading={submittingEtr}
+        bodyMessage="Sau khi gửi, QA sẽ thẩm định và bạn không thể chỉnh sửa hồ sơ cho đến khi QA trả lại."
       />
+
+      {/* Modal - Xác nhận xóa minh chứng */}
+      <ConfirmModal
+        isOpen={!!confirmDeleteFile}
+        onClose={() => setConfirmDeleteFile(null)}
+        onConfirm={handleConfirmDeleteFile}
+        title="Xóa minh chứng"
+        message={`Bạn có chắc chắn muốn xóa minh chứng ${confirmDeleteFile?.fileName || ''}?`}
+        confirmText="XÓA"
+        cancelText="HỦY BỎ"
+        confirmVariant="danger"
+        bodyMessage="Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này."
+      />
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
 
       {/* Modal - Tạo mới ETR */}
       {isCreateOpen && (
@@ -1221,185 +1505,6 @@ const EtrManagement = () => {
       )}
 
       {/* Modal - File Preview */}
-      {previewFile && (
-        <div className="modal-overlay">
-          <div className="modal-container" style={{ width: '650px', maxWidth: '95%' }}>
-            <header className="modal-header">
-              <h2>XEM TRƯỚC TÀI LIỆU MINH CHỨNG</h2>
-              <button className="close-btn" type="button" onClick={() => setPreviewFile(null)} aria-label="Đóng">
-                &times;
-              </button>
-            </header>
-
-            <div className="modal-body" style={{ padding: '24px', backgroundColor: '#f8fafc' }}>
-              {/* File Info Header */}
-              <div className="flex items-start gap-4 p-4 rounded-xl bg-white border border-slate-200 shadow-sm" style={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
-                <div className={`flex justify-center items-center w-12 h-12 rounded-xl flex-shrink-0 ${
-                  previewFile.type === 'PDF DOC' || previewFile.type === 'PDF' ? 'bg-red-50 text-red-600' :
-                  previewFile.type === 'PHOTO' || previewFile.type === 'IMAGE' ? 'bg-orange-50 text-orange-600' :
-                  'bg-blue-50 text-blue-600'
-                }`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  {previewFile.type === 'PDF DOC' || previewFile.type === 'PDF' ? (
-                    <svg width={24} height={24} viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" />
-                    </svg>
-                  ) : previewFile.type === 'PHOTO' || previewFile.type === 'IMAGE' ? (
-                    <svg width={24} height={24} viewBox="0 0 18 18" fill="currentColor">
-                      <path d="M2 18C1.45 18 0.979167 17.8042 0.5875 17.4125C0.195833 17.0208 0 16.55 0 16V2C0 1.45 0.195833 0.979167 0.5875 0.5875C0.979167 0.195833 1.45 0 2 0H16C16.55 0 17.0208 0.195833 17.4125 0.5875C17.8042 0.979167 18 1.45 18 2V16C18 16.55 17.8042 17.4125 17.4125 17.4125C17.0208 17.8042 16.55 18 16 18H2ZM2 16H16V2H2V16ZM3 14H15L11.25 9L8.25 13L6 10L3 14ZM2 16V2V16Z" />
-                    </svg>
-                  ) : (
-                    <svg width={24} height={24} viewBox="0 0 19 18" fill="currentColor">
-                      <path d="M1 18V13.75L14.175 0.6C14.375 0.4 14.6 0.25 14.85 0.15C15.1 0.05 15.35 0 15.6 0C15.8667 0 16.1208 0.05 16.3625 0.15C16.6042 0.25 16.8167 0.4 17 0.6L18.4 2C18.6 2.18333 18.75 2.39583 18.85 2.6375C18.95 2.87917 19 3.13333 19 3.4C19 3.65 18.95 3.9 18.85 4.15C18.75 4.4 18.6 4.625 18.4 4.825L5.25 18H1ZM3 16H4.4L14.225 6.2L13.525 5.475L12.8 4.775L3 14.6V16ZM17 3.425L15.575 2L17 3.425ZM13.525 5.475L12.8 4.775L14.225 6.2L13.525 5.475ZM11 18C12.2333 18 13.375 17.6917 14.425 17.075C15.475 16.4583 16 15.6 16 14.5C16 13.9 15.8417 13.3833 15.525 12.95C15.2083 12.5167 14.7833 12.1417 14.25 11.825L12.775 13.3C13.1583 13.4667 13.4583 13.65 13.675 13.85C13.8917 14.05 14 14.2667 14 14.5C14 14.8833 13.6958 15.2292 13.0875 15.5375C12.4792 15.8458 11.7833 16 11 16C10.7167 16 10.4792 16.0958 10.2875 16.2875C10.0958 16.4792 10 16.7167 10 17C10 17.2833 10.0958 17.5208 10.2875 17.7125C10.4792 17.9042 10.7167 18 11 18ZM1.575 10.35L3.075 8.85C2.74167 8.71667 2.47917 8.57917 2.2875 8.4375C2.09583 8.29583 2 8.15 2 8C2 7.8 2.15 7.6 2.45 7.4C2.75 7.2 3.38333 6.89167 4.35 6.475C5.81667 5.84167 6.79167 5.26667 7.275 4.75C7.75833 4.23333 8 3.65 8 3C8 2.08333 7.63333 1.35417 6.9 0.8125C6.16667 0.270833 5.2 0 4 0C3.25 0 2.57917 0.133333 1.9875 0.4C1.39583 0.666667 0.941667 0.991667 0.625 1.375C0.441667 1.59167 0.366667 1.83333 0.4 2.1C0.433333 2.36667 0.558333 2.58333 0.775 2.75C0.991667 2.93333 1.23333 3.00833 1.5 2.975C1.76667 2.94167 1.99167 2.83333 2.175 2.65C2.40833 2.41667 2.66667 2.25 2.95 2.15C3.23333 2.05 3.58333 2 4 2C4.68333 2 5.1875 2.1 5.5125 2.3C5.8375 2.5 6 2.73333 6 3C6 3.23333 5.85417 3.44583 5.5625 3.6375C5.27083 3.82917 4.6 4.16667 3.55 4.65C2.21667 5.23333 1.29167 5.7625 0.775 6.2375C0.258333 6.7125 0 7.3 0 8C0 8.53333 0.141667 8.9875 0.425 9.3625C0.708333 9.7375 1.09167 10.0667 1.575 10.35Z" />
-                    </svg>
-                  )}
-                </div>
-                <div style={{ flexGrow: 1, minWidth: 0, paddingLeft: '16px' }}>
-                  <h3 className="text-base font-bold text-[#002147] truncate" style={{ margin: 0 }} title={previewFile.name}>{previewFile.name}</h3>
-                  <p className="text-xs text-[#002147]/60 font-semibold uppercase mt-0.5" style={{ margin: 0 }}>{previewFile.size} • {previewFile.tag}</p>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <span className={`inline-block px-3 py-1 rounded text-xs font-black ${
-                    previewFile.status === 'Verified' ? 'bg-green-100 text-green-800' :
-                    previewFile.status === 'Pending QA' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {previewFile.status.toUpperCase()}
-                  </span>
-                  <p className="text-[10px] text-slate-400 mt-1 font-bold" style={{ margin: 0 }}>{previewFile.date}</p>
-                </div>
-              </div>
-
-              {/* QA Rejection Reason Box */}
-              {previewFile.status === 'Rejected' && (
-                <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex flex-col gap-1.5 shadow-sm" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px' }}>
-                  <h4 className="text-xs font-black text-red-800 uppercase tracking-wide" style={{ margin: 0 }}>Lý do từ chối (QA Rejection Reason)</h4>
-                  <p className="text-xs text-red-700 font-medium leading-relaxed" style={{ margin: 0 }}>
-                    {previewFile.rejectReason || 'Hình ảnh mờ, không rõ chữ ký hoặc thông tin không trùng khớp.'}
-                  </p>
-                </div>
-              )}
-
-              {/* Stylized Visual Mockup Document Box */}
-              <div className="flex flex-col items-center justify-center bg-white rounded-xl border border-slate-200 shadow-inner p-6 min-h-[300px] relative overflow-hidden" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', minHeight: '300px', marginTop: '16px' }}>
-                {/* PDF DOC Visual View */}
-                {(previewFile.type === 'PDF DOC' || previewFile.type === 'PDF') && (
-                  <div className="w-full max-w-[400px] border border-slate-200 rounded-lg shadow bg-slate-50 flex flex-col" style={{ minHeight: '260px', display: 'flex', flexDirection: 'column' }}>
-                    <div className="h-10 bg-slate-100 border-b border-slate-200 flex items-center justify-between px-4 rounded-t-lg" style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', height: '40px', padding: '0 16px' }}>
-                      <span className="text-[11px] font-bold text-slate-500">Document Reader v2.0</span>
-                      <span className="text-[10px] font-bold text-slate-400">Page 1 / 1</span>
-                    </div>
-                    <div className="p-6 flex-grow flex flex-col gap-4 bg-white" style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '24px', flexGrow: 1 }}>
-                      <div className="flex items-center gap-3 border-b border-slate-100 pb-3" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
-                        <svg width={32} height={32} viewBox="0 0 20 20" fill="currentColor" className="text-red-500">
-                          <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" />
-                        </svg>
-                        <div>
-                          <div className="text-xs font-bold text-slate-800">ETR TRAINING SYSTEM</div>
-                          <div className="text-[10px] font-bold text-slate-400" style={{ margin: 0 }}>OFFICIAL TRAINING RECORD</div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div className="h-3 w-3/4 bg-slate-100 rounded" style={{ height: '12px', width: '75%', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
-                        <div className="h-3 w-5/6 bg-slate-100 rounded" style={{ height: '12px', width: '83.33%', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
-                        <div className="h-3 w-2/3 bg-slate-100 rounded" style={{ height: '12px', width: '66.67%', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
-                        <div className="h-3 w-1/2 bg-slate-100 rounded" style={{ height: '12px', width: '50%', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
-                      </div>
-                      <div className="mt-auto border-t border-slate-100 pt-3 flex justify-between items-center text-[10px] font-bold text-slate-400" style={{ marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', justifycontent: 'space-between', alignItems: 'center' }}>
-                        <span>Học viên: {selectedRecord.studentName}</span>
-                        <span>Mã: {selectedRecord.studentCode}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* PHOTO Visual View */}
-                {(previewFile.type === 'PHOTO' || previewFile.type === 'IMAGE') && (
-                  <div className="w-full max-w-[450px] border border-slate-200 rounded-lg shadow bg-slate-900 flex flex-col items-center justify-center p-4 relative" style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', padding: '16px', position: 'relative' }}>
-                    <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(#1e293b 1px, transparent 1px)', backgroundSize: '16px 16px', position: 'absolute' }} />
-                    <svg width="220" height="150" viewBox="0 0 200 130" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10 text-[#c5a059]" style={{ position: 'relative', zIndex: 10 }}>
-                      <path d="M20 60 L100 20 L180 50 L100 110 Z" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" fill="rgba(197,160,89,0.05)" />
-                      <line x1="100" y1="20" x2="100" y2="110" stroke="currentColor" strokeWidth="1" />
-                      <line x1="20" y1="60" x2="180" y2="50" stroke="currentColor" strokeWidth="1" />
-                      <circle cx="100" cy="55" r="30" stroke="currentColor" strokeWidth="1" strokeDasharray="4 2" />
-                      <path d="M20 75 L20 85 M180 65 L180 75" stroke="currentColor" strokeWidth="0.8" />
-                      <path d="M20 80 L180 70" stroke="currentColor" strokeWidth="0.8" />
-                      <text x="75" y="92" fill="currentColor" fontSize="8" fontFamily="monospace">SPAN: 34.1m</text>
-                      <rect x="135" y="95" width="60" height="30" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                      <text x="140" y="105" fill="currentColor" fontSize="5" fontFamily="monospace">DWG NO: AM-0892</text>
-                      <text x="140" y="112" fill="currentColor" fontSize="5" fontFamily="monospace">SCALE: 1:100</text>
-                      <text x="140" y="119" fill="currentColor" fontSize="5" fontFamily="monospace">DATE: 2024-08</text>
-                    </svg>
-                    <div className="absolute bottom-2 left-2 right-2 flex justify-between text-[9px] font-bold text-slate-500 z-10" style={{ display: 'flex', justifycontent: 'space-between', width: '100%', position: 'absolute', bottom: '8px', padding: '0 8px' }}>
-                      <span>Camera: INSPECTION UNIT A3</span>
-                      <span>ISO 200 • 1/120s • f/4.0</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* SIGNATURE Visual View */}
-                {previewFile.type === 'SIGNATURE' && (
-                  <div className="w-full max-w-[400px] border-2 border-dashed border-[#c5a059]/40 rounded-xl bg-[#002147]/5 p-6 flex flex-col items-center justify-center gap-4 text-center" style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', gap: '16px', padding: '24px' }}>
-                    <div className="w-14 h-14 rounded-full bg-[#002147]/10 flex items-center justify-center text-[#002147]" style={{ width: '56px', height: '56px', borderRadius: '50%', display: 'flex', justifycontent: 'center', alignItems: 'center', color: '#002147', backgroundColor: 'rgba(0,33,71,0.1)' }}>
-                      <svg width={28} height={28} viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M2.166 4.9C2.044 5.02 2 5.19 2 5.37v9.26c0 .18.044.35.166.47.66.66 2.052 1.9 4.334 1.9 2.282 0 3.674-1.24 4.334-1.9.122-.12.166-.29.166-.47V5.37c0-.18-.044-.35-.166-.47C10.174 4.24 8.782 3 6.5 3c-2.282 0-3.674 1.24-4.334 1.9zm13.168.03c-.2-.06-.412-.03-.59.09-.176.12-.278.33-.278.55v9.12c0 .24.12.46.326.58.156.09.336.12.504.07 1.488-.41 2.376-.14 3.012.38.12.1.28.15.44.15.38 0 .7-.32.7-.7V6.04c0-.28-.16-.54-.42-.64-1.04-.4-2.58-.62-3.804-.47z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="text-xs font-black text-[#002147] tracking-wider" style={{ fontWeight: 'bold' }}>CERTIFIED DIGITAL ID SIGNATURE</div>
-                      <div className="text-[10px] font-bold text-[#c5a059] uppercase mt-1" style={{ color: '#c5a059' }}>ETR CERTIFICATION TRUST</div>
-                    </div>
-                    
-                    <div className="bg-white p-3 rounded-lg border border-slate-200 text-left font-mono text-[9px] w-full text-slate-500 flex flex-col gap-1 shadow-sm" style={{ fontFamily: 'monospace', fontSize: '9px', display: 'flex', flexDirection: 'column', gap: '4px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                      <div><strong>ISSUER:</strong> Dr. Elena Sterling / QA Officer</div>
-                      <div><strong>TIMESTAMP:</strong> {previewFile.date} @ 14:20:05 GMT+7</div>
-                      <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}><strong>HASH:</strong> SHA256:7f9b8c3a1e5d7f8a9c2b0d3e5f6a7b8c9d0e1f</div>
-                      <div><strong>KEY STATUS:</strong> VALIDATED & ACTIVE</div>
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-2" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {previewFile.status === 'Verified' ? (
-                        <div className="flex items-center gap-1 text-green-700 font-bold text-xs bg-green-50 border border-green-200 px-3 py-1 rounded-full" style={{ color: '#15803d', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 12px', borderRadius: '9999px', fontSize: '11px', fontWeight: 'bold' }}>
-                          ✓ TRUSTED ROOT SIGNATURE
-                        </div>
-                      ) : previewFile.status === 'Pending' || previewFile.status === 'Pending QA' ? (
-                        <div className="flex items-center gap-1 text-amber-700 font-bold text-xs bg-amber-50 border border-amber-200 px-3 py-1 rounded-full" style={{ color: '#b45309', backgroundColor: '#fffbeb', border: '1px solid #fde68a', padding: '4px 12px', borderRadius: '9999px', fontSize: '11px', fontWeight: 'bold' }}>
-                          ⌛ WAITING QA COMPLIANCE
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-red-700 font-bold text-xs bg-red-50 border border-red-200 px-3 py-1 rounded-full" style={{ color: '#b91c1c', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', padding: '4px 12px', borderRadius: '9999px', fontSize: '11px', fontWeight: 'bold' }}>
-                          ✗ UNTRUSTED OR INVALID
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <footer className="modal-footer">
-              <button 
-                className="modal-cancel-btn" 
-                type="button" 
-                onClick={() => {
-                  setPreviewFile(null);
-                }}
-              >
-                Đóng
-              </button>
-              <button 
-                className="modal-submit-btn" 
-                type="button" 
-                onClick={() => {
-                  handleDownloadFile(previewFile.id, previewFile.name);
-                  setPreviewFile(null);
-                }}
-              >
-                Tải Xuống Minh Chứng
-              </button>
-            </footer>
-          </div>
-        </div>
-      )}
-
       {/* Modal - ETR Final View Sheet */}
       {isFinalViewOpen && finalViewRecord && (
         <div className="modal-overlay">

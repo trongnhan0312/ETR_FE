@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchEtrById, fetchApprovals, fetchAuditLogs, exportPdf } from './auditorApi';
+import { useToast } from "../components/Toast";
 
 const AuditorETRDetails = () => {
   const [searchParams] = useSearchParams();
@@ -47,14 +48,18 @@ const AuditorETRDetails = () => {
     loadData();
   }, [etrId]);
 
+  // Toast notifications
+  const toast = useToast();
+
   const handleExportPdf = async () => {
     setExporting(true);
     try {
       await exportPdf({ etrId, name: `${etrId}_Compliance_Dossier.pdf` });
+      toast.success("Xuất PDF thành công", "Hồ sơ tuân thủ đã được xuất ra Training Package.");
       navigate('/auditor/export-packages');
     } catch (err) {
       console.error('Export PDF failed:', err);
-      alert('Tạo file PDF thất bại. Vui lòng thử lại sau.');
+      toast.error("Xuất PDF thất bại", err.message || 'Tạo file PDF thất bại. Vui lòng thử lại sau.');
     } finally {
       setExporting(false);
     }
@@ -299,6 +304,9 @@ const AuditorETRDetails = () => {
           </div>
         </section>
       )}
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };

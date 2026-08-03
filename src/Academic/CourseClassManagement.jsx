@@ -3,8 +3,10 @@ import CreateCourse from './CreateCourse';
 import CreateClass from './CreateClass';
 import ClassAttendanceHistory from './ClassAttendanceHistory';
 import { api } from '../utils/api';
+import { useToast } from "../components/Toast";
 
 const CourseClassManagement = () => {
+  const toast = useToast();
   const [courses, setCourses] = useState([]);
   const [allCoursesRaw, setAllCoursesRaw] = useState([]);
   const [allClassesRaw, setAllClassesRaw] = useState([]);
@@ -149,7 +151,7 @@ const CourseClassManagement = () => {
       setIsCreatingCourse(false);
     } catch (error) {
       console.error("Error creating course:", error);
-      alert("Tạo khóa học thất bại: " + (error.message || "Lỗi không xác định"));
+      toast.error("Tạo khóa học thất bại", error.message || "Lỗi không xác định");
     }
   };
 
@@ -176,7 +178,7 @@ const CourseClassManagement = () => {
       }
     } catch (error) {
       console.error("Error creating class:", error);
-      alert("Tạo lớp học thất bại: " + (error.message || "Lỗi không xác định"));
+      toast.error("Tạo lớp học thất bại", error.message || "Lỗi không xác định");
     }
   };
 
@@ -500,6 +502,9 @@ const CourseClassManagement = () => {
           onCancel={() => setIsCreatingClass(false)}
         />
       )}
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };

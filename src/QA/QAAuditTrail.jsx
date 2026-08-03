@@ -13,8 +13,8 @@ const QAAuditTrail = () => {
   const loadAudit = async () => {
     setLoading(true);
     try {
-      // Backend /Audit chỉ cho role Admin/Audit — QA sẽ nhận 403, hiển thị thông báo rõ ràng
-      // thay vì im lặng hiển thị danh sách trống.
+      // Backend /Audit cho phép Admin/Audit/QA/Academic (đã bổ sung role QA) — nếu vẫn gặp 403,
+      // hiển thị thông báo rõ ràng thay vì im lặng hiển thị danh sách trống.
       const data = await api.get("/Audit?page=1&pageSize=50").catch((err) => {
         const isForbidden =
           /403|Forbidden|không có quyền|unauthorized|not authorized/i.test(
@@ -22,7 +22,7 @@ const QAAuditTrail = () => {
           );
         throw isForbidden
           ? new Error(
-              "Tài khoản QA không có quyền xem Audit Log hệ thống (chỉ Admin/Audit).",
+              "Tài khoản của bạn không có quyền xem Audit Log hệ thống.",
             )
           : err;
       });

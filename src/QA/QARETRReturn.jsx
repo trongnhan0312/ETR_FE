@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { useToast } from "../components/Toast";
 
 const QARETRReturn = () => {
   const [etrList, setEtrList] = useState([]);
   const [selectedEtrId, setSelectedEtrId] = useState("");
   const [returnReason, setReturnReason] = useState("");
   const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(true);
+
+  // Toast notifications (thay banner tm-alert-banner cũ)
+  const toast = useToast();
 
   const returnReasons = [
     "Missing evidence file",
@@ -60,11 +63,11 @@ const QARETRReturn = () => {
 
   const handleSendBack = async () => {
     if (!selectedEtrId) {
-      setMessage({ type: "error", text: "Vui lòng chọn ETR để trả lại." });
+      toast.error("Chưa chọn ETR", "Vui lòng chọn ETR để trả lại.");
       return;
     }
     if (!returnReason.trim()) {
-      setMessage({ type: "error", text: "Vui lòng nhập lý do trả lại." });
+      toast.error("Thiếu lý do", "Vui lòng nhập lý do trả lại.");
       return;
     }
     setSending(true);
@@ -72,15 +75,12 @@ const QARETRReturn = () => {
       await api.post(`/Etr/${selectedEtrId}/return`, {
         comment: returnReason,
       });
-      setMessage({ type: "warning", text: `ETR #${String(selectedEtrId).padStart(4, "0")} đã được trả lại.` });
+      toast.warning("Đã trả lại ETR", `ETR #${String(selectedEtrId).padStart(4, "0")} đã được trả lại.`);
       setSelectedEtrId("");
       setReturnReason("");
       await loadEtrs();
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: "Trả lại thất bại: " + (err.message || ""),
-      });
+      toast.error("Trả lại thất bại", err.message || "Lỗi không xác định");
     } finally {
       setSending(false);
     }
@@ -92,12 +92,8 @@ const QARETRReturn = () => {
 
   return (
     <div className="qa-shell">
-      {message.text && (
-        <div className={`tm-alert-banner ${message.type}`} style={{ marginBottom: "16px" }}>
-          <p>{message.text}</p>
-          <button onClick={() => setMessage({ type: "", text: "" })}>✕</button>
-        </div>
-      )}
+      {/* Toast notifications */}
+      <toast.ToastContainer />
 
       <section className="qa-page-card">
         <p className="qa-eyebrow">ETR review</p>

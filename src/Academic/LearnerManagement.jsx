@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import ConfirmModal from "../components/ConfirmModal";
+import { useToast } from "../components/Toast";
 
 const LearnerManagement = () => {
   const [learners, setLearners] = useState([]);
@@ -371,14 +373,28 @@ const LearnerManagement = () => {
       });
 
       // 2. Update department (role is locked to Student)
+      // B7 (giới hạn backend): PUT /Accounts/{id}/department chỉ cho Admin — Academic bị 403,
+      // và backend KHÔNG có route PUT /Accounts/{id} (404). Nếu thất bại → cảnh báo rõ ràng
+      // thay vì âm thầm nuốt lỗi (hồ sơ ở bước 1 vẫn đã được lưu).
       if (editDepartmentId) {
-        await api.put(`/Accounts/${editingUser.accountId}/department`, {
-          departmentId: Number(editDepartmentId),
-        }).catch(async () => {
-          await api.put(`/Accounts/${editingUser.accountId}`, {
+        try {
+          await api.put(`/Accounts/${editingUser.accountId}/department`, {
             departmentId: Number(editDepartmentId),
-          }).catch((err) => console.warn("Failed to update department:", err));
-        });
+          });
+        } catch (deptErr) {
+          console.warn("Failed to update department:", deptErr);
+          const deptDenied =
+            /403|Forbidden|không có quyền|unauthorized|not authorized|404|not found/i.test(
+              deptErr?.message || ""
+            );
+          toast.warning(
+            "Đổi phòng ban thất bại",
+            deptDenied
+              ? "Hồ sơ học viên đã được lưu, nhưng tài khoản của bạn chưa được backend cho phép đổi phòng ban (chỉ Admin). Vui lòng liên hệ Admin."
+              : "Hồ sơ học viên đã được lưu, nhưng đổi phòng ban thất bại: " +
+                  (deptErr.message || "lỗi không xác định")
+          );
+        }
       }
 
       await loadLearners();
@@ -391,37 +407,37 @@ const LearnerManagement = () => {
     }
   };
 
-  // Soft Delete / Disable Student Account
-  const handleDeleteAccount = async (user) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn vô hiệu hóa tài khoản học viên "${user.username}"?`)) {
-      return;
-    }
-    try {
-      await api.delete(`/Accounts/${user.accountId}`);
-      await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-      await loadLearners();
-    } catch (err) {
-      console.error("Failed to disable student:", err);
-      try {
-        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
-        await loadLearners();
-      } catch (putErr) {
-        alert("Vô hiệu hóa tài khoản thất bại: " + parseApiError(putErr));
-      }
-    }
-  };
+  // Toast notifications
+  const toast = useToast();
 
-  // Activate Student Account
-  const handleActivateAccount = async (user) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn kích hoạt lại tài khoản học viên "${user.username}" thành Active?`)) {
-      return;
-    }
+  // Xác nhận trước khi vô hiệu hóa / kích hoạt tài khoản (thay window.confirm)
+  const [confirmAction, setConfirmAction] = useState(null); // { type: 'disable' | 'activate', user }
+
+  const runAccountAction = async (type, user) => {
     try {
-      await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
+      if (type === 'disable') {
+        await api.delete(`/Accounts/${user.accountId}`);
+        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
+        toast.success("Vô hiệu hóa thành công", `Tài khoản "${user.username}" đã được vô hiệu hóa.`);
+      } else {
+        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
+        toast.success("Kích hoạt thành công", `Tài khoản "${user.username}" đã được kích hoạt trở lại.`);
+      }
       await loadLearners();
     } catch (err) {
-      console.error("Failed to activate student account:", err);
-      alert("Kích hoạt tài khoản thất bại: " + parseApiError(err));
+      console.error(`Failed to ${type} student:`, err);
+      if (type === 'disable') {
+        try {
+          await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
+          await loadLearners();
+        } catch (putErr) {
+          toast.error("Vô hiệu hóa tài khoản thất bại", parseApiError(putErr));
+        }
+      } else {
+        toast.error("Kích hoạt tài khoản thất bại", parseApiError(err));
+      }
+    } finally {
+      setConfirmAction(null);
     }
   };
 
@@ -620,7 +636,7 @@ const LearnerManagement = () => {
                     {isInactive ? (
                       <button
                         type="button"
-                        onClick={() => handleActivateAccount(learner)}
+                        onClick={() => setConfirmAction({ type: 'activate', user: learner })}
                         style={{
                           padding: '4px 10px',
                           fontSize: '12px',
@@ -637,7 +653,7 @@ const LearnerManagement = () => {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => handleDeleteAccount(learner)}
+                        onClick={() => setConfirmAction({ type: 'disable', user: learner })}
                         style={{
                           padding: '4px 10px',
                           fontSize: '12px',
@@ -1034,6 +1050,30 @@ const LearnerManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Xác nhận vô hiệu hóa / kích hoạt tài khoản */}
+      <ConfirmModal
+        isOpen={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => runAccountAction(confirmAction?.type, confirmAction?.user)}
+        title={confirmAction?.type === 'disable' ? "Vô hiệu hóa tài khoản" : "Kích hoạt tài khoản"}
+        message={
+          confirmAction?.type === 'disable'
+            ? `Bạn có chắc chắn muốn vô hiệu hóa tài khoản học viên "${confirmAction?.user?.username || ''}"?`
+            : `Bạn có chắc chắn muốn kích hoạt lại tài khoản học viên "${confirmAction?.user?.username || ''}" thành Active?`
+        }
+        confirmText={confirmAction?.type === 'disable' ? "VÔ HIỆU HÓA" : "KÍCH HOẠT"}
+        cancelText="HỦY BỎ"
+        confirmVariant={confirmAction?.type === 'disable' ? "danger" : "primary"}
+        bodyMessage={
+          confirmAction?.type === 'disable'
+            ? "Học viên sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo vẫn được giữ nguyên để phục vụ kiểm toán."
+            : "Tài khoản sẽ được kích hoạt trở lại, học viên có thể đăng nhập và tiếp tục theo dõi hồ sơ đào tạo."
+        }
+      />
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };

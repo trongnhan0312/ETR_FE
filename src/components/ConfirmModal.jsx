@@ -9,6 +9,8 @@ const ConfirmModal = ({
   confirmVariant = "danger", // "danger" | "primary" | "gold"
   loading = false,
   icon,
+  // bodyMessage: nội dung body tùy biến; mặc định hiển thị cảnh báo khóa dữ liệu (điểm danh/điểm)
+  bodyMessage,
 }) => {
   if (!isOpen) return null;
 
@@ -147,42 +149,58 @@ const ConfirmModal = ({
             background: "#ffffff",
           }}
         >
-          {/* Warning box */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "10px",
-              padding: "12px 14px",
-              background: "rgba(239,68,68,0.06)",
-              borderRadius: "10px",
-              border: "1px solid rgba(239,68,68,0.15)",
-            }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              style={{ flexShrink: 0, marginTop: "1px" }}
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z"
-                fill="#ef4444"
-              />
-            </svg>
-            <p
+          {bodyMessage !== undefined ? (
+            bodyMessage ? (
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "13px",
+                  color: "rgba(0,33,71,0.75)",
+                  lineHeight: 1.6,
+                  fontWeight: "500",
+                }}
+              >
+                {bodyMessage}
+              </p>
+            ) : null
+          ) : (
+            /* Warning box (mặc định — cảnh báo khóa dữ liệu cho điểm danh/điểm) */
+            <div
               style={{
-                margin: 0,
-                fontSize: "12px",
-                color: "rgba(0,33,71,0.7)",
-                lineHeight: 1.5,
-                fontWeight: "500",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "10px",
+                padding: "12px 14px",
+                background: "rgba(239,68,68,0.06)",
+                borderRadius: "10px",
+                border: "1px solid rgba(239,68,68,0.15)",
               }}
             >
-              Sau khi chốt, dữ liệu sẽ được khóa và không thể chỉnh sửa. Bạn vẫn có thể mở khóa sau nếu cần.
-            </p>
-          </div>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                style={{ flexShrink: 0, marginTop: "1px" }}
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z"
+                  fill="#ef4444"
+                />
+              </svg>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "12px",
+                  color: "rgba(0,33,71,0.7)",
+                  lineHeight: 1.5,
+                  fontWeight: "500",
+                }}
+              >
+                Sau khi chốt, dữ liệu sẽ được khóa và không thể chỉnh sửa. Bạn vẫn có thể mở khóa sau nếu cần.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

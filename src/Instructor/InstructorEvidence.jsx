@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "../utils/api";
+import ConfirmModal from "../components/ConfirmModal";
+import { useToast } from "../components/Toast";
 const getAccountIdFromToken = () => {
   try {
     const token = localStorage.getItem("token");
@@ -25,6 +27,7 @@ const getAccountIdFromToken = () => {
 };
 
 const InstructorEvidence = () => {
+  const toast = useToast();
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [evidences, setEvidences] = useState([]);
@@ -179,7 +182,7 @@ const InstructorEvidence = () => {
 
     // Validate evidence type is selected
     if (!selectedEvidenceTypeId) {
-      alert("Vui lòng chọn loại bằng chứng trước khi tải lên.");
+      toast.warning("Thiếu loại bằng chứng", "Vui lòng chọn loại bằng chứng trước khi tải lên.");
       return;
     }
 
@@ -290,7 +293,7 @@ const InstructorEvidence = () => {
       formData.append("File", file, file.name);
 
       await api.postFormData("/Evidences/upload", formData);
-      alert(`Đã tải lên tệp minh chứng: ${file.name} thành công!`);
+      toast.success("Tải lên thành công", `Đã tải lên tệp minh chứng: ${file.name}.`);
       loadEvidences();
     } catch (err) {
       console.error("[Upload Evidence] Lỗi khi upload minh chứng:", err);
@@ -329,7 +332,7 @@ const InstructorEvidence = () => {
         message = `Lỗi: ${errText}`;
       }
 
-      alert(message);
+      toast.error("Tải lên thất bại", message);
     } finally {
       setUploading(false);
       setUploadingFileName("");
@@ -353,16 +356,20 @@ const InstructorEvidence = () => {
     }
   };
 
-  const handleDeleteEvidence = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa tệp minh chứng này?"))
-      return;
+  // Xóa minh chứng qua ConfirmModal (thay window.confirm)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const handleConfirmDeleteEvidence = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await api.delete(`/Evidences/${id}`);
-      alert("Xóa tệp minh chứng thành công!");
+      await api.delete(`/Evidences/${confirmDeleteId}`);
+      toast.success("Xóa thành công", "Đã xóa tệp minh chứng.");
       loadEvidences();
     } catch (err) {
       console.error("Lỗi khi xóa minh chứng:", err);
-      alert("Đã xảy ra lỗi: " + err.message);
+      toast.error("Xóa thất bại", err.message || "Lỗi không xác định");
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
@@ -380,7 +387,7 @@ const InstructorEvidence = () => {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Lỗi tải xuống minh chứng:", err);
-      alert("Tải xuống thất bại: " + (err.message || "Lỗi không xác định"));
+      toast.error("Tải xuống thất bại", err.message || "Lỗi không xác định");
     }
   };
 
@@ -610,7 +617,7 @@ const InstructorEvidence = () => {
                   </span>
                   <div style={{ textAlign: "right", paddingRight: "12px" }}>
                     <button
-                      onClick={() => handleDeleteEvidence(ev.evidenceFileId)}
+                      onClick={() => setConfirmDeleteId(ev.evidenceFileId)}
                       style={{
                         padding: "4px 10px",
                         borderRadius: "6px",
@@ -789,6 +796,22 @@ const InstructorEvidence = () => {
           </div>
         </div>
       </div>
+
+      {/* Xác nhận xóa minh chứng */}
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={handleConfirmDeleteEvidence}
+        title="Xóa minh chứng"
+        message="Bạn có chắc chắn muốn xóa tệp minh chứng này?"
+        confirmText="XÓA"
+        cancelText="HỦY BỎ"
+        confirmVariant="danger"
+        bodyMessage="Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này."
+      />
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import './training-manager.scss';
 
@@ -11,16 +11,31 @@ const TrainingManagerDashboard = () => {
   const [complianceScore, setComplianceScore] = useState('...');
   const [certificationsDue, setCertificationsDue] = useState('...');
   const [avgScore, setAvgScore] = useState('...');
+  // B1/B3 (giới hạn backend): TM bị 403 ở GET /Etr và GET /Enrollments → hiển thị cảnh báo,
+  // không hiển thị số 0 gây hiểu nhầm.
+  const [dataRestricted, setDataRestricted] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
+        let restricted = false;
+        const isForbiddenErr = (err) =>
+          /403|Forbidden|không có quyền|unauthorized|not authorized/i.test(
+            err?.message || "",
+          );
         const [enrollments, etrs, statsData, reportData] = await Promise.all([
-          api.get("/Enrollments").catch(() => []),
-          api.get("/Etr").catch(() => []),
+          api.get("/Enrollments").catch((err) => {
+            if (isForbiddenErr(err)) restricted = true;
+            return [];
+          }),
+          api.get("/Etr").catch((err) => {
+            if (isForbiddenErr(err)) restricted = true;
+            return [];
+          }),
           api.get("/Dashboard/stats").catch(() => null),
           api.get("/Reports/summary").catch(() => null),
         ]);
+        setDataRestricted(restricted);
 
         // Process Dashboard stats
         if (statsData && typeof statsData === 'object') {
@@ -46,9 +61,16 @@ const TrainingManagerDashboard = () => {
         const pendingCount = etrArr.filter(e => e.status === 'Submitted' || e.status === 'Draft').length;
         const completedCount = etrArr.filter(e => e.status === 'Completed').length;
 
-        setTotalTrainees(String(enrArr.length));
-        setPendingEtrs(String(pendingCount));
-        setApprovedCount(String(completedCount));
+        if (restricted) {
+          // Backend chặn đọc /Etr & /Enrollments (403) → giữ giá trị chưa biết thay vì 0 gây hiểu nhầm
+          setTotalTrainees('...');
+          setPendingEtrs('...');
+          setApprovedCount('...');
+        } else {
+          setTotalTrainees(String(enrArr.length));
+          setPendingEtrs(String(pendingCount));
+          setApprovedCount(String(completedCount));
+        }
 
         // Monthly volume from etr timestamps (approximation)
         const now = new Date();
@@ -58,7 +80,8 @@ const TrainingManagerDashboard = () => {
             const d = new Date(e.submittedAt || e.createdAt);
             return d.getMonth() === i && d.getFullYear() === now.getFullYear();
           }).length;
-          const vol = Math.max(monthCount, 10);
+          // Không dữ liệu ETR (403) → trả về 0 thay vì cột giả 10 ETR
+          const vol = etrArr.length > 0 ? Math.max(monthCount, 10) : 0;
           return {
             month,
             volume: vol,
@@ -92,6 +115,20 @@ const TrainingManagerDashboard = () => {
   return (
     <div className="tm-dashboard-container">
       {/* PAGE HEADER */}
+      {dataRestricted && (
+        <div className="tm-alert-banner warning" style={{ marginBottom: "12px" }}>
+          <div className="alert-left">
+            <span className="alert-dot" />
+            <p>
+              Một số dữ liệu (danh sách ETR / Enrollment) hiện bị backend giới hạn quyền đọc với
+              tài khoản Training Manager (trả 403) — các chỉ số tương ứng đang hiển thị giá trị mặc
+              định. Thống kê Dashboard &amp; Report vẫn hoạt động bình thường.
+            </p>
+          </div>
+          <button onClick={() => setDataRestricted(false)} className="close-alert-btn">✕</button>
+        </div>
+      )}
+
       <div className="tm-dashboard-header">
         <div className="tm-header-title">
           <h1>Analytics Dashboard</h1>

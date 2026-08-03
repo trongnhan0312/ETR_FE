@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { useToast } from '../components/Toast';
 
 /** Format a Date or ISO string → yyyy-MM-dd for <input type="date"> */
 const toDateInputValue = (d) => {
@@ -42,7 +43,8 @@ const StudentProfile = () => {
   /* ── Form states ── */
   const [profileLoading, setProfileLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  // Toast notifications (thay banner student-message cũ)
+  const toast = useToast();
 
   /* ── Password states ── */
   const [currentPwd, setCurrentPwd] = useState('');
@@ -100,7 +102,6 @@ const StudentProfile = () => {
   /* ── Save profile ── */
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    setMessage({ type: '', text: '' });
     setSaving(true);
 
     try {
@@ -118,12 +119,9 @@ const StudentProfile = () => {
         },
         { suppressAuthRedirect: true },
       );
-      setMessage({ type: 'success', text: 'Cập nhật thông tin thành công!' });
+      toast.success('Cập nhật thành công', 'Thông tin hồ sơ đã được lưu.');
     } catch (err) {
-      setMessage({
-        type: 'error',
-        text: 'Cập nhật thất bại: ' + (err.message || 'Lỗi không xác định'),
-      });
+      toast.error('Cập nhật thất bại', err.message || 'Lỗi không xác định');
     } finally {
       setSaving(false);
     }
@@ -132,18 +130,17 @@ const StudentProfile = () => {
   /* ── Change password ── */
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    setMessage({ type: '', text: '' });
 
     if (!currentPwd || !newPwd || !confirmPwd) {
-      setMessage({ type: 'error', text: 'Vui lòng điền đầy đủ thông tin.' });
+      toast.error('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin.');
       return;
     }
     if (newPwd !== confirmPwd) {
-      setMessage({ type: 'error', text: 'Mật khẩu mới không khớp.' });
+      toast.error('Mật khẩu không khớp', 'Mật khẩu mới không khớp.');
       return;
     }
     if (newPwd.length < 6) {
-      setMessage({ type: 'error', text: 'Mật khẩu phải có ít nhất 6 ký tự.' });
+      toast.error('Mật khẩu quá ngắn', 'Mật khẩu phải có ít nhất 6 ký tự.');
       return;
     }
 
@@ -154,15 +151,12 @@ const StudentProfile = () => {
         { currentPassword: currentPwd, newPassword: newPwd },
         { suppressAuthRedirect: true },
       );
-      setMessage({ type: 'success', text: 'Đổi mật khẩu thành công!' });
+      toast.success('Đổi mật khẩu thành công', 'Mật khẩu của bạn đã được cập nhật.');
       setCurrentPwd('');
       setNewPwd('');
       setConfirmPwd('');
     } catch (err) {
-      setMessage({
-        type: 'error',
-        text: 'Đổi mật khẩu thất bại: ' + (err.message || 'Lỗi không xác định'),
-      });
+      toast.error('Đổi mật khẩu thất bại', err.message || 'Lỗi không xác định');
     } finally {
       setLoadingPwd(false);
     }
@@ -187,19 +181,8 @@ const StudentProfile = () => {
         </div>
       </section>
 
-      {/* ── Message Banner ── */}
-      {message.text && (
-        <div className={`student-message student-message--${message.type}`}>
-          <span>{message.text}</span>
-          <button
-            className="student-message-dismiss"
-            type="button"
-            onClick={() => setMessage({ type: '', text: '' })}
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      {/* ── Toast notifications ── */}
+      <toast.ToastContainer />
 
       {/* ── Two-column grid ── */}
       <section className="student-info-grid">

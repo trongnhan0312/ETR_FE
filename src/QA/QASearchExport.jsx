@@ -1,20 +1,22 @@
 import { useState, useCallback } from "react";
 import { api } from "../utils/api";
+import { useToast } from "../components/Toast";
 
 const QASearchExport = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [results, setResults] = useState(null);
   const [searching, setSearching] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+
+  // Toast notifications (thay banner tm-alert-banner cũ)
+  const toast = useToast();
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      setMessage({ type: "error", text: "Vui lòng nhập từ khóa tìm kiếm." });
+      toast.error("Thiếu từ khóa", "Vui lòng nhập từ khóa tìm kiếm.");
       return;
     }
     setSearching(true);
-    setMessage({ type: "", text: "" });
     try {
       // Backend: GET /api/Search/etrs?query= — trả về các ETR record (kèm trạng thái thực)
       const data = await api
@@ -28,7 +30,8 @@ const QASearchExport = () => {
             ? data
             : data.filter((r) => (r.status || "") === statusFilter);
 
-        // Enrich tên học viên (nếu backend phân quyền cho phép — nếu 403 sẽ fallback ETR #id)
+        // Backend /Search/etrs đã trả kèm StudentName/ClassName; enrich thêm họ tên đầy đủ nếu
+        // tài khoản có quyền đọc Enrollments/UserProfiles (fallback vẫn giữ tên từ kết quả search).
         const [enrollments, profiles] = await Promise.all([
           api.get("/Enrollments").catch(() => []),
           api.get("/UserProfiles/learners").catch(() => []),
@@ -46,16 +49,13 @@ const QASearchExport = () => {
         });
 
         setResults(enriched);
-        setMessage({
-          type: "success",
-          text: `Tìm thấy ${enriched.length} kết quả.`,
-        });
+        toast.success("Tìm kiếm hoàn tất", `Tìm thấy ${enriched.length} kết quả.`);
       } else {
         setResults([]);
-        setMessage({ type: "warning", text: "Không tìm thấy kết quả nào." });
+        toast.info("Không có kết quả", "Không tìm thấy kết quả nào.");
       }
     } catch (err) {
-      setMessage({ type: "error", text: "Tìm kiếm thất bại: " + (err.message || "") });
+      toast.error("Tìm kiếm thất bại", err.message || "Lỗi không xác định");
     } finally {
       setSearching(false);
     }
@@ -64,27 +64,17 @@ const QASearchExport = () => {
   // Export endpoint chỉ cho role Admin/Audit/Academic — QA không có quyền (backend trả 403),
   // nên thông báo rõ thay vì gọi API.
   const handleExportPackage = useCallback(() => {
-    setMessage({
-      type: "error",
-      text: "Tài khoản QA không có quyền xuất Training Package (chỉ Admin/Audit/Academic).",
-    });
-  }, []);
+    toast.error("Không có quyền xuất", "Tài khoản QA không có quyền xuất Training Package (chỉ Admin/Audit/Academic).");
+  }, [toast]);
 
   const handleExportAudit = useCallback(() => {
-    setMessage({
-      type: "error",
-      text: "Tài khoản QA không có quyền xuất Audit Trail (chỉ Admin/Audit/Academic).",
-    });
-  }, []);
+    toast.error("Không có quyền xuất", "Tài khoản QA không có quyền xuất Audit Trail (chỉ Admin/Audit/Academic).");
+  }, [toast]);
 
   return (
     <div className="qa-shell">
-      {message.text && (
-        <div className={`tm-alert-banner ${message.type}`} style={{ marginBottom: "16px" }}>
-          <p>{message.text}</p>
-          <button onClick={() => setMessage({ type: "", text: "" })}>✕</button>
-        </div>
-      )}
+      {/* Toast notifications */}
+      <toast.ToastContainer />
 
       <section className="qa-page-card">
         <p className="qa-eyebrow">Compliance</p>
@@ -143,6 +133,7 @@ const QASearchExport = () => {
                     </p>
                     <p className="qa-list-desc">
                       ETR #{r.etrCourseRecordId || r.eTRCourseRecordId || ""} - {r.status || ""}
+                      {r.className ? ` · ${r.className}` : ""}
                     </p>
                   </div>
                   <span className="qa-status neutral">Ready</span>

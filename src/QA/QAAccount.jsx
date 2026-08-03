@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { useToast } from "../components/Toast";
 
 const QAAccount = () => {
   const [profile, setProfile] = useState({
@@ -11,7 +12,8 @@ const QAAccount = () => {
   const [currentPwd, setCurrentPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
-  const [message, setMessage] = useState({ type: "", text: "" });
+  // Toast notifications (thay banner tm-alert-banner cũ)
+  const toast = useToast();
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -30,36 +32,31 @@ const QAAccount = () => {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (!currentPwd || !newPwd || !confirmPwd) {
-      setMessage({ type: "error", text: "Vui lòng điền đầy đủ thông tin." });
+      toast.error("Thiếu thông tin", "Vui lòng điền đầy đủ thông tin.");
       return;
     }
     if (newPwd !== confirmPwd) {
-      setMessage({ type: "error", text: "Mật khẩu mới không khớp." });
+      toast.error("Mật khẩu không khớp", "Mật khẩu mới không khớp.");
       return;
     }
     try {
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
       await api.post("/auth/change-password", {
         currentPassword: currentPwd,
         newPassword: newPwd,
       });
-      setMessage({ type: "success", text: "Cập nhật mật khẩu thành công!" });
+      toast.success("Cập nhật mật khẩu thành công", "Mật khẩu của bạn đã được cập nhật.");
       setCurrentPwd("");
       setNewPwd("");
       setConfirmPwd("");
     } catch (err) {
-      setMessage({ type: "error", text: "Đổi mật khẩu thất bại: " + (err.message || "") });
+      toast.error("Đổi mật khẩu thất bại", err.message || "Lỗi không xác định");
     }
   };
 
   return (
     <div className="qa-shell">
-      {message.text && (
-        <div className={`tm-alert-banner ${message.type}`} style={{ marginBottom: "16px" }}>
-          <p>{message.text}</p>
-          <button onClick={() => setMessage({ type: "", text: "" })}>✕</button>
-        </div>
-      )}
+      {/* Toast notifications */}
+      <toast.ToastContainer />
 
       <section className="qa-page-card">
         <p className="qa-eyebrow">Account</p>

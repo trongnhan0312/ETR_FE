@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../utils/api";
+import PromptModal from "../components/PromptModal";
+import { useToast } from "../components/Toast";
 import "./training-manager.scss";
 
 const EtrApproval = () => {
@@ -9,15 +11,13 @@ const EtrApproval = () => {
   const [selectedEtr, setSelectedEtr] = useState(null);
   const [viewingHistory, setViewingHistory] = useState(null);
   const [showActionModal, setShowActionModal] = useState(null); // 'APPROVE'
-  const [alertInfo, setAlertInfo] = useState({
-    show: false,
-    message: "",
-    type: "success",
-  });
+  const [reopenTarget, setReopenTarget] = useState(null); // ETR id cần mở lại (PromptModal)
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [loadingEtrs, setLoadingEtrs] = useState(false);
   const [approvalRequests, setApprovalRequests] = useState([]);
+  // B1 (giới hạn backend): TM bị 403 khi GET /Etr & /Enrollments → danh sách được dựng từ /Approvals
+  const [approvalFallbackActive, setApprovalFallbackActive] = useState(false);
+  const [etrs, setEtrs] = useState([]);
   const [metrics, setMetrics] = useState({
     pending: 0,
     avgProcessing: null,
@@ -26,17 +26,64 @@ const EtrApproval = () => {
     nearCompletion: 0,
   });
 
-  // Load ETRs from API on mount
-  useEffect(() => {
-    loadEtrsFromApi();
-  }, []);
+  // Detect 403 Forbidden từ lỗi API
+  const isForbiddenErr = (err) =>
+    /403|Forbidden|không có quyền|unauthorized|not authorized/i.test(
+      err?.message || ""
+    );
+
+  // Ánh xạ ApprovalRequest → item hàng chờ (fallback khi tài khoản không đọc được /Etr, /Enrollments)
+  const mapApprovalToEtr = (req) => {
+    const etrId = req.etrCourseRecordId ?? req.eTRCourseRecordId;
+    if (!etrId) return null;
+    const currentStatus = String(req.currentStatus || "").toLowerCase();
+    const isApproved = currentStatus === "approved";
+    const isRejected = /rejected|returned/.test(currentStatus);
+    return {
+      id: `#ETR-${String(etrId).padStart(4, "0")}`,
+      etrId,
+      traineeName: `Học viên #ETR-${String(etrId).padStart(4, "0")}`,
+      traineeCode: `ID: ETR-${etrId}`,
+      initials: "HV",
+      className: "—",
+      avgScore: null,
+      qaVerified: isApproved,
+      qaVerifier: "",
+      qaDate: "",
+      submissionDate: req.submittedAt
+        ? new Date(req.submittedAt).toISOString().split("T")[0]
+        : "",
+      status: isApproved ? "APPROVED" : isRejected ? "RETURNED" : "PENDING",
+      approvedBy: req.currentApproverId
+        ? `Account #${req.currentApproverId}`
+        : "",
+      approvalDate: req.completedAt
+        ? new Date(req.completedAt).toISOString().split("T")[0]
+        : "",
+      submittedAt: req.submittedAt,
+      completedAt: req.completedAt,
+      expiryDate: null,
+      subjectResults: [],
+      evidence: [],
+      completionPct: 0,
+      instructor: "",
+      assessments: [],
+    };
+  };
 
   const loadEtrsFromApi = async () => {
-    setLoadingEtrs(true);
     try {
+      let etrForbidden = false;
+      let enrollmentsForbidden = false;
       const [etrData, enrollmentsData, profilesData, approvalsData] = await Promise.all([
-        api.get("/Etr").catch(() => []),
-        api.get("/Enrollments").catch(() => []),
+        api.get("/Etr").catch((err) => {
+          if (isForbiddenErr(err)) etrForbidden = true;
+          return [];
+        }),
+        api.get("/Enrollments").catch((err) => {
+          if (isForbiddenErr(err)) enrollmentsForbidden = true;
+          return [];
+        }),
         api.get("/UserProfiles/learners").catch(() => []),
         api.get("/Approvals").catch(() => []),
       ]);
@@ -48,6 +95,14 @@ const EtrApproval = () => {
       const enrollmentsArr = Array.isArray(enrollmentsData) ? enrollmentsData : [];
       const profilesArr = Array.isArray(profilesData) ? profilesData : [];
 
+      // B1 (giới hạn backend): EtrController method-level GET /Etr & GET /Etr/{id} chưa cấp role
+      // TrainingManager (chỉ Instructor/QA/Admin/Audit/Academic), EnrollmentsController cũng chưa cấp TM.
+      // Fallback: dựng danh sách phê duyệt từ /Approvals (TM được phép đọc) để hàng chờ không bị trống.
+      // Chỉ fallback khi thực sự bị 403 (không fallback khi /Etr trả về rỗng hợp lệ cho role có quyền)
+      const fallbackFromApprovals =
+        (etrForbidden || enrollmentsForbidden) && approvalsArr.length > 0;
+      setApprovalFallbackActive(fallbackFromApprovals);
+
       // Chi tiết từng ETR (subjectResults) + toàn bộ evidence — dữ liệu thật cho transcript
       const detailsArr = await Promise.all(
         etrsArr.map((e) =>
@@ -57,7 +112,13 @@ const EtrApproval = () => {
       const evfsRaw = await api.get("/Evidences").catch(() => []);
       const evfsArr = Array.isArray(evfsRaw) ? evfsRaw : [];
 
-      const mapped = etrsArr
+      let mapped = [];
+      if (fallbackFromApprovals) {
+        // Fallback: ApprovalRequestResponse { ApprovalRequestId, ETRCourseRecordId,
+        // CurrentStatus (Pending/Approved/Rejected), SubmittedBy, SubmittedAt, CurrentApproverId, CompletedAt }
+        mapped = approvalsArr.map((req) => mapApprovalToEtr(req)).filter(Boolean);
+      } else {
+      mapped = etrsArr
         .filter((e) => e.status === "Verified" || e.status === "Completed")
         .map((etr, i) => {
           const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
@@ -126,6 +187,7 @@ const EtrApproval = () => {
             assessments: [],
           };
         });
+      }
 
       setEtrs(mapped);
 
@@ -168,18 +230,21 @@ const EtrApproval = () => {
       });
     } catch (err) {
       console.error("Lỗi tải ETR:", err);
-    } finally {
-      setLoadingEtrs(false);
     }
   };
 
-  const [etrs, setEtrs] = useState([]);
+  // Load ETRs from API on mount
+  useEffect(() => {
+    loadEtrsFromApi();
+  }, []);
+
+  // Toast notifications (thay banner tm-alert-banner cũ)
+  const toast = useToast();
 
   const showAlert = (message, type = "success") => {
-    setAlertInfo({ show: true, message, type });
-    setTimeout(() => {
-      setAlertInfo({ show: false, message: "", type: "success" });
-    }, 4000);
+    if (type === "error") toast.error("Thất bại", message);
+    else if (type === "warning") toast.warning("Cảnh báo", message);
+    else toast.success("Thành công", message);
   };
 
   // TrainingManager/Admin phê duyệt qua ApprovalRequest process (route chính thức duy nhất
@@ -232,23 +297,29 @@ const EtrApproval = () => {
   };
 
   // Reopen (mở khoá) ETR đã Completed — chỉ Admin (backend chặn role khác)
-  const handleReopen = async (etrId) => {
-    const reason = window.prompt(
-      `Nhập lý do mở lại (Reopen) ETR #${String(etrId).padStart(4, "0")}:`,
-    );
+  // Dùng PromptModal để nhập lý do (thay window.prompt)
+  const handleReopen = (etrId) => {
+    setReopenTarget(etrId);
+  };
+
+  const handleConfirmReopen = async (reason) => {
+    const etrId = reopenTarget;
     if (!reason || !reason.trim()) {
-      showAlert("Cần nêu lý do để mở lại ETR.", "error");
+      toast.error("Cần nêu lý do", "Cần nêu lý do để mở lại ETR.");
+      setReopenTarget(null);
       return;
     }
     try {
       await api.post(`/Etr/${etrId}/reopen`, { comment: reason.trim() });
       await loadEtrsFromApi();
-      showAlert(
-        `ETR ${etrId} REOPENED — record unlocked and audit trail updated.`,
-        "warning",
+      toast.warning(
+        "Đã mở lại ETR",
+        `ETR ${etrId} đã được mở khóa — audit trail đã được cập nhật.`,
       );
     } catch (err) {
-      showAlert(`REOPEN FAILED: ${err.message}`, "error");
+      toast.error("Mở lại ETR thất bại", err.message);
+    } finally {
+      setReopenTarget(null);
     }
   };
 
@@ -361,7 +432,11 @@ const EtrApproval = () => {
               </div>
               <div className="info-item">
                 <span className="info-label">Attendance Rate</span>
-                <span className="info-value">{viewingHistory.avgScore || 0}%</span>
+                <span className="info-value">
+                  {viewingHistory.avgScore != null
+                    ? `${viewingHistory.avgScore}%`
+                    : "—"}
+                </span>
               </div>
               <div className="info-item">
                 <span className="info-label">Status</span>
@@ -622,23 +697,32 @@ const EtrApproval = () => {
           <span className="text">Aeronaut Executive Redesign</span>
           <span className="line" />
         </div>
+
+        {/* Toast notifications (view chi tiết) */}
+        <toast.ToastContainer />
       </div>
     );
   }
 
   return (
     <div className="tm-dashboard-container">
-      {/* ALERT BANNER */}
-      {alertInfo.show && (
-        <div className={`tm-alert-banner ${alertInfo.type}`}>
+      {/* Toast notifications */}
+      <toast.ToastContainer />
+
+      {/* B1: thông báo khi danh sách đang dựng từ Approval Requests (TM bị 403 ở GET /Etr) */}
+      {approvalFallbackActive && (
+        <div className="tm-alert-banner warning" style={{ marginBottom: "12px" }}>
           <div className="alert-left">
             <span className="alert-dot" />
-            <p>{alertInfo.message}</p>
+            <p>
+              Tài khoản Training Manager chưa được backend cho phép đọc danh sách ETR
+              (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval
+              Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR
+              được cấp ở backend.
+            </p>
           </div>
           <button
-            onClick={() =>
-              setAlertInfo({ show: false, message: "", type: "success" })
-            }
+            onClick={() => setApprovalFallbackActive(false)}
             className="close-alert-btn"
           >
             ✕
@@ -1563,6 +1647,22 @@ const EtrApproval = () => {
           </div>
         </div>
       )}
+
+      {/* Modal nhập lý do Reopen ETR (thay window.prompt) */}
+      <PromptModal
+        isOpen={!!reopenTarget}
+        onClose={() => setReopenTarget(null)}
+        onConfirm={handleConfirmReopen}
+        title={`Mở lại (Reopen) ETR #${String(reopenTarget || "").padStart(4, "0")}`}
+        message="Việc mở lại hồ sơ sẽ được ghi nhận vào Audit Trail. Vui lòng nêu rõ lý do."
+        placeholder="Nhập lý do mở lại ETR..."
+        confirmText="MỞ LẠI ETR"
+        cancelText="HỦY BỎ"
+        variant="gold"
+      />
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };

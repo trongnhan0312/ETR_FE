@@ -6,6 +6,7 @@ import {
   FaFileAlt,
   FaCalendarAlt,
 } from "react-icons/fa";
+import { useToast } from "../components/Toast";
 import "./instructor.scss";
 
 const navigationItems = [
@@ -37,6 +38,7 @@ const navigationItems = [
 ];
 
 const InstructorLayout = () => {
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const isHomePage = location.pathname === '/instructor/classes';
@@ -227,7 +229,7 @@ const InstructorLayout = () => {
               onClick={async () => {
                 try {
                   // Notifications will be implemented in a future update
-                  alert("Hiện tại không có thông báo mới.");
+                  toast.info("Thông báo", "Hiện tại không có thông báo mới.");
                 } catch (e) {
                   console.error("Error fetching notifications:", e);
                 }
@@ -256,7 +258,7 @@ const InstructorLayout = () => {
               type="button"
               onClick={() => {
                 // Language switching to be implemented with i18n library in future
-                alert("Tính năng chuyển đổi ngôn ngữ sẽ được phát triển trong phiên bản tiếp theo.");
+                toast.info("Ngôn ngữ", "Tính năng chuyển đổi ngôn ngữ sẽ được phát triển trong phiên bản tiếp theo.");
               }}
             >
               <span>VIETNAMESE (VN)</span>
@@ -281,6 +283,9 @@ const InstructorLayout = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };

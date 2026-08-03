@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../utils/api";
+import { useToast } from "../components/Toast";
 import "./training-manager.scss";
 
 const ClassStatus = () => {
+  const toast = useToast();
   const { searchQuery = "" } = useOutletContext();
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedClassDetails, setSelectedClassDetails] = useState(null);
@@ -140,7 +142,7 @@ const ClassStatus = () => {
   const handleCreateClass = async (e) => {
     e.preventDefault();
     if (!newClassId || !newClassName || !newCourseId) {
-      alert("Vui lòng điền đầy đủ các thông tin bắt buộc (Mã lớp, Tên lớp, Khóa đào tạo).");
+      toast.warning("Thiếu thông tin bắt buộc", "Vui lòng điền đầy đủ (Mã lớp, Tên lớp, Khóa đào tạo).");
       return;
     }
 
@@ -180,7 +182,7 @@ const ClassStatus = () => {
       setNewTraineesCount(15);
     } catch (error) {
       console.error("Error creating class:", error);
-      alert("Tạo lớp học thất bại: " + (error.message || "Lỗi không xác định"));
+      toast.error("Tạo lớp học thất bại", error.message || "Lỗi không xác định");
     }
   };
 
@@ -398,7 +400,7 @@ const ClassStatus = () => {
               className="flex justify-start items-center gap-2 px-8 py-3 rounded-sm bg-[#002147] border-none text-white cursor-pointer hover:bg-[#002147]/90 transition-all font-bold text-sm shadow-sm"
               onClick={() => {
                 // Export endpoint chỉ cho Admin/Audit/Academic — TrainingManager không có quyền
-                alert("Tài khoản TrainingManager không có quyền xuất báo cáo (chỉ Admin/Audit/Academic).");
+                toast.warning("Không có quyền xuất báo cáo", "Tài khoản TrainingManager không có quyền xuất báo cáo (chỉ Admin/Audit/Academic).");
               }}
             >
               <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
@@ -566,7 +568,7 @@ const ClassStatus = () => {
                   className="flex justify-start items-center gap-2 px-6 py-2 rounded-sm border border-[#dee2e6] bg-white cursor-pointer hover:bg-slate-50 transition-all font-semibold text-xs text-[#495057]"
                   onClick={() => {
                     // Filter is already applied via statusFilter and searchQuery
-                    alert("Đã áp dụng bộ lọc theo trạng thái và tìm kiếm.");
+                    toast.success("Đã áp dụng bộ lọc", "Danh sách đã được lọc theo trạng thái và từ khóa tìm kiếm.");
                   }}
                 >
                   <svg width={14} height={9} viewBox="0 0 14 9" fill="none">
@@ -581,8 +583,7 @@ const ClassStatus = () => {
                   className="flex justify-start items-center gap-2 px-6 py-2 rounded-sm border border-[#dee2e6] bg-white cursor-pointer hover:bg-slate-50 transition-all font-semibold text-xs text-[#495057]"
                   onClick={() => {
                     // Buổi học selector - opens session picker for this class
-                    const sessions = ["Buổi 10 (09:00 - 10:30)", "Buổi 11 (10:45 - 12:15)", "Buổi 12 (13:30 - 15:00)"];
-                    alert("Chọn buổi học:\n" + sessions.join("\n"));
+                    toast.info("Chọn buổi học", "Chức năng chọn buổi học đang được hoàn thiện. Vui lòng dùng màn hình Điểm danh của Instructor để chọn buổi.");
                   }}
                 >
                   <svg width={14} height={15} viewBox="0 0 14 15" fill="none">
@@ -938,7 +939,7 @@ const ClassStatus = () => {
             <div className="flex justify-start items-center gap-3 text-white">
               <div
                 className="p-1.5 cursor-pointer hover:bg-white/10 rounded"
-                onClick={() => alert("Lọc danh sách...")}
+                onClick={() => toast.info("Bộ lọc", "Danh sách đã được lọc theo trạng thái hiện hành.")}
               >
                 <svg width={18} height={12} viewBox="0 0 18 12" fill="none">
                   <path
@@ -951,7 +952,7 @@ const ClassStatus = () => {
                 className="p-1.5 cursor-pointer hover:bg-white/10 rounded"
                 onClick={() => {
                   // Export endpoint chỉ cho Admin/Audit/Academic — TrainingManager không có quyền
-                  alert("Tài khoản TrainingManager không có quyền xuất dữ liệu (chỉ Admin/Audit/Academic).");
+                  toast.warning("Không có quyền xuất dữ liệu", "Tài khoản TrainingManager không có quyền xuất dữ liệu (chỉ Admin/Audit/Academic).");
                 }}
               >
                 <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
@@ -1366,6 +1367,9 @@ const ClassStatus = () => {
           </div>
         </div>
       )}
+
+      {/* Toast notifications */}
+      <toast.ToastContainer />
     </div>
   );
 };
