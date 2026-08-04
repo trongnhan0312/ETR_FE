@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const STATUS_CONFIG = {
   Valid: {
@@ -51,19 +52,21 @@ const getRemainingDays = (expiryDate) => {
 };
 
 /** Format remaining days into readable text */
-const formatRemaining = (days) => {
-  if (days === null) return null;
-  if (days < 0) return `Quá hạn ${Math.abs(days)} ngày`;
-  if (days === 0) return 'Hết hạn hôm nay';
-  if (days === 1) return 'Còn 1 ngày';
-  if (days < 30) return `Còn ${days} ngày`;
-  const months = Math.floor(days / 30);
-  const remainingDays = days % 30;
-  if (months === 1) return `Còn 1 tháng${remainingDays > 0 ? ` ${remainingDays} ngày` : ''}`;
-  return `Còn ${months} tháng${remainingDays > 0 ? ` ${remainingDays} ngày` : ''}`;
-};
-
 const StudentCertificateStatus = () => {
+  const { tr } = useLanguage();
+
+  const formatRemaining = (days) => {
+    if (days === null) return null;
+    if (days < 0) return `${tr('Quá hạn ')}${Math.abs(days)} ${tr('ngày')}`;
+    if (days === 0) return tr('Hết hạn hôm nay');
+    if (days === 1) return tr('Còn 1 ngày');
+    if (days < 30) return `${tr('Còn ')}${days} ${tr('ngày')}`;
+    const months = Math.floor(days / 30);
+    const remainingDays = days % 30;
+    if (months === 1) return `${tr('Còn 1 tháng')}${remainingDays > 0 ? ` ${remainingDays} ${tr('ngày')}` : ''}`;
+    return `${tr('Còn ')}${months} ${tr('tháng')}${remainingDays > 0 ? ` ${remainingDays} ${tr('ngày')}` : ''}`;
+  };
+
   const [statusList, setStatusList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -88,7 +91,7 @@ const StudentCertificateStatus = () => {
       } catch {}
 
       if (!accountId) {
-        setError('Không thể xác thực người dùng. Vui lòng đăng nhập lại.');
+        setError(tr('Không thể xác thực người dùng. Vui lòng đăng nhập lại.'));
         setLoading(false);
         return;
       }
@@ -100,7 +103,7 @@ const StudentCertificateStatus = () => {
       setStatusList(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error loading certificate status:', err);
-      setError('Không thể tải trạng thái chứng chỉ. Vui lòng thử lại sau.');
+      setError(tr('Không thể tải trạng thái chứng chỉ. Vui lòng thử lại sau.'));
       setStatusList([]);
     } finally {
       setLoading(false);
@@ -127,9 +130,9 @@ const StudentCertificateStatus = () => {
       <section className="student-welcome">
         <div className="student-welcome-left">
           <p className="eyebrow">Student Portal</p>
-          <h1>Trạng thái chứng chỉ</h1>
+          <h1>{tr('Trạng thái chứng chỉ')}</h1>
           <p className="welcome-sub">
-            Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo của bạn.
+            {tr('Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo của bạn.')}
           </p>
         </div>
         <div className="student-welcome-right">
@@ -142,7 +145,7 @@ const StudentCertificateStatus = () => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
               <path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
             </svg>
-            Làm mới
+            {tr('Làm mới')}
           </button>
         </div>
       </section>
@@ -150,25 +153,25 @@ const StudentCertificateStatus = () => {
       {/* ── Stats Cards ── */}
       <section className="student-metrics">
         <div className="student-metric-card">
-          <span className="student-metric-label">Tổng số chứng chỉ</span>
+          <span className="student-metric-label">{tr('Tổng số chứng chỉ')}</span>
           <strong className="student-metric-value">
             {loading ? '...' : stats.total}
           </strong>
         </div>
         <div className="student-metric-card">
-          <span className="student-metric-label">Còn hiệu lực</span>
+          <span className="student-metric-label">{tr('Còn hiệu lực')}</span>
           <strong className="student-metric-value green">
             {loading ? '...' : stats.valid}
           </strong>
         </div>
         <div className="student-metric-card">
-          <span className="student-metric-label">Sắp hết hạn</span>
+          <span className="student-metric-label">{tr('Sắp hết hạn')}</span>
           <strong className="student-metric-value amber">
             {loading ? '...' : stats.expiringSoon}
           </strong>
         </div>
         <div className="student-metric-card">
-          <span className="student-metric-label">Đã hết hạn</span>
+          <span className="student-metric-label">{tr('Đã hết hạn')}</span>
           <strong className="student-metric-value" style={{ color: '#b91c1c' }}>
             {loading ? '...' : stats.expired}
           </strong>
@@ -178,10 +181,10 @@ const StudentCertificateStatus = () => {
       {/* ── Filter Tabs ── */}
       <div className="student-filter-tabs">
         {[
-          { key: 'ALL', label: 'Tất cả', count: stats.total },
-          { key: 'Valid', label: 'Còn hiệu lực', count: stats.valid },
-          { key: 'ExpiringSoon', label: 'Sắp hết hạn', count: stats.expiringSoon },
-          { key: 'Expired', label: 'Đã hết hạn', count: stats.expired },
+          { key: 'ALL', label: tr('Tất cả'), count: stats.total },
+          { key: 'Valid', label: tr('Còn hiệu lực'), count: stats.valid },
+          { key: 'ExpiringSoon', label: tr('Sắp hết hạn'), count: stats.expiringSoon },
+          { key: 'Expired', label: tr('Đã hết hạn'), count: stats.expired },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -198,14 +201,14 @@ const StudentCertificateStatus = () => {
       {/* ── Content ── */}
       <section className="student-table-section">
         {loading ? (
-          <div className="student-empty">Đang tải dữ liệu chứng chỉ...</div>
+          <div className="student-empty">{tr('Đang tải dữ liệu chứng chỉ...')}</div>
         ) : error ? (
           <div className="student-empty" style={{ color: '#b91c1c' }}>{error}</div>
         ) : filteredStatuses.length === 0 ? (
           <div className="student-empty">
             {filter === 'ALL'
-              ? 'Bạn chưa có chứng chỉ đào tạo nào.'
-              : `Không có chứng chỉ nào ở trạng thái này.`}
+              ? tr('Bạn chưa có chứng chỉ đào tạo nào.')
+              : tr('Không có chứng chỉ nào ở trạng thái này.')}
           </div>
         ) : (
           <div className="student-cert-list">
@@ -234,29 +237,29 @@ const StudentCertificateStatus = () => {
                     }}
                   >
                     <span className="student-cert-status-icon">{config.icon}</span>
-                    <span>{config.label}</span>
+                    <span>{tr(config.label)}</span>
                   </div>
 
                   {/* Course Info */}
                   <div className="student-cert-info">
                     <h3 className="student-cert-course-name">
-                      {cert.CourseName || `Khóa học #${cert.CourseId}`}
+                      {cert.CourseName || `${tr('Khóa học #')}${cert.CourseId}`}
                     </h3>
                     <p className="student-cert-id">
-                      Mã ETR: #{cert.ETRCourseRecordId}
+                      {tr('Mã ETR: #')}{cert.ETRCourseRecordId}
                     </p>
                   </div>
 
                   {/* Date Info */}
                   <div className="student-cert-dates">
                     <div className="student-cert-date-item">
-                      <span className="student-cert-date-label">Ngày cấp</span>
+                      <span className="student-cert-date-label">{tr('Ngày cấp')}</span>
                       <span className="student-cert-date-value">
                         {formatDate(cert.IssuedDate)}
                       </span>
                     </div>
                     <div className="student-cert-date-item">
-                      <span className="student-cert-date-label">Ngày hết hạn</span>
+                      <span className="student-cert-date-label">{tr('Ngày hết hạn')}</span>
                       <span
                         className="student-cert-date-value"
                         style={
@@ -267,12 +270,12 @@ const StudentCertificateStatus = () => {
                               : {}
                         }
                       >
-                        {cert.ExpiryDate ? formatDate(cert.ExpiryDate) : 'Vĩnh viễn'}
+                        {cert.ExpiryDate ? formatDate(cert.ExpiryDate) : tr('Vĩnh viễn')}
                       </span>
                     </div>
                     {remainingText && (
                       <div className="student-cert-date-item">
-                        <span className="student-cert-date-label">Thời hạn còn</span>
+                        <span className="student-cert-date-label">{tr('Thời hạn còn')}</span>
                         <span
                           className="student-cert-date-value"
                           style={{

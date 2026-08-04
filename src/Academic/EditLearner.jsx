@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 
 const EditLearner = ({ learner, onSave, onCancel }) => {
+  const { tr } = useLanguage();
   // Input states
   const [fullName, setFullName] = useState(learner.fullName || '');
   const [email, setEmail] = useState(learner.email || '');
@@ -72,7 +74,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
       setAssignedClasses(assignedClasses.filter((c) => c.code !== classCode));
     } catch (error) {
       console.error("Error removing enrollment:", error);
-      toast.error("Xóa ghi danh thất bại", error.message || "Lỗi không xác định");
+      toast.error(tr("Xóa ghi danh thất bại"), error.message || tr("Lỗi không xác định"));
     }
   };
 
@@ -84,7 +86,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
     );
 
     if (availableClasses.length === 0) {
-      toast.warning("Không còn lớp khả dụng", "Học viên đã được ghi danh vào tất cả các lớp hiện có.");
+      toast.warning(tr("Không còn lớp khả dụng"), tr("Học viên đã được ghi danh vào tất cả các lớp hiện có."));
       return;
     }
 
@@ -107,7 +109,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
       setAssignedClasses([...assignedClasses, newAssignment]);
     } catch (error) {
       console.error("Error adding enrollment:", error);
-      toast.error("Ghi danh thất bại", error.message || "Lỗi không xác định");
+      toast.error(tr("Ghi danh thất bại"), error.message || tr("Lỗi không xác định"));
     }
   };
 
@@ -145,7 +147,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
       {/* Page Title */}
       <div className="content-header" style={{ marginBottom: '12px' }}>
         <div className="header-left">
-          <h1>Cập nhật hồ sơ & Trạng thái học viên</h1>
+          <h1>{tr('Cập nhật hồ sơ & Trạng thái học viên')}</h1>
           <div className="divider-gold" />
         </div>
       </div>
@@ -164,13 +166,13 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                   </svg>
                 </div>
                 <div className="header-text">
-                  <h2>THÔNG TIN CƠ BẢN</h2>
-                  <p>Định danh học viên trong hệ thống ETR</p>
+                  <h2>{tr('THÔNG TIN CƠ BẢN')}</h2>
+                  <p>{tr('Định danh học viên trong hệ thống ETR')}</p>
                 </div>
               </div>
 
               <div className="header-id-badge">
-                <div className="id-label">STUDENT CODE</div>
+                <div className="id-label">{tr('STUDENT CODE')}</div>
                 <div className="id-value">{learner.code}</div>
               </div>
             </header>
@@ -179,7 +181,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
             <div className="edit-form-grid">
               <div className="form-group">
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>
-                  Họ và tên
+                  {tr('Họ và tên')}
                 </label>
                 <input
                   type="text"
@@ -192,7 +194,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
 
               <div className="form-group">
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>
-                  Email học viên
+                  {tr('Email học viên')}
                 </label>
                 <input
                   type="email"
@@ -205,7 +207,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
 
               <div className="form-group">
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>
-                  Ngày sinh
+                  {tr('Ngày sinh')}
                 </label>
                 <input
                   type="date"
@@ -218,7 +220,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
 
               <div className="form-group">
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>
-                  Giới tính
+                  {tr('Giới tính')}
                 </label>
                 <select
                   className="premium-input"
@@ -226,15 +228,15 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                   onChange={(e) => setGender(e.target.value)}
                   required
                 >
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
+                  <option value="Nam">{tr('Nam')}</option>
+                  <option value="Nữ">{tr('Nữ')}</option>
+                  <option value="Khác">{tr('Khác')}</option>
                 </select>
               </div>
 
               <div className="form-group">
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>
-                  Số điện thoại
+                  {tr('Số điện thoại')}
                 </label>
                 <input
                   type="text"
@@ -246,7 +248,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
 
               <div className="form-group">
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>
-                  Cơ quan / Tổ chức
+                  {tr('Cơ quan / Tổ chức')}
                 </label>
                 <input
                   type="text"
@@ -271,24 +273,24 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                     </svg>
                   </div>
                   <div className="header-text">
-                    <h2>PHÂN BỔ LỚP HỌC</h2>
+                    <h2>{tr('PHÂN BỔ LỚP HỌC')}</h2>
                   </div>
                 </div>
               </header>
 
               {loadingClasses ? (
                 <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
-                  Đang tải dữ liệu lớp học...
+                  {tr('Đang tải dữ liệu lớp học...')}
                 </div>
               ) : (
                 <>
                   <table className="classes-table">
                     <thead>
                       <tr>
-                        <th>Mã lớp</th>
-                        <th>Tên khóa học</th>
-                        <th>Giảng viên</th>
-                        <th style={{ textAlign: 'center', width: '80px' }}>Hành động</th>
+                        <th>{tr('Mã lớp')}</th>
+                        <th>{tr('Tên khóa học')}</th>
+                        <th>{tr('Giảng viên')}</th>
+                        <th style={{ textAlign: 'center', width: '80px' }}>{tr('Hành động')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -303,7 +305,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                                 type="button"
                                 className="delete-btn"
                                 onClick={() => handleDeleteClass(item.code)}
-                                aria-label="Xóa lớp học"
+                                aria-label={tr('Xóa lớp học')}
                               >
                                 <svg width="16" height="18" viewBox="0 0 16 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                                   <path d="M5.4 13.5L8 10.9L10.6 13.5L12 12.1L9.4 9.5L12 6.9L10.6 5.5L8 8.1L5.4 5.5L4 6.9L6.6 9.5L4 12.1L5.4 13.5ZM3 18C2.45 18 1.97917 17.8042 1.5875 17.4125C1.19583 17.0208 1 16.55 1 16V3H0V1H5V0H11V1H16V3H15V16C15 16.55 14.8042 17.0208 14.4125 17.4125C14.0208 17.8042 13.55 18 13 18H3ZM13 3H3V16H13V3ZM3 3V16V3Z" fill="currentColor" />
@@ -315,7 +317,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                       ) : (
                         <tr>
                           <td colSpan="4" style={{ textAlign: 'center', padding: '24px', color: 'rgba(0, 33, 71, 0.4)', fontStyle: 'italic' }}>
-                            Chưa phân bổ lớp học nào cho học viên này.
+                            {tr('Chưa phân bổ lớp học nào cho học viên này.')}
                           </td>
                         </tr>
                       )}
@@ -326,7 +328,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M9 15H11V11H15V9H11V5H9V9H5V11H9V15ZM10 20C8.61667 20 7.31667 19.7375 6.1 19.2125C4.88333 18.6875 3.825 17.975 2.925 17.075C2.025 16.175 1.3125 15.1167 0.7875 13.9C0.2625 12.6833 0 11.3833 0 10C0 8.61667 0.2625 7.31667 0.7875 6.1C1.3125 4.88333 2.025 3.825 2.925 2.925C3.825 2.025 4.88333 1.3125 6.1 0.7875C7.31667 0.2625 8.61667 0 10 0C11.3833 0 12.6833 0.2625 13.9 0.7875C15.1167 1.3125 16.175 2.025 17.075 2.925C17.975 3.825 18.6875 4.83333 19.2125 6.1C19.7375 7.31667 20 8.61667 20 10C20 11.3833 19.7375 12.6833 19.2125 13.9C18.6875 15.1167 17.975 16.175 17.075 17.075C16.175 17.975 15.1167 18.6875 13.9 19.2125C12.6833 19.7375 11.3833 20 10 20ZM10 18C12.2333 18 14.125 17.225 15.675 15.675C17.225 14.125 18 12.2333 18 10C18 7.76667 17.225 5.875 15.675 4.325C14.125 2.775 12.2333 2 10 2C7.76667 2 5.875 2.775 4.325 4.325C2.775 5.875 2 7.76667 2 10C2 12.2333 2.775 14.125 4.325 15.675C5.875 17.225 7.76667 18 10 18Z" fill="currentColor" />
                     </svg>
-                    <span>ĐĂNG KÝ THÊM LỚP HỌC MỚI</span>
+                    <span>{tr('ĐĂNG KÝ THÊM LỚP HỌC MỚI')}</span>
                   </button>
                 </>
               )}
@@ -344,7 +346,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                 <path d="M2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4C0 3.45 0.195833 2.97917 0.5875 2.5875C0.979167 2.19583 1.45 2 2 2H6.2C6.43333 1.4 6.8 0.916667 7.3 0.55C7.8 0.183333 8.36667 0 9 0C9.63333 0 10.2 0.183333 10.7 0.55C11.2 0.916667 11.5667 1.4 11.8 2H16C16.55 2 17.0208 2.19583 17.4125 2.5875C17.8042 2.97917 18 3.45 18 4V18C18 18.55 17.8042 19.0208 17.4125 19.4125C17.0208 19.8042 16.55 20 16 20H2ZM9 3.25C9.21667 3.25 9.39583 3.17917 9.5375 3.0375C9.67917 2.89583 9.75 2.71667 9.75 2.5C9.75 2.28333 9.67917 2.10417 9.5375 1.9625C9.39583 1.82083 9.21667 1.75 9 1.75C8.78333 1.75 8.60417 1.82083 8.4625 1.9625C8.32083 2.10417 8.25 2.28333 8.25 2.5C8.25 2.71667 8.32083 2.89583 8.4625 3.0375C8.60417 3.17917 8.78333 3.25 9 3.25ZM2 16.85C2.9 15.9667 3.94583 15.2708 5.1375 14.7625C6.32917 14.2542 7.61667 14 9 14C10.3833 14 11.6708 14.2542 12.8625 14.7625C14.0542 15.2708 15.1 15.9667 16 16.85V4H2V16.85ZM9 12C9.96667 12 10.7917 11.6583 11.475 10.975C12.1583 10.2917 12.5 9.46667 12.5 8.5C12.5 7.53333 12.1583 6.70833 11.475 6.025C10.7917 5.34167 9.96667 5 9 5C8.03333 5 7.20833 5.34167 6.525 6.025C5.84167 6.70833 5.5 7.53333 5.5 8.5C5.5 9.46667 5.84167 10.2917 6.525 10.975C7.20833 11.6583 8.03333 12 9 12Z" fill="currentColor" />
               </svg>
             </div>
-            <h2>QUẢN LÝ TRẠNG THÁI</h2>
+            <h2>{tr('QUẢN LÝ TRẠNG THÁI')}</h2>
           </header>
 
           <div className="status-options-list">
@@ -353,6 +355,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
               { id: 'BẢO LƯU', label: 'BẢO LƯU', eng: '(SUSPENDED)', desc: 'Tạm dừng có thời hạn' },
               { id: 'TỐT NGHIỆP', label: 'TỐT NGHIỆP', eng: '(GRADUATED)', desc: 'Hoàn thành chương trình' },
               { id: 'NGHỈ HỌC', label: 'NGHỈ HỌC', eng: '(DROPPED)', desc: 'Dừng học vĩnh viễn' },
+            ].map((option) => {
             ].map((option) => {
               const isSelected = status === option.id;
               const isCurrentInDb = learner.status === option.id;
@@ -365,22 +368,22 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                   <div className="radio-circle" />
                   <div className="option-info">
                     <div className="option-title">
-                      {option.label} {option.eng}
+                      {tr(option.label)} {tr(option.eng)}
                     </div>
-                    <div className="option-desc">{option.desc}</div>
+                    <div className="option-desc">{tr(option.desc)}</div>
                   </div>
-                  {isCurrentInDb && <span className="current-badge">CURRENT</span>}
+                  {isCurrentInDb && <span className="current-badge">{tr('CURRENT')}</span>}
                 </div>
               );
             })}
           </div>
 
           <div className="status-change-reason">
-            <label htmlFor="reason-textarea">Lý do thay đổi trạng thái</label>
+            <label htmlFor="reason-textarea">{tr('Lý do thay đổi trạng thái')}</label>
             <textarea
               id="reason-textarea"
               className="premium-textarea"
-              placeholder="Nhập ghi chú chi tiết lý do thay đổi..."
+              placeholder={tr('Nhập ghi chú chi tiết lý do thay đổi...')}
               value={statusReason}
               onChange={(e) => setStatusReason(e.target.value)}
             />
@@ -390,14 +393,14 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
         {/* Bottom Actions Bar */}
         <footer className="action-footer-bar">
           <button type="button" className="footer-cancel-btn" onClick={onCancel}>
-            HỦY THAY ĐỔI
+            {tr('HỦY THAY ĐỔI')}
           </button>
           
           <button type="submit" className="footer-save-btn">
             <svg width="14" height="17" viewBox="0 0 14 17" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M5.79167 11.2917L10.5 6.58333L9.3125 5.39583L5.79167 8.91667L4.04167 7.16667L2.85417 8.35417L5.79167 11.2917ZM6.66667 16.6667C4.73611 16.1806 3.14236 15.0729 1.88542 13.3438C0.628472 11.6146 0 9.69444 0 7.58333V2.5L6.66667 0L13.3333 2.5V7.58333C13.3333 9.69444 12.7049 11.6146 11.4479 13.3438C10.191 15.0729 8.59722 16.1806 6.66667 16.6667ZM6.66667 14.9167C8.11111 14.4583 9.30556 13.5417 10.25 12.1667C11.1944 10.7917 11.6667 9.26389 11.6667 7.58333V3.64583L6.66667 1.77083L1.66667 3.64583V7.58333C1.66667 9.26389 2.13889 10.7917 3.08333 12.1667C4.02778 13.5417 5.22222 14.4531 6.66667 14.9167Z" fill="currentColor" />
             </svg>
-            <span>LƯU HỒ SƠ HỌC VIÊN</span>
+            <span>{tr('LƯU HỒ SƠ HỌC VIÊN')}</span>
           </button>
         </footer>
       </form>

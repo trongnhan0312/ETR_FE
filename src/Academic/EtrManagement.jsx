@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 
 const EtrManagement = () => {
+  const { tr, trt } = useLanguage();
   const [etrRecords, setEtrRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [auditTrail, setAuditTrail] = useState([]);
@@ -108,7 +110,7 @@ const EtrManagement = () => {
           time: a.recordedAt ? new Date(a.recordedAt).toLocaleString('vi-VN') : '',
           actor: `Account #${a.accountId || 'N/A'}`,
           action: a.actionType || (a.entityName || 'UPDATE'),
-          desc: a.description || `${a.actionType || 'Cập nhật'} ${a.entityName || 'hồ sơ'} #${a.recordId || ''}`
+          desc: a.description || `${a.actionType || tr('Cập nhật')} ${a.entityName || tr('hồ sơ')} #${a.recordId || ''}`
         })));
       } catch (error) {
         console.error("Error loading ETR data:", error);
@@ -162,8 +164,8 @@ const EtrManagement = () => {
         enrollmentId: etr.enrollmentId,
         accountId: enrollment?.accountId,
         studentCode: profile?.userCode || account?.username || '',
-        studentName: profile?.fullName || account?.username || `Học viên #${enrollment?.accountId || ''}`,
-        course: `Khóa học #${enrollment?.classId || ''}`,
+        studentName: profile?.fullName || account?.username || `${tr('Học viên #')}${enrollment?.accountId || ''}`,
+        course: `${tr('Khóa học #')}${enrollment?.classId || ''}`,
         status: statusMap[etr.status] || etr.status || 'UNDER REVIEW',
         lastUpdated: etr.submittedAt ? new Date(etr.submittedAt).toLocaleString('vi-VN') :
                      etr.verifiedAt ? new Date(etr.verifiedAt).toLocaleString('vi-VN') : '',
@@ -221,7 +223,7 @@ const EtrManagement = () => {
         time: a.recordedAt ? new Date(a.recordedAt).toLocaleString('vi-VN') : '',
         actor: `Account #${a.accountId || 'N/A'}`,
         action: a.actionType || 'UPDATE',
-        desc: a.description || 'Cập nhật hồ sơ'
+        desc: a.description || tr('Cập nhật hồ sơ')
       })));
     } catch (error) {
       console.error("Error refreshing ETR data:", error);
@@ -241,19 +243,19 @@ const EtrManagement = () => {
       const enrollment = account ? allEnrollments.find((enr) => enr.accountId === account.accountId) : null;
 
       if (!enrollment) {
-        toast.error("Không tìm thấy ghi danh", "Không tìm thấy thông tin ghi danh của học viên này. Vui lòng ghi danh trước.");
+        toast.error(tr("Không tìm thấy ghi danh"), tr("Không tìm thấy thông tin ghi danh của học viên này. Vui lòng ghi danh trước."));
         return;
       }
 
       // ETR tự động được tạo khi Enrollment được tạo thành công (backend auto-generates)
       // Nếu ETR chưa tồn tại, hệ thống sẽ tự động tạo khi ghi danh
       // Chỉ cần refresh dữ liệu để hiển thị ETR mới
-      toast.success("ETR tự động tạo", "ETR được tự động tạo khi ghi danh. Vui lòng kiểm tra lại danh sách hoặc tạo Enrollment mới.");
+      toast.success(tr("ETR tự động tạo"), tr("ETR được tự động tạo khi ghi danh. Vui lòng kiểm tra lại danh sách hoặc tạo Enrollment mới."));
       await refreshData();
       setIsCreateOpen(false);
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Lỗi", error.message || "Lỗi không xác định");
+      toast.error(tr("Lỗi"), error.message || tr("Lỗi không xác định"));
     }
   };
 
@@ -272,11 +274,11 @@ const EtrManagement = () => {
 
     try {
       if (!uploadFile) {
-        toast.warning("Thiếu tệp tin", "Vui lòng chọn tệp tin trước khi tải lên.");
+        toast.warning(tr("Thiếu tệp tin"), tr("Vui lòng chọn tệp tin trước khi tải lên."));
         return;
       }
       if (!uploadEvidenceTypeId) {
-        toast.warning("Thiếu loại minh chứng", "Vui lòng chọn loại minh chứng.");
+        toast.warning(tr("Thiếu loại minh chứng"), tr("Vui lòng chọn loại minh chứng."));
         return;
       }
 
@@ -285,11 +287,11 @@ const EtrManagement = () => {
       const subjectResults = etrDetail?.subjectResults || [];
       const subjectResultId = subjectResults[0]?.subjectResultId;
       if (!subjectResultId) {
-        toast.warning("Chưa có kết quả môn học", "ETR chưa có kết quả môn học nào để gắn minh chứng. Vui lòng nhập điểm đánh giá trước.");
+        toast.warning(tr("Chưa có kết quả môn học"), tr("ETR chưa có kết quả môn học nào để gắn minh chứng. Vui lòng nhập điểm đánh giá trước."));
         return;
       }
       if (!selectedRecord.accountId) {
-        toast.error("Thiếu thông tin học viên", "Không tìm thấy AccountId của học viên (thiếu enrollment hợp lệ). Vui lòng kiểm tra ghi danh.");
+        toast.error(tr("Thiếu thông tin học viên"), tr("Không tìm thấy AccountId của học viên (thiếu enrollment hợp lệ). Vui lòng kiểm tra ghi danh."));
         return;
       }
 
@@ -302,10 +304,10 @@ const EtrManagement = () => {
       await api.postFormData("/Evidences/upload", formData);
 
       toast.success(
-        "Tải lên thành công",
-        `Đã tải lên minh chứng: ${uploadFile.name}` +
+        tr("Tải lên thành công"),
+        `${tr('Đã tải lên minh chứng: ')}${uploadFile.name}` +
           (evidenceAccessDenied
-            ? " (danh sách minh chứng có thể chưa hiển thị vì tài khoản của bạn chưa có quyền đọc danh sách minh chứng trên backend hiện tại)."
+            ? tr(" (danh sách minh chứng có thể chưa hiển thị vì tài khoản của bạn chưa có quyền đọc danh sách minh chứng trên backend hiện tại).")
             : "")
       );
       setUploadFile(null);
@@ -313,7 +315,7 @@ const EtrManagement = () => {
       await refreshData();
     } catch (error) {
       console.error("Error uploading evidence:", error);
-      toast.error("Tải lên thất bại", error.message || "Lỗi không xác định");
+      toast.error(tr("Tải lên thất bại"), error.message || tr("Lỗi không xác định"));
     }
   };
 
@@ -331,7 +333,7 @@ const EtrManagement = () => {
       await refreshData();
       setConfirmSubmitOpen(false);
       setRecordToSubmit(null);
-      toast.success("Gửi ETR thành công", `ETR ${recordToSubmit.id} đã được gửi lên QA thành công!`);
+      toast.success(tr("Gửi ETR thành công"), `ETR ${recordToSubmit.id} ${tr('đã được gửi lên QA thành công!')}`);
     } catch (error) {
       console.error("Error submitting ETR:", error);
       const isForbidden =
@@ -339,10 +341,10 @@ const EtrManagement = () => {
           error?.message || ""
         );
       toast.error(
-        "Gửi ETR thất bại",
+        tr("Gửi ETR thất bại"),
         isForbidden
-          ? "Tài khoản của bạn chưa được backend cho phép Submit ETR (hiện chỉ dành cho Instructor/Admin). Vui lòng dùng tài khoản có quyền hoặc liên hệ Admin."
-          : (error.message || "Lỗi không xác định")
+          ? tr("Tài khoản của bạn chưa được backend cho phép Submit ETR (hiện chỉ dành cho Instructor/Admin). Vui lòng dùng tài khoản có quyền hoặc liên hệ Admin.")
+          : (error.message || tr("Lỗi không xác định"))
       );
     } finally {
       setSubmittingEtr(false);
@@ -362,7 +364,7 @@ const EtrManagement = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading file:", error);
-      toast.error("Tải xuống thất bại", error.message || "Lỗi không xác định");
+      toast.error(tr("Tải xuống thất bại"), error.message || tr("Lỗi không xác định"));
     }
   };
 
@@ -384,11 +386,11 @@ const EtrManagement = () => {
     if (!confirmDeleteFile) return;
     try {
       await api.delete(`/Evidences/${confirmDeleteFile.fileId}`);
-      toast.success("Xóa thành công", `Đã xóa minh chứng ${confirmDeleteFile.fileName}.`);
+      toast.success(tr("Xóa thành công"), `${tr('Đã xóa minh chứng ')}${confirmDeleteFile.fileName}.`);
       await refreshData();
     } catch (error) {
       console.error("Error deleting file:", error);
-      toast.error("Xóa thất bại", error.message || "Lỗi không xác định");
+      toast.error(tr("Xóa thất bại"), error.message || tr("Lỗi không xác định"));
     } finally {
       setConfirmDeleteFile(null);
     }
@@ -457,28 +459,28 @@ const EtrManagement = () => {
                 {/* Breadcrumbs */}
                 <div className="flex justify-start items-center self-stretch flex-grow-0 flex-shrink-0 gap-2">
                   <p className="text-[10px] font-bold text-left uppercase text-[#002147]/50" style={{ margin: 0 }}>
-                    ACADEMIC PORTAL
+                    {tr('ACADEMIC PORTAL')}
                   </p>
                   <svg width={4} height={6} viewBox="0 0 4 6" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M2.3 3L0 0.7L0.7 0L3.7 3L0.7 6L0 5.3L2.3 3Z" fill="#002147" fillOpacity="0.5" />
                   </svg>
                   
                   <p className="text-[10px] font-bold text-left uppercase text-[#002147]/50 cursor-pointer hover:text-[#c5a059]" onClick={() => setViewMode('list')} style={{ margin: 0 }}>
-                    ETR LOGS
+                    {tr('ETR LOGS')}
                   </p>
                   <svg width={4} height={6} viewBox="0 0 4 6" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M2.3 3L0 0.7L0.7 0L3.7 3L0.7 6L0 5.3L2.3 3Z" fill="#002147" fillOpacity="0.5" />
                   </svg>
                   
                   <p className="text-[10px] font-bold text-left uppercase text-[#c5a059]" style={{ margin: 0 }}>
-                    EVIDENCE MANAGEMENT
+                    {tr('EVIDENCE MANAGEMENT')}
                   </p>
                 </div>
 
                 {/* Main page titles */}
                 <div className="flex items-baseline gap-2">
                   <h1 className="text-3xl font-bold text-left text-[#002147]" style={{ margin: 0, padding: 0, fontSize: '30px' }}>
-                    Quản lý Minh chứng
+                    {tr('Quản lý Minh chứng')}
                   </h1>
                   <span className="text-3xl italic text-left text-[#c5a059] font-light" style={{ fontSize: '30px' }}>
                     / Evidence Management
@@ -497,7 +499,7 @@ const EtrManagement = () => {
                   </div>
                   <div className="flex justify-start items-center gap-2 px-4 py-2 rounded-lg bg-[#002147]/5 border border-[#002147]/10">
                     <p className="text-[10px] font-bold text-left uppercase text-[#002147]/60" style={{ margin: 0 }}>
-                      HỌC VIÊN
+                      {tr('HỌC VIÊN')}
                     </p>
                     <p className="text-sm font-bold text-left text-[#002147]" style={{ margin: 0 }}>
                       {selectedRecord.studentName}
@@ -516,7 +518,7 @@ const EtrManagement = () => {
                     <path d="M5.25 9V7.5H8.25V9H5.25ZM2.25 5.25V3.75H11.25V5.25H2.25ZM0 1.5V0H13.5V1.5H0Z" fill="#002147" />
                   </svg>
                   <p className="text-xs font-bold text-center uppercase text-[#002147]" style={{ margin: 0, lineHeight: 1.1 }}>
-                    LỌC LOẠI: {fileCategoryFilter}
+                    {tr('LỌC LOẠI: ')}{fileCategoryFilter}
                   </p>
                 </div>
 
@@ -532,7 +534,7 @@ const EtrManagement = () => {
                     <path d="M5.25 9V2.8875L3.3 4.8375L2.25 3.75L6 0L9.75 3.75L8.7 4.8375L6.75 2.8875V9H5.25ZM1.5 12C1.0875 12 0.734375 11.8531 0.440625 11.5594C0.146875 11.2656 0 10.9125 0 10.5V8.25H1.5V10.5H10.5V8.25H12V10.5C12 10.9125 11.8531 11.2656 11.5594 11.5594C11.2656 11.8531 10.9125 12 10.5 12H1.5Z" fill="white" />
                   </svg>
                   <p className="text-xs font-bold text-center uppercase text-white" style={{ margin: 0, lineHeight: 1.1 }}>
-                    TẢI LÊN EVIDENCE
+                    {tr('TẢI LÊN EVIDENCE')}
                   </p>
                 </div>
               </div>
@@ -550,7 +552,7 @@ const EtrManagement = () => {
                   onClick={() => setFileCategoryFilter('ALL')}
                 >
                   <p className={`text-xs font-bold text-center uppercase ${fileCategoryFilter === 'ALL' ? 'text-[#002147]' : 'text-[#002147]/60'}`} style={{ margin: 0 }}>
-                    TẤT CẢ ({totalCount})
+                    {tr('TẤT CẢ')} ({totalCount})
                   </p>
                 </div>
                 <div 
@@ -558,7 +560,7 @@ const EtrManagement = () => {
                   onClick={() => setFileCategoryFilter('IMAGE')}
                 >
                   <p className={`text-xs font-bold text-center uppercase ${fileCategoryFilter === 'IMAGE' ? 'text-[#002147]' : 'text-[#002147]/60'}`} style={{ margin: 0 }}>
-                    HÌNH ẢNH ({imgCount})
+                    {tr('HÌNH ẢNH')} ({imgCount})
                   </p>
                 </div>
                 <div 
@@ -566,7 +568,7 @@ const EtrManagement = () => {
                   onClick={() => setFileCategoryFilter('PDF')}
                 >
                   <p className={`text-xs font-bold text-center uppercase ${fileCategoryFilter === 'PDF' ? 'text-[#002147]' : 'text-[#002147]/60'}`} style={{ margin: 0 }}>
-                    TÀI LIỆU PDF ({pdfCount})
+                    {tr('TÀI LIỆU PDF')} ({pdfCount})
                   </p>
                 </div>
                 <div 
@@ -574,7 +576,7 @@ const EtrManagement = () => {
                   onClick={() => setFileCategoryFilter('SIGNATURE')}
                 >
                   <p className={`text-xs font-bold text-center uppercase ${fileCategoryFilter === 'SIGNATURE' ? 'text-[#002147]' : 'text-[#002147]/60'}`} style={{ margin: 0 }}>
-                    CHỮ KÝ SỐ ({sigCount})
+                    {tr('CHỮ KÝ SỐ')} ({sigCount})
                   </p>
                 </div>
               </div>
@@ -585,7 +587,7 @@ const EtrManagement = () => {
                   <input
                     type="text"
                     className="pl-10 pr-4 py-2 w-72 rounded-lg bg-[#f5f7fa] border border-slate-200 text-sm focus:outline-none focus:border-[#c5a059] transition"
-                    placeholder="Tìm kiếm tài liệu..."
+                    placeholder={tr('Tìm kiếm tài liệu...')}
                     value={fileSearchQuery}
                     onChange={(e) => setFileSearchQuery(e.target.value)}
                   />
@@ -619,10 +621,7 @@ const EtrManagement = () => {
                   <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-7v2h2v-2h-2zm0-8v6h2V7h-2z" fill="#b45309" />
                 </svg>
                 <span>
-                  Tài khoản của bạn chưa được backend cho phép <strong>đọc</strong> danh sách minh chứng
-                  (GET /Evidences hiện chỉ cho Instructor/QA/Admin) — danh sách bên dưới có thể trống.
-                  Bạn vẫn có thể <strong>tải lên</strong> và <strong>xóa</strong> minh chứng; danh sách sẽ
-                  hiển thị đầy đủ khi quyền đọc được cấp ở backend.
+                  {tr('Tài khoản của bạn chưa được backend cho phép')} <strong>{tr('đọc')}</strong> {tr('danh sách minh chứng (GET /Evidences hiện chỉ cho Instructor/QA/Admin) — danh sách bên dưới có thể trống. Bạn vẫn có thể tải lên và xóa minh chứng; danh sách sẽ hiển thị đầy đủ khi quyền đọc được cấp ở backend.')}
                 </span>
               </div>
             )}
@@ -643,11 +642,11 @@ const EtrManagement = () => {
                       onChange={handleToggleSelectAll}
                     />
                   </div>
-                  <div>PHÂN LOẠI</div>
-                  <div>TÊN TẬP TIN</div>
-                  <div>NGÀY TẢI</div>
-                  <div style={{ textAlign: 'center' }}>TRẠNG THÁI</div>
-                  <div style={{ textAlign: 'right', paddingRight: '24px' }}>THAO TÁC</div>
+                  <div>{tr('PHÂN LOẠI')}</div>
+                  <div>{tr('TÊN TẬP TIN')}</div>
+                  <div>{tr('NGÀY TẢI')}</div>
+                  <div style={{ textAlign: 'center' }}>{tr('TRẠNG THÁI')}</div>
+                  <div style={{ textAlign: 'right', paddingRight: '24px' }}>{tr('THAO TÁC')}</div>
                 </div>
 
                 {/* Table Body */}
@@ -738,7 +737,7 @@ const EtrManagement = () => {
                                 </div>
                                 <div className="tooltip-card flex flex-col justify-start items-center p-3 rounded-lg bg-[#002147] border-b-4 border-[#c5a059] shadow-lg w-56">
                                   <p className="text-[11px] text-center text-white leading-normal" style={{ margin: 0 }}>
-                                    Lý do: {file.rejectReason || 'Tập tin không đạt yêu cầu.'}
+                                    {tr('Lý do: ')}{file.rejectReason || tr('Tập tin không đạt yêu cầu.')}
                                   </p>
                                   <div style={{
                                     width: 0,
@@ -762,7 +761,7 @@ const EtrManagement = () => {
                               type="button"
                               className="p-2 rounded-lg bg-[#f5f7fa] border border-slate-200 text-[#002147] hover:bg-slate-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
                               onClick={() => setPreviewFile(file)}
-                              title="Xem chi tiết"
+                              title={tr('Xem chi tiết')}
                             >
                               <svg width={15} height={11} viewBox="0 0 19 13" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M9.16667 10C10.2083 10 11.0938 9.63542 11.8229 8.90625C12.5521 8.17708 12.9167 7.29167 12.9167 6.25C12.9167 5.20833 12.5521 4.32292 11.8229 3.59375C11.0938 2.86458 10.2083 2.5 9.16667 2.5C8.125 2.5 7.23958 2.86458 6.51042 3.59375C5.78125 4.32292 5.41667 5.20833 5.41667 6.25C5.41667 7.29167 5.78125 8.17708 6.51042 8.90625C7.23958 9.63542 8.125 10 9.16667 10ZM9.16667 8.5C8.54167 8.5 8.01042 8.28125 7.57292 7.84375C7.13542 7.40625 6.91667 6.875 6.91667 6.25C6.91667 5.625 7.13542 5.09375 7.57292 4.65625C8.01042 4.21875 8.54167 4 9.16667 4C9.79167 4 10.3229 4.21875 10.7604 4.65625C11.1979 5.09375 11.4167 5.625 11.4167 6.25C11.4167 6.875 11.1979 7.40625 10.7604 7.84375C10.3229 8.28125 9.79167 8.5 9.16667 8.5ZM9.16667 12.5C7.13889 12.5 5.29167 11.934 3.625 10.8021C1.95833 9.67014 0.75 8.15278 0 6.25C0.75 4.34722 1.95833 2.82986 3.625 1.69792C5.29167 0.565972 7.13889 0 9.16667 0C11.1944 0 13.0417 0.565972 14.7083 1.69792C16.375 2.82986 17.5833 4.34722 18.3333 6.25C17.5833 8.15278 16.375 9.67014 14.7083 10.8021C13.0417 11.934 11.1944 12.5 9.16667 12.5ZM9.16667 10.8333C10.7361 10.8333 12.1771 10.4201 13.4896 9.59375C14.8021 8.76736 15.8056 7.65278 16.5 6.25C15.8056 4.84722 14.8021 3.73264 13.4896 2.90625C12.1771 2.07986 10.7361 1.66667 9.16667 1.66667C7.59722 1.66667 6.15625 2.07986 4.84375 2.90625C3.53125 3.73264 2.52778 4.84722 1.83333 6.25C2.52778 7.65278 3.53125 8.76736 4.84375 9.59375C6.15625 10.4201 7.59722 10.8333 9.16667 10.8333Z" fill="currentColor" />
@@ -772,7 +771,7 @@ const EtrManagement = () => {
                               type="button"
                               className="p-2 rounded-lg bg-[#f5f7fa] border border-slate-200 text-[#002147] hover:bg-slate-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
                               onClick={() => handleDownloadFile(file.id, file.name)}
-                              title="Tải xuống"
+                              title={tr('Tải xuống')}
                             >
                               <svg width={14} height={14} viewBox="0 0 14 17" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5.83333 14.1667H7.5V10.6875L8.83333 12.0208L10 10.8333L6.66667 7.5L3.33333 10.8333L4.52083 12L5.83333 10.6875V14.1667ZM1.66667 16.6667C1.20833 16.6667 0.815972 16.5035 0.489583 16.1771C0.163194 15.8507 0 15.4583 0 15V1.66667C0 1.20833 0.163194 0.815972 0.489583 0.489583C0.815972 0.163194 1.20833 0 1.66667 0H8.33333L13.3333 5V15C13.3333 15.4583 13.1701 15.8507 12.8438 16.1771C12.5174 16.5035 12.125 16.6667 11.6667 16.6667H1.66667ZM7.5 5.83333V1.66667H1.66667V15H11.6667V5.83333H7.5ZM1.66667 1.66667V5.83333V1.66667V5.83333V15V1.66667Z" fill="currentColor" fillOpacity="0.6" />
@@ -782,7 +781,7 @@ const EtrManagement = () => {
                               type="button"
                               className="p-2 rounded-lg bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
                               onClick={(e) => handleDeleteFile(file.id, file.name, e)}
-                              title="Xóa minh chứng"
+                              title={tr('Xóa minh chứng')}
                             >
                               <svg width={12} height={14} viewBox="0 0 448 512" fill="currentColor" style={{ width: '12px', height: '12px' }}>
                                 <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.2 0 46.2-19.7 47.9-45L416 128z" />
@@ -794,7 +793,7 @@ const EtrManagement = () => {
                     })
                   ) : (
                     <div style={{ textAlign: 'center', padding: '40px', fontStyle: 'italic', color: '#64748b', backgroundColor: '#ffffff' }}>
-                      Không tìm thấy tập tin minh chứng nào khớp với bộ lọc.
+                      {tr('Không tìm thấy tập tin minh chứng nào khớp với bộ lọc.')}
                     </div>
                   )}
                 </div>
@@ -838,7 +837,7 @@ const EtrManagement = () => {
           <div className="modal-container" style={{ width: '650px', maxWidth: '95%' }}>
             <header className="modal-header">
               <h2>XEM TRƯỚC TÀI LIỆU MINH CHỨNG</h2>
-              <button className="close-btn" type="button" onClick={() => setPreviewFile(null)} aria-label="Đóng">
+              <button className="close-btn" type="button" onClick={() => setPreviewFile(null)} aria-label={tr('Đóng')}>
                 &times;
               </button>
             </header>
@@ -883,9 +882,9 @@ const EtrManagement = () => {
               {/* QA Rejection Reason Box */}
               {previewFile.status === 'Rejected' && (
                 <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex flex-col gap-1.5 shadow-sm" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px' }}>
-                  <h4 className="text-xs font-black text-red-800 uppercase tracking-wide" style={{ margin: 0 }}>Lý do từ chối (QA Rejection Reason)</h4>
+                  <h4 className="text-xs font-black text-red-800 uppercase tracking-wide" style={{ margin: 0 }}>{tr('Lý do từ chối (QA Rejection Reason)')}</h4>
                   <p className="text-xs text-red-700 font-medium leading-relaxed" style={{ margin: 0 }}>
-                    {previewFile.rejectReason || 'Hình ảnh mờ, không rõ chữ ký hoặc thông tin không trùng khớp.'}
+                    {previewFile.rejectReason || tr('Hình ảnh mờ, không rõ chữ ký hoặc thông tin không trùng khớp.')}
                   </p>
                 </div>
               )}
@@ -916,8 +915,8 @@ const EtrManagement = () => {
                         <div className="h-3 w-1/2 bg-slate-100 rounded" style={{ height: '12px', width: '50%', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
                       </div>
                       <div className="mt-auto border-t border-slate-100 pt-3 flex justify-between items-center text-[10px] font-bold text-slate-400" style={{ marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', justifycontent: 'space-between', alignItems: 'center' }}>
-                        <span>Học viên: {selectedRecord.studentName}</span>
-                        <span>Mã: {selectedRecord.studentCode}</span>
+                        <span>{tr('Học viên: ')}{selectedRecord.studentName}</span>
+                        <span>{tr('Mã: ')}{selectedRecord.studentCode}</span>
                       </div>
                     </div>
                   </div>
@@ -995,7 +994,7 @@ const EtrManagement = () => {
                   setPreviewFile(null);
                 }}
               >
-                Đóng
+                {tr('Đóng')}
               </button>
               <button 
                 className="modal-submit-btn" 
@@ -1005,7 +1004,7 @@ const EtrManagement = () => {
                   setPreviewFile(null);
                 }}
               >
-                Tải Xuống Minh Chứng
+                {tr('Tải Xuống Minh Chứng')}
               </button>
             </footer>
           </div>
@@ -1017,12 +1016,12 @@ const EtrManagement = () => {
         isOpen={!!confirmDeleteFile}
         onClose={() => setConfirmDeleteFile(null)}
         onConfirm={handleConfirmDeleteFile}
-        title="Xóa minh chứng"
-        message={`Bạn có chắc chắn muốn xóa minh chứng ${confirmDeleteFile?.fileName || ''}?`}
+        title={tr("Xóa minh chứng")}
+        message={`${tr('Bạn có chắc chắn muốn xóa minh chứng ')}${confirmDeleteFile?.fileName || ''}?`}
         confirmText="XÓA"
         cancelText="HỦY BỎ"
         confirmVariant="danger"
-        bodyMessage="Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này."
+        bodyMessage={tr("Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này.")}
       />
 
       {/* Toast notifications (view Evidence) */}
@@ -1055,7 +1054,7 @@ const EtrManagement = () => {
                 </p>
               </div>
               <p className="text-xs font-medium text-left text-slate-400" style={{ margin: 0 }}>
-                Trạng thái kiểm duyệt hồ sơ đào tạo hiện hành của học viên <strong style={{ color: '#002147' }}>{selectedRecord.studentName}</strong>
+                {tr('Trạng thái kiểm duyệt hồ sơ đào tạo hiện hành của học viên')} <strong style={{ color: '#002147' }}>{selectedRecord.studentName}</strong>
               </p>
             </div>
             <div className="flex flex-col justify-start items-start relative px-6 py-2 rounded-lg bg-[#002147] border border-[#c5a059]/30">
@@ -1147,7 +1146,7 @@ const EtrManagement = () => {
                 type="text"
                 className="search-input"
                 style={{ width: '220px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px' }}
-                placeholder="Tìm ETR, học viên..."
+                placeholder={tr('Tìm ETR, học viên...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -1224,7 +1223,7 @@ const EtrManagement = () => {
                       className="outline-btn font-gold-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border !border-amber-300/60 !bg-white !px-0 !py-0 !text-amber-600 !shadow-sm !transition hover:-translate-y-0.5 hover:!border-amber-400 xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5"
                       type="button"
                       onClick={(e) => handleOpenEvidence(record, e)}
-                      aria-label="Mở minh chứng"
+                      aria-label={tr('Mở minh chứng')}
                     >
                       <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M1.33333 12C0.966667 12 0.652778 11.8694 0.391667 11.6083C0.130556 11.3472 0 11.0333 0 10.6667V1.33333C0 0.966667 0.130556 0.652778 0.391667 0.391667C0.652778 0.130556 0.966667 0 1.33333 0H12C12.3667 0 12.6806 0.130556 12.9417 0.391667C13.2028 0.652778 13.3333 0.966667 13.3333 1.33333V10.6667C13.3333 11.0333 13.2028 11.3472 12.9417 11.6083C12.6806 11.8694 12.3667 12 12 12H1.33333ZM1.33333 10.6667H12V1.33333H1.33333V10.6667Z" fill="currentColor" />
@@ -1253,7 +1252,7 @@ const EtrManagement = () => {
                           setRecordToSubmit(record);
                           setConfirmSubmitOpen(true);
                         }}
-                        aria-label="Gửi ETR"
+                        aria-label={tr('Gửi ETR')}
                       >
                         <svg width="14" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M22 2L11 13" />
@@ -1329,13 +1328,13 @@ const EtrManagement = () => {
           setRecordToSubmit(null);
         }}
         onConfirm={handleSubmitEtr}
-        title="Xác nhận gửi ETR"
-        message={`Bạn có chắc chắn muốn gửi hồ sơ ${recordToSubmit?.id || ''} lên QA để xác thực? Sau khi gửi, bạn không thể chỉnh sửa hồ sơ này nữa.`}
+        title={tr("Xác nhận gửi ETR")}
+        message={`${tr('Bạn có chắc chắn muốn gửi hồ sơ ')}${recordToSubmit?.id || ''}${tr(' lên QA để xác thực? Sau khi gửi, bạn không thể chỉnh sửa hồ sơ này nữa.')}`}
         confirmText="GỬI ETR"
         cancelText="HỦY BỎ"
         confirmVariant="primary"
         loading={submittingEtr}
-        bodyMessage="Sau khi gửi, QA sẽ thẩm định và bạn không thể chỉnh sửa hồ sơ cho đến khi QA trả lại."
+        bodyMessage={tr("Sau khi gửi, QA sẽ thẩm định và bạn không thể chỉnh sửa hồ sơ cho đến khi QA trả lại.")}
       />
 
       {/* Modal - Xác nhận xóa minh chứng */}
@@ -1343,12 +1342,12 @@ const EtrManagement = () => {
         isOpen={!!confirmDeleteFile}
         onClose={() => setConfirmDeleteFile(null)}
         onConfirm={handleConfirmDeleteFile}
-        title="Xóa minh chứng"
-        message={`Bạn có chắc chắn muốn xóa minh chứng ${confirmDeleteFile?.fileName || ''}?`}
+        title={tr("Xóa minh chứng")}
+        message={`${tr('Bạn có chắc chắn muốn xóa minh chứng ')}${confirmDeleteFile?.fileName || ''}?`}
         confirmText="XÓA"
         cancelText="HỦY BỎ"
         confirmVariant="danger"
-        bodyMessage="Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này."
+        bodyMessage={tr("Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này.")}
       />
 
       {/* Toast notifications */}
@@ -1360,7 +1359,7 @@ const EtrManagement = () => {
           <div className="modal-container" style={{ width: '600px' }}>
             <header className="modal-header">
               <h2>TẠO MỚI HỒ SƠ ETR</h2>
-              <button className="close-btn" type="button" onClick={() => setIsCreateOpen(false)} aria-label="Đóng">
+              <button className="close-btn" type="button" onClick={() => setIsCreateOpen(false)} aria-label={tr('Đóng')}>
                 &times;
               </button>
             </header>
@@ -1368,11 +1367,11 @@ const EtrManagement = () => {
             <form onSubmit={handleCreateEtr}>
               <div className="modal-body" style={{ padding: '24px' }}>
                 <div className="form-group">
-                  <label htmlFor="etr-student-name">Tên học viên</label>
+                  <label htmlFor="etr-student-name">{tr('Tên học viên')}</label>
                   <input
                     id="etr-student-name"
                     type="text"
-                    placeholder="Ví dụ: Nguyễn Văn Bình"
+                    placeholder={tr('Ví dụ: Nguyễn Văn Bình')}
                     value={newStudentName}
                     onChange={(e) => setNewStudentName(e.target.value)}
                     required
@@ -1381,11 +1380,11 @@ const EtrManagement = () => {
 
                 <div className="form-row" style={{ marginTop: '16px' }}>
                   <div className="form-group">
-                    <label htmlFor="etr-student-code">Mã học viên</label>
+                    <label htmlFor="etr-student-code">{tr('Mã học viên')}</label>
                     <input
                       id="etr-student-code"
                       type="text"
-                      placeholder="Ví dụ: AM-2409-005"
+                      placeholder={tr('Ví dụ: AM-2409-005')}
                       value={newStudentCode}
                       onChange={(e) => setNewStudentCode(e.target.value)}
                       required
@@ -1393,7 +1392,7 @@ const EtrManagement = () => {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="etr-course-select">Khóa học đào tạo</label>
+                    <label htmlFor="etr-course-select">{tr('Khóa học đào tạo')}</label>
                     <select
                       id="etr-course-select"
                       value={newCourse}
@@ -1408,7 +1407,7 @@ const EtrManagement = () => {
                 </div>
 
                 <div className="form-group" style={{ marginTop: '16px' }}>
-                  <label htmlFor="etr-status-select">Trạng thái phê duyệt ban đầu</label>
+                  <label htmlFor="etr-status-select">{tr('Trạng thái phê duyệt ban đầu')}</label>
                   <select
                     id="etr-status-select"
                     value={newStatus}
@@ -1424,10 +1423,10 @@ const EtrManagement = () => {
 
               <footer className="modal-footer">
                 <button className="modal-cancel-btn" type="button" onClick={() => setIsCreateOpen(false)}>
-                  Hủy bỏ
+                  {tr('Hủy bỏ')}
                 </button>
                 <button className="modal-submit-btn" type="submit">
-                  Khởi tạo ETR
+                  {tr('Khởi tạo ETR')}
                 </button>
               </footer>
             </form>
@@ -1440,8 +1439,8 @@ const EtrManagement = () => {
         <div className="modal-overlay">
           <div className="modal-container" style={{ width: '550px' }}>
             <header className="modal-header">
-              <h2>Tải lên Minh chứng mới</h2>
-              <button className="close-btn" type="button" onClick={() => setIsEvidenceUploadOpen(false)} aria-label="Đóng">
+              <h2>{tr('Tải lên Minh chứng mới')}</h2>
+              <button className="close-btn" type="button" onClick={() => setIsEvidenceUploadOpen(false)} aria-label={tr('Đóng')}>
                 &times;
               </button>
             </header>
@@ -1449,7 +1448,7 @@ const EtrManagement = () => {
             <form onSubmit={handleUploadEvidence}>
               <div className="modal-body" style={{ padding: '24px' }}>
                 <div className="form-group">
-                  <label htmlFor="upload-file">Tệp minh chứng</label>
+                  <label htmlFor="upload-file">{tr('Tệp minh chứng')}</label>
                   <input
                     id="upload-file"
                     type="file"
@@ -1469,7 +1468,7 @@ const EtrManagement = () => {
 
                 <div className="form-row" style={{ marginTop: '16px' }}>
                   <div className="form-group">
-                    <label htmlFor="upload-file-type">Loại minh chứng</label>
+                    <label htmlFor="upload-file-type">{tr('Loại minh chứng')}</label>
                     <select
                       id="upload-file-type"
                       value={uploadEvidenceTypeId}
@@ -1477,7 +1476,7 @@ const EtrManagement = () => {
                       required
                     >
                       {uploadEvidenceTypes.length === 0 ? (
-                        <option value="">Đang tải danh mục...</option>
+                        <option value="">{tr('Đang tải danh mục...')}</option>
                       ) : (
                         uploadEvidenceTypes.map((et) => (
                           <option key={et.evidenceTypeId} value={et.evidenceTypeId}>
@@ -1493,10 +1492,10 @@ const EtrManagement = () => {
 
               <footer className="modal-footer">
                 <button className="modal-cancel-btn" type="button" onClick={() => setIsEvidenceUploadOpen(false)}>
-                  Hủy bỏ
+                  {tr('Hủy bỏ')}
                 </button>
                 <button className="modal-submit-btn" type="submit">
-                  Tải lên minh chứng
+                  {tr('Tải lên minh chứng')}
                 </button>
               </footer>
             </form>
@@ -1511,7 +1510,7 @@ const EtrManagement = () => {
           <div className="modal-container" style={{ width: '750px', maxWidth: '95%' }}>
             <header className="modal-header">
               <h2>HỒ SƠ ĐÀO TẠO ĐIỆN TỬ HOÀN CHỈNH (ETR FINAL SHEET)</h2>
-              <button className="close-btn" type="button" onClick={() => setIsFinalViewOpen(false)} aria-label="Đóng">
+              <button className="close-btn" type="button" onClick={() => setIsFinalViewOpen(false)} aria-label={tr('Đóng')}>
                 &times;
               </button>
             </header>
@@ -1548,23 +1547,23 @@ const EtrManagement = () => {
                 <div style={{ fontWeight: '700', fontSize: '12px', color: '#002147', textTransform: 'uppercase', marginBottom: '12px' }}>CHI TIẾT KIỂM DUYỆT CÁC BƯỚC HỒ SƠ</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span>1. Hồ sơ thông tin cá nhân:</span>
+                    <span>1. {tr('Hồ sơ thông tin cá nhân:')}</span>
                     <span style={{ color: '#15803d', fontWeight: 'bold' }}>✓ ĐÃ XÁC THỰC</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span>2. Điểm danh / Chuyên cần:</span>
+                    <span>2. {tr('Điểm danh / Chuyên cần:')}</span>
                     <span style={{ color: finalViewRecord.steps.attendance ? '#15803d' : '#d97706', fontWeight: 'bold' }}>
                       {finalViewRecord.steps.attendance ? '✓ ĐÃ XÁC THỰC' : '⌛ ĐANG CHỜ'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span>3. Điểm số kết quả kiểm tra:</span>
+                    <span>3. {tr('Điểm số kết quả kiểm tra:')}</span>
                     <span style={{ color: finalViewRecord.steps.results ? '#15803d' : '#d97706', fontWeight: 'bold' }}>
                       {finalViewRecord.steps.results ? '✓ ĐÃ XÁC THỰC' : '⌛ ĐANG CHỜ'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span>4. Minh chứng đính kèm hồ sơ:</span>
+                    <span>4. {tr('Minh chứng đính kèm hồ sơ:')}</span>
                     <span style={{ color: finalViewRecord.steps.evidence ? '#15803d' : '#d97706', fontWeight: 'bold' }}>
                       {finalViewRecord.steps.evidence ? '✓ ĐÃ XÁC THỰC' : '⌛ ĐANG CHỜ'}
                     </span>
@@ -1575,13 +1574,13 @@ const EtrManagement = () => {
               {/* Signatures mock */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '40px', textAlign: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>Cán bộ học vụ</div>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>{tr('Cán bộ học vụ')}</div>
                   <div style={{ height: '60px' }} />
                   <div style={{ fontSize: '13px', fontWeight: '700', color: '#002147' }}>Academic Staff</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>Đã xác nhận điện tử</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>{tr('Đã xác nhận điện tử')}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>Cán bộ quản lý QA</div>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>{tr('Cán bộ quản lý QA')}</div>
                   <div style={{ height: '60px' }}>
                     {finalViewRecord.status === 'APPROVED' && (
                       <span style={{ color: '#15803d', border: '2px solid #15803d', padding: '4px 12px', borderRadius: '4px', display: 'inline-block', transform: 'rotate(-5deg)', fontWeight: 'bold', fontSize: '11px' }}>
@@ -1590,7 +1589,7 @@ const EtrManagement = () => {
                     )}
                   </div>
                   <div style={{ fontSize: '13px', fontWeight: '700', color: '#002147' }}>{finalViewRecord.status === 'APPROVED' ? 'QA Officer' : '________________'}</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>{finalViewRecord.status === 'APPROVED' ? 'Đã ký số' : 'Chưa ký duyệt'}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>{finalViewRecord.status === 'APPROVED' ? tr('Đã ký số') : tr('Chưa ký duyệt')}</div>
                 </div>
               </div>
             </div>

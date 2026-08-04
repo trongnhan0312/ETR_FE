@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 
 const LearnerManagement = () => {
+  const { tr, trt } = useLanguage();
   const [learners, setLearners] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,24 +45,24 @@ const LearnerManagement = () => {
   const [editDepartmentId, setEditDepartmentId] = useState('');
 
   // Helper to parse backend error responses into user-friendly messages
-  const parseApiError = (err, fallbackMsg = "Thao tác thất bại.") => {
+  const parseApiError = (err, fallbackMsg = tr("Thao tác thất bại.")) => {
     if (!err) return fallbackMsg;
     const raw = err.message || String(err);
     try {
       const json = JSON.parse(raw);
       if (json.errors && typeof json.errors === 'object') {
         const fieldMap = {
-          Username: 'Tên đăng nhập',
-          Password: 'Mật khẩu',
-          Email: 'Email',
-          FullName: 'Họ và tên',
-          DepartmentId: 'Phòng ban',
+          Username: tr('Tên đăng nhập'),
+          Password: tr('Mật khẩu'),
+          Email: tr('Email'),
+          FullName: tr('Họ và tên'),
+          DepartmentId: tr('Phòng ban'),
         };
         const messages = Object.entries(json.errors).map(([field, errs]) => {
           const fieldLabel = fieldMap[field] || field;
           const errStr = Array.isArray(errs) ? errs.join(', ') : String(errs);
           if (errStr.toLowerCase().includes('valid e-mail address')) {
-            return `${fieldLabel} phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).`;
+            return `${fieldLabel} ${tr('phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).')}`;
           }
           return `${fieldLabel}: ${errStr}`;
         });
@@ -157,7 +159,7 @@ const LearnerManagement = () => {
           departmentName: deptObj?.name || (String(acc.departmentId) === '2' ? 'Training' : 'Administration'),
           status: acc.status || 'Active',
           hasProfile: !!profile,
-          fullName: profile?.fullName || acc.username || 'Chưa cập nhật',
+          fullName: profile?.fullName || acc.username || tr('Chưa cập nhật'),
           email: profile?.email || acc.username || '',
           phone: profile?.phone || '',
           gender: profile?.gender || 'Male',
@@ -199,27 +201,27 @@ const LearnerManagement = () => {
     const trimmedFullName = fullName.trim();
 
     if (!trimmedUsername || !password || !trimmedFullName) {
-      setFormError('Vui lòng nhập Username, Password và Họ tên.');
+      setFormError(tr('Vui lòng nhập Username, Password và Họ tên.'));
       return;
     }
 
     if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
-      setFormError('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).');
+      setFormError(tr('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).'));
       return;
     }
 
     if (!isValidFullName(trimmedFullName)) {
-      setFormError('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).');
+      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
       return;
     }
 
     if (phone.trim() && !isValidPhone(phone.trim())) {
-      setFormError('Số điện thoại phải gồm 10 hoặc 11 chữ số.');
+      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
       return;
     }
 
     if (!isValidDateOfBirth(dateOfBirth)) {
-      setFormError('Ngày sinh bắt buộc và phải trước năm 2007.');
+      setFormError(tr('Ngày sinh bắt buộc và phải trước năm 2007.'));
       return;
     }
 
@@ -251,7 +253,7 @@ const LearnerManagement = () => {
       setIsCreateOpen(false);
     } catch (err) {
       console.error("Failed to create student:", err);
-      setFormError(parseApiError(err, "Tạo học viên thất bại."));
+      setFormError(parseApiError(err, tr("Tạo học viên thất bại.")));
     } finally {
       setSubmitting(false);
     }
@@ -275,22 +277,22 @@ const LearnerManagement = () => {
     setFormError('');
 
     if (!pFullName.trim()) {
-      setFormError('Vui lòng nhập Họ và tên.');
+      setFormError(tr('Vui lòng nhập Họ và tên.'));
       return;
     }
 
     if (!isValidFullName(pFullName.trim())) {
-      setFormError('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).');
+      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
       return;
     }
 
     if (pPhone.trim() && !isValidPhone(pPhone.trim())) {
-      setFormError('Số điện thoại phải gồm 10 hoặc 11 chữ số.');
+      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
       return;
     }
 
     if (!isValidDateOfBirth(pDateOfBirth)) {
-      setFormError('Ngày sinh bắt buộc và phải trước năm 2007.');
+      setFormError(tr('Ngày sinh bắt buộc và phải trước năm 2007.'));
       return;
     }
 
@@ -309,7 +311,7 @@ const LearnerManagement = () => {
       setIsProfileOpen(false);
     } catch (err) {
       console.error('Failed to create learner profile:', err);
-      setFormError(parseApiError(err, 'Tạo hồ sơ học viên thất bại.'));
+      setFormError(parseApiError(err, tr('Tạo hồ sơ học viên thất bại.')));
     } finally {
       setSubmitting(false);
     }
@@ -318,7 +320,7 @@ const LearnerManagement = () => {
   // Open Edit Student Modal
   const handleOpenEditModal = (user) => {
     setEditingUser(user);
-    setEditFullName(user.fullName === 'Chưa cập nhật' ? '' : user.fullName);
+    setEditFullName(user.fullName === tr('Chưa cập nhật') ? '' : user.fullName);
     setEditEmail(user.email || user.username || '');
     setEditPhone(user.phone || '');
     setEditDateOfBirth(toDateInputValue(user.dateOfBirth));
@@ -341,22 +343,22 @@ const LearnerManagement = () => {
     e.preventDefault();
     setFormError('');
     if (!editFullName.trim()) {
-      setFormError('Vui lòng nhập Họ và tên.');
+      setFormError(tr('Vui lòng nhập Họ và tên.'));
       return;
     }
 
     if (!isValidFullName(editFullName.trim())) {
-      setFormError('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).');
+      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
       return;
     }
 
     if (editPhone.trim() && !isValidPhone(editPhone.trim())) {
-      setFormError('Số điện thoại phải gồm 10 hoặc 11 chữ số.');
+      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
       return;
     }
 
     if (!isValidDateOfBirth(editDateOfBirth)) {
-      setFormError('Ngày sinh bắt buộc và phải trước năm 2007.');
+      setFormError(tr('Ngày sinh bắt buộc và phải trước năm 2007.'));
       return;
     }
 
@@ -388,11 +390,11 @@ const LearnerManagement = () => {
               deptErr?.message || ""
             );
           toast.warning(
-            "Đổi phòng ban thất bại",
+            tr("Đổi phòng ban thất bại"),
             deptDenied
-              ? "Hồ sơ học viên đã được lưu, nhưng tài khoản của bạn chưa được backend cho phép đổi phòng ban (chỉ Admin). Vui lòng liên hệ Admin."
-              : "Hồ sơ học viên đã được lưu, nhưng đổi phòng ban thất bại: " +
-                  (deptErr.message || "lỗi không xác định")
+              ? tr("Hồ sơ học viên đã được lưu, nhưng tài khoản của bạn chưa được backend cho phép đổi phòng ban (chỉ Admin). Vui lòng liên hệ Admin.")
+              : tr("Hồ sơ học viên đã được lưu, nhưng đổi phòng ban thất bại: ") +
+                  (deptErr.message || tr("lỗi không xác định"))
           );
         }
       }
@@ -401,7 +403,7 @@ const LearnerManagement = () => {
       setIsEditOpen(false);
     } catch (err) {
       console.error("Failed to update student profile:", err);
-      setFormError(parseApiError(err, "Cập nhật hồ sơ học viên thất bại."));
+      setFormError(parseApiError(err, tr("Cập nhật hồ sơ học viên thất bại.")));
     } finally {
       setSubmitting(false);
     }
@@ -418,10 +420,10 @@ const LearnerManagement = () => {
       if (type === 'disable') {
         await api.delete(`/Accounts/${user.accountId}`);
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-        toast.success("Vô hiệu hóa thành công", `Tài khoản "${user.username}" đã được vô hiệu hóa.`);
+        toast.success(tr("Vô hiệu hóa thành công"), trt('studentDisabled', { username: user.username }));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
-        toast.success("Kích hoạt thành công", `Tài khoản "${user.username}" đã được kích hoạt trở lại.`);
+        toast.success(tr("Kích hoạt thành công"), trt('studentActivated', { username: user.username }));
       }
       await loadLearners();
     } catch (err) {
@@ -431,10 +433,10 @@ const LearnerManagement = () => {
           await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
           await loadLearners();
         } catch (putErr) {
-          toast.error("Vô hiệu hóa tài khoản thất bại", parseApiError(putErr));
+          toast.error(tr("Vô hiệu hóa tài khoản thất bại"), parseApiError(putErr));
         }
       } else {
-        toast.error("Kích hoạt tài khoản thất bại", parseApiError(err));
+        toast.error(tr("Kích hoạt tài khoản thất bại"), parseApiError(err));
       }
     } finally {
       setConfirmAction(null);
@@ -457,10 +459,10 @@ const LearnerManagement = () => {
       {/* Header Section */}
       <section className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#002147', margin: 0 }}>Danh sách Học viên (Student Accounts)</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#002147', margin: 0 }}>{tr('Danh sách Học viên (Student Accounts)')}</h1>
           <div className="divider-gold" style={{ width: '40px', height: '3px', background: '#c5a059', margin: '8px 0 12px' }} />
           <p className="header-description" style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-            Quản lý danh sách tài khoản học viên: Tạo mới, cập nhật hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.
+            {tr('Quản lý danh sách tài khoản học viên: Tạo mới, cập nhật hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.')}
           </p>
         </div>
 
@@ -482,7 +484,7 @@ const LearnerManagement = () => {
             cursor: 'pointer',
           }}
         >
-          <span>+ Tạo tài khoản học viên</span>
+          <span>{tr('+ Tạo tài khoản học viên')}</span>
         </button>
       </section>
 
@@ -491,12 +493,12 @@ const LearnerManagement = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
             <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
-              Tất cả học viên ({filteredLearners.length})
+              {tr('Tất cả học viên')} ({filteredLearners.length})
             </h2>
           </div>
           <input
             type="text"
-            placeholder="Tìm theo tên, email, mã HV..."
+            placeholder={tr('Tìm theo tên, email, mã HV...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -525,23 +527,23 @@ const LearnerManagement = () => {
             }}
           >
             <div>UserID</div>
-            <div>Username / Mã HV</div>
-            <div>Họ và tên</div>
-            <div>Email</div>
-            <div>Phòng ban</div>
-            <div>Số điện thoại</div>
-            <div>Giới tính</div>
-            <div>Trạng thái</div>
-            <div style={{ textAlign: 'right' }}>Hành động</div>
+            <div>{tr('Username / Mã HV')}</div>
+            <div>{tr('Họ và tên')}</div>
+            <div>{tr('Email')}</div>
+            <div>{tr('Phòng ban')}</div>
+            <div>{tr('Số điện thoại')}</div>
+            <div>{tr('Giới tính')}</div>
+            <div>{tr('Trạng thái')}</div>
+            <div style={{ textAlign: 'right' }}>{tr('Hành động')}</div>
           </div>
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-              Đang tải danh sách học viên...
+              {tr('Đang tải danh sách học viên...')}
             </div>
           ) : filteredLearners.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px', color: '#64748b', fontStyle: 'italic' }}>
-              {searchTerm ? 'Không tìm thấy học viên phù hợp.' : 'Chưa có tài khoản học viên nào trong hệ thống.'}
+              {searchTerm ? tr('Không tìm thấy học viên phù hợp.') : tr('Chưa có tài khoản học viên nào trong hệ thống.')}
             </div>
           ) : (
             filteredLearners.map((learner) => {
@@ -576,7 +578,7 @@ const LearnerManagement = () => {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        Chưa có hồ sơ
+                        {tr('Chưa có hồ sơ')}
                       </span>
                     )}
                   </div>
@@ -603,7 +605,7 @@ const LearnerManagement = () => {
                       <button
                         type="button"
                         onClick={() => handleOpenProfileModal(learner)}
-                        title="Tạo hồ sơ cho học viên này"
+                        title={tr('Tạo hồ sơ cho học viên này')}
                         style={{
                           padding: '4px 10px',
                           fontSize: '12px',
@@ -615,7 +617,7 @@ const LearnerManagement = () => {
                           fontWeight: '600',
                         }}
                       >
-                        + Tạo hồ sơ
+                        {tr('+ Tạo hồ sơ')}
                       </button>
                     )}
                     <button
@@ -679,7 +681,7 @@ const LearnerManagement = () => {
       {isCreateOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>Tạo tài khoản học viên (Student Role)</h2>
+            <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>{tr('Tạo tài khoản học viên (Student Role)')}</h2>
             
             {formError && (
               <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
@@ -689,19 +691,19 @@ const LearnerManagement = () => {
 
             <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tên đăng nhập (Email / Username) *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tên đăng nhập (Email / Username) *')}</label>
                 <input
                   type="email"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ví dụ: student@domain.com"
+                  placeholder={tr('Ví dụ: student@domain.com')}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Mật khẩu *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Mật khẩu *')}</label>
                 <input
                   type="password"
                   required
@@ -712,20 +714,20 @@ const LearnerManagement = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Họ và tên *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Họ và tên *')}</label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn A"
+                  placeholder={tr('Ví dụ: Nguyễn Văn A')}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Vai trò (Role)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Vai trò (Role)')}</label>
                   <input
                     type="text"
                     disabled
@@ -735,7 +737,7 @@ const LearnerManagement = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Phòng ban</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Phòng ban')}</label>
                   <select
                     value={departmentId}
                     onChange={(e) => setDepartmentId(e.target.value)}
@@ -752,7 +754,7 @@ const LearnerManagement = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Số điện thoại</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Số điện thoại')}</label>
                   <input
                     type="text"
                     value={phone}
@@ -762,22 +764,22 @@ const LearnerManagement = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Giới tính')}</label>
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                   >
-                    <option value="Male">Nam (Male)</option>
-                    <option value="Female">Nữ (Female)</option>
-                    <option value="Other">Khác (Other)</option>
+                    <option value="Male">{tr('Nam (Male)')}</option>
+                    <option value="Female">{tr('Nữ (Female)')}</option>
+                    <option value="Other">{tr('Khác (Other)')}</option>
                   </select>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Ngày sinh (phải trước năm 2007) *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Ngày sinh (phải trước năm 2007) *')}</label>
                   <input
                     type="date"
                     value={dateOfBirth}
@@ -786,7 +788,7 @@ const LearnerManagement = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức (khóa)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tổ chức (khóa)')}</label>
                   <input
                     type="text"
                     disabled
@@ -809,7 +811,7 @@ const LearnerManagement = () => {
                   disabled={submitting}
                   style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
                 >
-                  {submitting ? 'Đang tạo...' : 'Tạo học viên'}
+                  {submitting ? tr('Đang tạo...') : tr('Tạo học viên')}
                 </button>
               </div>
             </form>
@@ -821,8 +823,8 @@ const LearnerManagement = () => {
       {isEditOpen && editingUser && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>Chỉnh sửa hồ sơ học viên</h2>
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>Tài khoản: <strong>{editingUser.username}</strong></p>
+            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>{tr('Chỉnh sửa hồ sơ học viên')}</h2>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>{tr('Tài khoản:')} <strong>{editingUser.username}</strong></p>
 
             {formError && (
               <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
@@ -844,7 +846,7 @@ const LearnerManagement = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Vai trò (Role)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Vai trò (Role)')}</label>
                   <input
                     type="text"
                     disabled
@@ -852,12 +854,12 @@ const LearnerManagement = () => {
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
                   />
                   <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#94a3b8' }}>
-                    * Không thể sửa vai trò của học viên.
+                    {tr('* Không thể sửa vai trò của học viên.')}
                   </p>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Phòng ban (Department)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Phòng ban (Department)')}</label>
                   <select
                     value={editDepartmentId}
                     onChange={(e) => setEditDepartmentId(e.target.value)}
@@ -873,7 +875,7 @@ const LearnerManagement = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Email</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Email')}</label>
                 <input
                   type="email"
                   value={editEmail}
@@ -883,7 +885,7 @@ const LearnerManagement = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Số điện thoại</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Số điện thoại')}</label>
                 <input
                   type="text"
                   value={editPhone}
@@ -894,7 +896,7 @@ const LearnerManagement = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Ngày sinh (phải trước năm 2007) *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Ngày sinh (phải trước năm 2007) *')}</label>
                   <input
                     type="date"
                     value={editDateOfBirth}
@@ -903,7 +905,7 @@ const LearnerManagement = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức (khóa)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tổ chức (khóa)')}</label>
                   <input
                     type="text"
                     disabled
@@ -950,9 +952,9 @@ const LearnerManagement = () => {
       {isProfileOpen && profileAcc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>Tạo hồ sơ học viên</h2>
+            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>{tr('Tạo hồ sơ học viên')}</h2>
             <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-              Tài khoản: <strong>{profileAcc.username}</strong> (UserID: {profileAcc.accountId}) — hồ sơ sẽ được móc nối tự động vào account này.
+              {trt('profileLinkNote', { username: profileAcc.username, id: profileAcc.accountId })}
             </p>
 
             {formError && (
@@ -963,20 +965,20 @@ const LearnerManagement = () => {
 
             <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Họ và tên *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Họ và tên *')}</label>
                 <input
                   type="text"
                   required
                   value={pFullName}
                   onChange={(e) => setPFullName(e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn A"
+                  placeholder={tr('Ví dụ: Nguyễn Văn A')}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Email</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Email')}</label>
                   <input
                     type="email"
                     value={pEmail}
@@ -985,7 +987,7 @@ const LearnerManagement = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Số điện thoại</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Số điện thoại')}</label>
                   <input
                     type="text"
                     value={pPhone}
@@ -1011,7 +1013,7 @@ const LearnerManagement = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Ngày sinh (phải trước năm 2007) *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Ngày sinh (phải trước năm 2007) *')}</label>
                   <input
                     type="date"
                     value={pDateOfBirth}
@@ -1020,7 +1022,7 @@ const LearnerManagement = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tổ chức (khóa)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tổ chức (khóa)')}</label>
                   <input
                     type="text"
                     disabled
@@ -1043,7 +1045,7 @@ const LearnerManagement = () => {
                   disabled={submitting}
                   style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
                 >
-                  {submitting ? 'Đang lưu...' : 'Tạo hồ sơ'}
+                  {submitting ? tr('Đang lưu...') : tr('Tạo hồ sơ')}
                 </button>
               </div>
             </form>
@@ -1056,19 +1058,19 @@ const LearnerManagement = () => {
         isOpen={!!confirmAction}
         onClose={() => setConfirmAction(null)}
         onConfirm={() => runAccountAction(confirmAction?.type, confirmAction?.user)}
-        title={confirmAction?.type === 'disable' ? "Vô hiệu hóa tài khoản" : "Kích hoạt tài khoản"}
+        title={confirmAction?.type === 'disable' ? tr("Vô hiệu hóa tài khoản") : tr("Kích hoạt tài khoản")}
         message={
           confirmAction?.type === 'disable'
-            ? `Bạn có chắc chắn muốn vô hiệu hóa tài khoản học viên "${confirmAction?.user?.username || ''}"?`
-            : `Bạn có chắc chắn muốn kích hoạt lại tài khoản học viên "${confirmAction?.user?.username || ''}" thành Active?`
+            ? trt('confirmDisableLearner', { username: confirmAction?.user?.username || '' })
+            : trt('confirmActivateLearner', { username: confirmAction?.user?.username || '' })
         }
-        confirmText={confirmAction?.type === 'disable' ? "VÔ HIỆU HÓA" : "KÍCH HOẠT"}
-        cancelText="HỦY BỎ"
+        confirmText={confirmAction?.type === 'disable' ? tr("VÔ HIỆU HÓA") : tr("KÍCH HOẠT")}
+        cancelText={tr("HỦY BỎ")}
         confirmVariant={confirmAction?.type === 'disable' ? "danger" : "primary"}
         bodyMessage={
           confirmAction?.type === 'disable'
-            ? "Học viên sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo vẫn được giữ nguyên để phục vụ kiểm toán."
-            : "Tài khoản sẽ được kích hoạt trở lại, học viên có thể đăng nhập và tiếp tục theo dõi hồ sơ đào tạo."
+            ? tr("Học viên sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo vẫn được giữ nguyên để phục vụ kiểm toán.")
+            : tr("Tài khoản sẽ được kích hoạt trở lại, học viên có thể đăng nhập và tiếp tục theo dõi hồ sơ đào tạo.")
         }
       />
 

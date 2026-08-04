@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import { fetchEtrList } from './auditorApi';
 
 const AuditorAdvancedSearch = () => {
   const navigate = useNavigate();
+  const { trEn } = useLanguage();
   const [filters, setFilters] = useState({
     learner: '',
     course: '',
@@ -102,10 +104,10 @@ const AuditorAdvancedSearch = () => {
       {/* Header */}
       <section className="content-header">
         <div className="header-left">
-          <h1>Advanced Compliance Search</h1>
+          <h1>{trEn('Advanced Compliance Search')}</h1>
           <div className="divider-gold"></div>
           <p className="header-description">
-            Multi-parametric compliance inspection tool for regulatory auditing of locked training records.
+            {trEn('Multi-parametric compliance inspection tool for regulatory auditing of locked training records.')}
           </p>
         </div>
       </section>
@@ -115,11 +117,11 @@ const AuditorAdvancedSearch = () => {
         <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>Learner Name / ID</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('Learner Name / ID')}</label>
               <input
                 type="text"
                 name="learner"
-                placeholder="e.g. Nguyễn Văn An, HV-8801"
+                placeholder={trEn('e.g. Nguyen Van An, HV-8801')}
                 className="search-input"
                 style={{ width: '100%' }}
                 value={filters.learner}
@@ -128,11 +130,11 @@ const AuditorAdvancedSearch = () => {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>Course Name / Code</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('Course Name / Code')}</label>
               <input
                 type="text"
                 name="course"
-                placeholder="e.g. A320 Type Rating"
+                placeholder={trEn('e.g. A320 Type Rating')}
                 className="search-input"
                 style={{ width: '100%' }}
                 value={filters.course}
@@ -141,11 +143,11 @@ const AuditorAdvancedSearch = () => {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>Class Name / Code</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('Class Name / Code')}</label>
               <input
                 type="text"
                 name="classId"
-                placeholder="e.g. CLS-2026-A320-04"
+                placeholder={trEn('e.g. CLS-2026-A320-04')}
                 className="search-input"
                 style={{ width: '100%' }}
                 value={filters.classId}
@@ -154,11 +156,11 @@ const AuditorAdvancedSearch = () => {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>ETR Record ID</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('ETR Record ID')}</label>
               <input
                 type="text"
                 name="etrId"
-                placeholder="e.g. ETR-2026-0891"
+                placeholder={trEn('e.g. ETR-2026-0891')}
                 className="search-input"
                 style={{ width: '100%' }}
                 value={filters.etrId}
@@ -167,7 +169,7 @@ const AuditorAdvancedSearch = () => {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>Completion Date</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('Completion Date')}</label>
               <input
                 type="date"
                 name="completionDate"
@@ -179,7 +181,7 @@ const AuditorAdvancedSearch = () => {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>Locked Date</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('Locked Date')}</label>
               <input
                 type="date"
                 name="lockedDate"
@@ -191,7 +193,7 @@ const AuditorAdvancedSearch = () => {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>Lock Status</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('Lock Status')}</label>
               <select
                 name="status"
                 className="search-input"
@@ -199,9 +201,9 @@ const AuditorAdvancedSearch = () => {
                 value={filters.status}
                 onChange={handleFilterChange}
               >
-                <option value="All">All Locked States</option>
-                <option value="Locked">Locked & Compliant</option>
-                <option value="Archived">Archived Audit</option>
+                <option value="All">{trEn('All Locked States')}</option>
+                <option value="Locked">{trEn('Locked & Compliant')}</option>
+                <option value="Archived">{trEn('Archived Audit')}</option>
               </select>
             </div>
           </div>
@@ -213,14 +215,14 @@ const AuditorAdvancedSearch = () => {
               style={{ padding: '10px 20px' }}
               onClick={handleReset}
             >
-              Reset Filters
+              {trEn('Reset Filters')}
             </button>
             <button
               type="submit"
               className="create-btn"
               style={{ borderRadius: '12px', padding: '10px 24px' }}
             >
-              Apply Filter Search
+              {trEn('Apply Filter Search')}
             </button>
           </div>
         </form>
@@ -231,28 +233,28 @@ const AuditorAdvancedSearch = () => {
         <div className="table-toolbar">
           <div className="toolbar-left">
             <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#002147', margin: 0 }}>
-              Search Results ({filteredResults.length} records matching)
+              {trEn('Search Results')} ({filteredResults.length} {trEn('records matching')})
             </h2>
           </div>
         </div>
 
         <div className="table-responsive-scroll">
           <div className="table-header auditor-table-grid">
-            <div>ETR ID</div>
-            <div>Learner</div>
-            <div>Course</div>
-            <div>Completion</div>
-            <div>Locked Date</div>
-            <div>Approved By</div>
-            <div>Status</div>
-            <div style={{ textAlign: 'right' }}>Actions</div>
+            <div>{trEn('ETR ID')}</div>
+            <div>{trEn('Learner')}</div>
+            <div>{trEn('Course')}</div>
+            <div>{trEn('Completion')}</div>
+            <div>{trEn('Locked Date')}</div>
+            <div>{trEn('Approved By')}</div>
+            <div>{trEn('Status')}</div>
+            <div style={{ textAlign: 'right' }}>{trEn('Actions')}</div>
           </div>
 
           <div className="table-body">
             {loading ? (
-              <div className="empty-table-state">Searching records...</div>
+              <div className="empty-table-state">{trEn('Searching records...')}</div>
             ) : filteredResults.length === 0 ? (
-              <div className="empty-table-state">No matching records found for the applied filter parameters.</div>
+              <div className="empty-table-state">{trEn('No matching records found for the applied filter parameters.')}</div>
             ) : (
               filteredResults.map((etr) => (
                 <div key={etr.id} className="table-row auditor-table-grid">
@@ -263,14 +265,14 @@ const AuditorAdvancedSearch = () => {
                   <div>{etr.lockedDate}</div>
                   <div>{etr.approvedBy}</div>
                   <div>
-                    <span className="badge-locked">Locked</span>
+                    <span className="badge-locked">{trEn('Locked')}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                     <button
                       className="auditor-btn-sm"
                       onClick={() => navigate(`/auditor/details?id=${etr.id}`)}
                     >
-                      View Details
+                      {trEn('View Details')}
                     </button>
                   </div>
                 </div>

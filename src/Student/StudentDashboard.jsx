@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const VALIDITY_LABELS = {
   Valid: 'Còn hiệu lực',
@@ -26,6 +27,8 @@ const STATUS_LABEL = {
   'Returned': 'Trả lại',
 };
 
+const T = (label) => ({ __vn: label });
+
 /** Format an ISO date string → Vietnamese locale, or '--' */
 const formatDate = (d) => {
   if (!d) return '--';
@@ -45,6 +48,7 @@ const mapEtr = (e) => ({
 });
 
 const StudentDashboard = () => {
+  const { tr } = useLanguage();
   const navigate = useNavigate();
   const [etrs, setEtrs] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -82,7 +86,7 @@ const StudentDashboard = () => {
   }, []);
 
   // User info
-  let userName = 'Học viên';
+  let userName = tr('Học viên');
   let userLogin = 'student';
   if (profile) {
     userName = profile.FullName ?? profile.fullName ?? userName;
@@ -111,15 +115,15 @@ const StudentDashboard = () => {
   };
 
   const metrics = [
-    { label: 'Tổng số hồ sơ', value: mapped.length, cls: '' },
-    { label: 'Đang đào tạo', value: mapped.filter(e => e.status === 'In Progress' || e.status === 'Draft').length, cls: 'blue' },
-    { label: 'Chờ xử lý', value: mapped.filter(e => e.status === 'Submitted' || e.status === 'Verified').length, cls: 'amber' },
-    { label: 'Đã hoàn thành', value: mapped.filter(e => e.status === 'Completed').length, cls: 'green' },
+    { label: tr('Tổng số hồ sơ'), value: mapped.length, cls: '' },
+    { label: tr('Đang đào tạo'), value: mapped.filter(e => e.status === 'In Progress' || e.status === 'Draft').length, cls: 'blue' },
+    { label: tr('Chờ xử lý'), value: mapped.filter(e => e.status === 'Submitted' || e.status === 'Verified').length, cls: 'amber' },
+    { label: tr('Đã hoàn thành'), value: mapped.filter(e => e.status === 'Completed').length, cls: 'green' },
   ];
 
   const Badge = ({ status }) => (
     <span className={`student-badge student-badge--${STATUS_MAP[status] || 'draft'}`}>
-      {STATUS_LABEL[status] || status}
+      {tr(STATUS_LABEL[status]) || status}
     </span>
   );
 
@@ -129,9 +133,9 @@ const StudentDashboard = () => {
       <section className="student-welcome">
         <div className="student-welcome-left">
           <p className="eyebrow">Student Portal</p>
-          <h1>Xin chào, {userName}</h1>
+          <h1>{tr('Xin chào, ')}{userName}</h1>
           <p className="welcome-sub">
-            Theo dõi tiến độ đào tạo, kết quả học tập và hồ sơ ETR của bạn.
+            {tr('Theo dõi tiến độ đào tạo, kết quả học tập và hồ sơ ETR của bạn.')}
           </p>
         </div>
         <div className="student-welcome-right">
@@ -156,27 +160,27 @@ const StudentDashboard = () => {
       <section className="student-table-section">
         <div className="student-table-header">
           <div className="student-table-header-left">
-            <p className="student-section-label">Hồ sơ đào tạo</p>
-            <h2>Danh sách ETR gần đây</h2>
+            <p className="student-section-label">{tr('Hồ sơ đào tạo')}</p>
+            <h2>{tr('Danh sách ETR gần đây')}</h2>
           </div>
           <button className="primary-btn" type="button" onClick={() => navigate('/student/etr')}>
-            Xem tất cả
+            {tr('Xem tất cả')}
           </button>
         </div>
 
         {loading ? (
-          <div className="student-empty">Đang tải dữ liệu...</div>
+          <div className="student-empty">{tr('Đang tải dữ liệu...')}</div>
         ) : mapped.length === 0 ? (
-          <div className="student-empty">Bạn chưa có hồ sơ ETR nào.</div>
+          <div className="student-empty">{tr('Bạn chưa có hồ sơ ETR nào.')}</div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <div className="student-table-grid" style={{ gridTemplateColumns: '48px 1.2fr 1.8fr 120px 140px 100px' }}>
               {/* Header */}
               <div className="student-table-cell student-table-cell--header">STT</div>
-              <div className="student-table-cell student-table-cell--header">Mã hồ sơ</div>
-              <div className="student-table-cell student-table-cell--header">Ghi danh</div>
-              <div className="student-table-cell student-table-cell--header">Ngày</div>
-              <div className="student-table-cell student-table-cell--header">Trạng thái</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Mã hồ sơ')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Ghi danh')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Ngày')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Trạng thái')}</div>
               <div className="student-table-cell student-table-cell--header student-table-cell--end">&nbsp;</div>
 
               {/* Data */}
@@ -184,16 +188,16 @@ const StudentDashboard = () => {
                 <div className="student-table-row" key={e.id || idx}>
                   <div className="student-table-cell student-table-cell--index">{idx + 1}</div>
                   <div className="student-table-cell student-table-cell--strong">
-                    {e.id ? `ETR #${e.id}` : `Hồ sơ #${idx + 1}`}
+                    {e.id ? `ETR #${e.id}` : `${tr('Hồ sơ #')}${idx + 1}`}
                   </div>
                   <div className="student-table-cell">
-                    {e.enrollmentId ? `Mã GD: ${e.enrollmentId}` : '--'}
+                    {e.enrollmentId ? `${tr('Mã GD: ')}${e.enrollmentId}` : '--'}
                   </div>
                   <div className="student-table-cell">{formatDate(e.date)}</div>
                   <div className="student-table-cell"><Badge status={e.status} /></div>
                   <div className="student-table-cell student-table-cell--end">
                     <button className="action-btn" type="button" onClick={() => navigate('/student/etr')}>
-                      Chi tiết
+                      {tr('Chi tiết')}
                     </button>
                   </div>
                 </div>
@@ -209,11 +213,11 @@ const StudentDashboard = () => {
               <section className="student-table-section" style={{ marginBottom: 24 }}>
                 <div className="student-table-header">
                   <div className="student-table-header-left">
-                    <p className="student-section-label">Chứng chỉ đào tạo</p>
-                    <h2>Trạng thái hiệu lực</h2>
+                    <p className="student-section-label">{tr('Chứng chỉ đào tạo')}</p>
+                    <h2>{tr('Trạng thái hiệu lực')}</h2>
                   </div>
                   <button className="action-btn" type="button" onClick={() => navigate('/student/certificates')}>
-                    Xem tất cả
+                    {tr('Xem tất cả')}
                   </button>
                 </div>
                 <div className="student-cert-mini-list">
@@ -221,14 +225,14 @@ const StudentDashboard = () => {
                     <div key={idx} className="student-cert-mini-item">
                       <div className="student-cert-mini-info">
                         <span className="student-cert-mini-course">
-                          {cert.CourseName || `Khóa học #${cert.CourseId}`}
+                          {cert.CourseName || `${tr('Khóa học #')}${cert.CourseId}`}
                         </span>
                         <span className="student-cert-mini-date">
-                          {cert.ExpiryDate ? `Hết hạn: ${formatDate(cert.ExpiryDate)}` : 'Vĩnh viễn'}
+                          {cert.ExpiryDate ? `${tr('Hết hạn: ')}${formatDate(cert.ExpiryDate)}` : tr('Vĩnh viễn')}
                         </span>
                       </div>
                       <span className={`student-cert-mini-badge student-cert-mini-badge--${(cert.ValidityStatus || '').toLowerCase()}`}>
-                        {VALIDITY_LABELS[cert.ValidityStatus] || cert.ValidityStatus}
+                        {tr(VALIDITY_LABELS[cert.ValidityStatus]) || cert.ValidityStatus}
                       </span>
                     </div>
                   ))}
@@ -239,19 +243,19 @@ const StudentDashboard = () => {
             {/* ── Quick Actions ── */}
             <section className="student-actions">
               <article className="student-action-card" onClick={() => navigate('/student/etr')}>
-                <p className="action-eyebrow">Hồ sơ ETR</p>
-                <h3>Xem chi tiết hồ sơ</h3>
-                <p className="action-desc">Xem toàn bộ hồ sơ đào tạo, điểm danh, điểm số và minh chứng của bạn.</p>
+                <p className="action-eyebrow">{tr('Hồ sơ ETR')}</p>
+                <h3>{tr('Xem chi tiết hồ sơ')}</h3>
+                <p className="action-desc">{tr('Xem toàn bộ hồ sơ đào tạo, điểm danh, điểm số và minh chứng của bạn.')}</p>
               </article>
               <article className="student-action-card" onClick={() => navigate('/student/certificates')}>
-                <p className="action-eyebrow">Chứng chỉ</p>
-                <h3>Trạng thái chứng chỉ</h3>
-                <p className="action-desc">Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo và kiểm tra ngày hết hạn.</p>
+                <p className="action-eyebrow">{tr('Chứng chỉ')}</p>
+                <h3>{tr('Trạng thái chứng chỉ')}</h3>
+                <p className="action-desc">{tr('Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo và kiểm tra ngày hết hạn.')}</p>
               </article>
               <article className="student-action-card" onClick={() => navigate('/student/profile')}>
-                <p className="action-eyebrow">Tài khoản</p>
-                <h3>Quản lý hồ sơ cá nhân</h3>
-                <p className="action-desc">Xem thông tin cá nhân và thay đổi mật khẩu đăng nhập.</p>
+                <p className="action-eyebrow">{tr('Tài khoản')}</p>
+                <h3>{tr('Quản lý hồ sơ cá nhân')}</h3>
+                <p className="action-desc">{tr('Xem thông tin cá nhân và thay đổi mật khẩu đăng nhập.')}</p>
               </article>
             </section>
       </section>

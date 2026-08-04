@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const RolePermissionManagement = () => {
+  const { tr } = useLanguage();
   const [accounts, setAccounts] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,9 +56,9 @@ const RolePermissionManagement = () => {
   };
 
   const getPerm = (role, perm) => {
-    const key = role.toLowerCase().replace(/\\s+/g, '');
+    const key = role.toLowerCase().replace(/\s+/g, '');
     const matrix = permMatrix[key] || permMatrix.student;
-    return matrix[perm] ? 'Có' : 'Không';
+    return matrix[perm] ? 'Yes' : 'No';
   };
 
   const filteredAccounts = accounts.filter((acct) => {
@@ -85,19 +87,19 @@ const RolePermissionManagement = () => {
 
       <div className="student-metrics" style={{ marginBottom: 20 }}>
         <div className="student-metric-card">
-          <span className="student-metric-label">Tong tai khoan</span>
+          <span className="student-metric-label">{tr('Tổng tài khoản')}</span>
           <strong className="student-metric-value">{loading ? '...' : accounts.length}</strong>
         </div>
         <div className="student-metric-card">
-          <span className="student-metric-label">Phong ban</span>
+          <span className="student-metric-label">{tr('Phòng ban')}</span>
           <strong className="student-metric-value">{loading ? '...' : departments.length}</strong>
         </div>
         <div className="student-metric-card">
-          <span className="student-metric-label">Vai tro</span>
+          <span className="student-metric-label">{tr('Vai trò')}</span>
           <strong className="student-metric-value">{roles.length}</strong>
         </div>
         <div className="student-metric-card">
-          <span className="student-metric-label">Dang hoat dong</span>
+          <span className="student-metric-label">{tr('Đang hoạt động')}</span>
           <strong className="student-metric-value green">
             {loading ? '...' : accounts.filter(a => getStatus(a) === 'Active').length}
           </strong>
@@ -109,10 +111,10 @@ const RolePermissionManagement = () => {
           style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #d9e1ec',
             fontSize: '13px', fontWeight: 600, color: '#002147', background: '#f8faff',
             cursor: 'pointer', fontFamily: 'inherit' }}>
-          <option value="All">Tat ca vai tro</option>
+          <option value="All">{tr('Tất cả vai trò')}</option>
           {roles.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
-        <input type="text" placeholder="Tim kiem username, role, phong ban..."
+        <input type="text" placeholder={tr('Tìm kiếm username, vai trò, phòng ban...')}
           value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
           style={{ flex: 1, border: 'none', outline: 'none', padding: '12px 8px',
             fontSize: '13px', color: '#002147', background: 'transparent', fontFamily: 'inherit' }} />
@@ -129,12 +131,12 @@ const RolePermissionManagement = () => {
           <table className="student-subject-table" style={{ width: '100%' }}>
             <thead>
               <tr>
-                <th>Vai tro</th>
-                <th style={{ textAlign: 'center' }}>Tao</th>
-                <th style={{ textAlign: 'center' }}>Sua</th>
-                <th style={{ textAlign: 'center' }}>Gan quyen</th>
-                <th style={{ textAlign: 'center' }}>Cau hinh</th>
-                <th style={{ textAlign: 'center' }}>Xoa</th>
+                <th>{tr('Vai trò')}</th>
+                <th style={{ textAlign: 'center' }}>{tr('Tạo')}</th>
+                <th style={{ textAlign: 'center' }}>{tr('Sửa')}</th>
+                <th style={{ textAlign: 'center' }}>{tr('Gán quyền')}</th>
+                <th style={{ textAlign: 'center' }}>{tr('Cấu hình')}</th>
+                <th style={{ textAlign: 'center' }}>{tr('Xóa')}</th>
               </tr>
             </thead>
             <tbody>
@@ -147,10 +149,10 @@ const RolePermissionManagement = () => {
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         padding: '2px 10px', borderRadius: '999px',
                         fontSize: '11px', fontWeight: 700,
-                        background: getPerm(role, perm) === 'Có' ? '#dcfce7' : '#f1f5f9',
-                        color: getPerm(role, perm) === 'Có' ? '#15803d' : '#94a3b8'
+                        background: getPerm(role, perm) === 'Yes' ? '#dcfce7' : '#f1f5f9',
+                        color: getPerm(role, perm) === 'Yes' ? '#15803d' : '#94a3b8'
                       }}>
-                        {getPerm(role, perm) === 'Có' ? '✓' : '—'} {getPerm(role, perm)}
+                        {getPerm(role, perm) === 'Yes' ? '✓' : '—'} {getPerm(role, perm)}
                       </span>
                     </td>
                   ))}
@@ -165,21 +167,21 @@ const RolePermissionManagement = () => {
         <div className="student-table-header">
           <div className="student-table-header-left">
             <p className="student-section-label">User Accounts</p>
-            <h2>Tai khoan theo vai tro ({filteredAccounts.length})</h2>
+            <h2>{tr('Tài khoản theo vai trò')} ({filteredAccounts.length})</h2>
           </div>
         </div>
         {loading ? (
-          <div className="student-empty">Dang tai du lieu...</div>
+          <div className="student-empty">{tr('Đang tải dữ liệu...')}</div>
         ) : filteredAccounts.length === 0 ? (
-          <div className="student-empty">Khong tim thay tai khoan phu hop.</div>
+          <div className="student-empty">{tr('Không tìm thấy tài khoản phù hợp.')}</div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <div className="student-table-grid" style={{ gridTemplateColumns: '40px 1.5fr 1fr 1.5fr 100px 110px' }}>
-              <div className="student-table-cell student-table-cell--header">STT</div>
+              <div className="student-table-cell student-table-cell--header">{tr('STT')}</div>
               <div className="student-table-cell student-table-cell--header">Username</div>
-              <div className="student-table-cell student-table-cell--header">Vai tro</div>
-              <div className="student-table-cell student-table-cell--header">Phong ban</div>
-              <div className="student-table-cell student-table-cell--header">Trang thai</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Vai trò')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Phòng ban')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Trạng thái')}</div>
               <div className="student-table-cell student-table-cell--header student-table-cell--end">Account ID</div>
               {filteredAccounts.map((acct, idx) => (
                 <div className="student-table-row" key={acct.accountId || acct.AccountId || idx}>
@@ -191,7 +193,7 @@ const RolePermissionManagement = () => {
                   <div className="student-table-cell">{getDeptName(acct.departmentId || acct.DepartmentId)}</div>
                   <div className="student-table-cell">
                     <span className={`student-badge ${getStatus(acct) === 'Active' ? 'student-badge--completed' : 'student-badge--returned'}`} style={{ fontSize: 10 }}>
-                      {getStatus(acct) === 'Active' ? 'Hoat dong' : 'Vo hieu'}
+                      {getStatus(acct) === 'Active' ? tr('Hoạt động') : tr('Vô hiệu')}
                     </span>
                   </div>
                   <div className="student-table-cell student-table-cell--end" style={{ color: '#c5a059', fontWeight: 700, fontSize: 12 }}>#{acct.accountId || acct.AccountId}</div>

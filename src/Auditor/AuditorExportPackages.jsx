@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import {
   exportPdf,
   exportTrainingPackage,
@@ -8,6 +9,7 @@ import {
 } from './auditorApi';
 
 const AuditorExportPackages = () => {
+  const { trEn } = useLanguage();
   const [exportHistory, setExportHistory] = useState([]);
   const [loadingType, setLoadingType] = useState(null);
 
@@ -89,10 +91,10 @@ const AuditorExportPackages = () => {
       {/* Header */}
       <section className="content-header">
         <div className="header-left">
-          <h1>Export Packages & Regulatory Dossiers</h1>
+          <h1>{trEn('Export Packages & Regulatory Dossiers')}</h1>
           <div className="divider-gold"></div>
           <p className="header-description">
-            Generate cryptographically signed compliance export packages, PDF transcripts, and complete evidence archives for CAA / EASA inspections.
+            {trEn('Generate cryptographically signed compliance export packages, PDF transcripts, and complete evidence archives for CAA / EASA inspections.')}
           </p>
         </div>
       </section>
@@ -109,8 +111,8 @@ const AuditorExportPackages = () => {
               </svg>
             </div>
             <div>
-              <h2 className="export-title">Export PDF</h2>
-              <p className="export-desc">Generate official single or multi-ETR summary compliance dossier PDF with watermark.</p>
+              <h2 className="export-title">{trEn('Export PDF')}</h2>
+              <p className="export-desc">{trEn('Generate official single or multi-ETR summary compliance dossier PDF with watermark.')}</p>
             </div>
           </div>
           <button
@@ -119,7 +121,7 @@ const AuditorExportPackages = () => {
             onClick={handleExportPDF}
             disabled={loadingType === 'pdf'}
           >
-            {loadingType === 'pdf' ? 'Generating PDF...' : 'Generate PDF Dossier'}
+            {loadingType === 'pdf' ? trEn('Generating PDF...') : trEn('Generate PDF Dossier')}
           </button>
         </div>
 
@@ -132,8 +134,8 @@ const AuditorExportPackages = () => {
               </svg>
             </div>
             <div>
-              <h2 className="export-title">Export ZIP</h2>
-              <p className="export-desc">Archive all uploaded practical evidence, simulator logs, and certificates into a encrypted ZIP file.</p>
+              <h2 className="export-title">{trEn('Export ZIP')}</h2>
+              <p className="export-desc">{trEn('Archive all uploaded practical evidence, simulator logs, and certificates into a encrypted ZIP file.')}</p>
             </div>
           </div>
           <button
@@ -142,7 +144,7 @@ const AuditorExportPackages = () => {
             onClick={handleExportZIP}
             disabled={loadingType === 'zip'}
           >
-            {loadingType === 'zip' ? 'Generating Evidence ZIP...' : 'Generate Evidence ZIP'}
+            {loadingType === 'zip' ? trEn('Generating Evidence ZIP...') : trEn('Generate Evidence ZIP')}
           </button>
         </div>
 
@@ -155,8 +157,8 @@ const AuditorExportPackages = () => {
               </svg>
             </div>
             <div>
-              <h2 className="export-title">Compliance Package</h2>
-              <p className="export-desc">Comprehensive regulatory inspection package with CAA / EASA compliance matrix.</p>
+              <h2 className="export-title">{trEn('Compliance Package')}</h2>
+              <p className="export-desc">{trEn('Comprehensive regulatory inspection package with CAA / EASA compliance matrix.')}</p>
             </div>
           </div>
           <button
@@ -165,7 +167,7 @@ const AuditorExportPackages = () => {
             onClick={handleExportRegulatoryPackage}
             disabled={loadingType === 'regulatory'}
           >
-            {loadingType === 'regulatory' ? 'Generating Package...' : 'Generate Regulatory Package'}
+            {loadingType === 'regulatory' ? trEn('Generating Package...') : trEn('Generate Regulatory Package')}
           </button>
         </div>
 
@@ -179,8 +181,8 @@ const AuditorExportPackages = () => {
               </svg>
             </div>
             <div>
-              <h2 className="export-title">Digital Signature Package</h2>
-              <p className="export-desc">Public-key cryptographic certificate manifest verifying zero alteration of locked records.</p>
+              <h2 className="export-title">{trEn('Digital Signature Package')}</h2>
+              <p className="export-desc">{trEn('Public-key cryptographic certificate manifest verifying zero alteration of locked records.')}</p>
             </div>
           </div>
           <button
@@ -189,7 +191,7 @@ const AuditorExportPackages = () => {
             onClick={handleExportSignatureManifest}
             disabled={loadingType === 'manifest'}
           >
-            {loadingType === 'manifest' ? 'Generating Manifest...' : 'Generate Signature Manifest'}
+            {loadingType === 'manifest' ? trEn('Generating Manifest...') : trEn('Generate Signature Manifest')}
           </button>
         </div>
       </section>
@@ -199,21 +201,21 @@ const AuditorExportPackages = () => {
         <div className="table-toolbar">
           <div className="toolbar-left">
             <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#002147', margin: 0 }}>
-              Generated Export History ({exportHistory.length} packages)
+              {trEn('Generated Export History')} ({exportHistory.length} {trEn('packages')})
             </h2>
           </div>
         </div>
 
         <div className="table-responsive-scroll">
           <div className="table-header auditor-export-grid">
-            <div>Package ID</div>
-            <div>Package Name</div>
-            <div>Type</div>
-            <div>Generated Date</div>
-            <div>Generated By</div>
-            <div>File Size</div>
-            <div>Status</div>
-            <div style={{ textAlign: 'right' }}>Download</div>
+            <div>{trEn('Package ID')}</div>
+            <div>{trEn('Package Name')}</div>
+            <div>{trEn('Type')}</div>
+            <div>{trEn('Generated Date')}</div>
+            <div>{trEn('Generated By')}</div>
+            <div>{trEn('File Size')}</div>
+            <div>{trEn('Status')}</div>
+            <div style={{ textAlign: 'right' }}>{trEn('Download')}</div>
           </div>
 
           <div className="table-body">
@@ -233,7 +235,7 @@ const AuditorExportPackages = () => {
                     className="auditor-btn-sm" 
                     onClick={() => handleDownload(pkg)}
                   >
-                    Download
+                    {trEn('Download')}
                   </button>
                 </div>
               </div>

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { useLanguage } from '../context/LanguageContext';
 
 const QARetakeHistory = () => {
+  const { tr } = useLanguage();
   const [retakes, setRetakes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subjectFilter, setSubjectFilter] = useState("");
@@ -118,7 +120,7 @@ const QARetakeHistory = () => {
                 color: "#64748b",
               }}
             >
-              Đang tải...
+              {tr('Đang tải...')}
             </div>
           ) : filteredRetakes.length === 0 ? (
             <div
@@ -129,7 +131,7 @@ const QARetakeHistory = () => {
                 fontStyle: "italic",
               }}
             >
-              Chưa có bản ghi retake nào.
+              {tr('Chưa có bản ghi retake nào.')}
             </div>
           ) : (
             filteredRetakes.map((entry, idx) => (

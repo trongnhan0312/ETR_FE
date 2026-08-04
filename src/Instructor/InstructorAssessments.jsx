@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
+import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
 
 // Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login)
@@ -15,6 +16,7 @@ const getCurrentInstructorName = () => {
 };
 
 const InstructorAssessments = () => {
+  const { tr } = useLanguage();
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [sessions, setSessions] = useState([]);
@@ -73,11 +75,11 @@ const InstructorAssessments = () => {
   const getAssessmentTypeLabel = (type = selectedAssessmentType) => {
     switch (type) {
       case "practical":
-        return "Practical (Thực hành)";
+        return tr("Practical (Thực hành)");
       case "both":
-        return "Assessment + Practical";
+        return tr("Assessment + Practical");
       default:
-        return "Assessment (Lý thuyết)";
+        return tr("Assessment (Lý thuyết)");
     }
   };
 
@@ -111,12 +113,12 @@ const InstructorAssessments = () => {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
             code: cls.classCode || `CL-${cls.classId}`,
-            name: cls.className || "Lớp đào tạo",
-            subName: course ? course.courseName : "Chuyên đề huấn luyện",
+            name: cls.className || tr("Lớp đào tạo"),
+            subName: course ? course.courseName : tr("Chuyên đề huấn luyện"),
             courseKey: course ? String(course.courseId) : "N/A",
-            schedule: cls.schedule || "Chưa sắp lịch",
+            schedule: cls.schedule || tr("Chưa sắp lịch"),
             time: cls.time || "08:00 - 11:30",
-            status: cls.status || "Đang diễn ra",
+            status: cls.status || tr("Đang diễn ra"),
             subjectId: cls.subjectId || 1,
           };
         });
@@ -156,8 +158,8 @@ const InstructorAssessments = () => {
             sessionId: s.sessionId,
             stt: String(idx + 1).padStart(2, "0"),
             date: dateStr,
-            name: s.sessionTitle || "Buổi học",
-            room: s.location || "Phòng học",
+            name: s.sessionTitle || tr("Buổi học"),
+            room: s.location || tr("Phòng học"),
             instructor: getCurrentInstructorName(),
             isConfirmed: s.isConfirmed || false,
             subjectId: s.subjectId || 1,
@@ -199,7 +201,7 @@ const InstructorAssessments = () => {
           code: profile
             ? profile.employeeCode || `HV${en.accountId}`
             : `HV${en.accountId}`,
-          name: profile ? profile.fullName : "Học viên",
+          name: profile ? profile.fullName : tr("Học viên"),
           accountId: en.accountId,
           enrollmentId: en.enrollmentId,
           classStudentId: classStudentRec
@@ -508,8 +510,8 @@ const InstructorAssessments = () => {
         setIsEditingScores(false);
         setSaving(false);
         toast.warning(
-          "Không có thay đổi!",
-          "Các bản ghi đã được công bố hoặc không có thay đổi.",
+          tr("Không có thay đổi!"),
+          tr("Các bản ghi đã được công bố hoặc không có thay đổi."),
         );
         return;
       }
@@ -579,7 +581,7 @@ const InstructorAssessments = () => {
             return api
               .post("/SubjectSignoff", {
                 subjectResultId: student.subjectResultId,
-                comment: "Đã hoàn thành đánh giá chuyên đề.",
+                comment: tr("Đã hoàn thành đánh giá chuyên đề."),
               })
               .catch(() => null);
           }
@@ -590,12 +592,12 @@ const InstructorAssessments = () => {
       setStudentScores(editingScores);
       setIsEditingScores(false);
       toast.success(
-        "Lưu điểm thành công!",
-        "Đã cập nhật bảng điểm đánh giá.",
+        tr("Lưu điểm thành công!"),
+        tr("Đã cập nhật bảng điểm đánh giá."),
       );
     } catch (err) {
       console.error("Lỗi khi lưu bảng điểm:", err);
-      toast.error("Lưu điểm thất bại!", err.message);
+      toast.error(tr("Lưu điểm thất bại!"), err.message);
     } finally {
       setSaving(false);
     }
@@ -629,7 +631,7 @@ const InstructorAssessments = () => {
       const subjectResultIds = [...new Set(studentScores.map(s => s.subjectResultId).filter(Boolean))];
       
       if (subjectResultIds.length === 0) {
-        toast.warning("Không có môn học để ký!", "Vui lòng nhập điểm trước khi ký xác nhận.");
+        toast.warning(tr("Không có môn học để ký!"), tr("Vui lòng nhập điểm trước khi ký xác nhận."));
         setConfirmSignoffOpen(false);
         return;
       }
@@ -638,17 +640,17 @@ const InstructorAssessments = () => {
         subjectResultIds.map((subjectResultId) =>
           api.post("/SubjectSignoff", {
             subjectResultId,
-            comment: "Đã hoàn thành đánh giá và ký xác nhận chuyên đề.",
+            comment: tr("Đã hoàn thành đánh giá và ký xác nhận chuyên đề."),
           })
         )
       );
 
       setConfirmSignoffOpen(false);
-      toast.success("Ký xác nhận thành công!", `Đã ký ${subjectResultIds.length} môn học.`);
+      toast.success(tr("Ký xác nhận thành công!"), `${tr('Đã ký ')}${subjectResultIds.length} ${tr('môn học.')}`);
       loadSessionScores(selectedSession, selectedAssessmentType);
     } catch (err) {
       console.error("Lỗi khi ký xác nhận:", err);
-      toast.error("Ký xác nhận thất bại!", err.message);
+      toast.error(tr("Ký xác nhận thất bại!"), err.message);
     } finally {
       setSigningOff(false);
     }
@@ -750,7 +752,7 @@ const InstructorAssessments = () => {
               return api
                 .post("/SubjectSignoff", {
                   subjectResultId: student.subjectResultId,
-                  comment: "Đã hoàn thành đánh giá chuyên đề.",
+                  comment: tr("Đã hoàn thành đánh giá chuyên đề."),
                 })
                 .catch(() => null);
             }
@@ -798,14 +800,14 @@ const InstructorAssessments = () => {
 
       setConfirmPublishOpen(false);
       toast.success(
-        "Chốt điểm thành công!",
-        "Bảng điểm đã được khóa.",
+        tr("Chốt điểm thành công!"),
+        tr("Bảng điểm đã được khóa."),
       );
       setIsEditingScores(false);
       loadSessionScores(selectedSession, selectedAssessmentType);
     } catch (err) {
       console.error("Lỗi khi chốt điểm:", err);
-      toast.error("Chốt điểm thất bại!", err.message);
+      toast.error(tr("Chốt điểm thất bại!"), err.message);
     } finally {
       setPublishing(false);
     }
@@ -823,7 +825,7 @@ const InstructorAssessments = () => {
             onClick={() => setSelectedSession(null)}
             style={{ cursor: "pointer" }}
           >
-            ĐÁNH GIÁ
+            {tr('ĐÁNH GIÁ')}
           </span>
           <svg width="4" height="6" viewBox="0 0 4 6" fill="none">
             <path
@@ -836,11 +838,11 @@ const InstructorAssessments = () => {
 
         <section className="content-header">
           <div className="header-left">
-            <h1>Nhập điểm đánh giá — {selectedSession.name}</h1>
+            <h1>{tr('Nhập điểm đánh giá')} — {selectedSession.name}</h1>
             <div className="divider-gold" />
             <p className="header-description">
               {getAssessmentTypeLabel(selectedAssessmentType)} · Assessment:{" "}
-              {getSessionAssessmentName(selectedSession)} · Lớp:{" "}
+              {getSessionAssessmentName(selectedSession)} · {tr('Lớp: ')}{" "}
               {selectedClass ? selectedClass.code : "N/A"}
             </p>
           </div>
@@ -863,7 +865,7 @@ const InstructorAssessments = () => {
                     cursor: "pointer",
                   }}
                 >
-                  Hủy bỏ
+                  {tr('Hủy bỏ')}
                 </button>
                 <button
                   onClick={handleSaveScores}
@@ -879,7 +881,7 @@ const InstructorAssessments = () => {
                   >
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                   </svg>
-                  <span>LƯU ĐIỂM</span>
+                  <span>{tr('LƯU ĐIỂM')}</span>
                 </button>
               </>
             ) : (
@@ -901,7 +903,7 @@ const InstructorAssessments = () => {
                     fill="currentColor"
                   />
                 </svg>
-                <span>NHẬP ĐIỂM ĐÁNH GIÁ</span>
+                <span>{tr('NHẬP ĐIỂM ĐÁNH GIÁ')}</span>
               </button>
             )}
 
@@ -924,7 +926,7 @@ const InstructorAssessments = () => {
                 <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
               </svg>
               <span>
-                {allPublished ? "ĐÃ KÝ" : "KÝ XÁC NHẬN"}
+                {allPublished ? tr("ĐÃ KÝ") : tr("KÝ XÁC NHẬN")}
               </span>
             </button>
 
@@ -962,7 +964,7 @@ const InstructorAssessments = () => {
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
               <span>
-                {allPublished ? "ĐÃ KHÓA ĐIỂM" : "CHỐT ĐIỂM"}
+                {allPublished ? tr("ĐÃ KHÓA ĐIỂM") : tr("CHỐT ĐIỂM")}
               </span>
             </button>
           </div>
@@ -990,7 +992,7 @@ const InstructorAssessments = () => {
               letterSpacing: "0.05em",
             }}
           >
-            Hình thức đánh giá:
+            {tr('Hình thức đánh giá:')}
           </label>
           <select
             style={{
@@ -1006,9 +1008,9 @@ const InstructorAssessments = () => {
             value={selectedAssessmentType}
             onChange={handleTypeChange}
           >
-            <option value="assessment">Đánh giá lý thuyết (Assessment)</option>
-            <option value="practical">Đánh giá thực hành (Practical)</option>
-            <option value="both">Cả Assessment và Practical</option>
+            <option value="assessment">{tr('Đánh giá lý thuyết (Assessment)')}</option>
+            <option value="practical">{tr('Đánh giá thực hành (Practical)')}</option>
+            <option value="both">{tr('Cả Assessment và Practical')}</option>
           </select>
         </div>
 
@@ -1029,13 +1031,13 @@ const InstructorAssessments = () => {
               textTransform: "uppercase",
             }}
           >
-            <div style={{ textAlign: "center" }}>STT</div>
-            <div style={{ textAlign: "center" }}>Mã HV</div>
-            <div>Học viên</div>
-            <div style={{ textAlign: "center" }}>Điểm danh</div>
-            <div style={{ textAlign: "center" }}>Điểm số (0-100)</div>
-            <div>Nhận xét chuyên môn</div>
-            <div style={{ textAlign: "center" }}>Khóa</div>
+            <div style={{ textAlign: "center" }}>{tr('STT')}</div>
+            <div style={{ textAlign: "center" }}>{tr('Mã HV')}</div>
+            <div>{tr('Học viên')}</div>
+            <div style={{ textAlign: "center" }}>{tr('Điểm danh')}</div>
+            <div style={{ textAlign: "center" }}>{tr('Điểm số (0-100)')}</div>
+            <div>{tr('Nhận xét chuyên môn')}</div>
+            <div style={{ textAlign: "center" }}>{tr('Khóa')}</div>
           </div>
 
           <div className="table-body">
@@ -1048,7 +1050,7 @@ const InstructorAssessments = () => {
                   fontStyle: "italic",
                 }}
               >
-                Đang tải bảng điểm...
+                {tr('Đang tải bảng điểm...')}
               </div>
             ) : (
               displayScores.map((student, idx) => (
@@ -1324,8 +1326,8 @@ const InstructorAssessments = () => {
                             }
                             placeholder={
                               student.isPublished
-                                ? "Đã khóa không thể sửa"
-                                : "Nhập nhận xét Assessment..."
+                                ? tr("Đã khóa không thể sửa")
+                                : tr("Nhập nhận xét Assessment...")
                             }
                             style={{
                               width: "100%",
@@ -1361,8 +1363,8 @@ const InstructorAssessments = () => {
                             }
                             placeholder={
                               student.isPublished
-                                ? "Đã khóa không thể sửa"
-                                : "Nhập nhận xét Practical..."
+                                ? tr("Đã khóa không thể sửa")
+                                : tr("Nhập nhận xét Practical...")
                             }
                             style={{
                               width: "100%",
@@ -1401,7 +1403,7 @@ const InstructorAssessments = () => {
                             }}
                           >
                             {student.assessmentComment ||
-                              "— Chưa có nhận xét Assessment"}
+                              tr("— Chưa có nhận xét Assessment")}
                           </span>
                         )}
                         {(selectedAssessmentType === "practical" ||
@@ -1413,7 +1415,7 @@ const InstructorAssessments = () => {
                             }}
                           >
                             {student.practicalComment ||
-                              "— Chưa có nhận xét Practical"}
+                              tr("— Chưa có nhận xét Practical")}
                           </span>
                         )}
                       </div>
@@ -1457,7 +1459,7 @@ const InstructorAssessments = () => {
                           ></rect>
                           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
-                        Khóa
+                        {tr('Khóa')}
                       </span>
                     ) : (
                       <span
@@ -1470,7 +1472,7 @@ const InstructorAssessments = () => {
                           color: "#16a34a",
                         }}
                       >
-                        Mở
+                        {tr('Mở')}
                       </span>
                     )}
                   </div>
@@ -1488,10 +1490,10 @@ const InstructorAssessments = () => {
           isOpen={confirmSignoffOpen}
           onClose={() => setConfirmSignoffOpen(false)}
           onConfirm={handleSignoffAllSubjects}
-          title="Xác nhận ký xác nhận môn học"
-          message="Bạn có chắc chắn muốn ký xác nhận (Subject Signoff) cho tất cả môn học trong buổi này? Sau khi ký, hệ thống sẽ tự động đánh giá Pass/Fail."
-          confirmText="KÝ XÁC NHẬN"
-          cancelText="HỦY BỎ"
+          title={tr("Xác nhận ký xác nhận môn học")}
+          message={tr("Bạn có chắc chắn muốn ký xác nhận (Subject Signoff) cho tất cả môn học trong buổi này? Sau khi ký, hệ thống sẽ tự động đánh giá Pass/Fail.")}
+          confirmText={tr("KÝ XÁC NHẬN")}
+          cancelText={tr("HỦY BỎ")}
           confirmVariant="primary"
           loading={signingOff}
         />
@@ -1501,10 +1503,10 @@ const InstructorAssessments = () => {
           isOpen={confirmPublishOpen}
           onClose={() => setConfirmPublishOpen(false)}
           onConfirm={handlePublishScores}
-          title="Xác nhận chốt điểm"
-          message="Bạn có chắc chắn muốn chốt và khóa bảng điểm này?"
-          confirmText="CHỐT ĐIỂM"
-          cancelText="HỦY BỎ"
+          title={tr("Xác nhận chốt điểm")}
+          message={tr("Bạn có chắc chắn muốn chốt và khóa bảng điểm này?")}
+          confirmText={tr("CHỐT ĐIỂM")}
+          cancelText={tr("HỦY BỎ")}
           confirmVariant="danger"
           loading={publishing}
         />
@@ -1517,11 +1519,10 @@ const InstructorAssessments = () => {
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <section className="content-header">
         <div className="header-left">
-          <h1>Đánh giá theo buổi học</h1>
+          <h1>{tr('Đánh giá theo buổi học')}</h1>
           <div className="divider-gold" />
           <p className="header-description">
-            Chọn lớp học và buổi học để nhập điểm theo loại Assessment,
-            Practical hoặc cả hai.
+            {tr('Chọn lớp học và buổi học để nhập điểm theo loại Assessment, Practical hoặc cả hai.')}
           </p>
         </div>
       </section>
@@ -1547,7 +1548,7 @@ const InstructorAssessments = () => {
             letterSpacing: "0.05em",
           }}
         >
-          Chọn lớp:
+          {tr('Chọn lớp:')}
         </label>
         <select
           style={{
@@ -1583,22 +1584,22 @@ const InstructorAssessments = () => {
           >
             <div>
               <h3 style={{ margin: 0, color: "#002147" }}>
-                {selectedClass ? selectedClass.name : "Chọn lớp học"}
+                {selectedClass ? selectedClass.name : tr("Chọn lớp học")}
               </h3>
               <p style={{ margin: "6px 0 0", color: "rgba(0,33,71,0.7)" }}>
                 {selectedClass
-                  ? `Danh sách buổi học cho lớp ${selectedClass.code} - ${selectedClass.subName}`
-                  : "Vui lòng chọn lớp để xem danh sách buổi học."}
+                  ? `${tr('Danh sách buổi học cho lớp ')}${selectedClass.code} - ${selectedClass.subName}`
+                  : tr("Vui lòng chọn lớp để xem danh sách buổi học.")}
               </p>
             </div>
 
             {loading ? (
               <div style={{ color: "rgba(0,33,71,0.5)", fontStyle: "italic" }}>
-                Đang tải danh sách buổi học...
+                {tr('Đang tải danh sách buổi học...')}
               </div>
             ) : sessions.length === 0 ? (
               <div style={{ color: "rgba(0,33,71,0.5)", fontStyle: "italic" }}>
-                Chưa có buổi học nào được tạo cho lớp này.
+                {tr('Chưa có buổi học nào được tạo cho lớp này.')}
               </div>
             ) : (
               <div
@@ -1642,7 +1643,7 @@ const InstructorAssessments = () => {
                         boxShadow: '0 2px 4px rgba(197, 160, 89, 0.2)'
                       }}
                     >
-                      NHẬP ĐIỂM BUỔI HỌC
+                      {tr('NHẬP ĐIỂM BUỔI HỌC')}
                     </button>
                   </div>
                 ))}

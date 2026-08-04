@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { api } from "../utils/api";
 import PromptModal from "../components/PromptModal";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 
 const QAEvidenceVerification = () => {
+  const { tr } = useLanguage();
   const [evidenceList, setEvidenceList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -44,8 +46,8 @@ const QAEvidenceVerification = () => {
 
         return {
           id: ev.evidenceFileId,
-          learner: profile?.fullName || `Học viên #${enrollment?.accountId || ""}`,
-          evidence: ev.fileName || "Tập tin",
+          learner: profile?.fullName || `Student #${enrollment?.accountId || ""}`,
+          evidence: ev.fileName || "File",
           course: `ETR #${(ev.eTRCourseRecordId || ev.etrCourseRecordId) || ""}`,
           status: ev.verificationStatus === "Verified"
             ? "Verified"
@@ -57,7 +59,7 @@ const QAEvidenceVerification = () => {
 
       setEvidenceList(mapped);
     } catch (err) {
-      console.error("Lỗi tải danh sách evidence:", err);
+      console.error("Error loading evidence list:", err);
     } finally {
       setLoading(false);
     }
@@ -86,11 +88,11 @@ const QAEvidenceVerification = () => {
           api.put(`/Evidences/${id}/verify`, { VerificationStatus: "Verified" })
         )
       );
-      toast.success("Xác thực thành công", `Đã xác thực ${selectedIds.length} evidence.`);
+      toast.success(tr("Xác thực thành công"), `${tr('Đã xác thực')} ${selectedIds.length} ${tr('evidence.')}`);
       setSelectedIds([]);
       await loadEvidences();
     } catch (err) {
-      toast.error("Xác thực thất bại", err.message || "Lỗi không xác định");
+      toast.error(tr("Xác thực thất bại"), err.message || tr("Lỗi không xác định"));
     } finally {
       setProcessing(false);
     }
@@ -105,7 +107,7 @@ const QAEvidenceVerification = () => {
   const handleRejectWithReason = async (reason) => {
     if (selectedIds.length === 0) return;
     if (!reason || !reason.trim()) {
-      toast.error("Cần nêu lý do", "Vui lòng nhập lý do từ chối.");
+      toast.error(tr("Cần nêu lý do"), tr("Vui lòng nhập lý do từ chối."));
       setRejectOpen(false);
       return;
     }
@@ -119,11 +121,11 @@ const QAEvidenceVerification = () => {
           })
         )
       );
-      toast.warning("Đã từ chối", `Đã từ chối ${selectedIds.length} evidence.`);
+      toast.warning(tr("Đã từ chối"), `${tr('Đã từ chối')} ${selectedIds.length} ${tr('evidence.')}`);
       setSelectedIds([]);
       await loadEvidences();
     } catch (err) {
-      toast.error("Từ chối thất bại", err.message || "Lỗi không xác định");
+      toast.error(tr("Từ chối thất bại"), err.message || tr("Lỗi không xác định"));
     } finally {
       setProcessing(false);
       setRejectOpen(false);
@@ -193,18 +195,18 @@ const QAEvidenceVerification = () => {
             style={{ marginRight: "12px" }}
           />
           <span style={{ fontWeight: 700, fontSize: "11px", textTransform: "uppercase", color: "#64748b" }}>
-            Chọn tất cả
+            {tr('Chọn tất cả')}
           </span>
         </div>
 
         <div className="qa-list">
           {loading ? (
             <div style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
-              Đang tải...
+              {tr('Đang tải...')}
             </div>
           ) : evidenceList.length === 0 ? (
             <div style={{ padding: "24px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>
-              Chưa có evidence nào cần xác thực.
+              {tr('Chưa có evidence nào cần xác thực.')}
             </div>
           ) : (
             evidenceList.map((row) => (
@@ -246,11 +248,11 @@ const QAEvidenceVerification = () => {
         isOpen={rejectOpen}
         onClose={() => setRejectOpen(false)}
         onConfirm={handleRejectWithReason}
-        title="Từ chối Evidence"
-        message="Lý do từ chối sẽ được lưu vào hồ sơ minh chứng để học viên/giảng viên biết cách chỉnh sửa."
-        placeholder="Nhập lý do từ chối..."
-        confirmText="TỪ CHỐI"
-        cancelText="HỦY BỎ"
+        title={tr('Từ chối Evidence')}
+        message={tr('Lý do từ chối sẽ được lưu vào hồ sơ minh chứng để học viên/giảng viên biết cách chỉnh sửa.')}
+        placeholder={tr('Nhập lý do từ chối...')}
+        confirmText={tr('TỪ CHỐI')}
+        cancelText={tr('HỦY BỎ')}
         variant="danger"
       />
     </div>

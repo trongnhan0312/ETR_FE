@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useToast } from '../components/Toast';
+import { useLanguage } from '../context/LanguageContext';
 
 /** Format a Date or ISO string → yyyy-MM-dd for <input type="date"> */
 const toDateInputValue = (d) => {
@@ -27,6 +28,7 @@ const formatDate = (d) => {
 const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
 
 const StudentProfile = () => {
+  const { tr } = useLanguage();
   /* ── Profile state (mirrors UpdateUserProfileRequest) ── */
   const [profile, setProfile] = useState({
     fullName: '',
@@ -119,9 +121,9 @@ const StudentProfile = () => {
         },
         { suppressAuthRedirect: true },
       );
-      toast.success('Cập nhật thành công', 'Thông tin hồ sơ đã được lưu.');
+      toast.success(tr('Cập nhật thành công'), tr('Thông tin hồ sơ đã được lưu.'));
     } catch (err) {
-      toast.error('Cập nhật thất bại', err.message || 'Lỗi không xác định');
+      toast.error(tr('Cập nhật thất bại'), err.message || tr('Lỗi không xác định'));
     } finally {
       setSaving(false);
     }
@@ -132,15 +134,15 @@ const StudentProfile = () => {
     e.preventDefault();
 
     if (!currentPwd || !newPwd || !confirmPwd) {
-      toast.error('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin.');
+      toast.error(tr('Thiếu thông tin'), tr('Vui lòng điền đầy đủ thông tin.'));
       return;
     }
     if (newPwd !== confirmPwd) {
-      toast.error('Mật khẩu không khớp', 'Mật khẩu mới không khớp.');
+      toast.error(tr('Mật khẩu không khớp'), tr('Mật khẩu mới không khớp.'));
       return;
     }
     if (newPwd.length < 6) {
-      toast.error('Mật khẩu quá ngắn', 'Mật khẩu phải có ít nhất 6 ký tự.');
+      toast.error(tr('Mật khẩu quá ngắn'), tr('Mật khẩu phải có ít nhất 6 ký tự.'));
       return;
     }
 
@@ -151,12 +153,12 @@ const StudentProfile = () => {
         { currentPassword: currentPwd, newPassword: newPwd },
         { suppressAuthRedirect: true },
       );
-      toast.success('Đổi mật khẩu thành công', 'Mật khẩu của bạn đã được cập nhật.');
+      toast.success(tr('Đổi mật khẩu thành công'), tr('Mật khẩu của bạn đã được cập nhật.'));
       setCurrentPwd('');
       setNewPwd('');
       setConfirmPwd('');
     } catch (err) {
-      toast.error('Đổi mật khẩu thất bại', err.message || 'Lỗi không xác định');
+      toast.error(tr('Đổi mật khẩu thất bại'), err.message || tr('Lỗi không xác định'));
     } finally {
       setLoadingPwd(false);
     }
@@ -168,9 +170,9 @@ const StudentProfile = () => {
       <section className="student-welcome" style={{ marginBottom: 24 }}>
         <div className="student-welcome-left">
           <p className="eyebrow">Student Portal</p>
-          <h1>Hồ sơ của tôi</h1>
+          <h1>{tr('Hồ sơ của tôi')}</h1>
           <p className="welcome-sub">
-            Quản lý thông tin cá nhân, ngày sinh, số điện thoại và mật khẩu.
+            {tr('Quản lý thông tin cá nhân, ngày sinh, số điện thoại và mật khẩu.')}
           </p>
         </div>
         <div className="student-welcome-right">
@@ -192,21 +194,21 @@ const StudentProfile = () => {
             <div className="student-profile-avatar">{initials(profile.fullName)}</div>
             <div>
               <h2 className="student-profile-name">
-                {profile.fullName || 'Học viên'}
+                {profile.fullName || tr('Học viên')}
               </h2>
               <p className="student-profile-role">
-                {profile.roleName === 'Student' ? 'Học viên' : profile.roleName}
+                {profile.roleName === 'Student' ? tr('Học viên') : profile.roleName}
               </p>
             </div>
           </div>
 
           {profileLoading ? (
-            <p style={{ color: 'rgba(0,33,71,0.4)', fontSize: 13 }}>Đang tải...</p>
+            <p style={{ color: 'rgba(0,33,71,0.4)', fontSize: 13 }}>{tr('Đang tải...')}</p>
           ) : (
             <form className="student-pwd-form" onSubmit={handleSaveProfile}>
               {/* Full Name (display only) */}
               <div className="form-group">
-                <label>Họ và tên</label>
+                <label>{tr('Họ và tên')}</label>
                 <div className="student-field-value" style={{ padding: '11px 14px', border: '1px solid #e4eaf3', borderRadius: '10px', background: '#f0f4f9', color: 'rgba(0,33,71,0.6)', fontSize: '14px' }}>
                   {profile.fullName || '--'}
                 </div>
@@ -214,7 +216,7 @@ const StudentProfile = () => {
 
               {/* Email (display only) */}
               <div className="form-group">
-                <label>Email</label>
+                <label>{tr('Email')}</label>
                 <div className="student-field-value" style={{ padding: '11px 14px', border: '1px solid #e4eaf3', borderRadius: '10px', background: '#f0f4f9', color: 'rgba(0,33,71,0.6)', fontSize: '14px' }}>
                   {profile.email || '--'}
                 </div>
@@ -222,10 +224,10 @@ const StudentProfile = () => {
 
               {/* Phone */}
               <div className="form-group">
-                <label>Số điện thoại</label>
+                <label>{tr('Số điện thoại')}</label>
                 <input
                   type="tel"
-                  placeholder="Nhập số điện thoại"
+                  placeholder={tr('Nhập số điện thoại')}
                   value={profile.phone || ''}
                   onChange={(e) =>
                     setProfile((p) => ({ ...p, phone: e.target.value }))
@@ -235,7 +237,7 @@ const StudentProfile = () => {
 
               {/* Date of Birth */}
               <div className="form-group">
-                <label>Ngày sinh</label>
+                <label>{tr('Ngày sinh')}</label>
                 <input
                   type="date"
                   value={toDateInputValue(profile.dateOfBirth)}
@@ -247,7 +249,7 @@ const StudentProfile = () => {
 
               {/* Gender */}
               <div className="form-group">
-                <label>Giới tính</label>
+                <label>{tr('Giới tính')}</label>
                 <select
                   value={profile.gender || 'Other'}
                   onChange={(e) =>
@@ -268,7 +270,7 @@ const StudentProfile = () => {
                 >
                   {GENDER_OPTIONS.map((g) => (
                     <option key={g} value={g}>
-                      {g === 'Male' ? 'Nam' : g === 'Female' ? 'Nữ' : 'Khác'}
+                      {g === 'Male' ? tr('Nam') : g === 'Female' ? tr('Nữ') : tr('Khác')}
                     </option>
                   ))}
                 </select>
@@ -280,7 +282,7 @@ const StudentProfile = () => {
                 disabled={saving}
                 style={{ width: '100%', marginTop: 8 }}
               >
-                {saving ? 'Đang lưu...' : 'Lưu thông tin'}
+                {saving ? tr('Đang lưu...') : tr('Lưu thông tin')}
               </button>
             </form>
           )}
@@ -288,15 +290,15 @@ const StudentProfile = () => {
 
         {/* ===== RIGHT: Change Password ===== */}
         <div className="student-info-card">
-          <p className="info-eyebrow">Bảo mật</p>
-          <h3>Đổi mật khẩu</h3>
+          <p className="info-eyebrow">{tr('Bảo mật')}</p>
+          <h3>{tr('Đổi mật khẩu')}</h3>
           <form className="student-pwd-form" onSubmit={handleChangePassword}>
             <div className="form-group">
-              <label htmlFor="sp-current">Mật khẩu hiện tại</label>
+              <label htmlFor="sp-current">{tr('Mật khẩu hiện tại')}</label>
               <input
                 id="sp-current"
                 type="password"
-                placeholder="Nhập mật khẩu hiện tại"
+                placeholder={tr('Nhập mật khẩu hiện tại')}
                 value={currentPwd}
                 onChange={(e) => setCurrentPwd(e.target.value)}
                 disabled={loadingPwd}
@@ -304,11 +306,11 @@ const StudentProfile = () => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="sp-new">Mật khẩu mới</label>
+              <label htmlFor="sp-new">{tr('Mật khẩu mới')}</label>
               <input
                 id="sp-new"
                 type="password"
-                placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)"
+                placeholder={tr('Nhập mật khẩu mới (ít nhất 6 ký tự)')}
                 value={newPwd}
                 onChange={(e) => setNewPwd(e.target.value)}
                 disabled={loadingPwd}
@@ -316,11 +318,11 @@ const StudentProfile = () => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="sp-confirm">Xác nhận mật khẩu mới</label>
+              <label htmlFor="sp-confirm">{tr('Xác nhận mật khẩu mới')}</label>
               <input
                 id="sp-confirm"
                 type="password"
-                placeholder="Nhập lại mật khẩu mới"
+                placeholder={tr('Nhập lại mật khẩu mới')}
                 value={confirmPwd}
                 onChange={(e) => setConfirmPwd(e.target.value)}
                 disabled={loadingPwd}
@@ -333,7 +335,7 @@ const StudentProfile = () => {
               disabled={loadingPwd}
               style={{ width: '100%', marginTop: 4 }}
             >
-              {loadingPwd ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
+              {loadingPwd ? tr('Đang cập nhật...') : tr('Cập nhật mật khẩu')}
             </button>
           </form>
         </div>

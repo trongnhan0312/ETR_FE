@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useLanguage } from '../context/LanguageContext';
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import '../Academic/academic.scss';
 
@@ -29,6 +31,7 @@ const TrainingManagerLayout = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { tr } = useLanguage();
 
   const notifications = [
     { id: 1, text: "ETR for Batch 42 requires final approval", time: "10m ago", unread: true },
@@ -71,7 +74,7 @@ const TrainingManagerLayout = () => {
                 className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
               >
                 {item.icon}
-                <span>{item.label}</span>
+                <span>{tr(item.label)}</span>
               </NavLink>
             ))}
           </nav>
@@ -97,7 +100,7 @@ const TrainingManagerLayout = () => {
             }}
             style={{ marginTop: '16px', width: '100%' }}
           >
-            Đăng xuất
+            {tr('Đăng xuất')}
           </button>
         </div>
       </aside>
@@ -112,7 +115,7 @@ const TrainingManagerLayout = () => {
               <button
                 onClick={() => navigate(-1)}
                 type="button"
-                aria-label="Quay lại"
+                aria-label={tr('Quay lại')}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -176,7 +179,7 @@ const TrainingManagerLayout = () => {
               <input 
                 type="text" 
                 className="search-input" 
-                placeholder="Tìm kiếm lớp học, học viên..." 
+                placeholder={tr('Tìm kiếm lớp học, học viên...')} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -191,12 +194,7 @@ const TrainingManagerLayout = () => {
               <span className="dot"></span>
             </button>
             <div className="divider"></div>
-            <button className="lang-switcher" type="button">
-              <span>VIETNAMESE (VN)</span>
-              <svg width="7" height="5" viewBox="0 0 7 5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3.5 4.31667L0 0.816667L0.816667 0L3.5 2.68333L6.18333 0L7 0.816667L3.5 4.31667Z" fill="currentColor" />
-              </svg>
-            </button>
+            <LanguageSwitcher />
           </div>
         </header>
 

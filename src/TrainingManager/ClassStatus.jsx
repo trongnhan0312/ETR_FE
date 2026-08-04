@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
-import { api } from "../utils/api";
+import { api, parseApiError } from "../utils/api";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 import "./training-manager.scss";
 
 const ClassStatus = () => {
+  const { tr, trt } = useLanguage();
   const toast = useToast();
   const { searchQuery = "" } = useOutletContext();
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedClassDetails, setSelectedClassDetails] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creatingClass, setCreatingClass] = useState(false);
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
 
   // Form states for creating a new class
@@ -30,6 +34,7 @@ const ClassStatus = () => {
 
   // Load classes from API
   const [classes, setClasses] = useState([]);
+  const [rawClasses, setRawClasses] = useState([]);
   const [classesLoading, setClassesLoading] = useState(true);
 
   useEffect(() => {
@@ -86,6 +91,7 @@ const ClassStatus = () => {
       const clsArr = Array.isArray(classData) ? classData : [];
       const enrArr = Array.isArray(enrollmentData) ? enrollmentData : [];
       const profArr = Array.isArray(profileData) ? profileData : [];
+      setRawClasses(clsArr);
 
       const mapped = clsArr.slice(0, 10).map((cls) => {
         const classEnrollments = enrArr.filter((e) => e.classId === cls.classId);
@@ -94,9 +100,9 @@ const ClassStatus = () => {
         );
         return {
           id: cls.classCode || `CL-${cls.classId}`,
-          name: cls.className || `Lớp #${cls.classId}`,
+          name: cls.className || `${tr('Lớp #')}${cls.classId}`,
           subName: cls.description || cls.courseName || "",
-          instructor: instructors.length > 0 ? instructors[0]?.fullName || "Instructor" : "Chưa phân công",
+          instructor: instructors.length > 0 ? instructors[0]?.fullName || "Instructor" : tr("Chưa phân công"),
           startDate: cls.startDate ? new Date(cls.startDate).toLocaleDateString("vi-VN") : "TBD",
           endDate: cls.endDate ? new Date(cls.endDate).toLocaleDateString("vi-VN") : "TBD",
           progress: 0,
@@ -105,7 +111,7 @@ const ClassStatus = () => {
           simRoom: "",
           trainees: classEnrollments.length,
           type: "",
-          historyLogs: cls.createdAt ? [{ date: new Date(cls.createdAt).toISOString().split("T")[0], event: "Lớp được khởi tạo." }] : [],
+          historyLogs: cls.createdAt ? [{ date: new Date(cls.createdAt).toISOString().split("T")[0], event: tr("Lớp được khởi tạo.") }] : [],
         };
       });
 
@@ -141,11 +147,33 @@ const ClassStatus = () => {
 
   const handleCreateClass = async (e) => {
     e.preventDefault();
+    // Chống submit 2 lần liên tiếp (double-click) — tránh trùng mã → DbUpdateException
+    if (creatingClass) return;
     if (!newClassId || !newClassName || !newCourseId) {
-      toast.warning("Thiếu thông tin bắt buộc", "Vui lòng điền đầy đủ (Mã lớp, Tên lớp, Khóa đào tạo).");
+      toast.warning(tr("Thiếu thông tin bắt buộc"), tr("Vui lòng điền đầy đủ (Mã lớp, Tên lớp, Khóa đào tạo)."));
       return;
     }
 
+    // Chặn trùng Mã lớp ngay tại FE (khớp unique index IX_Classes_ClassCode của CSDL)
+    const codeUpper = newClassId.trim().toUpperCase();
+    if (rawClasses.some((c) => String(c.classCode || "").trim().toUpperCase() === codeUpper)) {
+      toast.error(tr("Tạo lớp học thất bại"), trt('classCodeExists', { code: newClassId }));
+      return;
+    }
+
+    // BE bắt buộc StartDate/EndDate là DateTime (không chấp nhận null) —
+    // nếu người dùng để trống/không hợp lệ, mặc định Hôm nay / Hôm nay + 30 ngày
+    // để tránh DbUpdateException khi lưu vào CSDL.
+    const todayIso = new Date().toISOString();
+    const nextMonthIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const toIso = (val, fallback) => {
+      if (!val) return fallback;
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return fallback;
+      return d.toISOString();
+    };
+
+    setCreatingClass(true);
     try {
       // Call API to create class — khớp CreateClassRequest của backend:
       // { classCode, className, courseId, startDate, endDate, location, capacity, status, instructorAccountId? }
@@ -153,12 +181,8 @@ const ClassStatus = () => {
         classCode: newClassId.toUpperCase(),
         className: newClassName,
         courseId: Number(newCourseId),
-        startDate: newStartDate
-          ? new Date(newStartDate).toISOString()
-          : null,
-        endDate: newEndDate
-          ? new Date(newEndDate).toISOString()
-          : null,
+        startDate: toIso(newStartDate, todayIso),
+        endDate: toIso(newEndDate, nextMonthIso),
         location: newRoom || "",
         capacity: Number(newTraineesCount) || 15,
         status: "Scheduled",
@@ -182,7 +206,9 @@ const ClassStatus = () => {
       setNewTraineesCount(15);
     } catch (error) {
       console.error("Error creating class:", error);
-      toast.error("Tạo lớp học thất bại", error.message || "Lỗi không xác định");
+      toast.error(tr("Tạo lớp học thất bại"), parseApiError(error));
+    } finally {
+      setCreatingClass(false);
     }
   };
 
@@ -392,7 +418,7 @@ const ClassStatus = () => {
                 </span>
               </div>
               <h2 className="text-3xl font-bold text-left text-[#002147] m-0">
-                Kiểm tra dữ liệu điểm danh
+                {tr('Kiểm tra dữ liệu điểm danh')}
               </h2>
             </div>
 
@@ -400,7 +426,7 @@ const ClassStatus = () => {
               className="flex justify-start items-center gap-2 px-8 py-3 rounded-sm bg-[#002147] border-none text-white cursor-pointer hover:bg-[#002147]/90 transition-all font-bold text-sm shadow-sm"
               onClick={() => {
                 // Export endpoint chỉ cho Admin/Audit/Academic — TrainingManager không có quyền
-                toast.warning("Không có quyền xuất báo cáo", "Tài khoản TrainingManager không có quyền xuất báo cáo (chỉ Admin/Audit/Academic).");
+                toast.warning(tr("Không có quyền xuất báo cáo"), tr("Tài khoản TrainingManager không có quyền xuất báo cáo (chỉ Admin/Audit/Academic)."));
               }}
             >
               <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
@@ -548,7 +574,7 @@ const ClassStatus = () => {
                   <input
                     type="text"
                     className="w-full bg-transparent border-none text-sm text-gray-800 placeholder-gray-500 focus:outline-none"
-                    placeholder="Tìm kiếm học viên hoặc ID..."
+                    placeholder={tr('Tìm kiếm học viên hoặc ID...')}
                     value={attendanceSearchQuery}
                     onChange={(e) => setAttendanceSearchQuery(e.target.value)}
                   />
@@ -568,7 +594,7 @@ const ClassStatus = () => {
                   className="flex justify-start items-center gap-2 px-6 py-2 rounded-sm border border-[#dee2e6] bg-white cursor-pointer hover:bg-slate-50 transition-all font-semibold text-xs text-[#495057]"
                   onClick={() => {
                     // Filter is already applied via statusFilter and searchQuery
-                    toast.success("Đã áp dụng bộ lọc", "Danh sách đã được lọc theo trạng thái và từ khóa tìm kiếm.");
+                    toast.success(tr("Đã áp dụng bộ lọc"), tr("Danh sách đã được lọc theo trạng thái và từ khóa tìm kiếm."));
                   }}
                 >
                   <svg width={14} height={9} viewBox="0 0 14 9" fill="none">
@@ -583,7 +609,7 @@ const ClassStatus = () => {
                   className="flex justify-start items-center gap-2 px-6 py-2 rounded-sm border border-[#dee2e6] bg-white cursor-pointer hover:bg-slate-50 transition-all font-semibold text-xs text-[#495057]"
                   onClick={() => {
                     // Buổi học selector - opens session picker for this class
-                    toast.info("Chọn buổi học", "Chức năng chọn buổi học đang được hoàn thiện. Vui lòng dùng màn hình Điểm danh của Instructor để chọn buổi.");
+                    toast.info(tr("Chọn buổi học"), tr("Chức năng chọn buổi học đang được hoàn thiện. Vui lòng dùng màn hình Điểm danh của Instructor để chọn buổi."));
                   }}
                 >
                   <svg width={14} height={15} viewBox="0 0 14 15" fill="none">
@@ -727,7 +753,7 @@ const ClassStatus = () => {
                         colSpan="8"
                         className="text-center py-10 text-gray-500 text-sm font-semibold"
                       >
-                        Không tìm thấy học viên nào.
+                        {tr('Không tìm thấy học viên nào.')}
                       </td>
                     </tr>
                   )}
@@ -738,7 +764,7 @@ const ClassStatus = () => {
             {/* Table Pagination */}
             <div className="flex justify-between items-center w-full p-6 border-t border-[#dee2e6] bg-white">
               <span className="text-xs font-medium text-[#495057]">
-                Hiển thị 1 - {filteredStudents.length} của 28 học viên
+                {trt('showingStudents', { n: filteredStudents.length })}
               </span>
               <div className="flex justify-start items-start gap-1">
                 <div className="flex justify-center items-center w-9 h-9 rounded-sm border border-[#dee2e6] cursor-pointer hover:bg-slate-50">
@@ -784,7 +810,7 @@ const ClassStatus = () => {
                 />
               </svg>
               <span className="text-xs font-semibold text-[#495057]">
-                Có mặt (Present)
+                {tr('Có mặt (Present)')}
               </span>
             </div>
 
@@ -796,7 +822,7 @@ const ClassStatus = () => {
                 />
               </svg>
               <span className="text-xs font-semibold text-[#495057]">
-                Vắng mặt (Absent)
+                {tr('Vắng mặt (Absent)')}
               </span>
             </div>
 
@@ -805,7 +831,7 @@ const ClassStatus = () => {
                 L
               </div>
               <span className="text-xs font-semibold text-[#495057]">
-                Đi muộn (Late)
+                {tr('Đi muộn (Late)')}
               </span>
             </div>
           </div>
@@ -822,10 +848,10 @@ const ClassStatus = () => {
         <div className="flex justify-between items-end w-full">
           <div className="flex flex-col justify-start items-start gap-1">
             <h1 className="text-[32px] font-semibold text-left text-[#000613] m-2">
-              Theo dõi trạng thái lớp học
+              {tr('Theo dõi trạng thái lớp học')}
             </h1>
             <p className="text-base text-left text-[#43474e] m-2">
-              Quản lý và giám sát tiến độ các lớp đào tạo hàng không
+              {tr('Quản lý và giám sát tiến độ các lớp đào tạo hàng không')}
             </p>
           </div>
           <button
@@ -839,7 +865,7 @@ const ClassStatus = () => {
               />
             </svg>
             <span className="text-base text-center text-white ">
-              Tạo lớp học mới
+              {tr('Tạo lớp học mới')}
             </span>
           </button>
         </div>
@@ -934,12 +960,12 @@ const ClassStatus = () => {
           {/* Table Header Bar */}
           <div className="flex justify-between items-center w-full p-6 bg-[#012248] border-b border-[#c4c6cf]/30">
             <h3 className="text-xl font-semibold text-left text-white m-0">
-              Danh sách lớp học (Active & Upcoming)
+              {tr('Danh sách lớp học (Active & Upcoming)')}
             </h3>
             <div className="flex justify-start items-center gap-3 text-white">
               <div
                 className="p-1.5 cursor-pointer hover:bg-white/10 rounded"
-                onClick={() => toast.info("Bộ lọc", "Danh sách đã được lọc theo trạng thái hiện hành.")}
+                onClick={() => toast.info(tr("Bộ lọc"), tr("Danh sách đã được lọc theo trạng thái hiện hành."))}
               >
                 <svg width={18} height={12} viewBox="0 0 18 12" fill="none">
                   <path
@@ -952,7 +978,7 @@ const ClassStatus = () => {
                 className="p-1.5 cursor-pointer hover:bg-white/10 rounded"
                 onClick={() => {
                   // Export endpoint chỉ cho Admin/Audit/Academic — TrainingManager không có quyền
-                  toast.warning("Không có quyền xuất dữ liệu", "Tài khoản TrainingManager không có quyền xuất dữ liệu (chỉ Admin/Audit/Academic).");
+                  toast.warning(tr("Không có quyền xuất dữ liệu"), tr("Tài khoản TrainingManager không có quyền xuất dữ liệu (chỉ Admin/Audit/Academic)."));
                 }}
               >
                 <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
@@ -975,7 +1001,7 @@ const ClassStatus = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              Tất cả lớp học ({classes.length})
+              {tr('Tất cả lớp học')} ({classes.length})
             </button>
             <button
               onClick={() => setStatusFilter("IN PROGRESS")}
@@ -985,7 +1011,7 @@ const ClassStatus = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              Đang hoạt động (
+              {tr('Đang hoạt động')} (
               {classes.filter((c) => c.status === "IN PROGRESS").length})
             </button>
             <button
@@ -995,9 +1021,9 @@ const ClassStatus = () => {
                   ? "border-[#002147] text-[#002147]"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
-            >
-              Đã lên lịch (
-              {classes.filter((c) => c.status === "SCHEDULED").length})
+            >              {tr('Đã lên lịch')} (
+              {classes.filter((c) => c.status === "SCHEDULED").length}
+              )
             </button>
             <button
               onClick={() => setStatusFilter("DELAYED")}
@@ -1007,7 +1033,7 @@ const ClassStatus = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              Trì hoãn ({classes.filter((c) => c.status === "DELAYED").length})
+              {tr('Trì hoãn')} ({classes.filter((c) => c.status === "DELAYED").length})
             </button>
           </div>
 
@@ -1127,7 +1153,7 @@ const ClassStatus = () => {
                       colSpan="7"
                       className="text-center py-12 text-gray-500 text-sm font-semibold"
                     >
-                      Không tìm thấy lớp học phù hợp với bộ lọc tìm kiếm.
+                      {tr('Không tìm thấy lớp học phù hợp với bộ lọc tìm kiếm.')}
                     </td>
                   </tr>
                 )}
@@ -1139,7 +1165,7 @@ const ClassStatus = () => {
           <div className="flex justify-between items-center w-full p-6 border-t border-r-0 border-b-0 border-l-0 border-[#c4c6cf]/30 bg-white">
             <div>
               <span className="text-xs font-semibold text-[#43474e]">
-                Hiển thị {filteredClasses.length} trên {classes.length} lớp học
+                {tr('Hiển thị ')}{filteredClasses.length}{tr(' trên ')}{classes.length}{tr(' lớp học')}
               </span>
             </div>
             <div className="flex justify-start items-start gap-2">
@@ -1174,16 +1200,16 @@ const ClassStatus = () => {
       </div>
 
       {/* CREATE NEW CLASS MODAL */}
-      {showCreateModal && (
-        <div className="tm-modal-overlay">
-          <div className="tm-modal-card max-w-lg w-full bg-white rounded-lg shadow-xl overflow-hidden">
+      {showCreateModal && createPortal(
+        <div className="tm-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 33, 71, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, backdropFilter: 'blur(4px)' }}>
+          <div className="tm-modal-card max-w-lg w-full bg-white rounded-lg shadow-xl overflow-hidden" style={{ margin: 'auto' }}>
             <div className="modal-header bg-[#002147] text-white p-6 flex justify-between items-center">
               <div>
                 <h3 className="m-0 text-xl font-bold text-[#ffe088]">
-                  Tạo Lớp Học Mới
+                  {tr('Tạo Lớp Học Mới')}
                 </h3>
                 <p className="m-0 text-xs text-slate-300 mt-1">
-                  Điền thông tin chi tiết cho lớp đào tạo hàng không mới
+                  {tr('Điền thông tin chi tiết cho lớp đào tạo hàng không mới')}
                 </p>
               </div>
               <button
@@ -1201,7 +1227,7 @@ const ClassStatus = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-600">
-                    MÃ LỚP (Bắt buộc) *
+                    {tr('MÃ LỚP (Bắt buộc) *')}
                   </label>
                   <input
                     type="text"
@@ -1230,16 +1256,15 @@ const ClassStatus = () => {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-gray-600">
-                  KHÓA ĐÀO TẠO (Bắt buộc) *
-                </label>
+                <label className="text-xs font-semibold text-gray-600">                  {tr('KHÓA ĐÀO TẠO (Bắt buộc) *')}
+                  </label>
                 <select
                   required
                   value={newCourseId}
                   onChange={(e) => setNewCourseId(e.target.value)}
                   className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
                 >
-                  <option value="">Chọn khóa đào tạo...</option>
+                  <option value="">{tr('Chọn khóa đào tạo...')}</option>
                   {coursesList.map((course) => (
                     <option key={course.courseId} value={course.courseId}>
                       {course.courseCode} - {course.courseName}
@@ -1249,9 +1274,8 @@ const ClassStatus = () => {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-gray-600">
-                  TÊN LỚP (Bắt buộc) *
-                </label>
+                <label className="text-xs font-semibold text-gray-600">                  {tr('TÊN LỚP (Bắt buộc) *')}
+                  </label>
                 <input
                   type="text"
                   required
@@ -1284,7 +1308,7 @@ const ClassStatus = () => {
                   onChange={(e) => setNewInstructorAccountId(e.target.value)}
                   className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
                 >
-                  <option value="">Chưa phân công</option>
+                  <option value="">{tr('Chưa phân công')}</option>
                   {instructorsList.map((ins) => (
                     <option key={ins.accountId} value={ins.accountId}>
                       {ins.fullName}
@@ -1299,8 +1323,7 @@ const ClassStatus = () => {
                     THỜI GIAN BẮT ĐẦU
                   </label>
                   <input
-                    type="text"
-                    placeholder="E.g. 01/10"
+                    type="date"
                     value={newStartDate}
                     onChange={(e) => setNewStartDate(e.target.value)}
                     className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
@@ -1311,8 +1334,7 @@ const ClassStatus = () => {
                     THỜI GIAN KẾT THÚC
                   </label>
                   <input
-                    type="text"
-                    placeholder="E.g. 15/11"
+                    type="date"
                     value={newEndDate}
                     onChange={(e) => setNewEndDate(e.target.value)}
                     className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
@@ -1354,18 +1376,19 @@ const ClassStatus = () => {
                   onClick={() => setShowCreateModal(false)}
                   className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 border-none rounded cursor-pointer text-gray-700 font-semibold"
                 >
-                  Hủy bỏ
+                  {tr('Hủy bỏ')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2.5 bg-[#002147] hover:bg-[#002147]/95 border-none rounded cursor-pointer text-white font-semibold"
                 >
-                  Tạo lớp
+                  {tr('Tạo lớp')}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Toast notifications */}

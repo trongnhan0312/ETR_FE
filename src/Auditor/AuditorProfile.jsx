@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../components/Toast';
+import { useLanguage } from '../context/LanguageContext';
 
 const AuditorProfile = () => {
+  const { tr, trEn } = useLanguage();
   const [profile, setProfile] = useState({
     name: 'Auditor Compliance Officer',
     role: 'Independent Auditor',
@@ -34,14 +36,14 @@ const AuditorProfile = () => {
   const handleChangePassword = (e) => {
     e.preventDefault();
     if (!currentPwd || !newPwd || !confirmPwd) {
-      toast.error('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin.');
+      toast.error(tr('Thiếu thông tin'), tr('Vui lòng điền đầy đủ thông tin.'));
       return;
     }
     if (newPwd !== confirmPwd) {
-      toast.error('Mật khẩu không khớp', 'Mật khẩu mới không khớp.');
+      toast.error(tr('Mật khẩu không khớp'), tr('Mật khẩu mới không khớp.'));
       return;
     }
-    toast.success('Cập nhật mật khẩu thành công', 'Mật khẩu của bạn đã được cập nhật.');
+    toast.success(tr('Cập nhật mật khẩu thành công'), tr('Mật khẩu của bạn đã được cập nhật.'));
     setCurrentPwd('');
     setNewPwd('');
     setConfirmPwd('');
@@ -52,10 +54,10 @@ const AuditorProfile = () => {
       {/* Header */}
       <section className="content-header">
         <div className="header-left">
-          <h1>Auditor Profile & Account Settings</h1>
+          <h1>{trEn('Auditor Profile & Account Settings')}</h1>
           <div className="divider-gold"></div>
           <p className="header-description">
-            Manage your compliance auditor profile credentials, security credentials, and view role scope details.
+            {trEn('Manage your compliance auditor profile credentials, security credentials, and view role scope details.')}
           </p>
         </div>
       </section>
@@ -67,33 +69,33 @@ const AuditorProfile = () => {
         {/* Profile Details Panel */}
         <section className="table-card" style={{ padding: '28px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#002147', marginTop: 0, marginBottom: '20px' }}>
-            Officer Profile Details
+            {trEn('Officer Profile Details')}
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ padding: '14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>Full Name</div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Full Name')}</div>
               <div style={{ fontSize: '15px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{profile.name}</div>
             </div>
 
             <div style={{ padding: '14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>Assigned System Role</div>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: '#c5a059', marginTop: '4px' }}>{profile.role}</div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Assigned System Role')}</div>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#c5a059', marginTop: '4px' }}>{trEn(profile.role)}</div>
             </div>
 
             <div style={{ padding: '14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>Email Address</div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Email Address')}</div>
               <div style={{ fontSize: '15px', fontWeight: '600', color: '#002147', marginTop: '4px' }}>{profile.email}</div>
             </div>
 
             <div style={{ padding: '14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>Department</div>
-              <div style={{ fontSize: '15px', fontWeight: '600', color: '#002147', marginTop: '4px' }}>{profile.department}</div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Department')}</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: '#002147', marginTop: '4px' }}>{trEn(profile.department)}</div>
             </div>
 
             <div style={{ padding: '14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>Permission Boundaries</div>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#16a34a', marginTop: '4px' }}>{profile.accessLevel}</div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Permission Boundaries')}</div>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#16a34a', marginTop: '4px' }}>{trEn(profile.accessLevel)}</div>
             </div>
           </div>
         </section>
@@ -101,16 +103,16 @@ const AuditorProfile = () => {
         {/* Change Password Panel */}
         <section className="table-card" style={{ padding: '28px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#002147', marginTop: 0, marginBottom: '20px' }}>
-            Change Account Password
+            {trEn('Change Account Password')}
           </h2>
 
           <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>Current Password</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('Current Password')}</label>
               <input
                 className="search-input"
                 type="password"
-                placeholder="Enter current password"
+                placeholder={trEn('Enter current password')}
                 value={currentPwd}
                 onChange={(e) => setCurrentPwd(e.target.value)}
                 style={{ width: '100%' }}
@@ -118,11 +120,11 @@ const AuditorProfile = () => {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>New Password</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('New Password')}</label>
               <input
                 className="search-input"
                 type="password"
-                placeholder="Enter new password"
+                placeholder={trEn('Enter new password')}
                 value={newPwd}
                 onChange={(e) => setNewPwd(e.target.value)}
                 style={{ width: '100%' }}
@@ -130,11 +132,11 @@ const AuditorProfile = () => {
             </div>
 
             <div className="form-group">
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>Confirm New Password</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase' }}>{trEn('Confirm New Password')}</label>
               <input
                 className="search-input"
                 type="password"
-                placeholder="Confirm new password"
+                placeholder={trEn('Confirm new password')}
                 value={confirmPwd}
                 onChange={(e) => setConfirmPwd(e.target.value)}
                 style={{ width: '100%' }}
@@ -146,7 +148,7 @@ const AuditorProfile = () => {
               className="create-btn"
               style={{ width: '100%', justifyContent: 'center', marginTop: '12px', borderRadius: '12px' }}
             >
-              Update Password
+              {trEn('Update Password')}
             </button>
           </form>
         </section>

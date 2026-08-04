@@ -53,7 +53,9 @@ const loadLookup = () => {
       api.get("/Evidences").catch(() => []),
       api.get("/Attendance").catch(() => []),
       api.get("/AssessmentResults").catch(() => []),
-    ]).then(([enrollments, accounts, profiles, classes, courses, classStudents, evidences, attendance, assessmentResults]) => ({
+      api.get("/Approvals").catch(() => []),
+      api.get("/Audit?page=1&pageSize=100").catch(() => []),
+    ]).then(([enrollments, accounts, profiles, classes, courses, classStudents, evidences, attendance, assessmentResults, approvals, auditLogs]) => ({
       enrollments: extractList(enrollments),
       accounts: extractList(accounts),
       profiles: extractList(profiles),
@@ -63,6 +65,8 @@ const loadLookup = () => {
       evidences: extractList(evidences),
       attendance: extractList(attendance),
       assessmentResults: extractList(assessmentResults),
+      approvals: extractList(approvals),
+      auditLogs: extractList(auditLogs),
     })).finally(() => {
       lookupPromise = null;
     });
@@ -70,11 +74,14 @@ const loadLookup = () => {
   return lookupPromise;
 };
 
+// Ưu tiên UserProfiles/learners (Audit đã được phép truy cập) — chỉ fallback qua Accounts khi không
+// có profile, để tên học viên/người phê duyệt hiển thị được ngay cả khi /Accounts chưa mở cho Audit.
 const accountName = (lookup, accountId) => {
-  const account = lookup.accounts.find((a) => a.accountId === accountId);
-  if (!account) return `Account #${accountId}`;
+  if (!accountId) return "—";
   const profile = lookup.profiles.find((p) => p.accountId === accountId);
-  return profile?.fullName || account.username || `Account #${accountId}`;
+  if (profile?.fullName) return profile.fullName;
+  const account = lookup.accounts.find((a) => a.accountId === accountId);
+  return account?.username || `Account #${accountId}`;
 };
 
 // --- 1. AuditController APIs (Read-Only) ---
@@ -272,25 +279,50 @@ function normalizeAuditLog(raw) {
 function normalizeEtr(raw, lookup) {
   const etrId = extractEtrId(raw);
   const enrollment = lookup.enrollments.find((e) => e.enrollmentId === raw.enrollmentId);
-  const account = enrollment
-    ? lookup.accounts.find((a) => a.accountId === enrollment.accountId)
+  // Dùng trực tiếp AccountId từ enrollment (Audit đã được phép GET /Enrollments + /UserProfiles/learners)
+  // để tên học viên hiển thị được kể cả khi /Accounts chưa mở cho role Audit.
+  const accountId = enrollment?.accountId ?? null;
+  const profile = accountId
+    ? lookup.profiles.find((p) => p.accountId === accountId)
     : null;
-  const profile = account
-    ? lookup.profiles.find((p) => p.accountId === account.accountId)
+  const account = accountId
+    ? lookup.accounts.find((a) => a.accountId === accountId)
     : null;
   const cls = enrollment
     ? lookup.classes.find((c) => c.classId === enrollment.classId)
     : null;
   const course = cls ? lookup.courses.find((c) => c.courseId === cls.courseId) : null;
-  const classStudent = account
-    ? lookup.classStudents.find((cs) => cs.accountId === account.accountId && cs.classId === enrollment?.classId)
+  const classStudent = accountId
+    ? lookup.classStudents.find((cs) => cs.accountId === accountId && cs.classId === enrollment?.classId)
     : null;
+
+  // Người phê duyệt cuối: ưu tiên AuditLog ActionType=APPROVE (ghi bởi TrainingManager/Admin khi chốt),
+  // fallback CurrentApproverId → SubmittedBy trên ApprovalRequest của ETR này. Lưu ý: SubmittedBy là
+  // NGƯỜI GỬI yêu cầu (thường là Instructor submit), không phải người phê duyệt thật — chỉ là fallback
+  // tốt hơn "—" khi không tìm thấy APPROVE log (vd: ETR cũ trượt khỏi 100 log gần nhất).
+  const approveLog = (lookup.auditLogs || []).find(
+    (l) => l.etrRecordId === etrId && String(l.actionType || "").toUpperCase() === "APPROVE",
+  );
+  const verifyLog = (lookup.auditLogs || []).find(
+    (l) => l.etrRecordId === etrId && String(l.actionType || "").toUpperCase() === "VERIFY",
+  );
+  const approval = (lookup.approvals || []).find((r) => r.etrCourseRecordId === etrId);
+  const resolvedApprovedBy = approveLog?.accountId
+    ? accountName(lookup, approveLog.accountId)
+    : approval?.currentApproverId
+      ? accountName(lookup, approval.currentApproverId)
+      : approval?.submittedBy
+        ? accountName(lookup, approval.submittedBy)
+        : "—";
+  const resolvedQaVerifiedBy = verifyLog?.accountId
+    ? accountName(lookup, verifyLog.accountId)
+    : "—";
 
   // Evidence files linked to this ETR record (if the entity carries the FK) or uploaded by the learner's account
   const evidences = lookup.evidences.filter(
     (ev) =>
       extractEtrId(ev) === etrId ||
-      (account && ev.uploadedBy === account.accountId),
+      (accountId && ev.uploadedBy === accountId),
   );
 
   // Attendance for the learner's ClassStudent
@@ -307,9 +339,9 @@ function normalizeEtr(raw, lookup) {
     : [];
 
   // Assessment results for the learner's account
-  const subjectResults = account
+  const subjectResults = accountId
     ? lookup.assessmentResults
-        .filter((ar) => ar.accountId === account.accountId)
+        .filter((ar) => ar.accountId === accountId)
         .map((ar) => ({
           code: `ASM-${String(ar.assessmentId).padStart(4, "0")}`,
           name: `Assessment #${ar.assessmentId}`,
@@ -328,8 +360,8 @@ function normalizeEtr(raw, lookup) {
     id: `#ETR-${String(etrId ?? "").padStart(4, "0")}`,
     etrCourseRecordId: etrId,
     enrollmentId: raw.enrollmentId,
-    learnerId: profile?.userCode || account?.username || "—",
-    learnerName: profile?.fullName || account?.username || (account ? `Account #${account.accountId}` : "—"),
+    learnerId: profile?.userCode || account?.username || (accountId ? `Account #${accountId}` : "—"),
+    learnerName: profile?.fullName || account?.username || (accountId ? `Account #${accountId}` : "—"),
     learnerRole: "—",
     learnerDepartment: "—",
     courseId: course ? `#${course.courseCode || course.courseId}` : (cls ? `#${cls.courseId}` : "—"),
@@ -338,10 +370,10 @@ function normalizeEtr(raw, lookup) {
     className: cls?.className || "—",
     completionDate: fmtDate(raw.completedAt),
     lockedDate: fmtDate(raw.verifiedAt),
-    approvedBy: "—",
-    qaVerifiedBy: "—",
+    approvedBy: resolvedApprovedBy,
+    qaVerifiedBy: resolvedQaVerifiedBy,
     academicStaff: "—",
-    instructor: "—",
+    instructor: cls?.instructorAccountId ? accountName(lookup, cls.instructorAccountId) : "—",
     status: raw.isLocked ? "Locked & Compliant" : (raw.status || "—"),
     isLocked: !!raw.isLocked,
     verificationHash: "—",

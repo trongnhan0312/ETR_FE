@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../utils/api";
 import PromptModal from "../components/PromptModal";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 import "./training-manager.scss";
 
 const EtrApproval = () => {
+  const { tr } = useLanguage();
   const { searchQuery } = useOutletContext();
   const [activeTab, setActiveTab] = useState("PENDING"); // PENDING, APPROVED, RETURNED
   const [selectedEtr, setSelectedEtr] = useState(null);
@@ -42,7 +45,7 @@ const EtrApproval = () => {
     return {
       id: `#ETR-${String(etrId).padStart(4, "0")}`,
       etrId,
-      traineeName: `Học viên #ETR-${String(etrId).padStart(4, "0")}`,
+      traineeName: `Student #ETR-${String(etrId).padStart(4, "0")}`,
       traineeCode: `ID: ETR-${etrId}`,
       initials: "HV",
       className: "—",
@@ -157,10 +160,10 @@ const EtrApproval = () => {
           return {
             id: `#ETR-${String(etrId).padStart(4, "0")}`,
             etrId,
-            traineeName: profile?.fullName || `Học viên #${enrollment?.accountId || ""}`,
+            traineeName: profile?.fullName || `Student #${enrollment?.accountId || ""}`,
             traineeCode: `ID: ${profile?.employeeCode || `AV-${enrollment?.accountId || ""}`}`,
             initials: (profile?.fullName || "XX").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "XX",
-            className: `Lớp #${enrollment?.classId || ""}`,
+            className: `Class #${enrollment?.classId || ""}`,
             avgScore: avgAttendance,
             qaVerified: etr.status === "Verified" || etr.status === "Completed",
             qaVerifier: "QA Staff",
@@ -242,9 +245,9 @@ const EtrApproval = () => {
   const toast = useToast();
 
   const showAlert = (message, type = "success") => {
-    if (type === "error") toast.error("Thất bại", message);
-    else if (type === "warning") toast.warning("Cảnh báo", message);
-    else toast.success("Thành công", message);
+    if (type === "error") toast.error(tr("Thất bại"), message);
+    else if (type === "warning") toast.warning(tr("Cảnh báo"), message);
+    else toast.success(tr("Thành công"), message);
   };
 
   // TrainingManager/Admin phê duyệt qua ApprovalRequest process (route chính thức duy nhất
@@ -278,7 +281,7 @@ const EtrApproval = () => {
   // Tải xuống minh chứng có xác thực (GET /Evidences/{id}/download yêu cầu Bearer token)
   const handleDownloadEvidence = async (ev) => {
     if (!ev) {
-      showAlert("Không có minh chứng để tải xuống.", "warning");
+      showAlert(tr("Không có minh chứng để tải xuống."), "warning");
       return;
     }
     try {
@@ -292,7 +295,7 @@ const EtrApproval = () => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      showAlert(`Tải xuống thất bại: ${err.message}`, "error");
+      showAlert(`${tr('Tải xuống thất bại:')} ${err.message}`, "error");
     }
   };
 
@@ -305,7 +308,7 @@ const EtrApproval = () => {
   const handleConfirmReopen = async (reason) => {
     const etrId = reopenTarget;
     if (!reason || !reason.trim()) {
-      toast.error("Cần nêu lý do", "Cần nêu lý do để mở lại ETR.");
+      toast.error(tr("Cần nêu lý do"), tr("Cần nêu lý do để mở lại ETR."));
       setReopenTarget(null);
       return;
     }
@@ -313,11 +316,11 @@ const EtrApproval = () => {
       await api.post(`/Etr/${etrId}/reopen`, { comment: reason.trim() });
       await loadEtrsFromApi();
       toast.warning(
-        "Đã mở lại ETR",
-        `ETR ${etrId} đã được mở khóa — audit trail đã được cập nhật.`,
+        tr("Đã mở lại ETR"),
+        `ETR ${etrId} ${tr('đã được mở khóa — audit trail đã được cập nhật.')}`,
       );
     } catch (err) {
-      toast.error("Mở lại ETR thất bại", err.message);
+      toast.error(tr("Mở lại ETR thất bại"), err.message);
     } finally {
       setReopenTarget(null);
     }
@@ -467,8 +470,8 @@ const EtrApproval = () => {
                   <span className="status-badge emerald">{viewingHistory.subjectResults?.[0]?.status === "Passed" || viewingHistory.subjectResults?.[0]?.status === "Exempted" ? "Active" : "Pending"}</span>
                 </div>
                 <div className="cert-title-group">
-                  <h4>{viewingHistory.subjectResults?.[0] ? `Chuyên đề #${viewingHistory.subjectResults[0].subjectId}` : "Chưa có dữ liệu"}</h4>
-                  <p>{viewingHistory.subjectResults?.[0]?.status || "Chưa có kết quả môn học"}</p>
+                  <h4>{viewingHistory.subjectResults?.[0] ? `${tr('Chuyên đề')} #${viewingHistory.subjectResults[0].subjectId}` : tr("Chưa có dữ liệu")}</h4>
+                  <p>{viewingHistory.subjectResults?.[0]?.status || tr("Chưa có kết quả môn học")}</p>
                 </div>
                 <div className="cert-footer">
                   <span className="footer-label">Expiry Date</span>
@@ -492,8 +495,8 @@ const EtrApproval = () => {
                   <span className="status-badge gold">{viewingHistory.subjectResults?.[1]?.status === "Passed" || viewingHistory.subjectResults?.[1]?.status === "Exempted" ? "Active" : "Pending"}</span>
                 </div>
                 <div className="cert-title-group">
-                  <h4>{viewingHistory.subjectResults?.[1] ? `Chuyên đề #${viewingHistory.subjectResults[1].subjectId}` : "Chưa có dữ liệu"}</h4>
-                  <p>{viewingHistory.subjectResults?.[1]?.status || "Chưa có kết quả môn học"}</p>
+                  <h4>{viewingHistory.subjectResults?.[1] ? `${tr('Chuyên đề')} #${viewingHistory.subjectResults[1].subjectId}` : tr("Chưa có dữ liệu")}</h4>
+                  <p>{viewingHistory.subjectResults?.[1]?.status || tr("Chưa có kết quả môn học")}</p>
                 </div>
                 <div className="cert-footer">
                   <span className="footer-label">Issued Date</span>
@@ -514,8 +517,8 @@ const EtrApproval = () => {
                   <span className="status-badge emerald">{viewingHistory.subjectResults?.[2]?.status === "Passed" || viewingHistory.subjectResults?.[2]?.status === "Exempted" ? "Active" : "Pending"}</span>
                 </div>
                 <div className="cert-title-group">
-                  <h4>{viewingHistory.subjectResults?.[2] ? `Chuyên đề #${viewingHistory.subjectResults[2].subjectId}` : "Chưa có dữ liệu"}</h4>
-                  <p>{viewingHistory.subjectResults?.[2]?.status || "Chưa có kết quả môn học"}</p>
+                  <h4>{viewingHistory.subjectResults?.[2] ? `${tr('Chuyên đề')} #${viewingHistory.subjectResults[2].subjectId}` : tr("Chưa có dữ liệu")}</h4>
+                  <p>{viewingHistory.subjectResults?.[2]?.status || tr("Chưa có kết quả môn học")}</p>
                 </div>
                 <div className="cert-footer">
                   <span className="footer-label">Record Status</span>
@@ -536,7 +539,7 @@ const EtrApproval = () => {
                     <div className="card-info">
                       <span className="date">{viewingHistory.submissionDate || "—"}</span>
                       <h4 className="title">ETR Submitted</h4>
-                      <p className="desc">Academic Staff gửi hồ sơ chờ QA thẩm định</p>
+                      <p className="desc">{tr('Academic Staff gửi hồ sơ chờ QA thẩm định')}</p>
                     </div>
                     <div className="card-progress">
                       <div className="status-group">
@@ -561,7 +564,7 @@ const EtrApproval = () => {
                     <div className="card-info">
                       <span className="date">{viewingHistory.qaDate || "—"}</span>
                       <h4 className="title">QA Verified</h4>
-                      <p className="desc">QA Staff xác thực hồ sơ và toàn bộ minh chứng</p>
+                      <p className="desc">{tr('QA Staff xác thực hồ sơ và toàn bộ minh chứng')}</p>
                     </div>
                     <div className="card-progress">
                       <div className="status-group">
@@ -586,7 +589,7 @@ const EtrApproval = () => {
                     <div className="card-info">
                       <span className="date">{viewingHistory.approvalDate || "—"}</span>
                       <h4 className="title">Training Manager Approved</h4>
-                      <p className="desc">Phê duyệt cuối cùng — hồ sơ chuyển trạng thái Completed</p>
+                      <p className="desc">{tr('Phê duyệt cuối cùng — hồ sơ chuyển trạng thái Completed')}</p>
                     </div>
                     <div className="card-progress">
                       <div className="status-group">
@@ -629,7 +632,7 @@ const EtrApproval = () => {
                     </svg>
                   </div>
                   <div className="doc-info">
-                    <span className="name">{viewingHistory.evidence?.[0]?.fileName || "Chưa có minh chứng"}</span>
+                    <span className="name">{viewingHistory.evidence?.[0]?.fileName || tr("Chưa có minh chứng")}</span>
                     <span className="meta">
                       {viewingHistory.evidence?.[0]
                         ? `${(viewingHistory.evidence[0].fileSize / (1024 * 1024)).toFixed(1)} MB • ${viewingHistory.evidence[0].verificationStatus || "Pending"}`
@@ -651,7 +654,7 @@ const EtrApproval = () => {
                     </svg>
                   </div>
                   <div className="doc-info">
-                    <span className="name">{viewingHistory.evidence?.[1]?.fileName || "Chưa có minh chứng"}</span>
+                    <span className="name">{viewingHistory.evidence?.[1]?.fileName || tr("Chưa có minh chứng")}</span>
                     <span className="meta">
                       {viewingHistory.evidence?.[1]
                         ? `${(viewingHistory.evidence[1].fileSize / (1024 * 1024)).toFixed(1)} MB • ${viewingHistory.evidence[1].verificationStatus || "Pending"}`
@@ -673,7 +676,7 @@ const EtrApproval = () => {
                     </svg>
                   </div>
                   <div className="doc-info">
-                    <span className="name">{viewingHistory.evidence?.[2]?.fileName || "Chưa có minh chứng"}</span>
+                    <span className="name">{viewingHistory.evidence?.[2]?.fileName || tr("Chưa có minh chứng")}</span>
                     <span className="meta">
                       {viewingHistory.evidence?.[2]
                         ? `${(viewingHistory.evidence[2].fileSize / (1024 * 1024)).toFixed(1)} MB • ${viewingHistory.evidence[2].verificationStatus || "Pending"}`
@@ -715,10 +718,7 @@ const EtrApproval = () => {
           <div className="alert-left">
             <span className="alert-dot" />
             <p>
-              Tài khoản Training Manager chưa được backend cho phép đọc danh sách ETR
-              (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval
-              Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR
-              được cấp ở backend.
+              {tr('Tài khoản Training Manager chưa được backend cho phép đọc danh sách ETR (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR được cấp ở backend.')}
             </p>
           </div>
           <button
@@ -1296,7 +1296,7 @@ const EtrApproval = () => {
                       fontSize: "12px",
                     }}
                   >
-                    Không có dữ liệu
+                    {tr('Không có dữ liệu')}
                   </td>
                 </tr>
               )}
@@ -1382,9 +1382,9 @@ const EtrApproval = () => {
       </div>
 
       {/* INSPECT ETR DETAIL MODAL */}
-      {selectedEtr && !showActionModal && (
-        <div className="tm-modal-overlay">
-          <div className="tm-modal-card max-w-2xl">
+      {selectedEtr && !showActionModal && createPortal(
+        <div className="tm-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 33, 71, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, backdropFilter: 'blur(4px)' }}>
+          <div className="tm-modal-card max-w-2xl" style={{ margin: 'auto' }}>
             {/* Header */}
             <div className="modal-header">
               <div>
@@ -1576,13 +1576,14 @@ const EtrApproval = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* CONFIRMATION / INPUT ACTION MODAL */}
-      {showActionModal && selectedEtr && (
-        <div className="tm-modal-overlay">
-          <div className="tm-modal-card max-w-md">
+      {showActionModal && selectedEtr && createPortal(
+        <div className="tm-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 33, 71, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, backdropFilter: 'blur(4px)' }}>
+          <div className="tm-modal-card max-w-md" style={{ margin: 'auto' }}>
             <div className="modal-header">
               <h3>Sign Off & Approve ETR</h3>
             </div>
@@ -1645,7 +1646,8 @@ const EtrApproval = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal nhập lý do Reopen ETR (thay window.prompt) */}
@@ -1653,9 +1655,9 @@ const EtrApproval = () => {
         isOpen={!!reopenTarget}
         onClose={() => setReopenTarget(null)}
         onConfirm={handleConfirmReopen}
-        title={`Mở lại (Reopen) ETR #${String(reopenTarget || "").padStart(4, "0")}`}
-        message="Việc mở lại hồ sơ sẽ được ghi nhận vào Audit Trail. Vui lòng nêu rõ lý do."
-        placeholder="Nhập lý do mở lại ETR..."
+        title={`${tr('Mở lại (Reopen)')} ETR #${String(reopenTarget || "").padStart(4, "0")}`}
+        message={tr('Việc mở lại hồ sơ sẽ được ghi nhận vào Audit Trail. Vui lòng nêu rõ lý do.')}
+        placeholder={tr('Nhập lý do mở lại ETR...')}
         confirmText="MỞ LẠI ETR"
         cancelText="HỦY BỎ"
         variant="gold"

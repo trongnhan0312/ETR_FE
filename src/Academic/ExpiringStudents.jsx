@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const STATUS_CONFIG = {
   ExpiringSoon: {
@@ -31,12 +32,13 @@ const formatRemaining = (expiryDate) => {
   const now = new Date();
   const expiry = new Date(expiryDate);
   const diff = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return `Quá hạn ${Math.abs(diff)} ngày`;
-  if (diff === 0) return 'Hết hạn hôm nay';
-  return `Còn ${diff} ngày`;
+  if (diff < 0) return `Overdue by ${Math.abs(diff)} days`;
+  if (diff === 0) return 'Expires today';
+  return `${diff} days left`;
 };
 
 const ExpiringStudents = () => {
+  const { tr } = useLanguage();
   const [courses, setCourses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [daysThreshold, setDaysThreshold] = useState(30);
@@ -103,9 +105,9 @@ const ExpiringStudents = () => {
       <section className="student-welcome" style={{ background: 'linear-gradient(135deg, #0a1f3d 0%, #1e3a5f 100%)' }}>
         <div className="student-welcome-left">
           <p className="eyebrow">Academic Portal</p>
-          <h1>Học viên sắp hết hạn chứng chỉ</h1>
+          <h1>{tr('Học viên sắp hết hạn chứng chỉ')}</h1>
           <p className="welcome-sub">
-            Theo dõi và quản lý các học viên có chứng chỉ đào tạo sắp hết hạn hoặc đã hết hạn.
+            {tr('Theo dõi và quản lý các học viên có chứng chỉ đào tạo sắp hết hạn hoặc đã hết hạn.')}
           </p>
         </div>
         <div className="student-welcome-right">
@@ -118,7 +120,7 @@ const ExpiringStudents = () => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
               <path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
             </svg>
-            Làm mới
+            {tr('Làm mới')}
           </button>
         </div>
       </section>
@@ -132,7 +134,7 @@ const ExpiringStudents = () => {
         {/* Course Select */}
         <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <label style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-            Khóa học
+            {tr('Khóa học')}
           </label>
           <select
             value={selectedCourseId}
@@ -154,7 +156,7 @@ const ExpiringStudents = () => {
         {/* Days Threshold */}
         <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <label style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-            Ngưỡng (ngày)
+            {tr('Ngưỡng (ngày)')}
           </label>
           <select
             value={daysThreshold}
@@ -165,10 +167,10 @@ const ExpiringStudents = () => {
               cursor: 'pointer'
             }}
           >
-            <option value={15}>15 ngày</option>
-            <option value={30}>30 ngày</option>
-            <option value={60}>60 ngày</option>
-            <option value={90}>90 ngày</option>
+            <option value={15}>{tr('15 ngày')}</option>
+            <option value={30}>{tr('30 ngày')}</option>
+            <option value={60}>{tr('60 ngày')}</option>
+            <option value={90}>{tr('90 ngày')}</option>
           </select>
         </div>
 
@@ -176,7 +178,7 @@ const ExpiringStudents = () => {
         <div className="filter-group" style={{ flex: 1, minWidth: '200px' }}>
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên hoặc email..."
+            placeholder={tr('Tìm kiếm theo tên hoặc email...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -200,7 +202,7 @@ const ExpiringStudents = () => {
               cursor: 'pointer', transition: 'all 0.15s'
             }}
           >
-            Tất cả ({students.length})
+            {tr('Tất cả')} ({students.length})
           </button>
           <button
             type="button"
@@ -213,7 +215,7 @@ const ExpiringStudents = () => {
               cursor: 'pointer', transition: 'all 0.15s'
             }}
           >
-            Sắp hết hạn ({stats.expiringSoon})
+            {tr('Sắp hết hạn')} ({stats.expiringSoon})
           </button>
           <button
             type="button"
@@ -226,7 +228,7 @@ const ExpiringStudents = () => {
               cursor: 'pointer', transition: 'all 0.15s'
             }}
           >
-            Đã hết hạn ({stats.expired})
+            {tr('Đã hết hạn')} ({stats.expired})
           </button>
         </div>
       </div>
@@ -236,15 +238,15 @@ const ExpiringStudents = () => {
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px'
       }}>
         <div className="student-metric-card">
-          <span className="student-metric-label">Tổng học viên</span>
+          <span className="student-metric-label">{tr('Tổng học viên')}</span>
           <strong className="student-metric-value">{loading ? '...' : students.length}</strong>
         </div>
         <div className="student-metric-card">
-          <span className="student-metric-label">Sắp hết hạn</span>
+          <span className="student-metric-label">{tr('Sắp hết hạn')}</span>
           <strong className="student-metric-value amber">{loading ? '...' : stats.expiringSoon}</strong>
         </div>
         <div className="student-metric-card">
-          <span className="student-metric-label">Đã hết hạn</span>
+          <span className="student-metric-label">{tr('Đã hết hạn')}</span>
           <strong className="student-metric-value" style={{ color: '#b91c1c' }}>{loading ? '...' : stats.expired}</strong>
         </div>
       </div>
@@ -252,23 +254,23 @@ const ExpiringStudents = () => {
       {/* ── Student Table ── */}
       <section className="student-table-section">
         {loading ? (
-          <div className="student-empty">Đang tải dữ liệu...</div>
+          <div className="student-empty">{tr('Đang tải dữ liệu...')}</div>
         ) : filteredStudents.length === 0 ? (
           <div className="student-empty">
             {students.length === 0
-              ? 'Không có học viên nào sắp hết hạn hoặc đã hết hạn chứng chỉ cho khóa học này.'
-              : 'Không tìm thấy học viên phù hợp.'}
+              ? tr('Không có học viên nào sắp hết hạn hoặc đã hết hạn chứng chỉ cho khóa học này.')
+              : tr('Không tìm thấy học viên phù hợp.')}
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <div className="student-table-grid" style={{ gridTemplateColumns: '40px 1.5fr 1.5fr 1.2fr 1fr 1.2fr 120px' }}>
-              <div className="student-table-cell student-table-cell--header">STT</div>
-              <div className="student-table-cell student-table-cell--header">Học viên</div>
-              <div className="student-table-cell student-table-cell--header">Email</div>
-              <div className="student-table-cell student-table-cell--header">Mã ETR</div>
-              <div className="student-table-cell student-table-cell--header">Ngày hết hạn</div>
-              <div className="student-table-cell student-table-cell--header">Còn lại</div>
-              <div className="student-table-cell student-table-cell--header student-table-cell--end">Trạng thái</div>
+              <div className="student-table-cell student-table-cell--header">{tr('STT')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Học viên')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Email')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Mã ETR')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Ngày hết hạn')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Còn lại')}</div>
+              <div className="student-table-cell student-table-cell--header student-table-cell--end">{tr('Trạng thái')}</div>
 
               {filteredStudents.map((s, idx) => {
                 const config = STATUS_CONFIG[s.ValidityStatus] || STATUS_CONFIG.ExpiringSoon;
@@ -276,7 +278,7 @@ const ExpiringStudents = () => {
                   <div className="student-table-row" key={s.ETRCourseRecordId || idx}>
                     <div className="student-table-cell student-table-cell--index">{idx + 1}</div>
                     <div className="student-table-cell student-table-cell--strong">
-                      {s.FullName || `Học viên #${s.AccountId}`}
+                      {s.FullName || `${tr('Học viên')} #${s.AccountId}`}
                     </div>
                     <div className="student-table-cell">{s.Email || '--'}</div>
                     <div className="student-table-cell">#{s.ETRCourseRecordId}</div>
@@ -292,7 +294,7 @@ const ExpiringStudents = () => {
                           border: `1px solid ${config.border}`
                         }}
                       >
-                        {config.icon} {config.label}
+                        {config.icon} {tr(config.label)}
                       </span>
                     </div>
                   </div>
