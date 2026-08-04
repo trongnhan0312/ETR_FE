@@ -100,12 +100,12 @@ const StudentProfiles = () => {
   const [aDepartmentId, setADepartmentId] = useState('');
 
   // Step 2: Profile form state
-  const [cUserCode, setCUserCode] = useState('');
   const [cFullName, setCFullName] = useState('');
   const [cEmail, setCEmail] = useState('');
   const [cPhone, setCPhone] = useState('');
   const [cDateOfBirth, setCDateOfBirth] = useState('');
   const [cGender, setCGender] = useState('Male');
+  const [cGeneratedUserCode, setCGeneratedUserCode] = useState('');
 
   // Edit form state
   const [eFullName, setEFullName] = useState('');
@@ -164,39 +164,39 @@ const StudentProfiles = () => {
     loadProfiles();
   }, []);
 
-  // Helper to get all departments except Training (staff-related) for Student role.
-  // NOTE: GET /api/Departments is Admin-only (DepartmentsController), so as Academic we
-  // fall back to the authoritative list seeded in BE DataSeeder (ids 1-6, excluding id 2).
-  const getNonTrainingDepts = () => {
-    const filtered = departments.filter(
-      (d) =>
-        !d.name?.toLowerCase().includes('training') &&
-        !d.name?.toLowerCase().includes('đào tạo') &&
-        String(d.id) !== '2',
-    );
-    if (filtered.length > 0) return filtered;
-    return [
-      { id: '1', name: 'Administration' },
-      { id: '3', name: 'Flight Crew' },
-      { id: '4', name: 'Cabin Crew' },
-      { id: '5', name: 'Engineering & Maintenance' },
-      { id: '6', name: 'Ground Operations' },
-    ];
-  };
+// Helper to get departments available for Student role: exclude Training (2) and Administration (1).
+// NOTE: GET /api/Departments is Admin-only (DepartmentsController), so as Academic we
+// fall back to the authoritative list seeded in BE DataSeeder (ids 1-6, excluding id 1 and 2).
+const getStudentDepartments = () => {
+  const filtered = departments.filter(
+    (d) =>
+      !d.name?.toLowerCase().includes('training') &&
+      !d.name?.toLowerCase().includes('đào tạo') &&
+      String(d.id) !== '2' &&
+      String(d.id) !== '1',
+  );
+  if (filtered.length > 0) return filtered;
+  return [
+    { id: '3', name: 'Flight Crew' },
+    { id: '4', name: 'Cabin Crew' },
+    { id: '5', name: 'Engineering & Maintenance' },
+    { id: '6', name: 'Ground Operations' },
+  ];
+};
 
   const handleOpenCreateModal = () => {
     setCreateStep('account');
     setCreatedAccount(null);
     setAUsername('');
     setAPassword('Default@123');
-    const nonTraining = getNonTrainingDepts();
-    setADepartmentId(String(nonTraining[0]?.id || '1'));
-    setCUserCode('');
+    const studentDepts = getStudentDepartments();
+    setADepartmentId(String(studentDepts[0]?.id || '3'));
     setCFullName('');
     setCEmail('');
     setCPhone('');
     setCDateOfBirth('');
     setCGender('Male');
+    setCGeneratedUserCode('');
     setFormError('');
     setIsCreateOpen(true);
   };
@@ -226,7 +226,7 @@ const StudentProfiles = () => {
         username: trimmedUsername,
         password: aPassword,
         roleId: 6, // Student role
-        departmentId: Number(aDepartmentId || getNonTrainingDepts()[0]?.id || 1),
+        departmentId: Number(aDepartmentId || getStudentDepartments()[0]?.id || 3),
       });
 
       const accId = newAcc?.accountId ?? newAcc?.id;
@@ -235,9 +235,8 @@ const StudentProfiles = () => {
         return;
       }
 
-      setCreatedAccount({ accountId: accId, username: trimmedUsername });
-      setCUserCode(`USR-${accId}`);
-      setCEmail(trimmedUsername);
+setCreatedAccount({ accountId: accId, username: trimmedUsername });
+       setCEmail(trimmedUsername);
       setFormError('');
       setCreateStep('profile');
     } catch (err) {
@@ -278,19 +277,19 @@ const StudentProfiles = () => {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await api.post(`/UserProfiles/${createdAccount.accountId}`, {
-        userCode: cUserCode.trim() || `USR-${createdAccount.accountId}`,
-        fullName: cFullName.trim(),
-        email: cEmail.trim(),
-        phone: cPhone.trim() || null,
-        dateOfBirth: new Date(`${cDateOfBirth}T00:00:00`).toISOString(),
-        gender: cGender,
-        organization: 'ETR Aviation',
-      });
-      await loadProfiles();
-      setIsCreateOpen(false);
+setSubmitting(true);
+      try {
+        const response = await api.post(`/UserProfiles/${createdAccount.accountId}`, {
+          fullName: cFullName.trim(),
+          email: cEmail.trim(),
+          phone: cPhone.trim() || null,
+          dateOfBirth: new Date(`${cDateOfBirth}T00:00:00`).toISOString(),
+          gender: cGender,
+          organization: 'ETR Aviation',
+        });
+        setCGeneratedUserCode(response?.userCode || `USR-${createdAccount.accountId}`);
+        await loadProfiles();
+        setIsCreateOpen(false);
     } catch (err) {
       console.error('Failed to create profile:', err);
       setFormError(parseApiError(err, tr('Tạo hồ sơ học viên thất bại.'), tr));
@@ -616,7 +615,7 @@ const StudentProfiles = () => {
                     onChange={(e) => setADepartmentId(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                   >
-                    {getNonTrainingDepts().map((d) => (
+                    {getStudentDepartments().map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
@@ -651,13 +650,19 @@ const StudentProfiles = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Mã học viên')}</label>
-                    <input
-                      type="text"
-                      value={cUserCode}
-                      onChange={(e) => setCUserCode(e.target.value)}
-                      placeholder={tr('Ví dụ: USR-15')}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                    />
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        background: '#f8fafc',
+                        color: '#002147',
+                        fontWeight: '600',
+                      }}
+                    >
+                      {cGeneratedUserCode || `USR-${createdAccount?.accountId || ''}`}
+                    </div>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Họ và tên *')}</label>

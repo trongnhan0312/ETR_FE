@@ -91,25 +91,25 @@ const LearnerManagement = () => {
     return d.toISOString().slice(0, 10);
   };
 
-  // Helper to get all departments except Training (staff-related) for Student role.
-  // NOTE: GET /api/Departments is Admin-only (DepartmentsController), so as Academic we
-  // fall back to the authoritative list seeded in BE DataSeeder (ids 1-6, excluding id 2).
-  const getNonTrainingDepts = () => {
-    const filtered = departments.filter(
-      (d) =>
-        !d.name?.toLowerCase().includes('training') &&
-        !d.name?.toLowerCase().includes('đào tạo') &&
-        String(d.id) !== '2'
-    );
-    if (filtered.length > 0) return filtered;
-    return [
-      { id: '1', name: 'Administration' },
-      { id: '3', name: 'Flight Crew' },
-      { id: '4', name: 'Cabin Crew' },
-      { id: '5', name: 'Engineering & Maintenance' },
-      { id: '6', name: 'Ground Operations' },
-    ];
-  };
+// Helper to get departments available for Student role: exclude Training (2) and Administration (1).
+// NOTE: GET /api/Departments is Admin-only (DepartmentsController), so as Academic we
+// fall back to the authoritative list seeded in BE DataSeeder (ids 1-6, excluding id 1 and 2).
+const getStudentDepartments = () => {
+  const filtered = departments.filter(
+    (d) =>
+      !d.name?.toLowerCase().includes('training') &&
+      !d.name?.toLowerCase().includes('đào tạo') &&
+      String(d.id) !== '2' &&
+      String(d.id) !== '1',
+  );
+  if (filtered.length > 0) return filtered;
+  return [
+    { id: '3', name: 'Flight Crew' },
+    { id: '4', name: 'Cabin Crew' },
+    { id: '5', name: 'Engineering & Maintenance' },
+    { id: '6', name: 'Ground Operations' },
+  ];
+};
 
   const ROLE_MAP = {
     1: 'Admin',
@@ -186,8 +186,8 @@ const LearnerManagement = () => {
     setFullName('');
     setPhone('');
     setDateOfBirth('');
-    const nonTraining = getNonTrainingDepts();
-    setDepartmentId(String(nonTraining[0]?.id || '1'));
+    const studentDepts = getStudentDepartments();
+    setDepartmentId(String(studentDepts[0]?.id || '3'));
     setGender('Male');
     setFormError('');
     setIsCreateOpen(true);
@@ -232,7 +232,7 @@ const LearnerManagement = () => {
         username: trimmedUsername,
         password: password,
         roleId: 6,
-        departmentId: Number(departmentId || getNonTrainingDepts()[0]?.id || 1),
+        departmentId: Number(departmentId || getStudentDepartments()[0]?.id || 3),
       });
 
       // 2. Create user profile
@@ -326,10 +326,10 @@ const LearnerManagement = () => {
     setEditDateOfBirth(toDateInputValue(user.dateOfBirth));
     setEditGender(user.gender || 'Male');
     
-    const nonTraining = getNonTrainingDepts();
+    const studentDepts = getStudentDepartments();
     const currentDeptIdStr = String(user.departmentId || '');
-    if (!nonTraining.some((d) => String(d.id) === currentDeptIdStr)) {
-      setEditDepartmentId(String(nonTraining[0]?.id || '1'));
+    if (!studentDepts.some((d) => String(d.id) === currentDeptIdStr)) {
+      setEditDepartmentId(String(studentDepts[0]?.id || '3'));
     } else {
       setEditDepartmentId(currentDeptIdStr);
     }
@@ -743,7 +743,7 @@ const LearnerManagement = () => {
                     onChange={(e) => setDepartmentId(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                   >
-                    {getNonTrainingDepts().map((d) => (
+                    {getStudentDepartments().map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
