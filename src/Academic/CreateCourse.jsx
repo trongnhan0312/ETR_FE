@@ -8,7 +8,8 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
   const { tr } = useLanguage();
   const [code, setCode] = useState(nextCourseCode || 'AV-MNT-102');
   const [name, setName] = useState('');
-  const [duration, setDuration] = useState('120');
+  const [nameError, setNameError] = useState('');
+  const [duration, setDuration] = useState(0);
   const [description, setDescription] = useState('');
   const toast = useToast();
 
@@ -59,6 +60,24 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
     fetchSubjects();
   }, []);
 
+  // Auto-calculate duration from selected subjects' defaultHours
+  useEffect(() => {
+    const total = availableSubjects
+      .filter((s) => selectedSubjectIds.includes(String(s.subjectId)))
+      .reduce((sum, s) => sum + (s.defaultHours || 0), 0);
+    setDuration(total);
+  }, [selectedSubjectIds, availableSubjects]);
+
+  const handleNameChange = (e) => {
+    const val = e.target.value;
+    if (/[^a-zA-Z0-9\s\-',.()&/]/.test(val)) {
+      setNameError(tr('Tên khóa học không được chứa ký tự đặc biệt.'));
+    } else {
+      setNameError('');
+    }
+    setName(val);
+  };
+
   const handleSubjectToggle = (subIdStr) => {
     setSelectedSubjectIds((prev) => {
       if (prev.includes(subIdStr)) {
@@ -71,6 +90,22 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (nameError) {
+      toast.error(tr('Lỗi xác thực'), tr('Tên khóa học không được chứa ký tự đặc biệt.'));
+      return;
+    }
+
+    if (!name.trim()) {
+      toast.error(tr('Lỗi xác thực'), tr('Vui lòng nhập tên khóa học.'));
+      return;
+    }
+
+    if (theory < 0 || practice < 0 || assignment < 0 || attendance < 0) {
+      toast.error(tr('Lỗi xác thực'), tr('Điểm đánh giá không được âm.'));
+      return;
+    }
+
     if (!isWeightValid) {
       toast.warning(tr("Trọng số không hợp lệ"), tr("Tổng trọng số điểm đánh giá phải bằng 100%!"));
       return;
@@ -96,8 +131,8 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
 
     const newCourse = {
       code,
-      name,
-      duration: parseInt(duration) || 0,
+      name: name.trim(),
+      duration,
       description,
       structure,
       selectedSubjectIds,
@@ -169,30 +204,34 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                     required
                   />
                 </div>
-                <div className="form-group">
-                  <label htmlFor="course-duration">{tr('Thời lượng (Giờ) *')}</label>
-                  <input
-                    id="course-duration"
-                    type="number"
-                    placeholder={tr('Ví dụ: 120')}
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    required
-                  />
-                </div>
+               <div className="form-group">
+                   <label htmlFor="course-duration">{tr('Thời lượng (Giờ)')} {tr('(Tự động tính từ các môn học đã chọn)')}</label>
+                   <input
+                     id="course-duration"
+                     type="number"
+                     value={duration}
+                     readOnly
+                     style={{ backgroundColor: '#f8fafc', cursor: 'not-allowed', opacity: '0.8' }}
+                   />
+                 </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="course-name">{tr('Tên khóa học *')}</label>
-                <input
-                  id="course-name"
-                  type="text"
-                  placeholder={tr('Nhập tên chương trình khóa học đào tạo (Ví dụ: Kỹ thuật Bảo trì Hệ thống Tàu bay)')}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
+               <div className="form-group">
+                 <label htmlFor="course-name">{tr('Tên khóa học *')}</label>
+                 <input
+                   id="course-name"
+                   type="text"
+                   placeholder={tr('Nhập tên chương trình khóa học đào tạo (Ví dụ: Kỹ thuật Bảo trì Hệ thống Tàu bay)')}
+                   value={name}
+                   onChange={handleNameChange}
+                   required
+                 />
+                 {nameError && (
+                   <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
+                     {nameError}
+                   </div>
+                 )}
+               </div>
 
               <div className="form-group">
                 <label htmlFor="course-desc">{tr('Mô tả khóa học')}</label>
@@ -273,59 +312,57 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                 {tr('CẤU TRÚC ĐIỂM ĐÁNH GIÁ (TỔNG = 100%)')}
               </div>
               
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="course-theory">{tr('Lý thuyết (%)')}</label>
-                  <input
-                    id="course-theory"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={theory}
-                    onChange={(e) => setTheory(parseInt(e.target.value) || 0)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="course-practice">{tr('Thực hành (%)')}</label>
-                  <input
-                    id="course-practice"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={practice}
-                    onChange={(e) => setPractice(parseInt(e.target.value) || 0)}
-                    required
-                  />
-                </div>
-              </div>
+               <div className="form-group">
+                   <label htmlFor="course-theory">{tr('Lý thuyết (%)')}</label>
+                   <input
+                     id="course-theory"
+                     type="number"
+                     min="0"
+                     max="100"
+                     value={theory}
+                     onChange={(e) => { const v = parseInt(e.target.value) || 0; setTheory(v < 0 ? 0 : v); }}
+                     required
+                   />
+                 </div>
+                 <div className="form-group">
+                   <label htmlFor="course-practice">{tr('Thực hành (%)')}</label>
+                   <input
+                     id="course-practice"
+                     type="number"
+                     min="0"
+                     max="100"
+                     value={practice}
+                     onChange={(e) => { const v = parseInt(e.target.value) || 0; setPractice(v < 0 ? 0 : v); }}
+                     required
+                   />
+                 </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="course-assign">{tr('Assignment (%)')}</label>
-                  <input
-                    id="course-assign"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={assignment}
-                    onChange={(e) => setAssignment(parseInt(e.target.value) || 0)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="course-attend">{tr('Chuyên cần (%)')}</label>
-                  <input
-                    id="course-attend"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={attendance}
-                    onChange={(e) => setAttendance(parseInt(e.target.value) || 0)}
-                    required
-                  />
-                </div>
-              </div>
+               <div className="form-row">
+                 <div className="form-group">
+                   <label htmlFor="course-assign">{tr('Assignment (%)')}</label>
+                   <input
+                     id="course-assign"
+                     type="number"
+                     min="0"
+                     max="100"
+                     value={assignment}
+                     onChange={(e) => { const v = parseInt(e.target.value) || 0; setAssignment(v < 0 ? 0 : v); }}
+                     required
+                   />
+                 </div>
+                 <div className="form-group">
+                   <label htmlFor="course-attend">{tr('Chuyên cần (%)')}</label>
+                   <input
+                     id="course-attend"
+                     type="number"
+                     min="0"
+                     max="100"
+                     value={attendance}
+                     onChange={(e) => { const v = parseInt(e.target.value) || 0; setAttendance(v < 0 ? 0 : v); }}
+                     required
+                   />
+                 </div>
+               </div>
 
               {/* Total weight display */}
               <div style={{
