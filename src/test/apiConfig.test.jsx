@@ -32,4 +32,13 @@ describe("API base URL selection", () => {
       "https://deploy.example/api",
     );
   });
+
+  it("keeps the remembered backend first but can fall back to the other candidate", () => {
+    setActiveApiBaseUrl("https://deploy.example/api");
+
+    const order = getApiBaseUrlCandidates();
+
+    expect(order[0]).toBe("https://deploy.example/api");
+    expect(order).toContain("https://localhost:7169/api");
+  });
 });

@@ -306,9 +306,12 @@ export const getApiBaseUrlCandidates = () => {
   const manual = getManualApiMode();
   if (manual === "LOCAL") return [API_BASE_URL_LOCAL];
   if (manual === "DEPLOY") return [API_BASE_URL_DEPLOY];
-  if (activeBaseUrl) return [activeBaseUrl];
-  const persisted = getPersistedActiveBaseUrl();
-  if (persisted) return [persisted];
+
+  const persisted = activeBaseUrl || getPersistedActiveBaseUrl();
+  if (persisted) {
+    return [persisted, ...API_BASE_URLS.filter((url) => url !== persisted)];
+  }
+
   return API_BASE_URLS;
 };
 
@@ -751,7 +754,10 @@ export const parseApiError = (err, fallback) => {
     if (parsed.detail) return parsed.detail;
     if (parsed.message) return parsed.message;
     if (parsed.title) return parsed.title;
-  } catch {}
+  } catch (error) {
+    // Ignore parse failures and fall back to the translated message.
+    console.debug("Failed to parse API error payload", error);
+  }
 
   return translateVn(fallback) || translateVn(raw);
 };
