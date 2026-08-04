@@ -1,13 +1,17 @@
-import { translateVn } from './translate';
+import { translateVn } from "./translate";
 
 // --- API Base URLs ---
-// Che do dev: uu tien local truoc, fallback sang deploy
-// Che do production (Vercel): chi goi deploy (bo qua localhost de khoi bi cham)
-const API_BASE_URL_LOCAL = "https://localhost:7169/api";
+// Chế độ dev: ưu tiên local trước, fallback sang deploy nếu local không phản hồi.
+// Chế độ production: chỉ gọi deploy để tránh dùng localhost.
+const API_BASE_URL_LOCAL =
+  import.meta.env.VITE_API_URL_LOCAL ||
+  import.meta.env.VITE_API_URL ||
+  "https://localhost:7169/api";
 const API_BASE_URL_DEPLOY =
+  import.meta.env.VITE_API_URL_DEPLOY ||
   "https://etrmanagement-be-fwhvagaxf3f3dmf0.southeastasia-01.azurewebsites.net/api";
 
-// Vite tu dong nhan biet moi truong: import.meta.env.PROD === true khi build production
+// Vite tự động nhận biết môi trường: import.meta.env.PROD === true khi build production
 const isProduction = import.meta.env.PROD;
 
 export const API_BASE_URLS = isProduction
@@ -28,6 +32,7 @@ export const getApiBaseLabel = (baseUrl) => {
 // - DEV: tự khóa base URL đầu tiên phản hồi được (sticky) — mọi request sau đó chỉ dùng base đó.
 // - Bắt buộc thủ công bằng: localStorage.setItem("apiBaseMode", "local" | "deploy")
 const API_MODE_STORAGE_KEY = "apiBaseMode";
+const ACTIVE_BASE_URL_STORAGE_KEY = "activeApiBaseUrl";
 
 const DEMO_DATA = {
   "/auth/login": {
@@ -284,21 +289,64 @@ const getManualApiMode = () => {
   return null;
 };
 
-// Base URL đã khóa — sau request đầu tiên thành công, KHÔNG đổi sang base khác
-let activeBaseUrl = null;
+const getPersistedActiveBaseUrl = () => {
+  try {
+    const saved = localStorage.getItem(ACTIVE_BASE_URL_STORAGE_KEY);
+    return saved || null;
+  } catch {
+    return null;
+  }
+};
 
-const resolveBaseUrlOrder = () => {
+// Base URL đã khóa — sau request đầu tiên thành công, KHÔNG đổi sang base khác
+let activeBaseUrl = getPersistedActiveBaseUrl();
+
+export const getApiBaseUrlCandidates = () => {
   if (isProduction) return [API_BASE_URL_DEPLOY];
   const manual = getManualApiMode();
   if (manual === "LOCAL") return [API_BASE_URL_LOCAL];
   if (manual === "DEPLOY") return [API_BASE_URL_DEPLOY];
   if (activeBaseUrl) return [activeBaseUrl];
+  const persisted = getPersistedActiveBaseUrl();
+  if (persisted) return [persisted];
   return API_BASE_URLS;
 };
 
+export const setActiveApiBaseUrl = (baseUrl) => {
+  activeBaseUrl = baseUrl || null;
+  try {
+    if (activeBaseUrl) {
+      localStorage.setItem(ACTIVE_BASE_URL_STORAGE_KEY, activeBaseUrl);
+    } else {
+      localStorage.removeItem(ACTIVE_BASE_URL_STORAGE_KEY);
+    }
+  } catch {
+    /* bỏ qua nếu localStorage không khả dụng */
+  }
+  return activeBaseUrl;
+};
+
+export const setApiBaseMode = (mode) => {
+  try {
+    if (mode === null) {
+      localStorage.removeItem(API_MODE_STORAGE_KEY);
+    } else {
+      localStorage.setItem(API_MODE_STORAGE_KEY, mode);
+    }
+  } catch {
+    /* bỏ qua nếu localStorage không khả dụng */
+  }
+  return mode;
+};
+
+const resolveBaseUrlOrder = () => {
+  return getApiBaseUrlCandidates();
+};
+
 const lockBaseUrl = (baseUrl) => {
-  if (!activeBaseUrl) {
-    activeBaseUrl = baseUrl;
+  if (!baseUrl) return;
+  if (!activeBaseUrl || activeBaseUrl !== baseUrl) {
+    setActiveApiBaseUrl(baseUrl);
     console.info(
       `[API] 🔒 Đã khóa base URL: ${getApiBaseLabel(baseUrl)} (${baseUrl}) — MỌI request tiếp theo chỉ gọi base này.`,
     );
@@ -307,11 +355,8 @@ const lockBaseUrl = (baseUrl) => {
 
 /** Base URL đang dùng (cho các tầng fetch riêng như auditorApi download) */
 export const getActiveApiBaseUrl = () => {
-  if (isProduction) return API_BASE_URL_DEPLOY;
-  const manual = getManualApiMode();
-  if (manual === "LOCAL") return API_BASE_URL_LOCAL;
-  if (manual === "DEPLOY") return API_BASE_URL_DEPLOY;
-  return activeBaseUrl || API_BASE_URLS[0];
+  const candidates = getApiBaseUrlCandidates();
+  return candidates[0] || API_BASE_URL_DEPLOY;
 };
 
 // --- Banner khởi động: log rõ chế độ + base URL sẽ dùng (LOCAL hay DEPLOY) ---
@@ -353,7 +398,10 @@ async function fetchWithFallback(endpoint, fetchOptions, method, options) {
       console.log(
         `[API ${method}] Requesting: ${getApiBaseLabel(baseUrl)} (${url})`,
       );
-      response = await fetch(url, { ...fetchOptions, signal: controller.signal });
+      response = await fetch(url, {
+        ...fetchOptions,
+        signal: controller.signal,
+      });
     } catch (error) {
       // Network error / timeout - server not reachable. Nếu đã khóa base thì KHÔNG đổi base khác.
       console.warn(
@@ -589,82 +637,112 @@ export const api = {
  * Hàm dịch tất cả các ngoại lệ nghiệp vụ CSDL từ Backend sang Tiếng Việt chuẩn Hàng không
  */
 export const parseApiError = (err, fallback) => {
-  if (!err) return translateVn(fallback) || translateVn('Thao tác thất bại. Vui lòng thử lại.');
-  const raw = typeof err === 'string' ? err : (err.message || String(err));
+  if (!err)
+    return (
+      translateVn(fallback) ||
+      translateVn("Thao tác thất bại. Vui lòng thử lại.")
+    );
+  const raw = typeof err === "string" ? err : err.message || String(err);
 
   if (
-    raw.includes('already enrolled') ||
-    raw.includes('ongoing ETR') ||
-    raw.includes('active class for this course')
+    raw.includes("already enrolled") ||
+    raw.includes("ongoing ETR") ||
+    raw.includes("active class for this course")
   ) {
-    return translateVn('❌ Quy tắc tuân thủ ETR Hàng không (Business Rule Violation): Học viên này đã được ghi danh vào một Lớp học thuộc Khóa học này và đang có Hồ sơ ETR chưa hoàn thành (InProgress). Theo quy định ETR, mỗi học viên chỉ được có 01 Hồ sơ ETR đang diễn ra cho 01 Khóa học tại một thời điểm. Vui lòng chọn Học viên khác.');
+    return translateVn(
+      "❌ Quy tắc tuân thủ ETR Hàng không (Business Rule Violation): Học viên này đã được ghi danh vào một Lớp học thuộc Khóa học này và đang có Hồ sơ ETR chưa hoàn thành (InProgress). Theo quy định ETR, mỗi học viên chỉ được có 01 Hồ sơ ETR đang diễn ra cho 01 Khóa học tại một thời điểm. Vui lòng chọn Học viên khác.",
+    );
   }
 
   if (
-    raw.includes('no subjects configured') ||
-    raw.includes('has no subjects')
+    raw.includes("no subjects configured") ||
+    raw.includes("has no subjects")
   ) {
-    return translateVn('❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học chưa được cấu hình Môn học (Subject). Bắt buộc chọn Khóa đã có môn học trước khi mở ghi danh.');
+    return translateVn(
+      "❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học chưa được cấu hình Môn học (Subject). Bắt buộc chọn Khóa đã có môn học trước khi mở ghi danh.",
+    );
   }
 
   // ——— Lỗi CSDL (ưu tiên phát hiện TRÙNG MÃ trước, rồi mới tới DbUpdateException chung) ———
   // Trùng khoá duy nhất (duplicate key): lỗi phổ biến nhất khi tạo Khóa học / Lớp học
   if (
-    raw.includes('IX_Courses_CourseCode') ||
-    raw.includes('IX_Classes_ClassCode') ||
-    raw.includes('Cannot insert duplicate key') ||
-    raw.includes('duplicate key') ||
-    raw.includes('UNIQUE constraint') ||
-    raw.includes('A record with the same unique value already exists') ||
-    raw.includes('2601') ||
-    raw.includes('2627')
+    raw.includes("IX_Courses_CourseCode") ||
+    raw.includes("IX_Classes_ClassCode") ||
+    raw.includes("Cannot insert duplicate key") ||
+    raw.includes("duplicate key") ||
+    raw.includes("UNIQUE constraint") ||
+    raw.includes("A record with the same unique value already exists") ||
+    raw.includes("2601") ||
+    raw.includes("2627")
   ) {
-    return translateVn('❌ Lỗi CSDL (Trùng mã bản ghi): Mã Khóa học, Mã Lớp học hoặc Tên dữ liệu này đã tồn tại trong CSDL. Vui lòng nhập một Mã mới duy nhất.');
+    return translateVn(
+      "❌ Lỗi CSDL (Trùng mã bản ghi): Mã Khóa học, Mã Lớp học hoặc Tên dữ liệu này đã tồn tại trong CSDL. Vui lòng nhập một Mã mới duy nhất.",
+    );
   }
 
   // DbUpdateException chung (ngoài trường hợp trùng khoá/vi phạm FK): báo rõ để user biết dữ liệu chưa được lưu
   if (
-    raw.includes('DbUpdateException') ||
-    raw.includes('An error occurred while saving the entity changes') ||
-    raw.includes('See the inner exception for details')
+    raw.includes("DbUpdateException") ||
+    raw.includes("An error occurred while saving the entity changes") ||
+    raw.includes("See the inner exception for details")
   ) {
-    return translateVn('❌ Lỗi lưu dữ liệu (DbUpdateException): Không thể lưu bản ghi vào CSDL. Vui lòng kiểm tra lại thông tin (Mã lớp trùng, Khóa học/Giảng viên không hợp lệ) và thử lại.');
+    return translateVn(
+      "❌ Lỗi lưu dữ liệu (DbUpdateException): Không thể lưu bản ghi vào CSDL. Vui lòng kiểm tra lại thông tin (Mã lớp trùng, Khóa học/Giảng viên không hợp lệ) và thử lại.",
+    );
   }
 
   if (
-    raw.includes('REFERENCE constraint') ||
-    raw.includes('foreign key constraint') ||
-    raw.includes('FK_') ||
-    raw.includes('One or more referenced resources do not exist') ||
-    raw.includes('Invalid reference') ||
-    raw.includes('DELETE statement conflicted')
+    raw.includes("REFERENCE constraint") ||
+    raw.includes("foreign key constraint") ||
+    raw.includes("FK_") ||
+    raw.includes("One or more referenced resources do not exist") ||
+    raw.includes("Invalid reference") ||
+    raw.includes("DELETE statement conflicted")
   ) {
-    return translateVn('❌ Lỗi Ràng buộc CSDL (Foreign Key Constraint): Không thể lưu/xóa dữ liệu này vì Khóa học hoặc Giảng viên được chọn không tồn tại, hoặc dữ liệu đang được liên kết bởi bản ghi khác.');
-  }
-
-  if (raw.includes('is not in Completed status') || raw.includes('ETR is not in Completed')) {
-    return translateVn('❌ Quy tắc kiểm toán: Không thể trích xuất Training Package. Hồ sơ ETR chưa được Trưởng phòng phê duyệt và đóng bằng (Completed).');
-  }
-
-  if (raw.includes('uploaded yourself') || raw.includes('cannot verify evidence')) {
-    return translateVn('❌ Quy tắc QA: Bạn không thể thẩm định tệp minh chứng do chính tài khoản của bạn tải lên.');
-  }
-
-  if (raw.includes('already published')) {
-    return translateVn('❌ Quy tắc chấm điểm: Kết quả Bảng kiểm thực hành này đã được công bố, không thể chỉnh sửa.');
-  }
-
-  if (raw.includes('ETR is locked') || raw.includes('cannot be edited')) {
-    return translateVn('🔒 Quy tắc an toàn dữ liệu: Hồ sơ ETR này đã bị đóng bằng vĩnh viễn (Freeze Data). Không thể chỉnh sửa.');
+    return translateVn(
+      "❌ Lỗi Ràng buộc CSDL (Foreign Key Constraint): Không thể lưu/xóa dữ liệu này vì Khóa học hoặc Giảng viên được chọn không tồn tại, hoặc dữ liệu đang được liên kết bởi bản ghi khác.",
+    );
   }
 
   if (
-    raw.includes('OperationCanceledException') ||
-    raw.includes('TaskCanceledException') ||
-    raw.includes('operation was canceled') ||
-    raw.includes('aborted')
+    raw.includes("is not in Completed status") ||
+    raw.includes("ETR is not in Completed")
   ) {
-    return translateVn('ℹ️ Thao tác xử lý đã bị hủy do kết nối mạng gián đoạn hoặc chuyển trang trong lúc đang lưu. Vui lòng thử lại.');
+    return translateVn(
+      "❌ Quy tắc kiểm toán: Không thể trích xuất Training Package. Hồ sơ ETR chưa được Trưởng phòng phê duyệt và đóng bằng (Completed).",
+    );
+  }
+
+  if (
+    raw.includes("uploaded yourself") ||
+    raw.includes("cannot verify evidence")
+  ) {
+    return translateVn(
+      "❌ Quy tắc QA: Bạn không thể thẩm định tệp minh chứng do chính tài khoản của bạn tải lên.",
+    );
+  }
+
+  if (raw.includes("already published")) {
+    return translateVn(
+      "❌ Quy tắc chấm điểm: Kết quả Bảng kiểm thực hành này đã được công bố, không thể chỉnh sửa.",
+    );
+  }
+
+  if (raw.includes("ETR is locked") || raw.includes("cannot be edited")) {
+    return translateVn(
+      "🔒 Quy tắc an toàn dữ liệu: Hồ sơ ETR này đã bị đóng bằng vĩnh viễn (Freeze Data). Không thể chỉnh sửa.",
+    );
+  }
+
+  if (
+    raw.includes("OperationCanceledException") ||
+    raw.includes("TaskCanceledException") ||
+    raw.includes("operation was canceled") ||
+    raw.includes("aborted")
+  ) {
+    return translateVn(
+      "ℹ️ Thao tác xử lý đã bị hủy do kết nối mạng gián đoạn hoặc chuyển trang trong lúc đang lưu. Vui lòng thử lại.",
+    );
   }
 
   try {
@@ -677,4 +755,3 @@ export const parseApiError = (err, fallback) => {
 
   return translateVn(fallback) || translateVn(raw);
 };
-

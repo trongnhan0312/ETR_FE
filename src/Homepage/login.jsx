@@ -11,13 +11,14 @@ import {
   FaShieldAlt,
   FaUser,
 } from "react-icons/fa";
-import { API_BASE_URLS } from "../utils/api";
+import { getApiBaseUrlCandidates, setActiveApiBaseUrl } from "../utils/api";
 import { useLanguage } from "../context/LanguageContext";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import "./login.scss";
 
 /** Helper: try fetching from each base URL until one succeeds (network-level retry only) */
-async function tryFetchWithFallback(urls, path, fetchOptions) {
+async function tryFetchWithFallback(path, fetchOptions) {
+  const urls = getApiBaseUrlCandidates();
   for (const baseUrl of urls) {
     // Timeout cho mỗi base URL (12s) — nếu backend treo (không phản hồi, không trả lỗi),
     // FE phải bỏ qua và thử base kế tiếp / báo lỗi rõ ràng, KHÔNG được spinner vô hạn.
@@ -26,8 +27,14 @@ async function tryFetchWithFallback(urls, path, fetchOptions) {
     try {
       const url = `${baseUrl}${path}`;
       console.log(`[Fetch] Trying: ${url}`);
-      const res = await fetch(url, { ...fetchOptions, signal: controller.signal });
-      if (res.ok || res.status >= 400) return res; // server responded, return regardless of status
+      const res = await fetch(url, {
+        ...fetchOptions,
+        signal: controller.signal,
+      });
+      if (res.ok || res.status >= 400) {
+        setActiveApiBaseUrl(baseUrl);
+        return res;
+      }
     } catch (err) {
       console.warn(`[Fetch] Cannot reach ${baseUrl}${path}:`, err.message);
     } finally {
@@ -192,7 +199,7 @@ const Login = () => {
 
     setLoading(true);
 
-    const response = await tryFetchWithFallback(API_BASE_URLS, "/auth/login", {
+    const response = await tryFetchWithFallback("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -250,7 +257,7 @@ const Login = () => {
     if (!response.ok) {
       // Server đã phản hồi nhưng từ chối đăng nhập (401 sai mật khẩu / tài khoản bị vô hiệu)...
       let message = tr(
-        "Đăng nhập thất bại. Vui lòng kiểm tra lại tên đăng nhập hoặc mật khẩu."
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại tên đăng nhập hoặc mật khẩu.",
       );
       try {
         const body = await response.json();
@@ -312,7 +319,9 @@ const Login = () => {
       }
     } catch (err) {
       setError(
-        tr("Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau."),
+        tr(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.",
+        ),
       );
     } finally {
       setLoading(false);
@@ -331,20 +340,18 @@ const Login = () => {
     setForgotLoading(true);
     setForgotMessage({ type: "", text: "" });
 
-    const response = await tryFetchWithFallback(
-      API_BASE_URLS,
-      "/auth/forgot-password",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: forgotEmail.trim() }),
-      },
-    );
+    const response = await tryFetchWithFallback("/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: forgotEmail.trim() }),
+    });
 
     if (!response) {
       setForgotMessage({
         type: "error",
-        text: tr("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."),
+        text: tr(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.",
+        ),
       });
       setForgotLoading(false);
       return;
@@ -353,7 +360,9 @@ const Login = () => {
     if (response.ok) {
       setForgotMessage({
         type: "success",
-        text: tr("Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư."),
+        text: tr(
+          "Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
+        ),
       });
     } else {
       const errText = await response.text().catch(() => "");
@@ -524,7 +533,9 @@ const Login = () => {
 
               <form className="login-form" onSubmit={handleSubmit} noValidate>
                 <div className="form-group">
-                  <label htmlFor="login-username">{tr("Tên đăng nhập / Email")}</label>
+                  <label htmlFor="login-username">
+                    {tr("Tên đăng nhập / Email")}
+                  </label>
                   <div
                     className={`input-shell ${fieldErrors.username ? "input-shell--error" : ""}`}
                   >
