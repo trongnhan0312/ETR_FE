@@ -37,6 +37,15 @@ const navigationItems = [
     ),
   },
   {
+    label: 'CHỦ ĐỀ MÔN HỌC',
+    to: '/academic/subjects',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 2H14L20 8V18C20 19.1046 19.1046 20 18 20H2C0.89543 20 0 19.1046 0 18V4C0 2.89543 0.89543 2 2 2ZM10 16C8.89543 16 8 15.1046 8 14C8 12.8954 8.89543 12 10 12C11.1046 12 12 12.8954 12 14C12 15.1046 11.1046 16 10 16ZM14 10H6V9H14V10ZM14 8H6V7H14V8Z" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
     label: 'HẾT HẠN CC',
     to: '/academic/expiring-students',
     icon: (
