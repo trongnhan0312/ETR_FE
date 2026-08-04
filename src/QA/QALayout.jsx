@@ -1,4 +1,7 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useLanguage } from '../context/LanguageContext';
 import '../Academic/academic.scss';
 import './qa.scss';
 
@@ -56,6 +59,7 @@ const QALayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHomePage = location.pathname === '/qa';
+  const { tr } = useLanguage();
 
   return (
     <div className="academic-page">
@@ -116,7 +120,7 @@ const QALayout = () => {
             }}
             style={{ marginTop: '16px', width: '100%' }}
           >
-            Đăng xuất
+            {tr('Đăng xuất')}
           </button>
         </div>
       </aside>
@@ -131,7 +135,7 @@ const QALayout = () => {
               <button
                 onClick={() => navigate(-1)}
                 type="button"
-                aria-label="Quay lại"
+                aria-label={tr('Quay lại')}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -192,7 +196,7 @@ const QALayout = () => {
                   <path d="M16.6 18L10.3 11.7C9.8 12.1 9.225 12.4167 8.575 12.65C7.925 12.8833 7.23333 13 6.5 13C4.68333 13 3.14583 12.3708 1.8875 11.1125C0.629167 9.85417 0 8.31667 0 6.5C0 4.68333 0.629167 3.14583 1.8875 1.8875C3.14583 0.629167 4.68333 0 6.5 0C8.31667 0 9.85417 0.629167 11.1125 1.8875C12.3708 3.14583 13 4.68333 13 6.5C13 7.23333 12.8833 7.925 12.65 8.575C12.4167 9.225 12.1 9.8 11.7 10.3L18 16.6L16.6 18ZM6.5 11C7.75 11 8.8125 10.5625 9.6875 9.6875C10.5625 8.8125 11 7.75 11 6.5C11 5.25 10.5625 4.1875 9.6875 3.3125C8.8125 2.4375 7.75 2 6.5 2C5.25 2 4.1875 2.4375 3.3125 3.3125C2.4375 4.1875 2 5.25 2 6.5C2 7.75 2.4375 8.8125 3.3125 9.6875C4.1875 10.5625 5.25 11 6.5 11Z" fill="currentColor" />
                 </svg>
               </div>
-              <input type="text" className="search-input" placeholder="Tìm kiếm ETR, bằng chứng..." />
+              <input type="text" className="search-input" placeholder={tr('Tìm kiếm ETR, bằng chứng...')} />
             </div>
           </div>
 
@@ -206,12 +210,7 @@ const QALayout = () => {
 
             <div className="divider"></div>
 
-            <button className="lang-switcher" type="button">
-              <span>VIETNAMESE (VN)</span>
-              <svg width="7" height="5" viewBox="0 0 7 5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3.5 4.31667L0 0.816667L0.816667 0L3.5 2.68333L6.18333 0L7 0.816667L3.5 4.31667Z" fill="currentColor" />
-              </svg>
-            </button>
+            <LanguageSwitcher />
           </div>
         </header>
 

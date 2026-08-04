@@ -6,6 +6,9 @@ import {
   FaFileAlt,
   FaCalendarAlt,
 } from "react-icons/fa";
+import { useState } from "react";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../components/Toast";
 import "./instructor.scss";
 
@@ -39,16 +42,22 @@ const navigationItems = [
 
 const InstructorLayout = () => {
   const toast = useToast();
+  const { tr } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const isHomePage = location.pathname === '/instructor/classes';
+  const isHomePage = location.pathname === "/instructor/classes";
 
   // Try to retrieve user information from localStorage
   let user = { fullName: "Giảng viên", roleName: "Instructor" };
   try {
     const userJson = localStorage.getItem("user");
     if (userJson) {
-      user = JSON.parse(userJson);
+      const parsedUser = JSON.parse(userJson);
+      user = {
+        ...user,
+        ...parsedUser,
+        fullName: parsedUser.fullName || parsedUser.username || user.fullName,
+      };
     }
   } catch (e) {
     console.error("Error parsing user storage", e);
@@ -99,7 +108,7 @@ const InstructorLayout = () => {
                 }
               >
                 {item.icon}
-                <span>{item.label}</span>
+                <span>{tr(item.label)}</span>
               </NavLink>
             ))}
           </nav>
@@ -114,11 +123,11 @@ const InstructorLayout = () => {
             </div>
             <div className="user-info">
               <div className="user-name" title={user.fullName}>
-                {user.fullName.length > 15
-                  ? user.fullName.substring(0, 13) + "..."
-                  : user.fullName}
+                {(user.fullName || tr("Giảng viên")).length > 15
+                  ? (user.fullName || tr("Giảng viên")).substring(0, 13) + "..."
+                  : user.fullName || tr("Giảng viên")}
               </div>
-              <div className="user-role">Giảng viên</div>
+              <div className="user-role">{tr("Giảng viên")}</div>
             </div>
           </div>
           <button
@@ -150,7 +159,7 @@ const InstructorLayout = () => {
               e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
             }}
           >
-            Đăng xuất
+            {tr("Đăng xuất")}
           </button>
         </div>
       </aside>
@@ -165,7 +174,7 @@ const InstructorLayout = () => {
               <button
                 onClick={() => navigate(-1)}
                 type="button"
-                aria-label="Quay lại"
+                aria-label={tr("Quay lại")}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -229,7 +238,7 @@ const InstructorLayout = () => {
               onClick={async () => {
                 try {
                   // Notifications will be implemented in a future update
-                  toast.info("Thông báo", "Hiện tại không có thông báo mới.");
+                  toast.info(tr("Thông báo"), tr("Hiện tại không có thông báo mới."));
                 } catch (e) {
                   console.error("Error fetching notifications:", e);
                 }
@@ -252,29 +261,7 @@ const InstructorLayout = () => {
 
             <div className="divider"></div>
 
-            {/* Language Selection */}
-            <button
-              className="lang-switcher"
-              type="button"
-              onClick={() => {
-                // Language switching to be implemented with i18n library in future
-                toast.info("Ngôn ngữ", "Tính năng chuyển đổi ngôn ngữ sẽ được phát triển trong phiên bản tiếp theo.");
-              }}
-            >
-              <span>VIETNAMESE (VN)</span>
-              <svg
-                width="7"
-                height="5"
-                viewBox="0 0 7 5"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M3.5 4.31667L0 0.816667L0.816667 0L3.5 2.68333L6.18333 0L7 0.816667L3.5 4.31667Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
+            <LanguageSwitcher />
           </div>
         </header>
 

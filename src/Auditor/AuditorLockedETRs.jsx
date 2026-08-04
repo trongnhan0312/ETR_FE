@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import { fetchEtrList } from './auditorApi';
 
 const AuditorLockedETRs = () => {
   const navigate = useNavigate();
+  const { trEn } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [allEtrs, setAllEtrs] = useState([]);
@@ -42,10 +44,10 @@ const AuditorLockedETRs = () => {
       {/* Page Header */}
       <section className="content-header">
         <div className="header-left">
-          <h1>Locked ETR Records</h1>
+          <h1>{trEn('Locked ETR Records')}</h1>
           <div className="divider-gold"></div>
           <p className="header-description">
-            Searchable repository of finalized and cryptographically locked Electronic Training Records (IsLocked = true).
+            {trEn('Searchable repository of finalized and cryptographically locked Electronic Training Records (IsLocked = true).')}
           </p>
         </div>
       </section>
@@ -64,7 +66,7 @@ const AuditorLockedETRs = () => {
               </span>
               <input
                 type="text"
-                placeholder="Search locked ETR by ID, learner name, course..."
+                placeholder={trEn('Search locked ETR by ID, learner name, course...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -78,7 +80,7 @@ const AuditorLockedETRs = () => {
                 className={`filter-btn${activeCategory === cat ? ' active' : ''}`}
                 onClick={() => setActiveCategory(cat)}
               >
-                {cat}
+                {trEn(cat)}
               </button>
             ))}
           </div>
@@ -87,21 +89,21 @@ const AuditorLockedETRs = () => {
         {/* Data Table */}
         <div className="table-responsive-scroll">
           <div className="table-header auditor-table-grid">
-            <div>ETR ID</div>
-            <div>Learner</div>
-            <div>Course</div>
-            <div>Completion Date</div>
-            <div>Locked Date</div>
-            <div>Approved By</div>
-            <div>Status</div>
-            <div style={{ textAlign: 'right' }}>Actions</div>
+            <div>{trEn('ETR ID')}</div>
+            <div>{trEn('Learner')}</div>
+            <div>{trEn('Course')}</div>
+            <div>{trEn('Completion Date')}</div>
+            <div>{trEn('Locked Date')}</div>
+            <div>{trEn('Approved By')}</div>
+            <div>{trEn('Status')}</div>
+            <div style={{ textAlign: 'right' }}>{trEn('Actions')}</div>
           </div>
 
           <div className="table-body">
             {loading ? (
-              <div className="empty-table-state">Loading locked records...</div>
+              <div className="empty-table-state">{trEn('Loading locked records...')}</div>
             ) : filteredEtrs.length === 0 ? (
-              <div className="empty-table-state">No locked ETR records found matching your search criteria.</div>
+              <div className="empty-table-state">{trEn('No locked ETR records found matching your search criteria.')}</div>
             ) : (
               filteredEtrs.map((etr) => (
                 <div key={etr.id} className="table-row auditor-table-grid">
@@ -117,7 +119,7 @@ const AuditorLockedETRs = () => {
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                       </svg>
-                      {etr.status || 'Locked & Compliant'}
+                      {etr.status || trEn('Locked & Compliant')}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
@@ -125,19 +127,19 @@ const AuditorLockedETRs = () => {
                       className="auditor-btn-sm"
                       onClick={() => navigate(`/auditor/details?id=${etr.id}`)}
                     >
-                      View Details
+                      {trEn('View Details')}
                     </button>
                     <button
                       className="auditor-btn-sm"
                       onClick={() => navigate(`/auditor/approval-history?id=${etr.id}`)}
                     >
-                      Approval History
+                      {trEn('Approval History')}
                     </button>
                     <button
                       className="auditor-btn-sm"
                       onClick={() => navigate('/auditor/export-packages')}
                     >
-                      Export
+                      {trEn('Export')}
                     </button>
                   </div>
                 </div>
@@ -148,7 +150,7 @@ const AuditorLockedETRs = () => {
 
         {/* Table Footer */}
         <div className="table-footer">
-          <div className="footer-info">Showing {filteredEtrs.length} of {allEtrs.length} locked records</div>
+          <div className="footer-info">{trEn('Showing')} {filteredEtrs.length} {trEn('of')} {allEtrs.length} {trEn('locked records')}</div>
           <div className="pagination">
             <button className="page-arrow" disabled>
               ‹

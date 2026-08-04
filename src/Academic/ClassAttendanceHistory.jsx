@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const ClassAttendanceHistory = ({ activeClass, onBack }) => {
+  const { tr } = useLanguage();
   const classId = activeClass?.classId || null;
   const classCode = activeClass?.code || 'N/A';
-  const className = activeClass?.name || 'Lớp học';
+  const className = activeClass?.name || tr('Lớp học');
   const classStatus = activeClass?.status || 'Đang diễn ra';
   const classInstructor = activeClass?.instructor || 'Đang cập nhật';
 
@@ -98,17 +100,17 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
     <div className="attendance-history-page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Breadcrumb Area */}
       <nav className="breadcrumb-nav">
-        <span className="breadcrumb-item" onClick={onBack} style={{ cursor: 'pointer' }}>KHÓA &amp; LỚP HỌC</span>
+        <span className="breadcrumb-item" onClick={onBack} style={{ cursor: 'pointer' }}>{tr('KHÓA & LỚP HỌC')}</span>
         <svg width="4" height="6" viewBox="0 0 4 6" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M2.3 3L0 0.7L0.7 0L3.7 3L0.7 6L0 5.3L2.3 3Z" fill="currentColor" />
         </svg>
-        <span className="breadcrumb-item active">LỊCH SỬ ĐIỂM DANH</span>
+        <span className="breadcrumb-item active">{tr('LỊCH SỬ ĐIỂM DANH')}</span>
       </nav>
 
       {/* Page Title */}
       <div className="content-header" style={{ marginBottom: '12px' }}>
         <div className="header-left">
-          <h1>Lịch sử điểm danh chi tiết</h1>
+          <h1>{tr('Lịch sử điểm danh chi tiết')}</h1>
           <div className="divider-gold" />
         </div>
       </div>
@@ -119,7 +121,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
         <div className="class-info-card">
           <div className="class-info-main">
             <div className="class-info-header">
-              <span className="class-code-badge">MÃ LỚP: {classCode}</span>
+              <span className="class-code-badge">{tr('MÃ LỚP:')} {classCode}</span>
               <span className={`class-status-badge ${classStatus === 'Đang diễn ra' ? 'ongoing' : classStatus === 'Sắp diễn ra' ? 'upcoming' : 'completed'}`}>
                 {classStatus.toUpperCase()}
               </span>
@@ -135,7 +137,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
                 </svg>
               </div>
               <div className="detail-texts">
-                <span className="detail-label">GIẢNG VIÊN CHÍNH</span>
+                <span className="detail-label">{tr('GIẢNG VIÊN CHÍNH')}</span>
                 <span className="detail-value">{classInstructor}</span>
               </div>
             </div>
@@ -147,8 +149,8 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
                 </svg>
               </div>
               <div className="detail-texts">
-                <span className="detail-label">SỐ BUỔI HỌC</span>
-                <span className="detail-value">{sessions.length} buổi</span>
+                <span className="detail-label">{tr('SỐ BUỔI HỌC')}</span>
+                <span className="detail-value">{sessions.length} {tr('buổi')}</span>
               </div>
             </div>
           </div>
@@ -156,7 +158,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
 
         {/* Circular Percentage Card */}
         <div className="attendance-gauge-card">
-          <div className="gauge-header">TỶ LỆ THAM DỰ TỔNG QUAN</div>
+          <div className="gauge-header">{tr('TỶ LỆ THAM DỰ TỔNG QUAN')}</div>
           <div className="gauge-body">
             <div className="gauge-radial-container">
               <svg width="120" height="120" viewBox="0 0 120 120" className="radial-svg">
@@ -177,7 +179,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
               <div className="gauge-text-center">{overallRate}%</div>
             </div>
             <div className="gauge-subtext">
-              Tổng quan {sessions.length} buổi học
+              {tr('Tổng quan')} {sessions.length} {tr('buổi học')}
             </div>
           </div>
         </div>
@@ -187,7 +189,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
       {loading ? (
         <section className="table-card">
           <div style={{ textAlign: "center", padding: "60px 20px", color: "#64748b" }}>
-            <div style={{ fontSize: "14px", fontWeight: 600 }}>Đang tải dữ liệu...</div>
+            <div style={{ fontSize: "14px", fontWeight: 600 }}>{tr('Đang tải dữ liệu...')}</div>
           </div>
         </section>
       ) : (
@@ -198,7 +200,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
               <div className="search-box">
                 <input
                   type="text"
-                  placeholder="Tìm buổi học..."
+                  placeholder={tr('Tìm buổi học...')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -209,26 +211,26 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
             </div>
 
             <div className="toolbar-right">
-              <span className="session-count-label">HIỂN THỊ {filteredSessions.length}/{sessions.length} BUỔI HỌC</span>
+              <span className="session-count-label">{tr('HIỂN THỊ')} {filteredSessions.length}/{sessions.length} {tr('BUỔI HỌC')}</span>
             </div>
           </div>
 
           {/* Sessions Table Header */}
           <div className="table-responsive-scroll">
             <div className="table-header sessions-table-grid">
-              <div>STT</div>
-              <div>NGÀY HỌC</div>
-              <div>TÊN BUỔI HỌC</div>
-              <div>GIẢNG VIÊN</div>
-              <div>SĨ SỐ</div>
-              <div>TỶ LỆ THAM DỰ</div>
-              <div style={{ textAlign: 'right', paddingRight: '24px' }}>THAO TÁC</div>
+              <div>{tr('STT')}</div>
+              <div>{tr('NGÀY HỌC')}</div>
+              <div>{tr('TÊN BUỔI HỌC')}</div>
+              <div>{tr('GIẢNG VIÊN')}</div>
+              <div>{tr('SĨ SỐ')}</div>
+              <div>{tr('TỶ LỆ THAM DỰ')}</div>
+              <div style={{ textAlign: 'right', paddingRight: '24px' }}>{tr('THAO TÁC')}</div>
             </div>
 
             {/* Sessions Table Body */}
             <div className="table-body">
               {filteredSessions.length === 0 ? (
-                <div className="empty-table-state">Không tìm thấy buổi học nào.</div>
+                <div className="empty-table-state">{tr('Không tìm thấy buổi học nào.')}</div>
               ) : (
                 filteredSessions.map((session) => (
                   <div key={session.stt} className="table-row sessions-table-grid">
@@ -259,7 +261,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
                         type="button"
                         onClick={() => setSelectedSession(session)}
                       >
-                        <span>CHI TIẾT</span>
+                        <span>{tr('CHI TIẾT')}</span>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M9.13125 6.75H0V5.25H9.13125L4.93125 1.05L6 0L12 6L6 12L4.93125 10.95L9.13125 6.75Z" fill="currentColor" />
                         </svg>
@@ -278,8 +280,8 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
         <div className="modal-overlay">
           <div className="modal-container" style={{ width: '600px' }}>
             <header className="modal-header">
-              <h2>CHI TIẾT ĐIỂM DANH: {selectedSession.stt}</h2>
-              <button className="close-btn" type="button" onClick={() => setSelectedSession(null)} aria-label="Đóng">
+              <h2>{tr('CHI TIẾT ĐIỂM DANH:')} {selectedSession.stt}</h2>
+              <button className="close-btn" type="button" onClick={() => setSelectedSession(null)} aria-label={tr('Đóng')}>
                 &times;
               </button>
             </header>
@@ -288,19 +290,19 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
               <div style={{ marginBottom: '16px', backgroundColor: '#f4f7fa', padding: '12px 16px', borderRadius: '4px', border: '1px solid #e0e4e8' }}>
                 <div style={{ fontWeight: '700', color: '#002147', fontSize: '14px' }}>{selectedSession.name}</div>
                 <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px', fontWeight: 600 }}>
-                  Ngày học: {selectedSession.date} | Giảng viên: {selectedSession.instructor} | Sĩ số: {selectedSession.attendance}
+                  {tr('Ngày học:')} {selectedSession.date} {tr('| Giảng viên:')} {selectedSession.instructor} {tr('| Sĩ số:')} {selectedSession.attendance}
                 </div>
               </div>
 
               <div style={{ fontWeight: '700', fontSize: '12px', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                DANH SÁCH ĐIỂM DANH HỌC VIÊN
+                {tr('DANH SÁCH ĐIỂM DANH HỌC VIÊN')}
               </div>
 
               <table className="classes-table" style={{ width: '100%' }}>
                 <thead>
                   <tr>
-                    <th>Học viên</th>
-                    <th style={{ textAlign: 'right' }}>Trạng thái điểm danh</th>
+                    <th>{tr('Học viên')}</th>
+                    <th style={{ textAlign: 'right' }}>{tr('Trạng thái điểm danh')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -325,7 +327,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
                   ) : (
                     <tr>
                       <td colSpan="2" style={{ textAlign: 'center', padding: '16px', fontStyle: 'italic', color: '#64748b' }}>
-                        Không có dữ liệu chi tiết học viên cho buổi học này.
+                        {tr('Không có dữ liệu chi tiết học viên cho buổi học này.')}
                       </td>
                     </tr>
                   )}
@@ -335,7 +337,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
 
             <footer className="modal-footer">
               <button className="modal-submit-btn" type="button" onClick={() => setSelectedSession(null)}>
-                ĐÓNG
+                {tr('ĐÓNG')}
               </button>
             </footer>
           </div>

@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
 
 const InstructorSchedule = () => {
+  const { tr } = useLanguage();
   const [schedule, setSchedule] = useState([
     { day: "Thứ 2", sessions: [] },
     { day: "Thứ 3", sessions: [] },
@@ -56,8 +58,8 @@ const InstructorSchedule = () => {
             targetDay.sessions.push({
               time: timeStr,
               code: cls ? cls.classCode : "CL-N/A",
-              name: session.sessionTitle || "Buổi học",
-              room: session.location || "Phòng LAB"
+              name: session.sessionTitle || tr("Buổi học"),
+              room: session.location || tr("Phòng LAB")
             });
           }
         });
@@ -83,10 +85,10 @@ const InstructorSchedule = () => {
       {/* Content Header */}
       <section className="content-header">
         <div className="header-left">
-          <h1>Lịch giảng dạy trong tuần</h1>
+          <h1>{tr('Lịch giảng dạy trong tuần')}</h1>
           <div className="divider-gold" />
           <p className="header-description">
-            Lịch trình giảng dạy chi tiết của giảng viên theo từng ngày trong tuần.
+            {tr('Lịch trình giảng dạy chi tiết của giảng viên theo từng ngày trong tuần.')}
           </p>
         </div>
       </section>
@@ -94,8 +96,8 @@ const InstructorSchedule = () => {
       {/* Schedule Calendar View */}
       <div className="dashboard-panel">
         <div className="panel-header">
-          <h2>Lịch biểu Tuần học hiện tại</h2>
-          <div className="panel-action">Tuần này</div>
+          <h2>{tr('Lịch biểu Tuần học hiện tại')}</h2>
+          <div className="panel-action">{tr('Tuần này')}</div>
         </div>
 
         {/* Weekly Grid */}
@@ -115,7 +117,7 @@ const InstructorSchedule = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexGrow: 1 }}>
                   {dayData.sessions.length === 0 ? (
                     <div className="no-classes-text">
-                      Không có giờ dạy
+                      {tr('Không có giờ dạy')}
                     </div>
                   ) : (
                     dayData.sessions.map((session, sIdx) => (

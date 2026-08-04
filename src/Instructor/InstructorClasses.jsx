@@ -1,10 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../utils/api";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
 
 const InstructorClasses = () => {
+  const { tr } = useLanguage();
   const toast = useToast();
   const [classesData, setClassesData] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
@@ -52,13 +55,13 @@ const InstructorClasses = () => {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
             code: cls.classCode || `CL-${cls.classId}`,
-            name: cls.className || "Lớp đào tạo",
-            subName: course ? course.courseName : "Chuyên đề huấn luyện",
+            name: cls.className || tr("Lớp đào tạo"),
+            subName: course ? course.courseName : tr("Chuyên đề huấn luyện"),
             courseKey: course ? String(course.courseId) : "N/A",
-            schedule: cls.schedule || "Chưa sắp lịch",
+            schedule: cls.schedule || tr("Chưa sắp lịch"),
             time: cls.time || "08:00 - 11:30",
             studentsCount: "0/0",
-            status: cls.status || "Đang diễn ra",
+            status: cls.status || tr("Đang diễn ra"),
             subjectId: cls.subjectId || 1,
           };
         });
@@ -90,10 +93,10 @@ const InstructorClasses = () => {
           sessionId: s.sessionId,
           stt: String(idx + 1).padStart(2, "0"),
           date: dateStr,
-          name: s.sessionTitle || "Buổi học",
-          room: s.location || "Phòng học",
+          name: s.sessionTitle || tr("Buổi học"),
+          room: s.location || tr("Phòng học"),
           instructor: "Nguyễn Văn A",
-          attendanceCount: s.isConfirmed ? "Đã chốt" : "Chưa chốt",
+          attendanceCount: s.isConfirmed ? tr("Đã chốt") : tr("Chưa chốt"),
           isConfirmed: s.isConfirmed || false,
           rate: 100,
           sessionDateValue: s.sessionDate || "",
@@ -208,7 +211,7 @@ const InstructorClasses = () => {
   const handleSubmitSession = async (e) => {
     e.preventDefault();
     if (!sessionForm.sessionTitle.trim() || !sessionForm.location.trim()) {
-      setSessionError("Vui lòng nhập đầy đủ tên buổi học và phòng học.");
+      setSessionError(tr("Vui lòng nhập đầy đủ tên buổi học và phòng học."));
       return;
     }
 
@@ -237,7 +240,7 @@ const InstructorClasses = () => {
       setEditingSessionId(null);
     } catch (err) {
       console.error("Lỗi khi lưu buổi học:", err);
-      setSessionError(err.message || "Không thể lưu buổi học.");
+      setSessionError(err.message || tr("Không thể lưu buổi học."));
     } finally {
       setSubmittingSession(false);
     }
@@ -250,11 +253,11 @@ const InstructorClasses = () => {
     if (!confirmDeleteSessionId) return;
     try {
       await api.delete(`/sessions/${confirmDeleteSessionId}`);
-      toast.success("Xóa thành công", "Đã xóa buổi học.");
+      toast.success(tr("Xóa thành công"), tr("Đã xóa buổi học."));
       await loadSessions();
     } catch (err) {
       console.error("Lỗi khi xóa buổi học:", err);
-      toast.error("Xóa buổi học thất bại", err.message || "Không thể xóa buổi học.");
+      toast.error(tr("Xóa buổi học thất bại"), err.message || tr("Không thể xóa buổi học."));
     } finally {
       setConfirmDeleteSessionId(null);
     }
@@ -305,7 +308,7 @@ const InstructorClasses = () => {
             onClick={() => setSelectedClass(null)}
             style={{ cursor: "pointer" }}
           >
-            LỚP CỦA TÔI
+            {tr('LỚP CỦA TÔI')}
           </span>
           <svg width="4" height="6" viewBox="0 0 4 6" fill="none">
             <path
@@ -322,7 +325,7 @@ const InstructorClasses = () => {
             <h1>{selectedClass.name}</h1>
             <div className="divider-gold" />
             <p className="header-description">
-              {selectedClass.subName} · Mã lớp: {selectedClass.code}
+              {selectedClass.subName} · {tr('Mã lớp: ')}{selectedClass.code}
             </p>
           </div>
           <div>
@@ -353,10 +356,10 @@ const InstructorClasses = () => {
           }}
         >
           {[
-            { label: "Lịch học", value: selectedClass.schedule },
-            { label: "Thời gian", value: selectedClass.time || "—" },
-            { label: "Sĩ số", value: selectedClass.studentsCount },
-            { label: "Khóa học", value: `K${selectedClass.courseKey}` },
+            { label: tr("Lịch học"), value: selectedClass.schedule },
+            { label: tr("Thời gian"), value: selectedClass.time || "—" },
+            { label: tr("Sĩ số"), value: selectedClass.studentsCount },
+            { label: tr("Khóa học"), value: `K${selectedClass.courseKey}` },
           ].map((info) => (
             <div
               key={info.label}
@@ -401,7 +404,7 @@ const InstructorClasses = () => {
                   margin: 0,
                 }}
               >
-                Danh sách buổi học
+                {tr('Danh sách buổi học')}
               </h3>
               <p
                 style={{
@@ -410,7 +413,7 @@ const InstructorClasses = () => {
                   margin: "4px 0 0",
                 }}
               >
-                {sessions.length} buổi đã tạo
+                {sessions.length}{tr(' buổi đã tạo')}
               </p>
             </div>
             <div
@@ -436,12 +439,12 @@ const InstructorClasses = () => {
                   boxShadow: "0 2px 8px rgba(197, 160, 89, 0.2)",
                 }}
               >
-                + Tạo buổi học
+                {tr('+ Tạo buổi học')}
               </button>
               <div style={{ position: "relative" }}>
                 <input
                   type="text"
-                  placeholder="Tìm buổi học..."
+                  placeholder={tr('Tìm buổi học...')}
                   value={sessionSearch}
                   onChange={(e) => setSessionSearch(e.target.value)}
                   style={{
@@ -566,7 +569,7 @@ const InstructorClasses = () => {
                       fontWeight: "700",
                     }}
                   >
-                    Sửa
+                    {tr('Sửa')}
                   </button>
                   <button
                     onClick={() => setConfirmDeleteSessionId(session.sessionId)}
@@ -582,7 +585,7 @@ const InstructorClasses = () => {
                       fontWeight: "700",
                     }}
                   >
-                    Xóa
+                    {tr('Xóa')}
                   </button>
                 </div>
               </div>
@@ -592,7 +595,7 @@ const InstructorClasses = () => {
           {/* Footer */}
           <div className="table-footer">
             <span className="footer-info">
-              Hiển thị {filteredSessions.length} trên {sessions.length} buổi học
+              {tr('Hiển thị ')}{filteredSessions.length}{tr(' trên ')}{sessions.length}{tr(' buổi học')}
             </span>
             <div className="pagination">
               <button className="page-num active" type="button">
@@ -602,17 +605,22 @@ const InstructorClasses = () => {
           </div>
         </section>
 
-        {showSessionModal && (
+        {showSessionModal && createPortal(
           <div
             style={{
               position: "fixed",
-              inset: 0,
-              backgroundColor: "rgba(0, 33, 71, 0.45)",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100vw",
+              height: "100vh",
+              backgroundColor: "rgba(0, 33, 71, 0.75)",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              zIndex: 1000,
-              padding: "20px",
+              zIndex: 999999,
+              backdropFilter: "blur(4px)",
             }}
           >
             <div
@@ -641,7 +649,7 @@ const InstructorClasses = () => {
                     margin: 0,
                   }}
                 >
-                  {editingSessionId ? "Cập nhật buổi học" : "Tạo buổi học mới"}
+                  {editingSessionId ? tr("Cập nhật buổi học") : tr("Tạo buổi học mới")}
                 </h3>
                 <button
                   onClick={() => setShowSessionModal(false)}
@@ -677,7 +685,7 @@ const InstructorClasses = () => {
                       marginBottom: "6px",
                     }}
                   >
-                    Tên buổi học
+                    {tr('Tên buổi học')}
                   </label>
                   <input
                     value={sessionForm.sessionTitle}
@@ -705,7 +713,7 @@ const InstructorClasses = () => {
                       marginBottom: "6px",
                     }}
                   >
-                    Phòng học
+                    {tr('Phòng học')}
                   </label>
                   <input
                     value={sessionForm.location}
@@ -733,7 +741,7 @@ const InstructorClasses = () => {
                       marginBottom: "6px",
                     }}
                   >
-                    Ngày học
+                    {tr('Ngày học')}
                   </label>
                   <input
                     type="datetime-local"
@@ -769,7 +777,7 @@ const InstructorClasses = () => {
                       marginBottom: "6px",
                     }}
                   >
-                    Tên môn học
+                    {tr('Tên môn học')}
                   </label>
                   <select
                     value={sessionForm.subjectId}
@@ -802,7 +810,7 @@ const InstructorClasses = () => {
                         fontSize: "12px",
                       }}
                     >
-                      <strong style={{ color: "#002147" }}>Mô tả:</strong>{" "}
+                      <strong style={{ color: "#002147" }}>{tr('Mô tả:')}</strong>{" "}
                       {selectedSubjectDescription}
                     </div>
                   )}
@@ -843,7 +851,7 @@ const InstructorClasses = () => {
                       fontWeight: "700",
                     }}
                   >
-                    Hủy
+                    {tr('Hủy')}
                   </button>
                   <button
                     type="submit"
@@ -859,15 +867,16 @@ const InstructorClasses = () => {
                     }}
                   >
                     {submittingSession
-                      ? "Đang lưu..."
+                      ? tr("Đang lưu...")
                       : editingSessionId
-                        ? "Cập nhật"
-                        : "Tạo mới"}
+                        ? tr("Cập nhật")
+                        : tr("Tạo mới")}
                   </button>
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Xác nhận xóa buổi học (view chi tiết lớp) */}
@@ -875,12 +884,12 @@ const InstructorClasses = () => {
           isOpen={!!confirmDeleteSessionId}
           onClose={() => setConfirmDeleteSessionId(null)}
           onConfirm={handleConfirmDeleteSession}
-          title="Xóa buổi học"
-          message="Bạn có chắc chắn muốn xóa buổi học này?"
+          title={tr("Xóa buổi học")}
+          message={tr("Bạn có chắc chắn muốn xóa buổi học này?")}
           confirmText="XÓA"
           cancelText="HỦY BỎ"
           confirmVariant="danger"
-          bodyMessage="Lịch sử điểm danh của buổi học này cũng sẽ bị xóa theo."
+          bodyMessage={tr("Lịch sử điểm danh của buổi học này cũng sẽ bị xóa theo.")}
         />
 
         {/* Toast notifications (view chi tiết lớp) */}
@@ -895,11 +904,10 @@ const InstructorClasses = () => {
       {/* Content Header */}
       <section className="content-header">
         <div className="header-left">
-          <h1>Lớp học được phân công</h1>
+          <h1>{tr('Lớp học được phân công')}</h1>
           <div className="divider-gold" />
           <p className="header-description">
-            Danh sách các lớp huấn luyện hàng không mà bạn được phân công giảng
-            dạy.
+            {tr('Danh sách các lớp huấn luyện hàng không mà bạn được phân công giảng dạy.')}
           </p>
         </div>
       </section>
@@ -908,7 +916,7 @@ const InstructorClasses = () => {
       <div className="stats-grid" style={{ marginBottom: 0 }}>
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-label">Đang diễn ra</span>
+            <span className="stat-label">{tr('Đang diễn ra')}</span>
             <div
               className="stat-icon"
               style={{
@@ -932,7 +940,7 @@ const InstructorClasses = () => {
         </div>
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-label">Sắp tới</span>
+            <span className="stat-label">{tr('Sắp tới')}</span>
             <div
               className="stat-icon"
               style={{
@@ -956,7 +964,7 @@ const InstructorClasses = () => {
         </div>
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-label">Hoàn thành</span>
+            <span className="stat-label">{tr('Hoàn thành')}</span>
             <div
               className="stat-icon"
               style={{
@@ -1018,7 +1026,7 @@ const InstructorClasses = () => {
           </svg>
           <input
             type="text"
-            placeholder="Tìm lớp theo mã hoặc tên..."
+            placeholder={tr('Tìm lớp theo mã hoặc tên...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -1078,7 +1086,7 @@ const InstructorClasses = () => {
                       }),
                 }}
               >
-                {f}
+                {tr(f)}
               </button>
             ))}
           </div>
@@ -1122,7 +1130,7 @@ const InstructorClasses = () => {
                 fill="currentColor"
               />
             </svg>
-            Bộ lọc nâng cao
+            {tr('Bộ lọc nâng cao')}
           </button>
         </div>
       </div>
@@ -1153,7 +1161,7 @@ const InstructorClasses = () => {
                 letterSpacing: "0.05em",
               }}
             >
-              Chọn Khóa Học
+              {tr('Chọn Khóa Học')}
             </label>
             <select
               style={{
@@ -1168,11 +1176,11 @@ const InstructorClasses = () => {
               value={courseKey}
               onChange={(e) => setCourseKey(e.target.value)}
             >
-              <option value="">Tất cả các khóa</option>
-              <option value="22">Khóa 22</option>
-              <option value="24">Khóa 24</option>
-              <option value="25">Khóa 25</option>
-              <option value="26">Khóa 26</option>
+              <option value="">{tr('Tất cả các khóa')}</option>
+              <option value="22">{tr('Khóa 22')}</option>
+              <option value="24">{tr('Khóa 24')}</option>
+              <option value="25">{tr('Khóa 25')}</option>
+              <option value="26">{tr('Khóa 26')}</option>
             </select>
           </div>
           <div
@@ -1205,7 +1213,7 @@ const InstructorClasses = () => {
                 userSelect: "none",
               }}
             >
-              Chỉ hiển thị lớp đã sắp xếp lịch dạy
+              {tr('Chỉ hiển thị lớp đã sắp xếp lịch dạy')}
             </label>
           </div>
         </div>
@@ -1229,15 +1237,15 @@ const InstructorClasses = () => {
             textTransform: "uppercase",
           }}
         >
-          <div style={{ textAlign: "center" }}>STT</div>
-          <div>Mã lớp</div>
-          <div>Tên khóa học / chuyên đề</div>
-          <div style={{ textAlign: "center" }}>Khóa</div>
-          <div>Lịch học</div>
-          <div style={{ textAlign: "center" }}>Sĩ số</div>
-          <div>Trạng thái</div>
+          <div style={{ textAlign: "center" }}>{tr('STT')}</div>
+          <div>{tr('Mã lớp')}</div>
+          <div>{tr('Tên khóa học / chuyên đề')}</div>
+          <div style={{ textAlign: "center" }}>{tr('Khóa')}</div>
+          <div>{tr('Lịch học')}</div>
+          <div style={{ textAlign: "center" }}>{tr('Sĩ số')}</div>
+          <div>{tr('Trạng thái')}</div>
           <div style={{ textAlign: "right", paddingRight: "24px" }}>
-            Thao tác
+            {tr('Thao tác')}
           </div>
         </div>
 
@@ -1251,7 +1259,7 @@ const InstructorClasses = () => {
                 fontStyle: "italic",
               }}
             >
-              Không tìm thấy lớp học nào khớp với bộ lọc hiện tại.
+              {tr('Không tìm thấy lớp học nào khớp với bộ lọc hiện tại.')}
             </div>
           ) : (
             filteredClasses.map((cls) => {
@@ -1322,7 +1330,7 @@ const InstructorClasses = () => {
                       textAlign: "center",
                     }}
                   >
-                    Khóa {cls.courseKey}
+                    {tr('Khóa ')}{cls.courseKey}
                   </span>
                   <div>
                     {cls.schedule === "Chưa sắp lịch" ? (
@@ -1333,7 +1341,7 @@ const InstructorClasses = () => {
                           margin: 0,
                         }}
                       >
-                        Chưa sắp lịch
+                        {tr('Chưa sắp lịch')}
                       </p>
                     ) : (
                       <>
@@ -1416,7 +1424,7 @@ const InstructorClasses = () => {
                         boxShadow: "0 2px 4px rgba(197, 160, 89, 0.2)",
                       }}
                     >
-                      Xem chi tiết
+                      {tr('Xem chi tiết')}
                     </button>
                   </div>
                 </div>
@@ -1427,7 +1435,7 @@ const InstructorClasses = () => {
 
         <div className="table-footer">
           <span className="footer-info">
-            Hiển thị {filteredClasses.length} trên {classesData.length} lớp
+            {tr('Hiển thị ')}{filteredClasses.length}{tr(' trên ')}{classesData.length}{tr(' lớp')}
           </span>
           <div className="pagination">
             <button className="page-num active" type="button">
@@ -1442,12 +1450,12 @@ const InstructorClasses = () => {
         isOpen={!!confirmDeleteSessionId}
         onClose={() => setConfirmDeleteSessionId(null)}
         onConfirm={handleConfirmDeleteSession}
-        title="Xóa buổi học"
-        message="Bạn có chắc chắn muốn xóa buổi học này?"
+        title={tr("Xóa buổi học")}
+        message={tr("Bạn có chắc chắn muốn xóa buổi học này?")}
         confirmText="XÓA"
         cancelText="HỦY BỎ"
         confirmVariant="danger"
-        bodyMessage="Lịch sử điểm danh của buổi học này cũng sẽ bị xóa theo."
+        bodyMessage={tr("Lịch sử điểm danh của buổi học này cũng sẽ bị xóa theo.")}
       />
 
       {/* Toast notifications */}

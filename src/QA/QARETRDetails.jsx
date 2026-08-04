@@ -3,8 +3,10 @@ import { api } from "../utils/api";
 import ApprovalHistory from "../components/ApprovalHistory";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 
 const QARETRDetails = () => {
+  const { tr } = useLanguage();
   const [etrList, setEtrList] = useState([]);
   const [selectedEtr, setSelectedEtr] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +49,7 @@ const QARETRDetails = () => {
           return {
             etrId,
             id: `#ETR-${String(etrId).padStart(4, "0")}`,
-            learner: profile?.fullName || `Học viên #${enrollment?.accountId || ""}`,
+            learner: profile?.fullName || `Student #${enrollment?.accountId || ""}`,
             course: `Lớp #${enrollment?.classId || ""}`,
             status: etr.status,
             evidenceCount: etrEvfs.length,
@@ -63,7 +65,7 @@ const QARETRDetails = () => {
       setEtrList(mapped);
       if (mapped.length > 0) setSelectedEtr(mapped[0]);
     } catch (err) {
-      console.error("Lỗi tải dữ liệu:", err);
+      console.error("Error loading data:", err);
     } finally {
       setLoading(false);
     }
@@ -83,17 +85,17 @@ const QARETRDetails = () => {
         await api.post(`/Etr/${selectedEtr.etrId}/verify`, {
           comment: reviewNotes,
         });
-        toast.success("Xác thực thành công", `${selectedEtr.id} đã được xác thực.`);
+        toast.success(tr("Xác thực thành công"), `${selectedEtr.id} ${tr('đã được xác thực.')}`);
       } else {
         await api.post(`/Etr/${selectedEtr.etrId}/return`, {
           comment: reviewNotes,
         });
-        toast.warning("Đã trả lại ETR", `${selectedEtr.id} đã được trả lại để chỉnh sửa.`);
+        toast.warning(tr("Đã trả lại ETR"), `${selectedEtr.id} ${tr('đã trả lại để chỉnh sửa.')}`);
       }
       await loadData();
     } catch (err) {
-      const actionLabel = action === "verify" ? "Xác thực thất bại" : "Trả lại thất bại";
-      toast.error(actionLabel, err.message || "Lỗi không xác định");
+      const actionLabel = action === "verify" ? tr("Xác thực thất bại") : tr("Trả lại thất bại");
+      toast.error(actionLabel, err.message || tr("Lỗi không xác định"));
     } finally {
       setVerifying(false);
       setReviewNotes("");
@@ -109,7 +111,7 @@ const QARETRDetails = () => {
   const handleReturnEtr = () => {
     if (!selectedEtr) return;
     if (!reviewNotes.trim()) {
-      toast.warning("Thiếu lý do", "Vui lòng nhập lý do trả lại.");
+      toast.warning(tr("Thiếu lý do"), tr("Vui lòng nhập lý do trả lại."));
       return;
     }
     setConfirmAction("return");
@@ -147,11 +149,11 @@ const QARETRDetails = () => {
         <div className="qa-list">
           {loading ? (
             <div style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
-              Đang tải...
+              {tr('Đang tải...')}
             </div>
           ) : etrList.length === 0 ? (
             <div style={{ padding: "24px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>
-              Chưa có ETR nào.
+              {tr('Chưa có ETR nào.')}
             </div>
           ) : (
             etrList.map((etr) => (
@@ -262,19 +264,19 @@ const QARETRDetails = () => {
         isOpen={!!confirmAction}
         onClose={() => setConfirmAction(null)}
         onConfirm={() => runReviewAction(confirmAction)}
-        title={confirmAction === "verify" ? "Xác thực ETR" : "Trả lại ETR"}
+        title={confirmAction === "verify" ? tr("Xác thực ETR") : tr("Trả lại ETR")}
         message={
           confirmAction === "verify"
-            ? `Xác nhận xác thực ${selectedEtr?.id || ""}?`
-            : `Trả lại ${selectedEtr?.id || ""} để chỉnh sửa?`
+            ? `${tr('Xác nhận xác thực')} ${selectedEtr?.id || ""}?`
+            : `${tr('Trả lại')} ${selectedEtr?.id || ""} ${tr('để chỉnh sửa?')}`
         }
-        confirmText={confirmAction === "verify" ? "XÁC THỰC" : "TRẢ LẠI"}
-        cancelText="HỦY BỎ"
+        confirmText={confirmAction === "verify" ? tr("XÁC THỰC") : tr("TRẢ LẠI")}
+        cancelText={tr("HỦY BỎ")}
         confirmVariant={confirmAction === "return" ? "danger" : "primary"}
         bodyMessage={
           confirmAction === "verify"
-            ? "Sau khi xác thực, hồ sơ sẽ chuyển sang bước phê duyệt của Training Manager."
-            : "Học viên/giảng viên sẽ nhận được yêu cầu chỉnh sửa kèm lý do của bạn."
+            ? tr("Sau khi xác thực, hồ sơ sẽ chuyển sang bước phê duyệt của Training Manager.")
+            : tr("Học viên/giảng viên sẽ nhận được yêu cầu chỉnh sửa kèm lý do của bạn.")
         }
       />
     </div>

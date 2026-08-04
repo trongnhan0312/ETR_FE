@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 
 const QAAccount = () => {
+  const { tr } = useLanguage();
   const [profile, setProfile] = useState({
     name: "QA Staff",
     role: "Quality Assurance Officer",
@@ -32,11 +34,11 @@ const QAAccount = () => {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (!currentPwd || !newPwd || !confirmPwd) {
-      toast.error("Thiếu thông tin", "Vui lòng điền đầy đủ thông tin.");
+      toast.error(tr("Thiếu thông tin"), tr("Vui lòng điền đầy đủ thông tin."));
       return;
     }
     if (newPwd !== confirmPwd) {
-      toast.error("Mật khẩu không khớp", "Mật khẩu mới không khớp.");
+      toast.error(tr("Mật khẩu không khớp"), tr("Mật khẩu mới không khớp."));
       return;
     }
     try {
@@ -44,12 +46,12 @@ const QAAccount = () => {
         currentPassword: currentPwd,
         newPassword: newPwd,
       });
-      toast.success("Cập nhật mật khẩu thành công", "Mật khẩu của bạn đã được cập nhật.");
+      toast.success(tr("Cập nhật mật khẩu thành công"), tr("Mật khẩu của bạn đã được cập nhật."));
       setCurrentPwd("");
       setNewPwd("");
       setConfirmPwd("");
     } catch (err) {
-      toast.error("Đổi mật khẩu thất bại", err.message || "Lỗi không xác định");
+      toast.error(tr("Đổi mật khẩu thất bại"), err.message || tr("Lỗi không xác định"));
     }
   };
 

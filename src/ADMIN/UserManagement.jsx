@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 
 const UserManagement = () => {
+  const { tr, trt } = useLanguage();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,7 +87,7 @@ const UserManagement = () => {
           departmentId: acc.departmentId,
           departmentName: deptObj?.name || (String(acc.departmentId) === '2' ? 'Training' : 'Administration'),
           status: acc.status || 'Active',
-          fullName: profile?.fullName || 'Chưa cập nhật',
+          fullName: profile?.fullName || tr('Chưa cập nhật'),
           email: profile?.email || '',
           phone: profile?.phone || '',
           gender: profile?.gender || 'Male',
@@ -104,25 +107,25 @@ const UserManagement = () => {
   }, []);
 
   // Helper to parse backend error responses into user-friendly messages
-  const parseApiError = (err, fallbackMsg = "Thao tác thất bại.") => {
+  const parseApiError = (err, fallbackMsg = tr("Thao tác thất bại.")) => {
     if (!err) return fallbackMsg;
     const raw = err.message || String(err);
     try {
       const json = JSON.parse(raw);
       if (json.errors && typeof json.errors === 'object') {
         const fieldMap = {
-          Username: 'Tên đăng nhập',
-          Password: 'Mật khẩu',
-          Email: 'Email',
-          FullName: 'Họ và tên',
-          RoleId: 'Vai trò',
-          DepartmentId: 'Phòng ban',
+          Username: tr('Tên đăng nhập'),
+          Password: tr('Mật khẩu'),
+          Email: tr('Email'),
+          FullName: tr('Họ và tên'),
+          RoleId: tr('Vai trò'),
+          DepartmentId: tr('Phòng ban'),
         };
         const messages = Object.entries(json.errors).map(([field, errs]) => {
           const fieldLabel = fieldMap[field] || field;
           const errStr = Array.isArray(errs) ? errs.join(', ') : String(errs);
           if (errStr.toLowerCase().includes('valid e-mail address')) {
-            return `${fieldLabel} phải là một địa chỉ email hợp lệ (Ví dụ: name@company.com).`;
+            return `${fieldLabel} ${tr('phải là một địa chỉ email hợp lệ (Ví dụ: name@company.com).')}`;
           }
           return `${fieldLabel}: ${errStr}`;
         });
@@ -202,13 +205,13 @@ const UserManagement = () => {
     const trimmedFullName = fullName.trim();
 
     if (!trimmedUsername || !password || !trimmedFullName) {
-      setFormError('Vui lòng nhập Username, Password và Họ tên.');
+      setFormError(tr('Vui lòng nhập Username, Password và Họ tên.'));
       return;
     }
 
     // Backend requires Username to be a valid email address
     if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
-      setFormError('Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).');
+      setFormError(tr('Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).'));
       return;
     }
 
@@ -238,9 +241,11 @@ const UserManagement = () => {
 
       await loadUsers();
       setIsCreateOpen(false);
+      // Toast thành công — nhất quán với các flow tạo khác (khóa học/lớp/phòng ban)
+      toast.success(tr("Tạo tài khoản thành công!"), trt('accountCreated', { username: trimmedUsername }));
     } catch (err) {
       console.error("Failed to create user:", err);
-      setFormError(parseApiError(err, "Tạo tài khoản thất bại."));
+      setFormError(parseApiError(err, tr("Tạo tài khoản thất bại.")));
     } finally {
       setSubmitting(false);
     }
@@ -280,7 +285,7 @@ const UserManagement = () => {
     e.preventDefault();
     setFormError('');
     if (!editFullName.trim()) {
-      setFormError('Vui lòng nhập Họ và tên.');
+      setFormError(tr('Vui lòng nhập Họ và tên.'));
       return;
     }
 
@@ -315,8 +320,8 @@ const UserManagement = () => {
         } catch (err) {
           console.warn("Failed to update department:", err);
           toast.error(
-            "Cập nhật phòng ban thất bại",
-            parseApiError(err, "Không thể đổi phòng ban.")
+            tr("Cập nhật phòng ban thất bại"),
+            parseApiError(err, tr("Không thể đổi phòng ban."))
           );
         }
       }
@@ -325,7 +330,7 @@ const UserManagement = () => {
       setIsEditOpen(false);
     } catch (err) {
       console.error("Failed to update user profile:", err);
-      setFormError(parseApiError(err, "Cập nhật hồ sơ thất bại."));
+      setFormError(parseApiError(err, tr("Cập nhật hồ sơ thất bại.")));
     } finally {
       setSubmitting(false);
     }
@@ -343,14 +348,14 @@ const UserManagement = () => {
         const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
         const nextStatus = isInactive ? 'Active' : 'Inactive';
         await api.put(`/Accounts/${user.accountId}/status`, { status: nextStatus });
-        toast.success("Cập nhật trạng thái", `Tài khoản "${user.username}" đã chuyển sang ${nextStatus}.`);
+        toast.success(tr("Cập nhật trạng thái"), trt('toggleAccount', { username: user.username, status: nextStatus }));
       } else if (type === 'delete') {
         await api.delete(`/Accounts/${user.accountId}`);
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-        toast.success("Soft Delete", `Tài khoản "${user.username}" đã chuyển sang Inactive.`);
+        toast.success("Soft Delete", trt('softDeletedAccount', { username: user.username }));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
-        toast.success("Kích hoạt thành công", `Tài khoản "${user.username}" đã kích hoạt trở lại.`);
+        toast.success(tr("Kích hoạt thành công"), trt('activatedAccount', { username: user.username }));
       }
       await loadUsers();
     } catch (err) {
@@ -360,12 +365,12 @@ const UserManagement = () => {
           await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
           await loadUsers();
         } catch (putErr) {
-          toast.error("Soft Delete thất bại", parseApiError(putErr));
+          toast.error(tr("Soft Delete thất bại"), parseApiError(putErr));
         }
       } else if (type === 'toggle') {
-        toast.error("Cập nhật trạng thái thất bại", parseApiError(err));
+        toast.error(tr("Cập nhật trạng thái thất bại"), parseApiError(err));
       } else {
-        toast.error("Kích hoạt tài khoản thất bại", parseApiError(err));
+        toast.error(tr("Kích hoạt tài khoản thất bại"), parseApiError(err));
       }
     } finally {
       setConfirmAction(null);
@@ -392,7 +397,7 @@ const UserManagement = () => {
           <p className="eyebrow">Administrator Management</p>
           <h1>User Management</h1>
           <p className="page-description">
-            Quản lý tài khoản hệ thống: Tạo mới, cập nhật hồ sơ, đổi vai trò (Role), phòng ban (Department), vô hiệu hóa (Soft Delete) và kích hoạt lại tài khoản.
+            {tr('Quản lý tài khoản hệ thống: Tạo mới, cập nhật hồ sơ, đổi vai trò (Role), phòng ban (Department), vô hiệu hóa (Soft Delete) và kích hoạt lại tài khoản.')}
           </p>
         </div>
 
@@ -439,11 +444,11 @@ const UserManagement = () => {
         <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <p className="section-label">System Accounts</p>
-            <h2>Danh sách tài khoản ({filteredUsers.length})</h2>
+            <h2>{tr('Danh sách tài khoản')} ({filteredUsers.length})</h2>
           </div>
           <input
             type="text"
-            placeholder="Tìm theo username, tên, email..."
+            placeholder={tr('Tìm theo username, tên, email...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -471,11 +476,11 @@ const UserManagement = () => {
 
           {loading ? (
             <div className="table-row" style={{ justifyContent: 'center', padding: '24px', color: '#64748b' }}>
-              Đang tải danh sách tài khoản...
+              {tr('Đang tải danh sách tài khoản...')}
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="table-row" style={{ justifyContent: 'center', padding: '24px', color: '#64748b', fontStyle: 'italic' }}>
-              Không tìm thấy tài khoản nào.
+              {tr('Không tìm thấy tài khoản nào.')}
             </div>
           ) : (
             filteredUsers.map((user) => {
@@ -500,7 +505,7 @@ const UserManagement = () => {
                       onClick={() => setConfirmAction({ type: 'toggle', user })}
                       className={!isInactive ? 'status status-active' : 'status status-pending'}
                       style={{ cursor: 'pointer', border: 'none' }}
-                      title="Click để toggle Active/Inactive"
+                      title={tr('Click để toggle Active/Inactive')}
                     >
                       {isInactive ? 'Inactive' : 'Active'}
                     </button>
@@ -557,10 +562,10 @@ const UserManagement = () => {
       </section>
 
       {/* CREATE USER MODAL */}
-      {isCreateOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>Tạo tài khoản mới</h2>
+      {isCreateOpen && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', margin: 'auto' }}>
+            <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>{tr('Tạo tài khoản mới')}</h2>
             
             {formError && (
               <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
@@ -570,19 +575,19 @@ const UserManagement = () => {
 
             <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Tên đăng nhập (Email / Username) *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tên đăng nhập (Email / Username) *')}</label>
                 <input
                   type="email"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ví dụ: user@domain.com"
+                  placeholder={tr('Ví dụ: user@domain.com')}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Mật khẩu *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Mật khẩu *')}</label>
                 <input
                   type="password"
                   required
@@ -593,20 +598,20 @@ const UserManagement = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Họ và tên *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Họ và tên *')}</label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn A"
+                  placeholder={tr('Ví dụ: Nguyễn Văn A')}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Vai trò (Role)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Vai trò (Role)')}</label>
                   <select
                     value={roleId}
                     onChange={(e) => {
@@ -633,14 +638,14 @@ const UserManagement = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Phòng ban</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Phòng ban')}</label>
                   {roleId !== '6' ? (
                     <select
                       value={getTrainingDeptId()}
                       disabled
                       style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569' }}
                     >
-                      <option value={getTrainingDeptId()}>Training (Trung tâm Đào tạo)</option>
+                      <option value={getTrainingDeptId()}>{tr('Training (Trung tâm Đào tạo)')}</option>
                     </select>
                   ) : (
                     <select
@@ -660,7 +665,7 @@ const UserManagement = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Số điện thoại</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Số điện thoại')}</label>
                   <input
                     type="text"
                     value={phone}
@@ -670,15 +675,15 @@ const UserManagement = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Giới tính')}</label>
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                   >
-                    <option value="Male">Nam (Male)</option>
-                    <option value="Female">Nữ (Female)</option>
-                    <option value="Other">Khác (Other)</option>
+                    <option value="Male">{tr('Nam (Male)')}</option>
+                    <option value="Female">{tr('Nữ (Female)')}</option>
+                    <option value="Other">{tr('Khác (Other)')}</option>
                   </select>
                 </div>
               </div>
@@ -689,27 +694,28 @@ const UserManagement = () => {
                   onClick={() => setIsCreateOpen(false)}
                   style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
                 >
-                  Hủy
+                  {tr('Hủy')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
                 >
-                  {submitting ? 'Đang tạo...' : 'Tạo tài khoản'}
+                  {submitting ? tr('Đang tạo...') : tr('Tạo tài khoản')}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* EDIT USER PROFILE & ROLE & DEPARTMENT MODAL */}
-      {isEditOpen && editingUser && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>Chỉnh sửa tài khoản</h2>
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>Tài khoản: <strong>{editingUser.username}</strong></p>
+      {isEditOpen && editingUser && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', margin: 'auto' }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>{tr('Chỉnh sửa tài khoản')}</h2>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>{tr('Tài khoản:')} <strong>{editingUser.username}</strong></p>
 
             {formError && (
               <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px' }}>
@@ -731,7 +737,7 @@ const UserManagement = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Vai trò (Role)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Vai trò (Role)')}</label>
                   <select
                     value={editRoleId}
                     onChange={(e) => handleEditRoleChange(e.target.value)}
@@ -746,7 +752,7 @@ const UserManagement = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Phòng ban (Department)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Phòng ban (Department)')}</label>
                   {editRoleId !== '6' ? (
                     <select
                       value={getTrainingDeptId()}
@@ -773,11 +779,11 @@ const UserManagement = () => {
 
               {editRoleId !== '5' ? (
                 <p style={{ margin: '-4px 0 0', fontSize: '11px', color: '#64748b' }}>
-                  * Các vai trò Instructor, QA, Academic, Training Manager, Audit bắt buộc thuộc phòng Training (Trung tâm Đào tạo).
+                  {tr('* Các vai trò Instructor, QA, Academic, Training Manager, Audit bắt buộc thuộc phòng Training (Trung tâm Đào tạo).')}
                 </p>
               ) : (
                 <p style={{ margin: '-4px 0 0', fontSize: '11px', color: '#64748b' }}>
-                  * Học viên (Student) có thể phân bổ sang các phòng ban khác (loại trừ phòng Training).
+                  {tr('* Học viên (Student) có thể phân bổ sang các phòng ban khác (loại trừ phòng Training).')}
                 </p>
               )}
 
@@ -827,12 +833,13 @@ const UserManagement = () => {
                   disabled={submitting}
                   style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
                 >
-                  {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  {submitting ? tr('Đang lưu...') : tr('Lưu thay đổi')}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Xác nhận thao tác tài khoản */}
@@ -842,31 +849,31 @@ const UserManagement = () => {
         onConfirm={() => runAccountAction(confirmAction?.type, confirmAction?.user)}
         title={
           confirmAction?.type === 'delete'
-            ? "Soft Delete tài khoản"
+            ? tr("Soft Delete tài khoản")
             : confirmAction?.type === 'toggle'
-            ? "Đổi trạng thái tài khoản"
-            : "Kích hoạt tài khoản"
+            ? tr("Đổi trạng thái tài khoản")
+            : tr("Kích hoạt tài khoản")
         }
         message={
           confirmAction?.type === 'delete'
-            ? `Bạn có chắc chắn muốn chuyển tài khoản "${confirmAction?.user?.username || ''}" sang trạng thái Inactive (Soft Delete)?`
+            ? trt('confirmSoftDelete', { username: confirmAction?.user?.username || '' })
             : confirmAction?.type === 'toggle'
-            ? `Bạn có muốn đổi trạng thái tài khoản "${confirmAction?.user?.username || ''}"?`
-            : `Bạn có chắc chắn muốn kích hoạt lại tài khoản "${confirmAction?.user?.username || ''}" thành Active?`
+            ? trt('confirmToggleStatus', { username: confirmAction?.user?.username || '' })
+            : trt('confirmActivate', { username: confirmAction?.user?.username || '' })
         }
         confirmText={
           confirmAction?.type === 'delete'
-            ? "SOFT DELETE"
+            ? tr("SOFT DELETE")
             : confirmAction?.type === 'toggle'
-            ? "ĐỔI TRẠNG THÁI"
-            : "KÍCH HOẠT"
+            ? tr("ĐỔI TRẠNG THÁI")
+            : tr("KÍCH HOẠT")
         }
-        cancelText="HỦY BỎ"
+        cancelText={tr("HỦY BỎ")}
         confirmVariant={confirmAction?.type === 'delete' ? "danger" : "primary"}
         bodyMessage={
           confirmAction?.type === 'delete'
-            ? "Tài khoản sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo và lịch sử kiểm toán vẫn được giữ nguyên."
-            : "Thay đổi trạng thái sẽ được áp dụng ngay và ghi nhận vào Audit Log."
+            ? tr("Tài khoản sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo và lịch sử kiểm toán vẫn được giữ nguyên.")
+            : tr("Thay đổi trạng thái sẽ được áp dụng ngay và ghi nhận vào Audit Log.")
         }
       />
 

@@ -1,8 +1,10 @@
 import { useState, useCallback } from "react";
 import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 
 const QASearchExport = () => {
+  const { tr } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [results, setResults] = useState(null);
@@ -13,7 +15,7 @@ const QASearchExport = () => {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      toast.error("Thiếu từ khóa", "Vui lòng nhập từ khóa tìm kiếm.");
+      toast.error(tr("Thiếu từ khóa"), tr("Vui lòng nhập từ khóa tìm kiếm."));
       return;
     }
     setSearching(true);
@@ -49,13 +51,13 @@ const QASearchExport = () => {
         });
 
         setResults(enriched);
-        toast.success("Tìm kiếm hoàn tất", `Tìm thấy ${enriched.length} kết quả.`);
+        toast.success(tr("Tìm kiếm hoàn tất"), `${tr('Tìm thấy')} ${enriched.length} ${tr('kết quả.')}`);
       } else {
         setResults([]);
-        toast.info("Không có kết quả", "Không tìm thấy kết quả nào.");
+        toast.info(tr("Không có kết quả"), tr("Không tìm thấy kết quả nào."));
       }
     } catch (err) {
-      toast.error("Tìm kiếm thất bại", err.message || "Lỗi không xác định");
+      toast.error(tr("Tìm kiếm thất bại"), err.message || tr("Lỗi không xác định"));
     } finally {
       setSearching(false);
     }
@@ -64,12 +66,12 @@ const QASearchExport = () => {
   // Export endpoint chỉ cho role Admin/Audit/Academic — QA không có quyền (backend trả 403),
   // nên thông báo rõ thay vì gọi API.
   const handleExportPackage = useCallback(() => {
-    toast.error("Không có quyền xuất", "Tài khoản QA không có quyền xuất Training Package (chỉ Admin/Audit/Academic).");
-  }, [toast]);
+    toast.error(tr("Không có quyền xuất"), tr("Tài khoản QA không có quyền xuất Training Package (chỉ Admin/Audit/Academic)."));
+  }, [toast, tr]);
 
   const handleExportAudit = useCallback(() => {
-    toast.error("Không có quyền xuất", "Tài khoản QA không có quyền xuất Audit Trail (chỉ Admin/Audit/Academic).");
-  }, [toast]);
+    toast.error(tr("Không có quyền xuất"), tr("Tài khoản QA không có quyền xuất Audit Trail (chỉ Admin/Audit/Academic)."));
+  }, [toast, tr]);
 
   return (
     <div className="qa-shell">
@@ -122,7 +124,7 @@ const QASearchExport = () => {
           <div className="qa-list">
             {results.length === 0 ? (
               <div style={{ padding: "16px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>
-                Không tìm thấy bản ghi nào.
+                {tr('Không tìm thấy bản ghi nào.')}
               </div>
             ) : (
               results.slice(0, 20).map((r, idx) => (

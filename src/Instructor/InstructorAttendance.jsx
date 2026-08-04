@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
+import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
 
 // Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login)
@@ -15,6 +17,7 @@ const getCurrentInstructorName = () => {
 };
 
 const InstructorAttendance = () => {
+  const { tr } = useLanguage();
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [sessions, setSessions] = useState([]);
@@ -54,13 +57,13 @@ const InstructorAttendance = () => {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
             code: cls.classCode || `CL-${cls.classId}`,
-            name: cls.className || "Lớp đào tạo",
-            subName: course ? course.courseName : "Chuyên đề huấn luyện",
+            name: cls.className || tr("Lớp đào tạo"),
+            subName: course ? course.courseName : tr("Chuyên đề huấn luyện"),
             courseKey: course ? String(course.courseId) : "N/A",
-            schedule: cls.schedule || "Chưa sắp lịch",
+            schedule: cls.schedule || tr("Chưa sắp lịch"),
             time: cls.time || "08:00 - 11:30",
             studentsCount: "0/0",
-            status: cls.status || "Đang diễn ra"
+            status: cls.status || tr("Đang diễn ra")
           };
         });
         setClassesData(mapped);
@@ -97,10 +100,10 @@ const InstructorAttendance = () => {
             sessionId: s.sessionId,
             stt: String(idx + 1).padStart(2, "0"),
             date: dateStr,
-            name: s.sessionTitle || "Buổi học",
-            room: s.location || "Phòng học",
+            name: s.sessionTitle || tr("Buổi học"),
+            room: s.location || tr("Phòng học"),
             instructor: getCurrentInstructorName(),
-            attendance: s.isConfirmed ? "Đã chốt" : "Chưa chốt",
+            attendance: s.isConfirmed ? tr("Đã chốt") : tr("Chưa chốt"),
             isConfirmed: s.isConfirmed || false
           };
         }));
@@ -133,7 +136,7 @@ const InstructorAttendance = () => {
           : null;
         return {
           code: profile ? profile.employeeCode || `HV${en.accountId}` : `HV${en.accountId}`,
-          name: profile ? profile.fullName : "Học viên",
+          name: profile ? profile.fullName : tr("Học viên"),
           accountId: en.accountId,
           enrollmentId: en.enrollmentId,
           classStudentId: classStudentRec ? classStudentRec.classStudentId : en.enrollmentId
@@ -205,14 +208,14 @@ const InstructorAttendance = () => {
       );
       
       toast.success(
-        "Lưu điểm danh thành công!",
-        "Đã cập nhật thông tin điểm danh.",
+        tr("Lưu điểm danh thành công!"),
+        tr("Đã cập nhật thông tin điểm danh."),
       );
       // Reload records to fetch new IDs
       loadAttendance(selectedSession);
     } catch (err) {
       console.error("Lỗi khi lưu điểm danh:", err);
-      toast.error("Lưu điểm danh thất bại!", err.message);
+      toast.error(tr("Lưu điểm danh thất bại!"), err.message);
     } finally {
       setSaving(false);
     }
@@ -249,15 +252,15 @@ const InstructorAttendance = () => {
       setConfirmPublishOpen(false);
       setIsConfirmed(true);
       toast.success(
-        "Chốt điểm danh thành công!",
-        "Bảng điểm danh đã được khóa.",
+        tr("Chốt điểm danh thành công!"),
+        tr("Bảng điểm danh đã được khóa."),
       );
       
       // Update local sessions state
-      setSessions(prev => prev.map(s => s.sessionId === selectedSession.sessionId ? { ...s, isConfirmed: true, attendance: "Đã chốt" } : s));
+      setSessions(prev => prev.map(s => s.sessionId === selectedSession.sessionId ? { ...s, isConfirmed: true, attendance: tr("Đã chốt") } : s));
     } catch (err) {
       console.error("Lỗi khi chốt điểm danh:", err);
-      toast.error("Chốt điểm danh thất bại!", err.message);
+      toast.error(tr("Chốt điểm danh thất bại!"), err.message);
     } finally {
       setPublishing(false);
     }
@@ -272,16 +275,16 @@ const InstructorAttendance = () => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <nav className="breadcrumb-nav">
-          <span className="breadcrumb-item" onClick={() => setSelectedSession(null)} style={{ cursor: 'pointer' }}>ĐIỂM DANH</span>
+          <span className="breadcrumb-item" onClick={() => setSelectedSession(null)} style={{ cursor: 'pointer' }}>{tr('ĐIỂM DANH')}</span>
           <svg width="4" height="6" viewBox="0 0 4 6" fill="none"><path d="M2.3 3L0 0.7L0.7 0L3.7 3L0.7 6L0 5.3L2.3 3Z" fill="currentColor" /></svg>
           <span className="breadcrumb-item active">{selectedSession.name}</span>
         </nav>
 
         <section className="content-header">
           <div className="header-left">
-            <h1>Điểm danh — {selectedSession.name}</h1>
+            <h1>{tr('Điểm danh')} — {selectedSession.name}</h1>
             <div className="divider-gold" />
-            <p className="header-description">{selectedSession.date} · {selectedSession.room} · Lớp: {selectedClass ? selectedClass.code : "N/A"}</p>
+            <p className="header-description">{selectedSession.date} · {selectedSession.room} · {tr('Lớp: ')}{selectedClass ? selectedClass.code : "N/A"}</p>
           </div>
 
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
@@ -295,7 +298,7 @@ const InstructorAttendance = () => {
                 cursor: isConfirmed ? "not-allowed" : "pointer"
               }}
             >
-              <span>LƯU ĐIỂM DANH</span>
+              <span>{tr('LƯU ĐIỂM DANH')}</span>
             </button>
 
             <button
@@ -309,7 +312,7 @@ const InstructorAttendance = () => {
                 cursor: isConfirmed ? "not-allowed" : "pointer"
               }}
             >
-              <span>{isConfirmed ? "ĐÃ KHÓA ĐIỂM DANH" : "CHỐT ĐIỂM DANH"}</span>
+              <span>{isConfirmed ? tr("ĐÃ KHÓA ĐIỂM DANH") : tr("CHỐT ĐIỂM DANH")}</span>
             </button>
           </div>
         </section>
@@ -318,19 +321,19 @@ const InstructorAttendance = () => {
         <div style={{ display: 'flex', gap: '20px', padding: '12px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '11px', fontWeight: '700' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#22c55e', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>P</span>
-            <span style={{ color: 'rgba(0,33,71,0.6)' }}>Present (Có mặt)</span>
+            <span style={{ color: 'rgba(0,33,71,0.6)' }}>{tr('Present (Có mặt)')}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#eab308', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>AE</span>
-            <span style={{ color: 'rgba(0,33,71,0.6)' }}>Absent Excused (Vắng có phép)</span>
+            <span style={{ color: 'rgba(0,33,71,0.6)' }}>{tr('Absent Excused (Vắng có phép)')}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#ef4444', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>AU</span>
-            <span style={{ color: 'rgba(0,33,71,0.6)' }}>Absent Unexcused (Vắng không phép)</span>
+            <span style={{ color: 'rgba(0,33,71,0.6)' }}>{tr('Absent Unexcused (Vắng không phép)')}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#3b82f6', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>T</span>
-            <span style={{ color: 'rgba(0,33,71,0.6)' }}>Tardy (Đi muộn)</span>
+            <span style={{ color: 'rgba(0,33,71,0.6)' }}>{tr('Tardy (Đi muộn)')}</span>
           </div>
         </div>
 
@@ -343,12 +346,12 @@ const InstructorAttendance = () => {
             color: '#ffffff', padding: '14px 20px', fontSize: '11px', fontWeight: '700',
             letterSpacing: '0.05em', textTransform: 'uppercase',
           }}>
-            <div style={{ textAlign: 'center' }}>STT</div>
-            <div>Mã học viên</div>
-            <div>Học viên</div>
-            <div style={{ textAlign: 'center' }}>Trạng thái điểm danh</div>
-            <div style={{ textAlign: 'center' }}>Đánh giá nhận xét</div>
-            <div style={{ textAlign: 'center' }}>Khóa sửa</div>
+            <div style={{ textAlign: 'center' }}>{tr('STT')}</div>
+            <div>{tr('Mã học viên')}</div>
+            <div>{tr('Học viên')}</div>
+            <div style={{ textAlign: 'center' }}>{tr('Trạng thái điểm danh')}</div>
+            <div style={{ textAlign: 'center' }}>{tr('Đánh giá nhận xét')}</div>
+            <div style={{ textAlign: 'center' }}>{tr('Khóa sửa')}</div>
           </div>
 
           <div className="table-body">
@@ -394,7 +397,7 @@ const InstructorAttendance = () => {
                     }}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                    <span>{student.remarks ? "Xem Note" : "Thêm Note"}</span>
+                    <span>{student.remarks ? tr("Xem Note") : tr("Thêm Note")}</span>
                   </button>
                 </div>
 
@@ -403,11 +406,11 @@ const InstructorAttendance = () => {
                   {isConfirmed ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '700', color: '#be123c' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                      Khóa
+                      {tr('Khóa')}
                     </span>
                   ) : (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '700', color: '#16a34a' }}>
-                      Mở
+                      {tr('Mở')}
                     </span>
                   )}
                 </div>
@@ -417,19 +420,19 @@ const InstructorAttendance = () => {
         </section>
 
         {/* Remarks Custom Modal Overlay */}
-        {remarkModalStudent && (
-          <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100 }}>
-            <div className="dashboard-panel" style={{ width: '480px', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
+        {remarkModalStudent && createPortal(
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,33,71,0.75)', zIndex: 999999, backdropFilter: 'blur(4px)' }}>
+            <div className="dashboard-panel" style={{ width: '480px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', margin: 'auto' }}>
               <div className="panel-header">
-                <h2>Ghi chú nhận xét — {remarkModalStudent.name}</h2>
-                <div className="panel-action" onClick={() => setRemarkModalStudent(null)} style={{ cursor: 'pointer' }}>Đóng</div>
+                <h2>{tr('Ghi chú nhận xét')} — {remarkModalStudent.name}</h2>
+                <div className="panel-action" onClick={() => setRemarkModalStudent(null)} style={{ cursor: 'pointer' }}>{tr('Đóng')}</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
                 <textarea
                   value={remarkText}
                   onChange={(e) => setRemarkText(e.target.value)}
                   disabled={isConfirmed}
-                  placeholder="Nhập ghi chú nhận xét về học viên..."
+                  placeholder={tr('Nhập ghi chú nhận xét về học viên...')}
                   style={{
                     width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #dfe6f1',
                     fontSize: '13px', outline: 'none', minHeight: '120px', resize: 'vertical'
@@ -441,7 +444,7 @@ const InstructorAttendance = () => {
                     type="button"
                     style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #dfe6f1', backgroundColor: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}
                   >
-                    HỦY BỎ
+                    {tr('HỦY BỎ')}
                   </button>
                   <button
                     onClick={() => {
@@ -453,12 +456,13 @@ const InstructorAttendance = () => {
                     type="button"
                     style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#c5a059', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}
                   >
-                    CẬP NHẬT
+                    {tr('CẬP NHẬT')}
                   </button>
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Toast notifications */}
@@ -469,10 +473,10 @@ const InstructorAttendance = () => {
           isOpen={confirmPublishOpen}
           onClose={() => setConfirmPublishOpen(false)}
           onConfirm={handleConfirmAttendance}
-          title="Xác nhận chốt điểm danh"
-          message="Bạn có chắc chắn muốn chốt và khóa bảng điểm danh này?"
-          confirmText="CHỐT ĐIỂM DANH"
-          cancelText="HỦY BỎ"
+          title={tr("Xác nhận chốt điểm danh")}
+          message={tr("Bạn có chắc chắn muốn chốt và khóa bảng điểm danh này?")}
+          confirmText={tr("CHỐT ĐIỂM DANH")}
+          cancelText={tr("HỦY BỎ")}
           confirmVariant="danger"
           loading={publishing}
         />
@@ -485,10 +489,10 @@ const InstructorAttendance = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <section className="content-header">
         <div className="header-left">
-          <h1>Điểm danh lớp học</h1>
+          <h1>{tr('Điểm danh lớp học')}</h1>
           <div className="divider-gold" />
           <p className="header-description">
-            Chọn lớp học và buổi học cụ thể để thực hiện điểm danh học viên.
+            {tr('Chọn lớp học và buổi học cụ thể để thực hiện điểm danh học viên.')}
           </p>
         </div>
       </section>
@@ -500,7 +504,7 @@ const InstructorAttendance = () => {
         boxShadow: '0 4px 12px rgba(0,33,71,0.04)',
       }}>
         <label style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Chọn lớp:
+          {tr('Chọn lớp:')}
         </label>
         <select
           style={{
@@ -525,18 +529,18 @@ const InstructorAttendance = () => {
           color: '#ffffff', padding: '12px 20px', fontSize: '11px', fontWeight: '700',
           letterSpacing: '0.05em', textTransform: 'uppercase',
         }}>
-          <div style={{ textAlign: 'center' }}>STT</div>
-          <div>Ngày học</div>
-          <div>Chuyên đề / Buổi học</div>
-          <div>Địa điểm / Phòng</div>
-          <div style={{ textAlign: 'center' }}>Trạng thái chốt</div>
-          <div style={{ textAlign: 'right', paddingRight: '24px' }}>Thao tác</div>
+          <div style={{ textAlign: 'center' }}>{tr('STT')}</div>
+          <div>{tr('Ngày học')}</div>
+          <div>{tr('Chuyên đề / Buổi học')}</div>
+          <div>{tr('Địa điểm / Phòng')}</div>
+          <div style={{ textAlign: 'center' }}>{tr('Trạng thái chốt')}</div>
+          <div style={{ textAlign: 'right', paddingRight: '24px' }}>{tr('Thao tác')}</div>
         </div>
 
         <div className="table-body">
           {sessions.length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(0,33,71,0.4)', fontStyle: 'italic' }}>
-              Không tìm thấy buổi học nào cho lớp học hiện tại.
+              {tr('Không tìm thấy buổi học nào cho lớp học hiện tại.')}
             </div>
           ) : (
             sessions.map((session) => (
@@ -572,7 +576,7 @@ const InstructorAttendance = () => {
                       boxShadow: '0 2px 4px rgba(197, 160, 89, 0.2)'
                     }}
                   >
-                    Điểm danh
+                    {tr('Điểm danh')}
                   </button>
                 </div>
               </div>

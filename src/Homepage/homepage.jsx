@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import './homepage.scss';
 
 const Homepage = () => {
@@ -40,6 +41,7 @@ const Homepage = () => {
         </nav>
 
         <div className="nav-actions">
+          <LanguageSwitcher dark />
           <button type="button" className="btn-sign-in" onClick={handleGoToLogin}>
             Sign in
           </button>

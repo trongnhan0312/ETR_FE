@@ -1,4 +1,7 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useLanguage } from '../context/LanguageContext';
 import './auditor.scss';
 
 const navigationItems = [
@@ -94,6 +97,7 @@ const AuditorLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHomePage = location.pathname === '/auditor';
+  const { tr, trEn } = useLanguage();
 
   return (
     <div className="academic-page">
@@ -108,7 +112,7 @@ const AuditorLayout = () => {
             </div>
             <div className="brand-text">
               <div className="brand-title">ETR</div>
-              <div className="brand-subtitle">Auditor Portal</div>
+              <div className="brand-subtitle">{trEn('Auditor Portal')}</div>
             </div>
           </div>
 
@@ -121,7 +125,7 @@ const AuditorLayout = () => {
                 className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
               >
                 {item.icon}
-                <span>{item.label}</span>
+                <span>{trEn(item.label)}</span>
               </NavLink>
             ))}
           </nav>
@@ -133,8 +137,8 @@ const AuditorLayout = () => {
               <div className="avatar-fallback">AU</div>
             </div>
             <div className="user-info">
-              <div className="user-name">Auditor Officer</div>
-              <div className="user-role">Read-Only Compliance</div>
+              <div className="user-name">{trEn('Auditor Officer')}</div>
+              <div className="user-role">{trEn('Read-Only Compliance')}</div>
             </div>
           </div>
           <button
@@ -147,7 +151,7 @@ const AuditorLayout = () => {
             }}
             style={{ marginTop: '16px', width: '100%' }}
           >
-            Đăng xuất
+            {tr('Đăng xuất')}
           </button>
         </div>
       </aside>
@@ -161,7 +165,7 @@ const AuditorLayout = () => {
               <button
                 onClick={() => navigate(-1)}
                 type="button"
-                aria-label="Quay lại"
+                aria-label={tr('Quay lại')}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -212,7 +216,7 @@ const AuditorLayout = () => {
                 whiteSpace: "nowrap",
               }}
             >
-              AeroMetric Aviation Systems / Auditor Space
+              {trEn('AeroMetric Aviation Systems / Auditor Space')}
             </div>
 
             <div className="search-field">
@@ -221,12 +225,12 @@ const AuditorLayout = () => {
                   <path d="M16.6 18L10.3 11.7C9.8 12.1 9.225 12.4167 8.575 12.65C7.925 12.8833 7.23333 13 6.5 13C4.68333 13 3.14583 12.3708 1.8875 11.1125C0.629167 9.85417 0 8.31667 0 6.5C0 4.68333 0.629167 3.14583 1.8875 1.8875C3.14583 0.629167 4.68333 0 6.5 0C8.31667 0 9.85417 0.629167 11.1125 1.8875C12.3708 3.14583 13 4.68333 13 6.5C13 7.23333 12.8833 7.925 12.65 8.575C12.4167 9.225 12.1 9.8 11.7 10.3L18 16.6L16.6 18ZM6.5 11C7.75 11 8.8125 10.5625 9.6875 9.6875C10.5625 8.8125 11 7.75 11 6.5C11 5.25 10.5625 4.1875 9.6875 3.3125C8.8125 2.4375 7.75 2 6.5 2C5.25 2 4.1875 2.4375 3.3125 3.3125C2.4375 4.1875 2 5.25 2 6.5C2 7.75 2.4375 8.8125 3.3125 9.6875C4.1875 10.5625 5.25 11 6.5 11Z" fill="currentColor" />
                 </svg>
               </div>
-              <input type="text" className="search-input" placeholder="Inspect locked records by ID, learner, course..." />
+              <input type="text" className="search-input" placeholder={trEn('Inspect locked records by ID, learner, course...')} />
             </div>
           </div>
 
           <div className="topbar-right">
-            <button className="notification-btn" type="button" aria-label="Notifications">
+            <button className="notification-btn" type="button" aria-label={trEn('Notifications')}>
               <svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 17V15H2V8C2 6.61667 2.41667 5.3875 3.25 4.3125C4.08333 3.2375 5.16667 2.53333 6.5 2.2V1.5C6.5 1.08333 6.64583 0.729167 6.9375 0.4375C7.22917 0.145833 7.58333 0 8 0C8.41667 0 8.77083 0.145833 9.0625 0.4375C9.35417 0.729167 9.5 1.08333 9.5 1.5V2.2C10.8333 2.53333 11.9167 3.2375 12.75 4.3125C13.5833 5.3875 14 6.61667 14 8V15H16V17H0ZM8 20C7.45 20 6.97917 19.8042 6.5875 19.4125C6.19583 19.0208 6 18.55 6 18H10C10 18.55 9.80417 19.0208 9.4125 19.4125C9.02083 19.8042 8.55 20 8 20ZM4 15H12V8C12 6.9 11.6083 5.95833 10.825 5.175C10.0417 4.39167 9.1 4 8 4C6.9 4 5.95833 4.39167 5.175 5.175C4.39167 5.95833 4 6.9 4 8V15Z" fill="currentColor" />
               </svg>
@@ -235,12 +239,7 @@ const AuditorLayout = () => {
 
             <div className="divider"></div>
 
-            <button className="lang-switcher" type="button">
-              <span>VIETNAMESE (VN)</span>
-              <svg width="7" height="5" viewBox="0 0 7 5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3.5 4.31667L0 0.816667L0.816667 0L3.5 2.68333L6.18333 0L7 0.816667L3.5 4.31667Z" fill="currentColor" />
-              </svg>
-            </button>
+            <LanguageSwitcher />
           </div>
         </header>
 

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { useLanguage } from '../context/LanguageContext';
 
 const QAAuditTrail = () => {
+  const { tr } = useLanguage();
   const [auditEntries, setAuditEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [auditError, setAuditError] = useState("");
@@ -22,7 +24,7 @@ const QAAuditTrail = () => {
           );
         throw isForbidden
           ? new Error(
-              "Tài khoản của bạn không có quyền xem Audit Log hệ thống.",
+              tr("Tài khoản của bạn không có quyền xem Audit Log hệ thống."),
             )
           : err;
       });
@@ -39,13 +41,13 @@ const QAAuditTrail = () => {
         action: a.actionType || a.entityName || "UPDATE",
         detail:
           a.description ||
-          `${a.actionType || "Cập nhật"} ${a.entityName || "hồ sơ"} #${a.recordId || ""}`,
+          `${a.actionType || "UPDATE"} ${a.entityName || "record"} #${a.recordId || ""}`,
       }));
       setAuditEntries(mapped);
     } catch (err) {
       console.error("Error loading audit:", err);
       setAuditEntries([]);
-      setAuditError(err.message || "Không thể tải audit log.");
+      setAuditError(err.message || tr("Không thể tải audit log."));
     } finally {
       setLoading(false);
     }
@@ -94,7 +96,7 @@ const QAAuditTrail = () => {
                 color: "#64748b",
               }}
             >
-              Đang tải...
+              {tr('Đang tải...')}
             </div>
           ) : auditError ? (
             <div
@@ -116,7 +118,7 @@ const QAAuditTrail = () => {
                 fontStyle: "italic",
               }}
             >
-              Chưa có bản ghi audit nào.
+              {tr('Chưa có bản ghi audit nào.')}
             </div>
           ) : (
             auditEntries.map((entry, idx) => (

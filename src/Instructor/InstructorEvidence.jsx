@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { api } from "../utils/api";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 const getAccountIdFromToken = () => {
   try {
     const token = localStorage.getItem("token");
@@ -27,6 +28,7 @@ const getAccountIdFromToken = () => {
 };
 
 const InstructorEvidence = () => {
+  const { tr } = useLanguage();
   const toast = useToast();
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -56,8 +58,8 @@ const InstructorEvidence = () => {
           return {
             classId: cls.classId,
             code: cls.classCode || `CL-${cls.classId}`,
-            name: cls.className || "Lớp đào tạo",
-            subName: course ? course.courseName : "Chuyên đề huấn luyện",
+            name: cls.className || tr("Lớp đào tạo"),
+            subName: course ? course.courseName : tr("Chuyên đề huấn luyện"),
             courseKey: course ? String(course.courseId) : "N/A",
             subjectId: cls.subjectId || 1,
           };
@@ -148,7 +150,7 @@ const InstructorEvidence = () => {
         return {
           evidenceFileId: ev.evidenceFileId || ev.id,
           stt: String(idx + 1).padStart(2, "0"),
-          name: ev.fileName || "Bằng chứng đào tạo",
+          name: ev.fileName || tr("Bằng chứng đào tạo"),
           type: typeName,
           date:
             ev.uploadedAt || ev.createdAt
@@ -182,7 +184,7 @@ const InstructorEvidence = () => {
 
     // Validate evidence type is selected
     if (!selectedEvidenceTypeId) {
-      toast.warning("Thiếu loại bằng chứng", "Vui lòng chọn loại bằng chứng trước khi tải lên.");
+      toast.warning(tr("Thiếu loại bằng chứng"), tr("Vui lòng chọn loại bằng chứng trước khi tải lên."));
       return;
     }
 
@@ -293,12 +295,12 @@ const InstructorEvidence = () => {
       formData.append("File", file, file.name);
 
       await api.postFormData("/Evidences/upload", formData);
-      toast.success("Tải lên thành công", `Đã tải lên tệp minh chứng: ${file.name}.`);
+      toast.success(tr("Tải lên thành công"), `${tr('Đã tải lên tệp minh chứng: ')}${file.name}.`);
       loadEvidences();
     } catch (err) {
       console.error("[Upload Evidence] Lỗi khi upload minh chứng:", err);
 
-      let message = "Đã xảy ra lỗi khi tải lên minh chứng.";
+      let message = tr("Đã xảy ra lỗi khi tải lên minh chứng.");
       const errText = err?.message || "";
 
       // Try to extract response body for more detail
@@ -312,27 +314,27 @@ const InstructorEvidence = () => {
         errText.includes("NetworkError")
       ) {
         message =
-          "Không thể kết nối tới máy chủ API. Vui lòng đảm bảo backend đang chạy và đang lắng nghe tại https://localhost:7169.";
+          tr("Không thể kết nối tới máy chủ API. Vui lòng đảm bảo backend đang chạy và đang lắng nghe tại https://localhost:7169.");
       } else if (errText.includes("400")) {
         message =
-          "Yêu cầu không hợp lệ (400). Vui lòng kiểm tra lại thông tin EvidenceTypeId, AccountId, SubjectResultId và File.";
+          tr("Yêu cầu không hợp lệ (400). Vui lòng kiểm tra lại thông tin EvidenceTypeId, AccountId, SubjectResultId và File.");
       } else if (errText.includes("401")) {
         message =
-          "Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.";
+          tr("Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.");
       } else if (errText.includes("413")) {
         message =
-          "Tệp quá lớn (413). Vui lòng chọn tệp nhỏ hơn 10MB.";
+          tr("Tệp quá lớn (413). Vui lòng chọn tệp nhỏ hơn 10MB.");
       } else if (errText.includes("415")) {
         message =
-          "Định dạng tệp không được hỗ trợ (415). Vui lòng chọn PDF, PNG, JPG hoặc DOCX.";
+          tr("Định dạng tệp không được hỗ trợ (415). Vui lòng chọn PDF, PNG, JPG hoặc DOCX.");
       } else if (errText.includes("500")) {
         message =
-          "Lỗi máy chủ nội bộ (500). Vui lòng kiểm tra log backend để biết chi tiết InnerException.";
+          tr("Lỗi máy chủ nội bộ (500). Vui lòng kiểm tra log backend để biết chi tiết InnerException.");
       } else if (errText) {
-        message = `Lỗi: ${errText}`;
+        message = `${tr('Lỗi: ')}${errText}`;
       }
 
-      toast.error("Tải lên thất bại", message);
+      toast.error(tr("Tải lên thất bại"), message);
     } finally {
       setUploading(false);
       setUploadingFileName("");
@@ -363,11 +365,11 @@ const InstructorEvidence = () => {
     if (!confirmDeleteId) return;
     try {
       await api.delete(`/Evidences/${confirmDeleteId}`);
-      toast.success("Xóa thành công", "Đã xóa tệp minh chứng.");
+      toast.success(tr("Xóa thành công"), tr("Đã xóa tệp minh chứng."));
       loadEvidences();
     } catch (err) {
       console.error("Lỗi khi xóa minh chứng:", err);
-      toast.error("Xóa thất bại", err.message || "Lỗi không xác định");
+      toast.error(tr("Xóa thất bại"), err.message || tr("Lỗi không xác định"));
     } finally {
       setConfirmDeleteId(null);
     }
@@ -387,7 +389,7 @@ const InstructorEvidence = () => {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Lỗi tải xuống minh chứng:", err);
-      toast.error("Tải xuống thất bại", err.message || "Lỗi không xác định");
+      toast.error(tr("Tải xuống thất bại"), err.message || tr("Lỗi không xác định"));
     }
   };
 
@@ -399,11 +401,10 @@ const InstructorEvidence = () => {
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <section className="content-header">
         <div className="header-left">
-          <h1>Hồ sơ minh chứng đào tạo</h1>
+          <h1>{tr('Hồ sơ minh chứng đào tạo')}</h1>
           <div className="divider-gold" />
           <p className="header-description">
-            Tải lên và lưu trữ các tệp bằng chứng thực hành/điểm danh để phục vụ
-            QA và báo cáo.
+            {tr('Tải lên và lưu trữ các tệp bằng chứng thực hành/điểm danh để phục vụ QA và báo cáo.')}
           </p>
         </div>
       </section>
@@ -430,7 +431,7 @@ const InstructorEvidence = () => {
             letterSpacing: "0.05em",
           }}
         >
-          Chọn lớp:
+          {tr('Chọn lớp:')}
         </label>
         <select
           style={{
@@ -469,7 +470,7 @@ const InstructorEvidence = () => {
                 margin: 0,
               }}
             >
-              Các minh chứng đã tải lên
+              {tr('Các minh chứng đã tải lên')}
             </h3>
             <p
               style={{
@@ -478,7 +479,7 @@ const InstructorEvidence = () => {
                 margin: "4px 0 0",
               }}
             >
-              {evidences.length} tệp tài liệu lưu trữ
+              {evidences.length} {tr('tệp tài liệu lưu trữ')}
             </p>
           </div>
 
@@ -497,12 +498,12 @@ const InstructorEvidence = () => {
               textTransform: "uppercase",
             }}
           >
-            <div style={{ textAlign: "center" }}>STT</div>
-            <div>Tên tệp bằng chứng</div>
-            <div>Loại bằng chứng</div>
-            <div>Ngày tải lên</div>
+            <div style={{ textAlign: "center" }}>{tr('STT')}</div>
+            <div>{tr('Tên tệp bằng chứng')}</div>
+            <div>{tr('Loại bằng chứng')}</div>
+            <div>{tr('Ngày tải lên')}</div>
             <div style={{ textAlign: "right", paddingRight: "24px" }}>
-              Thao tác
+              {tr('Thao tác')}
             </div>
           </div>
 
@@ -516,7 +517,7 @@ const InstructorEvidence = () => {
                   fontStyle: "italic",
                 }}
               >
-                Đang tải tệp bằng chứng...
+                {tr('Đang tải tệp bằng chứng...')}
               </div>
             ) : evidences.length === 0 ? (
               <div
@@ -527,7 +528,7 @@ const InstructorEvidence = () => {
                   fontStyle: "italic",
                 }}
               >
-                Chưa có tệp minh chứng nào được tải lên cho lớp này.
+                {tr('Chưa có tệp minh chứng nào được tải lên cho lớp này.')}
               </div>
             ) : (
               evidences.map((ev) => (
@@ -566,7 +567,7 @@ const InstructorEvidence = () => {
                         textDecoration: "none",
                       }}
                       className="hover:underline"
-                      title="Tải xuống"
+                      title={tr('Tải xuống')}
                     >
                       {ev.name}
                     </a>
@@ -629,7 +630,7 @@ const InstructorEvidence = () => {
                         cursor: "pointer",
                       }}
                     >
-                      Xóa bỏ
+                      {tr('Xóa bỏ')}
                     </button>
                   </div>
                 </div>
@@ -641,7 +642,7 @@ const InstructorEvidence = () => {
         {/* Right pane: Upload File Dropzone */}
         <div className="dashboard-panel">
           <div className="panel-header">
-            <h2>Tải lên minh chứng mới</h2>
+            <h2>{tr('Tải lên minh chứng mới')}</h2>
           </div>
 
           {/* Evidence Type Selector */}
@@ -662,7 +663,7 @@ const InstructorEvidence = () => {
                 letterSpacing: "0.05em",
               }}
             >
-              Loại bằng chứng:
+              {tr('Loại bằng chứng:')}
             </label>
             <select
               value={selectedEvidenceTypeId}
@@ -681,7 +682,7 @@ const InstructorEvidence = () => {
               }}
             >
               {evidenceTypes.length === 0 ? (
-                <option value="">Đang tải loại bằng chứng...</option>
+                <option value="">{tr('Đang tải loại bằng chứng...')}</option>
               ) : (
                 evidenceTypes.map((et) => (
                   <option key={et.evidenceTypeId} value={et.evidenceTypeId}>
@@ -719,10 +720,10 @@ const InstructorEvidence = () => {
                 </svg>
               </div>
               <span className="dropzone-title">
-                Kéo thả tệp minh chứng vào đây
+                {tr('Kéo thả tệp minh chứng vào đây')}
               </span>
               <span className="dropzone-subtitle">
-                Hỗ trợ PDF, PNG, JPG, DOCX (Tối đa 10MB)
+                {tr('Hỗ trợ PDF, PNG, JPG, DOCX (Tối đa 10MB)')}
               </span>
 
               <input
@@ -754,7 +755,7 @@ const InstructorEvidence = () => {
                   color: "white",
                 }}
               >
-                Chọn tệp từ máy
+                {tr('Chọn tệp từ máy')}
               </button>
             </div>
             {uploading && (
@@ -789,7 +790,7 @@ const InstructorEvidence = () => {
                     margin: 0,
                   }}
                 >
-                  Đang tải tệp lên máy chủ: {uploadingFileName}
+                  {tr('Đang tải tệp lên máy chủ: ')}{uploadingFileName}
                 </p>
               </div>
             )}
@@ -802,12 +803,12 @@ const InstructorEvidence = () => {
         isOpen={!!confirmDeleteId}
         onClose={() => setConfirmDeleteId(null)}
         onConfirm={handleConfirmDeleteEvidence}
-        title="Xóa minh chứng"
-        message="Bạn có chắc chắn muốn xóa tệp minh chứng này?"
+        title={tr("Xóa minh chứng")}
+        message={tr("Bạn có chắc chắn muốn xóa tệp minh chứng này?")}
         confirmText="XÓA"
         cancelText="HỦY BỎ"
         confirmVariant="danger"
-        bodyMessage="Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này."
+        bodyMessage={tr("Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này.")}
       />
 
       {/* Toast notifications */}

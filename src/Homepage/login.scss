@@ -5,10 +5,19 @@
   grid-template-columns: 1.1fr 0.9fr;
   align-items: center;
   overflow: hidden;
+  position: relative;
   background:
     radial-gradient(circle at top left, rgba(212, 175, 55, 0.14), transparent 30%),
     linear-gradient(135deg, #031126 0%, #06284f 52%, #02101f 100%);
   color: #ffffff;
+}
+
+/* Nút chuyển ngôn ngữ — góc trên bên phải */
+.login-lang-switcher {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 20;
 }
 
 .login-intro {
@@ -672,6 +681,11 @@
 }
 
 @media (max-width: 640px) {
+  .login-lang-switcher {
+    top: 14px;
+    right: 16px;
+  }
+
   .login-intro,
   .login-panel {
     padding: 24px;

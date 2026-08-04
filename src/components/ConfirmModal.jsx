@@ -1,3 +1,6 @@
+import { createPortal } from 'react-dom';
+import { useLanguage } from '../context/LanguageContext';
+
 const ConfirmModal = ({
   isOpen,
   onClose,
@@ -9,9 +12,9 @@ const ConfirmModal = ({
   confirmVariant = "danger", // "danger" | "primary" | "gold"
   loading = false,
   icon,
-  // bodyMessage: nội dung body tùy biến; mặc định hiển thị cảnh báo khóa dữ liệu (điểm danh/điểm)
   bodyMessage,
 }) => {
+  const { tr } = useLanguage();
   if (!isOpen) return null;
 
   const getConfirmStyle = () => {
@@ -31,16 +34,21 @@ const ConfirmModal = ({
     }
   };
 
-  return (
+  const modalJSX = (
     <div
       style={{
         position: "fixed",
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100vw",
+        height: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(0,0,0,0.55)",
-        zIndex: 1000,
+        backgroundColor: "rgba(0,33,71,0.75)",
+        zIndex: 999999,
         backdropFilter: "blur(4px)",
         animation: "fadeIn 0.2s ease-out",
       }}
@@ -62,13 +70,14 @@ const ConfirmModal = ({
       <div
         className="dashboard-panel"
         style={{
-          width: "440px",
-          maxWidth: "90vw",
+          width: "460px",
+          maxWidth: "92vw",
           borderRadius: "20px",
-          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)",
           animation: "scaleIn 0.2s ease-out",
           padding: 0,
           overflow: "hidden",
+          margin: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -164,7 +173,6 @@ const ConfirmModal = ({
               </p>
             ) : null
           ) : (
-            /* Warning box (mặc định — cảnh báo khóa dữ liệu cho điểm danh/điểm) */
             <div
               style={{
                 display: "flex",
@@ -197,7 +205,7 @@ const ConfirmModal = ({
                   fontWeight: "500",
                 }}
               >
-                Sau khi chốt, dữ liệu sẽ được khóa và không thể chỉnh sửa. Bạn vẫn có thể mở khóa sau nếu cần.
+                {tr('Sau khi chốt, dữ liệu sẽ được khóa và không thể chỉnh sửa.')}
               </p>
             </div>
           )}
@@ -231,16 +239,6 @@ const ConfirmModal = ({
               opacity: loading ? 0.6 : 1,
               transition: "all 0.15s",
             }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.borderColor = "#c5a059";
-                e.currentTarget.style.color = "#c5a059";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "#dfe6f1";
-              e.currentTarget.style.color = "#002147";
-            }}
           >
             {cancelText}
           </button>
@@ -255,6 +253,12 @@ const ConfirmModal = ({
               opacity: loading ? 0.7 : 1,
               cursor: loading ? "not-allowed" : "pointer",
               transition: "all 0.15s",
+              padding: "10px 20px",
+              borderRadius: "10px",
+              color: "#ffffff",
+              fontSize: "12px",
+              fontWeight: "700",
+              border: "none"
             }}
           >
             {loading ? (
@@ -277,7 +281,7 @@ const ConfirmModal = ({
                     fill="none"
                   />
                 </svg>
-                ĐANG XỬ LÝ...
+                {tr('ĐANG XỬ LÝ...')}
               </span>
             ) : (
               <span>{confirmText}</span>
@@ -287,6 +291,8 @@ const ConfirmModal = ({
       </div>
     </div>
   );
+
+  return createPortal(modalJSX, document.body);
 };
 
 export default ConfirmModal;

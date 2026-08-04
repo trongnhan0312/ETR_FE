@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * PromptModal — thay thế window.prompt() bằng modal nhập liệu đẹp, nhất quán với
@@ -18,11 +20,11 @@ const PromptModal = ({
   required = true,
   maxLength = 500,
 }) => {
+  const { tr } = useLanguage();
   const [value, setValue] = useState(defaultValue || "");
+
   const [prevOpen, setPrevOpen] = useState(false);
 
-  // Reset giá trị mỗi lần modal mở — điều chỉnh state trong lúc render (khuyến nghị của React,
-  // tránh gọi setState trong effect).
   if (isOpen && !prevOpen) {
     setValue(defaultValue || "");
   }
@@ -55,16 +57,21 @@ const PromptModal = ({
 
   const canSubmit = !required || value.trim().length > 0;
 
-  return (
+  const modalJSX = (
     <div
       style={{
         position: "fixed",
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100vw",
+        height: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(0,0,0,0.55)",
-        zIndex: 1000,
+        backgroundColor: "rgba(0,33,71,0.75)",
+        zIndex: 999999,
         backdropFilter: "blur(4px)",
         animation: "fadeIn 0.2s ease-out",
       }}
@@ -86,13 +93,14 @@ const PromptModal = ({
       <div
         className="dashboard-panel"
         style={{
-          width: "460px",
-          maxWidth: "90vw",
+          width: "480px",
+          maxWidth: "92vw",
           borderRadius: "20px",
-          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)",
           animation: "scaleIn 0.2s ease-out",
           padding: 0,
           overflow: "hidden",
+          margin: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -195,7 +203,7 @@ const PromptModal = ({
                 fontWeight: "600",
               }}
             >
-              Vui lòng nhập nội dung (bắt buộc).
+              {tr('Vui lòng nhập nội dung (bắt buộc).')}
             </p>
           )}
         </div>
@@ -248,6 +256,12 @@ const PromptModal = ({
               opacity: canSubmit ? 1 : 0.5,
               cursor: canSubmit ? "pointer" : "not-allowed",
               transition: "all 0.15s",
+              padding: "10px 20px",
+              borderRadius: "10px",
+              color: "#ffffff",
+              fontSize: "12px",
+              fontWeight: "700",
+              border: "none"
             }}
           >
             {confirmText}
@@ -256,6 +270,8 @@ const PromptModal = ({
       </div>
     </div>
   );
+
+  return createPortal(modalJSX, document.body);
 };
 
 export default PromptModal;

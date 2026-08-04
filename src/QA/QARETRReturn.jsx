@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
+import { useLanguage } from '../context/LanguageContext';
 
 const QARETRReturn = () => {
+  const { tr } = useLanguage();
   const [etrList, setEtrList] = useState([]);
   const [selectedEtrId, setSelectedEtrId] = useState("");
   const [returnReason, setReturnReason] = useState("");
@@ -48,7 +50,7 @@ const QARETRReturn = () => {
             etrId,
             learner:
               profile?.fullName ||
-              `Học viên #${enrollment?.accountId || ""}`,
+              `Student #${enrollment?.accountId || ""}`,
             status: etr.status,
           };
         });
@@ -63,11 +65,11 @@ const QARETRReturn = () => {
 
   const handleSendBack = async () => {
     if (!selectedEtrId) {
-      toast.error("Chưa chọn ETR", "Vui lòng chọn ETR để trả lại.");
+      toast.error(tr("Chưa chọn ETR"), tr("Vui lòng chọn ETR để trả lại."));
       return;
     }
     if (!returnReason.trim()) {
-      toast.error("Thiếu lý do", "Vui lòng nhập lý do trả lại.");
+      toast.error(tr("Thiếu lý do"), tr("Vui lòng nhập lý do trả lại."));
       return;
     }
     setSending(true);
@@ -75,12 +77,12 @@ const QARETRReturn = () => {
       await api.post(`/Etr/${selectedEtrId}/return`, {
         comment: returnReason,
       });
-      toast.warning("Đã trả lại ETR", `ETR #${String(selectedEtrId).padStart(4, "0")} đã được trả lại.`);
+      toast.warning(tr("Đã trả lại ETR"), `ETR #${String(selectedEtrId).padStart(4, "0")} ${tr('đã được trả lại.')}`);
       setSelectedEtrId("");
       setReturnReason("");
       await loadEtrs();
     } catch (err) {
-      toast.error("Trả lại thất bại", err.message || "Lỗi không xác định");
+      toast.error(tr("Trả lại thất bại"), err.message || tr("Lỗi không xác định"));
     } finally {
       setSending(false);
     }
@@ -110,11 +112,11 @@ const QARETRReturn = () => {
           <div className="qa-list">
             {loading ? (
               <div style={{ padding: "12px", color: "#64748b" }}>
-                Đang tải...
+                {tr('Đang tải...')}
               </div>
             ) : etrList.length === 0 ? (
               <div style={{ padding: "12px", color: "#64748b", fontStyle: "italic" }}>
-                Không có ETR nào để trả lại.
+                {tr('Không có ETR nào để trả lại.')}
               </div>
             ) : (
               etrList.map((etr) => (

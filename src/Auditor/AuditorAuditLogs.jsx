@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import { fetchAuditLogs, searchAuditLogs } from './auditorApi';
 
 const AuditorAuditLogs = () => {
+  const { trEn } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModule, setSelectedModule] = useState('All');
   const [logs, setLogs] = useState([]);
@@ -34,10 +36,10 @@ const AuditorAuditLogs = () => {
       {/* Header */}
       <section className="content-header">
         <div className="header-left">
-          <h1>System Audit Logs</h1>
+          <h1>{trEn('System Audit Logs')}</h1>
           <div className="divider-gold"></div>
           <p className="header-description">
-            Complete, immutable audit trail of system interactions, access verifications, and compliance enforcement events.
+            {trEn('Complete, immutable audit trail of system interactions, access verifications, and compliance enforcement events.')}
           </p>
         </div>
       </section>
@@ -56,7 +58,7 @@ const AuditorAuditLogs = () => {
               </span>
               <input
                 type="text"
-                placeholder="Search audit logs by user, action, details, ID..."
+                placeholder={trEn('Search audit logs by user, action, details, ID...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -70,7 +72,7 @@ const AuditorAuditLogs = () => {
                 className={`filter-btn${selectedModule === mod ? ' active' : ''}`}
                 onClick={() => setSelectedModule(mod)}
               >
-                {mod}
+                {trEn(mod)}
               </button>
             ))}
           </div>
@@ -79,19 +81,19 @@ const AuditorAuditLogs = () => {
         {/* Audit Log Table */}
         <div className="table-responsive-scroll">
           <div className="table-header auditor-logs-grid">
-            <div>Timestamp</div>
-            <div>User</div>
-            <div>Role</div>
-            <div>Module</div>
-            <div>Action</div>
-            <div style={{ textAlign: 'right' }}>Result</div>
+            <div>{trEn('Timestamp')}</div>
+            <div>{trEn('User')}</div>
+            <div>{trEn('Role')}</div>
+            <div>{trEn('Module')}</div>
+            <div>{trEn('Action')}</div>
+            <div style={{ textAlign: 'right' }}>{trEn('Result')}</div>
           </div>
 
           <div className="table-body">
             {loading ? (
-              <div className="empty-table-state">Loading audit logs...</div>
+              <div className="empty-table-state">{trEn('Loading audit logs...')}</div>
             ) : logs.length === 0 ? (
-              <div className="empty-table-state">No audit logs found matching criteria.</div>
+              <div className="empty-table-state">{trEn('No audit logs found matching criteria.')}</div>
             ) : (
               logs.map((log) => (
                 <div key={log.id} className="table-row auditor-logs-grid">
@@ -116,7 +118,7 @@ const AuditorAuditLogs = () => {
 
         {/* Table Footer */}
         <div className="table-footer">
-          <div className="footer-info">Showing {logs.length} of {logs.length} audit trail events</div>
+          <div className="footer-info">{trEn('Showing')} {logs.length} {trEn('of')} {logs.length} {trEn('audit trail events')}</div>
           <div className="pagination">
             <button className="page-arrow" disabled>‹</button>
             <button className="page-num active">1</button>

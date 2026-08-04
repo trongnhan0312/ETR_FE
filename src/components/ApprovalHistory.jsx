@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { useLanguage } from '../context/LanguageContext';
 
 const ApprovalHistory = ({ etrId, onClose }) => {
+  const { tr } = useLanguage();
   const [logEntries, setLogEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -85,7 +87,7 @@ const ApprovalHistory = ({ etrId, onClose }) => {
         setLogEntries(mapped);
       }
     } catch (err) {
-      setError("Không thể tải lịch sử phê duyệt: " + (err.message || ""));
+      setError(tr("Không thể tải lịch sử phê duyệt: ") + (err.message || ""));
     } finally {
       setLoading(false);
     }
@@ -109,7 +111,7 @@ const ApprovalHistory = ({ etrId, onClose }) => {
   if (!etrId) {
     return (
       <div style={{ padding: "24px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>
-        Chọn một ETR để xem lịch sử phê duyệt.
+        {tr('Chọn một ETR để xem lịch sử phê duyệt.')}
       </div>
     );
   }
@@ -149,7 +151,7 @@ const ApprovalHistory = ({ etrId, onClose }) => {
 
       {loading ? (
         <div style={{ padding: "16px", textAlign: "center", color: "#64748b" }}>
-          Đang tải...
+          {tr('Đang tải...')}
         </div>
       ) : error ? (
         <div style={{ padding: "16px", textAlign: "center", color: "#dc2626" }}>
@@ -157,7 +159,7 @@ const ApprovalHistory = ({ etrId, onClose }) => {
         </div>
       ) : logEntries.length === 0 ? (
         <div style={{ padding: "16px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>
-          Chưa có hoạt động phê duyệt nào cho ETR này.
+          {tr('Chưa có hoạt động phê duyệt nào cho ETR này.')}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

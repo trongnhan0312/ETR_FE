@@ -949,26 +949,32 @@
   position: fixed;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 33, 71, 0.7);
+  background-color: rgba(0, 33, 71, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
+  z-index: 99999;
+  backdrop-filter: blur(4px);
   animation: fadeIn 0.2s ease-out;
 }
 
 .modal-container {
   background-color: #ffffff;
-  width: 600px;
-  max-width: 90%;
+  width: 650px;
+  max-width: 95vw;
+  max-height: 90vh;
+  margin: auto;
   border-radius: 8px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 100000;
   animation: slideUp 0.25s ease-out;
 }
 
@@ -1961,9 +1967,9 @@
 
 .course-table-grid {
   display: grid;
-  grid-template-columns: 48px 1.2fr 2fr 1.3fr 1.8fr 1.5fr 1.3fr;
+  grid-template-columns: 36px 1fr 1.8fr 1.2fr 1.6fr 1.2fr minmax(260px, auto);
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 
   .col-expand-trigger {
     display: flex;

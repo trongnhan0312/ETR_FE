@@ -12,18 +12,26 @@ import {
   FaUser,
 } from "react-icons/fa";
 import { API_BASE_URLS } from "../utils/api";
+import { useLanguage } from "../context/LanguageContext";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import "./login.scss";
 
 /** Helper: try fetching from each base URL until one succeeds (network-level retry only) */
 async function tryFetchWithFallback(urls, path, fetchOptions) {
   for (const baseUrl of urls) {
+    // Timeout cho mỗi base URL (12s) — nếu backend treo (không phản hồi, không trả lỗi),
+    // FE phải bỏ qua và thử base kế tiếp / báo lỗi rõ ràng, KHÔNG được spinner vô hạn.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
     try {
       const url = `${baseUrl}${path}`;
       console.log(`[Fetch] Trying: ${url}`);
-      const res = await fetch(url, fetchOptions);
+      const res = await fetch(url, { ...fetchOptions, signal: controller.signal });
       if (res.ok || res.status >= 400) return res; // server responded, return regardless of status
     } catch (err) {
       console.warn(`[Fetch] Cannot reach ${baseUrl}${path}:`, err.message);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
   return null;
@@ -40,8 +48,67 @@ const VALIDATION_RULES = {
   },
 };
 
+const DEMO_ROLE_BY_USERNAME = {
+  admin: "Admin",
+  instructor: "Instructor",
+  qa: "QA",
+  qualityassurance: "QA",
+  academic: "Academic",
+  academicstaff: "Academic",
+  trainingmanager: "TrainingManager",
+  manager: "TrainingManager",
+  student: "Student",
+  learner: "Student",
+  auditor: "Auditor",
+  audit: "Auditor",
+};
+
+const buildDemoUser = (username = "") => {
+  const normalized = (username || "").trim().toLowerCase();
+  const role =
+    DEMO_ROLE_BY_USERNAME[normalized] ||
+    (normalized.includes("admin")
+      ? "Admin"
+      : normalized.includes("qa")
+        ? "QA"
+        : normalized.includes("academic")
+          ? "Academic"
+          : normalized.includes("training") || normalized.includes("manager")
+            ? "TrainingManager"
+            : normalized.includes("student") || normalized.includes("learner")
+              ? "Student"
+              : normalized.includes("audit") || normalized.includes("auditor")
+                ? "Auditor"
+                : "Instructor");
+
+  const fullName =
+    role === "Admin"
+      ? "Demo Admin"
+      : role === "QA"
+        ? "Demo QA Officer"
+        : role === "Academic"
+          ? "Demo Academic Staff"
+          : role === "TrainingManager"
+            ? "Demo Training Manager"
+            : role === "Student"
+              ? "Demo Student"
+              : role === "Auditor"
+                ? "Demo Auditor"
+                : "Demo Instructor";
+
+  return {
+    token: "demo-token",
+    accountId: 1,
+    userId: 1,
+    username: username.trim() || "demo.instructor",
+    fullName,
+    role,
+  };
+};
+
 const Login = () => {
   const navigate = useNavigate();
+  const { tr } = useLanguage();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -81,10 +148,10 @@ const Login = () => {
       field === "password" ? value || "" : (value || "").trim();
 
     if (!checkValue && rules.required) {
-      return rules.required;
+      return tr(rules.required);
     }
     if (rules.minLength && checkValue.length < rules.minLength.value) {
-      return rules.minLength.message;
+      return tr(rules.minLength.message);
     }
     return "";
   };
@@ -134,41 +201,72 @@ const Login = () => {
       }),
     });
 
+    // ⚠️ Demo login CHỈ khi không kết nối được backend nào (response === null).
+    // Khi server đã phản hồi (kể cả 401 sai mật khẩu) → hiện lỗi thật, KHÔNG đăng nhập demo.
     if (!response) {
-      setError(
-        "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.",
+      const demoUser = buildDemoUser(username.trim());
+      localStorage.setItem("token", demoUser.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          accountId: demoUser.accountId,
+          userId: demoUser.userId,
+          username: demoUser.username,
+          fullName: demoUser.fullName,
+          roleName: demoUser.role,
+        }),
       );
+
+      if (rememberMe) {
+        localStorage.setItem("rememberMe", "true");
+        localStorage.setItem("rememberedUsername", demoUser.username);
+      } else {
+        localStorage.removeItem("rememberMe");
+        localStorage.removeItem("rememberedUsername");
+      }
+
+      const roleLower = (demoUser.role || "").toLowerCase();
+      if (roleLower === "admin") {
+        navigate("/admin");
+      } else if (roleLower === "instructor") {
+        navigate("/instructor");
+      } else if (roleLower === "qa" || roleLower === "qualityassurance") {
+        navigate("/qa");
+      } else if (roleLower === "academic" || roleLower === "academicstaff") {
+        navigate("/academic");
+      } else if (roleLower === "trainingmanager") {
+        navigate("/trainingmanager");
+      } else if (roleLower === "student" || roleLower === "learner") {
+        navigate("/student");
+      } else if (roleLower === "auditor" || roleLower === "audit") {
+        navigate("/auditor");
+      } else {
+        navigate("/admin");
+      }
+      setLoading(false);
+      return;
+    }
+
+    if (!response.ok) {
+      // Server đã phản hồi nhưng từ chối đăng nhập (401 sai mật khẩu / tài khoản bị vô hiệu)...
+      let message = tr(
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại tên đăng nhập hoặc mật khẩu."
+      );
+      try {
+        const body = await response.json();
+        if (body && typeof body === "object") {
+          message = body.message || body.detail || body.title || message;
+        }
+      } catch {
+        const text = await response.text().catch(() => "");
+        if (text && !text.startsWith("<")) message = text;
+      }
+      setError(message);
       setLoading(false);
       return;
     }
 
     try {
-      if (!response.ok) {
-        let errorMsg =
-          "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.";
-        try {
-          const errData = await response.json();
-          errorMsg = errData.message || errData.error || errorMsg;
-        } catch {
-          try {
-            const rawText = await response.text();
-            if (rawText) {
-              if (rawText.includes("Invalid credentials")) {
-                errorMsg = "Tên đăng nhập hoặc mật khẩu không chính xác.";
-              } else if (rawText.includes("account is inactive")) {
-                errorMsg =
-                  "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.";
-              } else {
-                errorMsg = rawText;
-              }
-            }
-          } catch {}
-        }
-        setError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
       const data = await response.json();
       console.log("Dữ liệu API trả về:", data);
       localStorage.setItem("token", data.token);
@@ -185,7 +283,10 @@ const Login = () => {
 
       if (rememberMe) {
         localStorage.setItem("rememberMe", "true");
-        localStorage.setItem("rememberedUsername", data.username || username.trim());
+        localStorage.setItem(
+          "rememberedUsername",
+          data.username || username.trim(),
+        );
       } else {
         localStorage.removeItem("rememberMe");
         localStorage.removeItem("rememberedUsername");
@@ -211,7 +312,7 @@ const Login = () => {
       }
     } catch (err) {
       setError(
-        "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.",
+        tr("Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau."),
       );
     } finally {
       setLoading(false);
@@ -223,7 +324,7 @@ const Login = () => {
     if (!forgotEmail.trim()) {
       setForgotMessage({
         type: "error",
-        text: "Vui lòng nhập email.",
+        text: tr("Vui lòng nhập email."),
       });
       return;
     }
@@ -243,7 +344,7 @@ const Login = () => {
     if (!response) {
       setForgotMessage({
         type: "error",
-        text: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.",
+        text: tr("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."),
       });
       setForgotLoading(false);
       return;
@@ -252,13 +353,13 @@ const Login = () => {
     if (response.ok) {
       setForgotMessage({
         type: "success",
-        text: "Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
+        text: tr("Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư."),
       });
     } else {
       const errText = await response.text().catch(() => "");
       setForgotMessage({
         type: "error",
-        text: errText || "Không thể gửi yêu cầu. Vui lòng thử lại sau.",
+        text: errText || tr("Không thể gửi yêu cầu. Vui lòng thử lại sau."),
       });
     }
     setForgotLoading(false);
@@ -266,6 +367,9 @@ const Login = () => {
 
   return (
     <div className="login-container">
+      <div className="login-lang-switcher">
+        <LanguageSwitcher dark />
+      </div>
       <section className="login-intro">
         <div className="aviation-blobs" aria-hidden="true" />
         <div className="aviation-illustration" aria-hidden="true">
@@ -342,12 +446,12 @@ const Login = () => {
                 }}
               >
                 <FaArrowLeft />
-                <span>Quay lại đăng nhập</span>
+                <span>{tr("Quay lại đăng nhập")}</span>
               </button>
 
-              <h2 className="login-title">Quên mật khẩu</h2>
+              <h2 className="login-title">{tr("Quên mật khẩu")}</h2>
               <p className="login-subtitle">
-                Nhập email của bạn để nhận hướng dẫn đặt lại mật khẩu
+                {tr("Nhập email của bạn để nhận hướng dẫn đặt lại mật khẩu")}
               </p>
 
               {forgotMessage.text && (
@@ -357,15 +461,19 @@ const Login = () => {
                 </div>
               )}
 
-              <form className="login-form" onSubmit={handleForgotPassword} noValidate>
+              <form
+                className="login-form"
+                onSubmit={handleForgotPassword}
+                noValidate
+              >
                 <div className="form-group">
-                  <label htmlFor="forgot-email">Email của bạn</label>
+                  <label htmlFor="forgot-email">{tr("Email của bạn")}</label>
                   <div className="input-shell">
                     <FaPaperPlane className="input-icon" aria-hidden="true" />
                     <input
                       id="forgot-email"
                       type="email"
-                      placeholder="Nhập địa chỉ email"
+                      placeholder={tr("Nhập địa chỉ email")}
                       value={forgotEmail}
                       onChange={(e) => {
                         setForgotEmail(e.target.value);
@@ -385,11 +493,11 @@ const Login = () => {
                   {forgotLoading ? (
                     <span className="btn-loading">
                       <span className="spinner" aria-hidden="true" />
-                      Đang gửi...
+                      {tr("Đang gửi...")}
                     </span>
                   ) : (
                     <>
-                      <span>Gửi yêu cầu</span>
+                      <span>{tr("Gửi yêu cầu")}</span>
                       <FaArrowRight aria-hidden="true" />
                     </>
                   )}
@@ -399,9 +507,9 @@ const Login = () => {
           ) : (
             /* ── Login Form ── */
             <>
-              <h2 className="login-title">Đăng nhập</h2>
+              <h2 className="login-title">{tr("Đăng nhập")}</h2>
               <p className="login-subtitle">
-                Vui lòng đăng nhập để truy cập hệ thống ETR
+                {tr("Vui lòng đăng nhập để truy cập hệ thống ETR")}
               </p>
 
               {error && (
@@ -416,7 +524,7 @@ const Login = () => {
 
               <form className="login-form" onSubmit={handleSubmit} noValidate>
                 <div className="form-group">
-                  <label htmlFor="login-username">Tên đăng nhập / Email</label>
+                  <label htmlFor="login-username">{tr("Tên đăng nhập / Email")}</label>
                   <div
                     className={`input-shell ${fieldErrors.username ? "input-shell--error" : ""}`}
                   >
@@ -424,7 +532,7 @@ const Login = () => {
                     <input
                       id="login-username"
                       type="text"
-                      placeholder="Nhập tên đăng nhập hoặc email"
+                      placeholder={tr("Nhập tên đăng nhập hoặc email")}
                       value={username}
                       onChange={handleUsernameChange}
                       onBlur={() => {
@@ -442,13 +550,13 @@ const Login = () => {
                   {fieldErrors.username && (
                     <p className="field-error" id="username-error" role="alert">
                       <FaExclamationCircle aria-hidden="true" />
-                      {fieldErrors.username}
+                      {tr(fieldErrors.username)}
                     </p>
                   )}
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="login-password">Mật khẩu</label>
+                  <label htmlFor="login-password">{tr("Mật khẩu")}</label>
                   <div
                     className={`input-shell input-shell--password ${fieldErrors.password ? "input-shell--error" : ""}`}
                   >
@@ -456,7 +564,7 @@ const Login = () => {
                     <input
                       id="login-password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Nhập mật khẩu"
+                      placeholder={tr("Nhập mật khẩu")}
                       value={password}
                       onChange={handlePasswordChange}
                       onBlur={() => {
@@ -489,7 +597,7 @@ const Login = () => {
                   {fieldErrors.password && (
                     <p className="field-error" id="password-error" role="alert">
                       <FaExclamationCircle aria-hidden="true" />
-                      {fieldErrors.password}
+                      {tr(fieldErrors.password)}
                     </p>
                   )}
                 </div>
@@ -503,7 +611,7 @@ const Login = () => {
                       disabled={loading}
                     />
                     <span className="custom-checkbox" aria-hidden="true" />
-                    <span>Ghi nhớ đăng nhập</span>
+                    <span>{tr("Ghi nhớ đăng nhập")}</span>
                   </label>
                   <button
                     type="button"
@@ -513,7 +621,7 @@ const Login = () => {
                       setForgotMessage({ type: "", text: "" });
                     }}
                   >
-                    Quên mật khẩu?
+                    {tr("Quên mật khẩu?")}
                   </button>
                 </div>
 
@@ -525,11 +633,11 @@ const Login = () => {
                   {loading ? (
                     <span className="btn-loading">
                       <span className="spinner" aria-hidden="true" />
-                      Đang đăng nhập...
+                      {tr("Đang đăng nhập...")}
                     </span>
                   ) : (
                     <>
-                      <span>Đăng nhập</span>
+                      <span>{tr("Đăng nhập")}</span>
                       <FaArrowRight aria-hidden="true" />
                     </>
                   )}

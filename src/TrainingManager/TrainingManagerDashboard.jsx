@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { useLanguage } from '../context/LanguageContext';
 import './training-manager.scss';
 
 const TrainingManagerDashboard = () => {
+  const { tr } = useLanguage();
   const [hoveredMonth, setHoveredMonth] = useState(null);
   const [totalTrainees, setTotalTrainees] = useState('...');
   const [pendingEtrs, setPendingEtrs] = useState('...');
@@ -120,9 +122,7 @@ const TrainingManagerDashboard = () => {
           <div className="alert-left">
             <span className="alert-dot" />
             <p>
-              Một số dữ liệu (danh sách ETR / Enrollment) hiện bị backend giới hạn quyền đọc với
-              tài khoản Training Manager (trả 403) — các chỉ số tương ứng đang hiển thị giá trị mặc
-              định. Thống kê Dashboard &amp; Report vẫn hoạt động bình thường.
+              {tr('Một số dữ liệu (danh sách ETR / Enrollment) hiện bị backend giới hạn quyền đọc với tài khoản Training Manager (trả 403) — các chỉ số tương ứng đang hiển thị giá trị mặc định. Thống kê Dashboard & Report vẫn hoạt động bình thường.')}
             </p>
           </div>
           <button onClick={() => setDataRestricted(false)} className="close-alert-btn">✕</button>
@@ -410,14 +410,14 @@ const TrainingManagerDashboard = () => {
       <div className="tm-live-card">
         {/* Section Header */}
         <div className="live-header">
-          <h3>THEO DÕI TRẠNG THÁI LỚP HỌC</h3>
-          <span className="live-badge">CẬP NHẬT TRỰC TIẾP</span>
+          <h3>{tr('THEO DÕI TRẠNG THÁI LỚP HỌC')}</h3>
+          <span className="live-badge">{tr('CẬP NHẬT TRỰC TIẾP')}</span>
         </div>
 
         <div className="tm-live-grid">
           {/* Ongoing Courses */}
           <div className="tm-live-section">
-            <span className="section-title font-black">KHÓA HỌC ĐANG DIỄN RA</span>
+            <span className="section-title font-black">{tr('KHÓA HỌC ĐANG DIỄN RA')}</span>
 
             <div className="tm-live-course-list">
               {/* Course 1 */}
@@ -457,7 +457,7 @@ const TrainingManagerDashboard = () => {
 
           {/* Instructor Allocation */}
           <div className="tm-live-section">
-            <span className="section-title font-black">PHÂN BỔ TẢI TRỌNG GIẢNG VIÊN</span>
+            <span className="section-title font-black">{tr('PHÂN BỔ TẢI TRỌNG GIẢNG VIÊN')}</span>
 
             <div className="tm-instructor-list">
               {/* Instructor 1 */}
@@ -466,7 +466,7 @@ const TrainingManagerDashboard = () => {
                   <div className="instructor-avatar navy">CH</div>
                   <span className="instructor-name">Capt. Henderson</span>
                 </div>
-                <span className="load-badge danger">QUÁ TẢI</span>
+                <span className="load-badge danger">{tr('QUÁ TẢI')}</span>
               </div>
 
               {/* Instructor 2 */}
@@ -475,7 +475,7 @@ const TrainingManagerDashboard = () => {
                   <div className="instructor-avatar gold">MS</div>
                   <span className="instructor-name">F.O. Miller</span>
                 </div>
-                <span className="load-badge success">ỔN ĐỊNH</span>
+                <span className="load-badge success">{tr('ỔN ĐỊNH')}</span>
               </div>
 
               {/* Instructor 3 */}
@@ -484,7 +484,7 @@ const TrainingManagerDashboard = () => {
                   <div className="instructor-avatar muted">AL</div>
                   <span className="instructor-name">Capt. Lopez</span>
                 </div>
-                <span className="load-badge success">ỔN ĐỊNH</span>
+                <span className="load-badge success">{tr('ỔN ĐỊNH')}</span>
               </div>
             </div>
           </div>
