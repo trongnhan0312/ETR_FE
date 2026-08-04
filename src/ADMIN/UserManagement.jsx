@@ -139,48 +139,64 @@ const UserManagement = () => {
     return raw || fallbackMsg;
   };
 
-  // Helper to find Training department ID
-  const getTrainingDeptId = () => {
-    const tDept = departments.find(
-      (d) =>
-        d.name?.toLowerCase().includes('training') ||
-        d.name?.toLowerCase().includes('đào tạo') ||
-        String(d.id) === '2'
-    );
-    return tDept ? String(tDept.id) : '2';
-  };
+// Helper to find Training department ID
+const getTrainingDeptId = () => {
+  const tDept = departments.find(
+    (d) =>
+      d.name?.toLowerCase().includes('training') ||
+      d.name?.toLowerCase().includes('đào tạo') ||
+      String(d.id) === '2'
+  );
+  return tDept ? String(tDept.id) : '2';
+};
 
-  // Helper to get non-training departments for Student role
-  const getNonTrainingDepts = () => {
-    const trainingId = getTrainingDeptId();
-    const filtered = departments.filter(
-      (d) =>
-        !d.name?.toLowerCase().includes('training') &&
-        !d.name?.toLowerCase().includes('đào tạo') &&
-        String(d.id) !== trainingId
-    );
-    if (filtered.length > 0) return filtered;
-    return [
-      { id: '1', name: 'Administration' },
-      { id: '3', name: 'Flight Operations' },
-    ];
-  };
+// Departments available to Student: all EXCEPT Training (2) and Administration (1)
+const getStudentDepartments = () => {
+  const trainingId = getTrainingDeptId();
+  const filtered = departments.filter(
+    (d) =>
+      !d.name?.toLowerCase().includes('training') &&
+      !d.name?.toLowerCase().includes('đào tạo') &&
+      String(d.id) !== trainingId &&
+      String(d.id) !== '1'
+  );
+  if (filtered.length > 0) return filtered;
+  return [
+    { id: '3', name: 'Flight Operations' },
+    { id: '4', name: 'Cabin Crew' },
+  ];
+};
 
-  // Handle role change in Edit Modal with department logic
-  const handleEditRoleChange = (newRoleId) => {
-    setEditRoleId(newRoleId);
-    const trainingId = getTrainingDeptId();
-    if (newRoleId !== '6') {
-      // Staff roles: automatically set department to Training
-      setEditDepartmentId(trainingId);
-    } else {
-      // Student role: filter out Training department
-      const nonTraining = getNonTrainingDepts();
-      if (editDepartmentId === trainingId || !nonTraining.some((d) => String(d.id) === String(editDepartmentId))) {
-        setEditDepartmentId(String(nonTraining[0].id));
-      }
+// Departments available to staff roles: Training (2) and Administration (1)
+const getStaffDepartments = () => {
+  const trainingId = getTrainingDeptId();
+  const filtered = departments.filter(
+    (d) => String(d.id) === trainingId || String(d.id) === '1'
+  );
+  if (filtered.length > 0) return filtered;
+  return [
+    { id: '1', name: 'Administration' },
+    { id: trainingId, name: 'Training' },
+  ];
+};
+
+// Handle role change in Edit Modal with department logic
+const handleEditRoleChange = (newRoleId) => {
+  setEditRoleId(newRoleId);
+  if (newRoleId === '6') {
+    // Student role: use student departments (exclude Training + Administration)
+    const studentDepts = getStudentDepartments();
+    if (!studentDepts.some((d) => String(d.id) === String(editDepartmentId))) {
+      setEditDepartmentId(String(studentDepts[0]?.id || '3'));
     }
-  };
+  } else {
+    // Staff roles: use staff departments (Training + Administration)
+    const staffDepts = getStaffDepartments();
+    if (!staffDepts.some((d) => String(d.id) === String(editDepartmentId))) {
+      setEditDepartmentId(String(staffDepts[0].id));
+    }
+  }
+};
 
   // Open Create Modal
   const handleOpenCreateModal = () => {
@@ -190,8 +206,8 @@ const UserManagement = () => {
     setEmail('');
     setPhone('');
     setRoleId('6');
-    const nonTraining = getNonTrainingDepts();
-    setDepartmentId(String(nonTraining[0]?.id || '1'));
+    const studentDepts = getStudentDepartments();
+    setDepartmentId(String(studentDepts[0]?.id || '1'));
     setGender('Male');
     setFormError('');
     setIsCreateOpen(true);
@@ -263,16 +279,22 @@ const UserManagement = () => {
     const activeRoleId = currentRoleIdStr && currentRoleIdStr !== '1' ? currentRoleIdStr : '2';
     setEditRoleId(activeRoleId);
 
-    const trainingId = getTrainingDeptId();
-    if (activeRoleId !== '5') {
-      setEditDepartmentId(trainingId);
-    } else {
-      const currentDeptIdStr = String(user.departmentId || '');
-      const nonTraining = getNonTrainingDepts();
-      if (currentDeptIdStr === trainingId || !nonTraining.some((d) => String(d.id) === currentDeptIdStr)) {
-        setEditDepartmentId(String(nonTraining[0].id));
-      } else {
+    const currentDeptIdStr = String(user.departmentId || '');
+    if (activeRoleId === '6') {
+      // Student role: use student departments
+      const studentDepts = getStudentDepartments();
+      if (studentDepts.some((d) => String(d.id) === currentDeptIdStr)) {
         setEditDepartmentId(currentDeptIdStr);
+      } else {
+        setEditDepartmentId(String(studentDepts[0]?.id || '3'));
+      }
+    } else {
+      // Staff roles: use staff departments (Training + Administration)
+      const staffDepts = getStaffDepartments();
+      if (staffDepts.some((d) => String(d.id) === currentDeptIdStr)) {
+        setEditDepartmentId(currentDeptIdStr);
+      } else {
+        setEditDepartmentId(String(staffDepts[0].id));
       }
     }
 
@@ -311,7 +333,7 @@ const UserManagement = () => {
       // 3. Update department
       // B7: route chính thức là PUT /Accounts/{id}/department (Admin) — backend KHÔNG có route
       // PUT /Accounts/{id} (404). Bỏ fallback cũ (luôn 404) và hiển thị lỗi rõ ràng nếu thất bại.
-      const finalDeptId = editRoleId !== '5' ? getTrainingDeptId() : editDepartmentId;
+      const finalDeptId = editDepartmentId;
       if (finalDeptId) {
         try {
           await api.put(`/Accounts/${editingUser.accountId}/department`, {
@@ -621,8 +643,8 @@ const UserManagement = () => {
                       if (newRole !== '6') {
                         setDepartmentId(trainingId);
                       } else {
-                        const nonTraining = getNonTrainingDepts();
-                        setDepartmentId(String(nonTraining[0]?.id || '1'));
+                        const studentDepts = getStudentDepartments();
+                        setDepartmentId(String(studentDepts[0]?.id || '1'));
                       }
                     }}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
@@ -653,7 +675,7 @@ const UserManagement = () => {
                       onChange={(e) => setDepartmentId(e.target.value)}
                       style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                     >
-                      {getNonTrainingDepts().map((d) => (
+                      {getStudentDepartments().map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.name}
                         </option>
@@ -753,39 +775,35 @@ const UserManagement = () => {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Phòng ban (Department)')}</label>
-                  {editRoleId !== '6' ? (
-                    <select
-                      value={getTrainingDeptId()}
-                      disabled
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
-                    >
-                      <option value={getTrainingDeptId()}>Training</option>
-                    </select>
-                  ) : (
-                    <select
-                      value={editDepartmentId}
-                      onChange={(e) => setEditDepartmentId(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                    >
-                      {getNonTrainingDepts().map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <select
+                    value={editDepartmentId}
+                    onChange={(e) => setEditDepartmentId(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  >
+                    {editRoleId === '6'
+                      ? getStudentDepartments().map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name}
+                          </option>
+                        ))
+                      : getStaffDepartments().map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name}
+                          </option>
+                        ))}
+                  </select>
                 </div>
               </div>
 
-              {editRoleId !== '5' ? (
-                <p style={{ margin: '-4px 0 0', fontSize: '11px', color: '#64748b' }}>
-                  {tr('* Các vai trò Instructor, QA, Academic, Training Manager, Audit bắt buộc thuộc phòng Training (Trung tâm Đào tạo).')}
-                </p>
-              ) : (
-                <p style={{ margin: '-4px 0 0', fontSize: '11px', color: '#64748b' }}>
-                  {tr('* Học viên (Student) có thể phân bổ sang các phòng ban khác (loại trừ phòng Training).')}
-                </p>
-              )}
+{editRoleId !== '6' ? (
+  <p style={{ margin: '-4px 0 0', fontSize: '11px', color: '#64748b' }}>
+    {tr('* Các vai trò Instructor, QA, Academic, Training Manager, Audit có thể chọn phòng Training hoặc Administration.')}
+  </p>
+) : (
+  <p style={{ margin: '-4px 0 0', fontSize: '11px', color: '#64748b' }}>
+    {tr('* Học viên (Student) chỉ được phân bổ vào các phòng ban khác Training và Administration.')}
+  </p>
+)}
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Email</label>
