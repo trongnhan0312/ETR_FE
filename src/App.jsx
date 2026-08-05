@@ -21,6 +21,7 @@ import InstructorSchedule from './Instructor/InstructorSchedule';
 import InstructorAttendance from './Instructor/InstructorAttendance';
 import InstructorAssessments from './Instructor/InstructorAssessments';
 import InstructorEvidence from './Instructor/InstructorEvidence';
+import InstructorAssessmentStructure from './Instructor/InstructorAssessmentStructure';
 import QALayout from './QA/QALayout';
 import QADashboard from './QA/QADashboard';
 import QAEvidenceVerification from './QA/QAEvidenceVerification';
@@ -138,6 +139,7 @@ function App() {
 						<Route path="classes" element={<InstructorClasses />} />
 						<Route path="attendance" element={<InstructorAttendance />} />
 						<Route path="assessments" element={<InstructorAssessments />} />
+						<Route path="structure" element={<InstructorAssessmentStructure />} />
 						<Route path="evidence" element={<InstructorEvidence />} />
 						<Route path="schedule" element={<InstructorSchedule />} />
 					</Route>

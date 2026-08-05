@@ -5,8 +5,8 @@ import {
   FaClipboardList,
   FaFileAlt,
   FaCalendarAlt,
+  FaListOl,
 } from "react-icons/fa";
-import { useState } from "react";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../components/Toast";
@@ -27,6 +27,11 @@ const navigationItems = [
     label: "ĐÁNH GIÁ",
     to: "/instructor/assessments",
     icon: <FaClipboardList size={18} />,
+  },
+  {
+    label: "CẤU TRÚC ĐÁNH GIÁ",
+    to: "/instructor/structure",
+    icon: <FaListOl size={18} />,
   },
   {
     label: "MINH CHỨNG",

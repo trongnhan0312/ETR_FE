@@ -16,6 +16,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
   // Subjects selection state (Business Rule: Course MUST have at least 1 Subject)
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
+  const [subjectCriteria, setSubjectCriteria] = useState({}); // subjectId -> { requiredHours, isMandatory, passingScore }
   const [loadingSubjects, setLoadingSubjects] = useState(true);
 
   // Grade weights
@@ -38,19 +39,24 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
         const data = await api.get('/Subjects').catch(() => []);
         const subjectsArr = Array.isArray(data) ? data : [];
         
-        if (subjectsArr.length > 0) {
-          setAvailableSubjects(subjectsArr);
-          setSelectedSubjectIds(subjectsArr.map((s) => String(s.subjectId)));
-        } else {
-          const demoSubjects = [
-            { subjectId: 1, subjectCode: 'SJ-REG', subjectName: 'Aviation Regulations & Compliance', defaultHours: 20 },
-            { subjectId: 2, subjectCode: 'SJ-SYS', subjectName: 'Aircraft Systems Fundamentals', defaultHours: 40 },
-            { subjectId: 3, subjectCode: 'SJ-PRA', subjectName: 'Practical Maintenance Skills', defaultHours: 50 },
-            { subjectId: 4, subjectCode: 'SJ-SAF', subjectName: 'Safety & Human Factors', defaultHours: 10 },
-          ];
-          setAvailableSubjects(demoSubjects);
-          setSelectedSubjectIds(demoSubjects.map((s) => String(s.subjectId)));
-        }
+        const source = subjectsArr.length > 0 ? subjectsArr : [
+          { subjectId: 1, subjectCode: 'SJ-REG', subjectName: 'Aviation Regulations & Compliance', defaultHours: 20 },
+          { subjectId: 2, subjectCode: 'SJ-SYS', subjectName: 'Aircraft Systems Fundamentals', defaultHours: 40 },
+          { subjectId: 3, subjectCode: 'SJ-PRA', subjectName: 'Practical Maintenance Skills', defaultHours: 50 },
+          { subjectId: 4, subjectCode: 'SJ-SAF', subjectName: 'Safety & Human Factors', defaultHours: 10 },
+        ];
+        
+        setAvailableSubjects(source);
+        setSelectedSubjectIds(source.map((s) => String(s.subjectId)));
+        const initialCriteria = {};
+        source.forEach((s) => {
+          initialCriteria[String(s.subjectId)] = {
+            requiredHours: s.defaultHours || 0,
+            isMandatory: true,
+            passingScore: 5
+          };
+        });
+        setSubjectCriteria(initialCriteria);
       } catch (err) {
         console.error('Error fetching subjects for CreateCourse:', err);
       } finally {
@@ -60,13 +66,20 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
     fetchSubjects();
   }, []);
 
-  // Auto-calculate duration from selected subjects' defaultHours
+  // Auto-calculate duration from selected subjects' requiredHours
   useEffect(() => {
-    const total = availableSubjects
-      .filter((s) => selectedSubjectIds.includes(String(s.subjectId)))
-      .reduce((sum, s) => sum + (s.defaultHours || 0), 0);
+    const total = selectedSubjectIds.reduce((sum, idStr) => {
+      return sum + (subjectCriteria[idStr]?.requiredHours || 0);
+    }, 0);
     setDuration(total);
-  }, [selectedSubjectIds, availableSubjects]);
+  }, [selectedSubjectIds, subjectCriteria]);
+
+  const updateSubjectCriteria = (subIdStr, field, value) => {
+    setSubjectCriteria((prev) => ({
+      ...prev,
+      [subIdStr]: { ...(prev[subIdStr] || { requiredHours: 0, isMandatory: true, passingScore: 5 }), [field]: value }
+    }));
+  };
 
   const handleNameChange = (e) => {
     const val = e.target.value;
@@ -129,6 +142,17 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
       selectedSubjectIds.includes(String(s.subjectId))
     );
 
+    const subjectsPayload = chosenSubjects.map((s, idx) => {
+      const crit = subjectCriteria[String(s.subjectId)] || { requiredHours: s.defaultHours || 0, isMandatory: true, passingScore: 5 };
+      return {
+        subjectId: s.subjectId,
+        sequenceNo: idx + 1,
+        requiredHours: Number(crit.requiredHours) || 0,
+        isMandatory: !!crit.isMandatory,
+        passingScore: Number(crit.passingScore) || 0
+      };
+    });
+
     const newCourse = {
       code,
       name: name.trim(),
@@ -136,7 +160,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
       description,
       structure,
       selectedSubjectIds,
-      subjects: chosenSubjects,
+      subjects: subjectsPayload,
       attendanceProgress: 100,
       activeClassesCount: 0,
       classes: [],
@@ -302,6 +326,61 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
               {!isSubjectValid && (
                 <div style={{ fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
                   {tr('⚠️ Bắt buộc phải chọn ít nhất 1 môn học. Khóa học không có môn học sẽ bị Backend chặn tuyệt đối khi Ghi danh.')}
+                </div>
+              )}
+
+              {/* Per-subject criteria editor for selected subjects */}
+              {isSubjectValid && (
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                  <div style={{ padding: '10px 14px', background: '#f1f5f9', fontSize: '12px', fontWeight: 700, color: '#002147', borderBottom: '1px solid #e2e8f0' }}>
+                    {tr('⚙️ Tiêu chí từng môn học (Thời gian học, Điểm đạt, Bắt buộc)')}
+                  </div>
+                  {availableSubjects
+                    .filter((s) => selectedSubjectIds.includes(String(s.subjectId)))
+                    .map((sub, idx) => {
+                      const subIdStr = String(sub.subjectId);
+                      const crit = subjectCriteria[subIdStr] || { requiredHours: sub.defaultHours || 0, isMandatory: true, passingScore: 5 };
+                      return (
+                        <div key={sub.subjectId} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.6fr', gap: '10px', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#ffffff' : '#fbfdff' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+                            <span style={{ color: '#c5a059', fontWeight: 800 }}>#{idx + 1}</span> [{sub.subjectCode}] {sub.subjectName}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{tr('Số giờ cần học')}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={crit.requiredHours}
+                              onChange={(e) => updateSubjectCriteria(subIdStr, 'requiredHours', parseInt(e.target.value) || 0)}
+                              style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px', outline: 'none' }}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{tr('Điểm để pass')} (0-100)</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={crit.passingScore}
+                              onChange={(e) => {
+                                const v = parseInt(e.target.value) || 0;
+                                updateSubjectCriteria(subIdStr, 'passingScore', Math.min(100, Math.max(0, v)));
+                              }}
+                              style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px', outline: 'none' }}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{tr('Bắt buộc')}</span>
+                            <input
+                              type="checkbox"
+                              checked={!!crit.isMandatory}
+                              onChange={(e) => updateSubjectCriteria(subIdStr, 'isMandatory', e.target.checked)}
+                              style={{ width: '16px', height: '16px' }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>

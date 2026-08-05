@@ -63,6 +63,14 @@ const DEMO_DATA = {
     },
   ],
   "/courses": [{ courseId: 1, courseName: "Khóa học A" }],
+  "/subjects": [
+    {
+      subjectId: 1,
+      subjectCode: "SUB01",
+      subjectName: "An toàn hàng không",
+      subjectType: "Theory",
+    },
+  ],
   "/assessments": [
     { assessmentId: 1, subjectId: 1, assessmentName: "Kiểm tra giữa kỳ" },
   ],
@@ -112,7 +120,7 @@ const DEMO_DATA = {
       attendanceRecordId: 1,
       sessionId: 1,
       accountId: 6,
-      status: "P",
+      status: "Present",
       remarks: "",
     },
   ],
@@ -158,6 +166,17 @@ const DEMO_DATA = {
       resultStatus: "Failed",
       isPublished: true,
       verificationComment: "Needs improvement",
+    },
+  ],
+  "/practicalchecklists": [
+    {
+      practicalChecklistId: 1,
+      courseId: 1,
+      subjectId: 1,
+      itemName: "Thực hành ghi nhận thông số chuyến bay",
+      description: "Thao tác nhập và kiểm tra thông số trên hệ thống",
+      isRequired: true,
+      displayOrder: 1,
     },
   ],
   "/etr": [
@@ -262,11 +281,13 @@ const shouldUseDemoFallback = (endpoint, response, method) => {
     normalized.startsWith("/enrollments") ||
     normalized.startsWith("/accounts") ||
     normalized.startsWith("/userprofiles") ||
+    normalized.startsWith("/subjects") ||
     normalized.startsWith("/classstudents") ||
     normalized.startsWith("/evidences") ||
     normalized.startsWith("/attendance") ||
     normalized.startsWith("/assessmentresults") ||
     normalized.startsWith("/practicalchecklistresults") ||
+    normalized.startsWith("/practicalchecklists") ||
     normalized.startsWith("/etr") ||
     normalized.startsWith("/approvals") ||
     normalized.startsWith("/audit") ||

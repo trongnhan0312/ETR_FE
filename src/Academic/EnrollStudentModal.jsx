@@ -19,10 +19,12 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [students, setStudents] = useState([]);
   const [ongoingEtrMap, setOngoingEtrMap] = useState({}); // courseId -> Set(accountId)
+  const [enrolledClassMap, setEnrolledClassMap] = useState({}); // classId -> Set(accountId)
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [courseSubjectWarning, setCourseSubjectWarning] = useState('');
+  const [courseHasNoSubjects, setCourseHasNoSubjects] = useState(false);
 
   // Fetch Accounts, UserProfiles, Enrollments & Etr records to detect ongoing ETRs
   useEffect(() => {
@@ -40,7 +42,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
         const accsArr = Array.isArray(accounts) ? accounts : [];
         const profsArr = Array.isArray(profiles) ? profiles : [];
         const enrsArr = Array.isArray(enrollments) ? enrollments : [];
-        const etrsArr = Array.isArray(etrRecords) ? etrs : [];
+        const etrsArr = Array.isArray(etrRecords) ? etrRecords : [];
         const classesArr = Array.isArray(allClasses) ? allClasses : [];
 
         // 1. Filter student accounts (roleId === 6 or role === 'student')
@@ -89,6 +91,18 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
         });
 
         setOngoingEtrMap(courseOngoingAccountMap);
+
+        // 3. Build enrolled-in-class map: classId -> Set of accountIds already enrolled (not withdrawn/deleted)
+        const classEnrolledMap = {}; // classId -> Set(accountId)
+        enrsArr.forEach((enr) => {
+          const st = (enr.status || '').toLowerCase();
+          if (st === 'withdrawn' || st === 'deleted' || enr.isDeleted) return;
+          if (!enr.accountId || !enr.classId) return;
+          const clsKey = String(enr.classId);
+          if (!classEnrolledMap[clsKey]) classEnrolledMap[clsKey] = new Set();
+          classEnrolledMap[clsKey].add(Number(enr.accountId));
+        });
+        setEnrolledClassMap(classEnrolledMap);
       } catch (err) {
         console.error('Error fetching data for Enrollment Modal:', err);
       } finally {
@@ -106,26 +120,27 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
 
   const targetCourseId = selectedClassObj?.courseId;
 
-  // Compute students list with hasOngoingEtr flag for current selected class/course
+  // Compute students list with hasOngoingEtr + alreadyEnrolledInClass flags for current selected class/course
   const studentListWithStatus = useMemo(() => {
-    if (!targetCourseId) return students.map(s => ({ ...s, hasOngoingEtr: false }));
-
-    const courseKey = String(targetCourseId);
-    const ongoingAccSet = ongoingEtrMap[courseKey] || new Set();
+    const courseKey = targetCourseId ? String(targetCourseId) : null;
+    const ongoingAccSet = courseKey ? (ongoingEtrMap[courseKey] || new Set()) : new Set();
+    const classKey = selectedClassId ? String(selectedClassId) : null;
+    const enrolledAccSet = classKey ? (enrolledClassMap[classKey] || new Set()) : new Set();
 
     return students.map((stu) => ({
       ...stu,
-      hasOngoingEtr: ongoingAccSet.has(Number(stu.accountId))
+      hasOngoingEtr: ongoingAccSet.has(Number(stu.accountId)),
+      alreadyEnrolledInClass: enrolledAccSet.has(Number(stu.accountId))
     }));
-  }, [students, targetCourseId, ongoingEtrMap]);
+  }, [students, targetCourseId, selectedClassId, ongoingEtrMap, enrolledClassMap]);
 
-  // Auto select first eligible student (without ongoing ETR) when class changes
+  // Auto select first eligible student (without ongoing ETR or duplicate in this class) when class changes
   useEffect(() => {
     if (studentListWithStatus.length === 0) return;
 
     const currentSelected = studentListWithStatus.find(s => String(s.accountId) === String(selectedAccountId));
-    if (!currentSelected || currentSelected.hasOngoingEtr) {
-      const firstEligible = studentListWithStatus.find(s => !s.hasOngoingEtr);
+    if (!currentSelected || currentSelected.hasOngoingEtr || currentSelected.alreadyEnrolledInClass) {
+      const firstEligible = studentListWithStatus.find(s => !s.hasOngoingEtr && !s.alreadyEnrolledInClass);
       if (firstEligible) {
         setSelectedAccountId(String(firstEligible.accountId));
       } else {
@@ -138,6 +153,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
   useEffect(() => {
     setErrorMsg('');
     setCourseSubjectWarning('');
+    setCourseHasNoSubjects(false);
     if (!selectedClassId) return;
 
     if (selectedClassObj) {
@@ -148,6 +164,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
           api.get(`/Courses/${selectedClassObj.courseId}`).then((cDetail) => {
             if (cDetail && Array.isArray(cDetail.courseSubjects) && cDetail.courseSubjects.length === 0) {
               setCourseSubjectWarning(`⚠️ ${tr('Khóa học')} "${cDetail.courseName || selectedClassObj.name}" (ID: ${selectedClassObj.courseId}) ${tr('chưa được cấu hình môn học (Subject). Theo quy tắc nghiệp vụ ETR, không thể ghi danh vào khóa chưa có môn học.')}`);
+              setCourseHasNoSubjects(true);
             }
           }).catch(() => {});
         }
@@ -196,7 +213,16 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
       return;
     }
 
+    if (courseHasNoSubjects) {
+      setErrorMsg(tr('❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học này chưa được cấu hình môn học (Subject). Theo quy định ETR hàng không, Khóa học phải có ít nhất 1 môn học trước khi mở ghi danh.'));
+      return;
+    }
+
     const selectedStu = studentListWithStatus.find(s => String(s.accountId) === String(selectedAccountId));
+    if (selectedStu && selectedStu.alreadyEnrolledInClass) {
+      setErrorMsg(tr('❌ Quy tắc nghiệp vụ: Học viên này đã được ghi danh vào đúng Lớp học này. Không cho phép ghi danh trùng lặp.'));
+      return;
+    }
     if (selectedStu && selectedStu.hasOngoingEtr) {
       setErrorMsg(tr('❌ Quy tắc tuân thủ ETR: Học viên này đang có Hồ sơ ETR chưa đóng bằng (InProgress) cho Khóa học này. Vui lòng chọn Học viên chưa có ETR đang diễn ra.'));
       return;
@@ -217,7 +243,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
 
   const selectedStudentObj = studentListWithStatus.find((s) => String(s.accountId) === String(selectedAccountId));
   const isSelectedClassDisabled = selectedClassObj && isClassCompletedOrCancelled(selectedClassObj);
-  const eligibleStudentsCount = studentListWithStatus.filter(s => !s.hasOngoingEtr).length;
+  const eligibleStudentsCount = studentListWithStatus.filter(s => !s.hasOngoingEtr && !s.alreadyEnrolledInClass).length;
 
   const modalJSX = (
     <div className="modal-overlay" style={{
@@ -326,19 +352,22 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
                   {studentListWithStatus.length === 0 ? (
                     <option value="">{tr('Không có học viên nào khả dụng trong hệ thống')}</option>
                   ) : (
-                    studentListWithStatus.map((stu) => (
-                      <option
-                        key={stu.accountId}
-                        value={stu.accountId}
-                        disabled={stu.hasOngoingEtr}
-                        style={{
-                          color: stu.hasOngoingEtr ? '#dc2626' : '#0f172a',
-                          backgroundColor: stu.hasOngoingEtr ? '#fef2f2' : '#ffffff'
-                        }}
-                      >
-                        [{stu.userCode}] {stu.fullName} ({stu.email}) {stu.hasOngoingEtr ? `⛔ [${tr('ĐÃ CÓ HỒ SƠ ETR ĐANG HỌC')}]` : ''}
-                      </option>
-                    ))
+                    studentListWithStatus.map((stu) => {
+                      const isBlocked = stu.hasOngoingEtr || stu.alreadyEnrolledInClass;
+                      return (
+                        <option
+                          key={stu.accountId}
+                          value={stu.accountId}
+                          disabled={isBlocked}
+                          style={{
+                            color: isBlocked ? '#dc2626' : '#0f172a',
+                            backgroundColor: isBlocked ? '#fef2f2' : '#ffffff'
+                          }}
+                        >
+                          [{stu.userCode}] {stu.fullName} ({stu.email}) {stu.hasOngoingEtr ? `⛔ [${tr('ĐÃ CÓ HỒ SƠ ETR ĐANG HỌC')}]` : stu.alreadyEnrolledInClass ? `⛔ [${tr('ĐÃ GHI DANH LỚP NÀY')}]` : ''}
+                        </option>
+                      );
+                    })
                   )}
                 </select>
               )}
@@ -347,8 +376,8 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
             {/* Selected Student info preview card */}
             {selectedStudentObj && (
               <div style={{
-                backgroundColor: selectedStudentObj.hasOngoingEtr ? '#fef2f2' : '#f8fafc',
-                border: `1px solid ${selectedStudentObj.hasOngoingEtr ? '#fca5a5' : '#e2e8f0'}`,
+                backgroundColor: (selectedStudentObj.hasOngoingEtr || selectedStudentObj.alreadyEnrolledInClass) ? '#fef2f2' : '#f8fafc',
+                border: `1px solid ${(selectedStudentObj.hasOngoingEtr || selectedStudentObj.alreadyEnrolledInClass) ? '#fca5a5' : '#e2e8f0'}`,
                 borderRadius: '6px',
                 padding: '16px',
                 marginBottom: '20px'
@@ -357,9 +386,9 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
                   <div style={{ fontSize: '12px', fontWeight: 700, color: '#002147', textTransform: 'uppercase' }}>
                     {tr('Thông tin học viên được chọn')}
                   </div>
-                  {selectedStudentObj.hasOngoingEtr && (
+                  {(selectedStudentObj.hasOngoingEtr || selectedStudentObj.alreadyEnrolledInClass) && (
                     <span style={{ fontSize: '11px', fontWeight: 700, backgroundColor: '#ef4444', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>
-                      {tr('⛔ ĐÃ CÓ ETR ĐANG HỌC')}
+                      {selectedStudentObj.hasOngoingEtr ? tr('⛔ ĐÃ CÓ ETR ĐANG HỌC') : tr('⛔ ĐÃ GHI DANH LỚP NÀY')}
                     </span>
                   )}
                 </div>
@@ -387,7 +416,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
             <button
               className="save-btn gold-gradient-btn"
               type="submit"
-              disabled={submitting || eligibleStudentsCount === 0 || isSelectedClassDisabled || (selectedStudentObj && selectedStudentObj.hasOngoingEtr)}
+              disabled={submitting || eligibleStudentsCount === 0 || isSelectedClassDisabled || courseHasNoSubjects || (selectedStudentObj && (selectedStudentObj.hasOngoingEtr || selectedStudentObj.alreadyEnrolledInClass))}
             >
               {submitting ? tr('ĐANG GHI DANH...') : tr('XÁC NHẬN GHI DANH')}
             </button>

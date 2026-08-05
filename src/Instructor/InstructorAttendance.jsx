@@ -6,6 +6,13 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
 
+// Status constants enforced by the backend (RegularExpression "^(Present|Absent|Late)$")
+const ATTENDANCE_STATUSES = [
+  { value: "Present", short: "P", label: "Present (Có mặt)", color: "#22c55e" },
+  { value: "Absent", short: "A", label: "Absent (Vắng)", color: "#ef4444" },
+  { value: "Late", short: "L", label: "Late (Đi muộn)", color: "#3b82f6" }
+];
+
 // Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login)
 const getCurrentInstructorName = () => {
   try {
@@ -161,7 +168,7 @@ const InstructorAttendance = () => {
           name: student.name,
           accountId: student.accountId,
           classStudentId: student.classStudentId,
-          status: record ? record.status : "P",
+          status: record ? record.status : "Present",
           remarks: record ? record.remarks || "" : "",
           attendanceRecordId: record ? record.attendanceRecordId || record.id : null
         };
@@ -319,22 +326,12 @@ const InstructorAttendance = () => {
 
         {/* Legend status indicators */}
         <div style={{ display: 'flex', gap: '20px', padding: '12px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '11px', fontWeight: '700' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#22c55e', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>P</span>
-            <span style={{ color: 'rgba(0,33,71,0.6)' }}>{tr('Present (Có mặt)')}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#eab308', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>AE</span>
-            <span style={{ color: 'rgba(0,33,71,0.6)' }}>{tr('Absent Excused (Vắng có phép)')}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#ef4444', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>AU</span>
-            <span style={{ color: 'rgba(0,33,71,0.6)' }}>{tr('Absent Unexcused (Vắng không phép)')}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#3b82f6', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>T</span>
-            <span style={{ color: 'rgba(0,33,71,0.6)' }}>{tr('Tardy (Đi muộn)')}</span>
-          </div>
+          {ATTENDANCE_STATUSES.map(st => (
+            <div key={st.value} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: st.color, color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{st.short}</span>
+              <span style={{ color: 'rgba(0,33,71,0.6)' }}>{tr(st.label)}</span>
+            </div>
+          ))}
         </div>
 
         {/* Attendance Sheet Table */}
@@ -366,18 +363,18 @@ const InstructorAttendance = () => {
                 
                 {/* Status Toggles */}
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <div className="attendance-toggle-group" style={{ maxWidth: '140px' }}>
-                    {['P', 'AE', 'AU', 'T'].map(status => (
+                  <div className="attendance-toggle-group" style={{ maxWidth: '180px' }}>
+                    {ATTENDANCE_STATUSES.map(st => (
                       <button
-                        key={status}
-                        onClick={() => handleToggleStatus(student.code, status)}
-                        className={`status-${status.toLowerCase()}${student.status === status ? ' active' : ''}`}
+                        key={st.value}
+                        onClick={() => handleToggleStatus(student.code, st.value)}
+                        className={`status-${st.value.toLowerCase()}${student.status === st.value ? ' active' : ''}`}
                         disabled={isConfirmed}
                         style={{
                           cursor: isConfirmed ? "not-allowed" : "pointer"
                         }}
                       >
-                        {status}
+                        {st.short}
                       </button>
                     ))}
                   </div>

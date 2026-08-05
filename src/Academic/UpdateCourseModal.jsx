@@ -13,6 +13,7 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
 
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
+  const [subjectCriteria, setSubjectCriteria] = useState({}); // subjectId -> { requiredHours, isMandatory, passingScore, sequenceNo }
   const [loadingSubjects, setLoadingSubjects] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -29,13 +30,31 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
         const subs = Array.isArray(subList) ? subList : [];
         setAvailableSubjects(subs);
 
+        let existingMappings = null;
         if (cDetail && Array.isArray(cDetail.courseSubjects) && cDetail.courseSubjects.length > 0) {
-          setSelectedSubjectIds(cDetail.courseSubjects.map((cs) => String(cs.subjectId)));
+          existingMappings = cDetail.courseSubjects;
+          setSelectedSubjectIds(existingMappings.map((cs) => String(cs.subjectId)));
         } else if (course.subjects && Array.isArray(course.subjects)) {
-          setSelectedSubjectIds(course.subjects.map((s) => String(s.subjectId)));
+          existingMappings = course.subjects;
+          setSelectedSubjectIds(existingMappings.map((s) => String(s.subjectId)));
         } else {
           setSelectedSubjectIds(subs.map((s) => String(s.subjectId)));
         }
+
+        // Initialize criteria from existing mappings or subject defaults
+        const criteria = {};
+        const sourceList = existingMappings || subs;
+        sourceList.forEach((cs, idx) => {
+          const subIdStr = String(cs.subjectId);
+          const subObj = subs.find((s) => String(s.subjectId) === subIdStr);
+          criteria[subIdStr] = {
+            sequenceNo: cs.sequenceNo ?? cs.sequenceNo ?? idx + 1,
+            requiredHours: cs.requiredHours ?? subObj?.defaultHours ?? 0,
+            isMandatory: cs.isMandatory !== undefined ? cs.isMandatory : true,
+            passingScore: cs.passingScore ?? 5
+          };
+        });
+        setSubjectCriteria(criteria);
       } catch (err) {
         console.error('Error loading subjects for UpdateCourseModal:', err);
       } finally {
@@ -55,6 +74,13 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
     });
   };
 
+  const updateSubjectCriteria = (subIdStr, field, value) => {
+    setSubjectCriteria((prev) => ({
+      ...prev,
+      [subIdStr]: { ...(prev[subIdStr] || { requiredHours: 0, isMandatory: true, passingScore: 5, sequenceNo: 1 }), [field]: value }
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -64,6 +90,17 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
       return;
     }
 
+    const subjectsPayload = selectedSubjectIds.map((idStr, idx) => {
+      const crit = subjectCriteria[idStr] || { requiredHours: 0, isMandatory: true, passingScore: 5 };
+      return {
+        subjectId: Number(idStr),
+        sequenceNo: crit.sequenceNo ?? idx + 1,
+        requiredHours: Number(crit.requiredHours) || 0,
+        isMandatory: !!crit.isMandatory,
+        passingScore: Number(crit.passingScore) || 0
+      };
+    });
+
     setSubmitting(true);
     try {
       await onSave(course.courseId, {
@@ -72,7 +109,8 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
         courseName: courseName.trim(),
         description: description.trim(),
         durationHours: parseInt(durationHours) || 0,
-        status: status === 'Active' || status === 'HOẠT ĐỘNG' ? 'Active' : 'Pending'
+        status: status === 'Active' || status === 'HOẠT ĐỘNG' ? 'Active' : 'Pending',
+        subjects: subjectsPayload
       });
     } catch (err) {
       setErrorMsg(err?.message || tr('Cập nhật khóa học thất bại. Vui lòng thử lại.'));
@@ -219,6 +257,60 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                       </label>
                     );
                   })}
+                </div>
+              )}
+
+              {selectedSubjectIds.length > 0 && (
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                  <div style={{ padding: '8px 12px', background: '#f1f5f9', fontSize: '11px', fontWeight: 700, color: '#002147', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {tr('⚙️ Tiêu chí từng môn học (Thời gian học, Điểm đạt, Bắt buộc)')}
+                  </div>
+                  {availableSubjects
+                    .filter((s) => selectedSubjectIds.includes(String(s.subjectId)))
+                    .map((sub, idx) => {
+                      const subIdStr = String(sub.subjectId);
+                      const crit = subjectCriteria[subIdStr] || { requiredHours: 0, isMandatory: true, passingScore: 5 };
+                      return (
+                        <div key={sub.subjectId} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.6fr', gap: '10px', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#ffffff' : '#fbfdff' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>
+                            <span style={{ color: '#c5a059', fontWeight: 800 }}>#{idx + 1}</span> [{sub.subjectCode}] {sub.subjectName}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{tr('Số giờ cần học')}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={crit.requiredHours}
+                              onChange={(e) => updateSubjectCriteria(subIdStr, 'requiredHours', parseInt(e.target.value) || 0)}
+                              style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '11px', outline: 'none' }}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{tr('Điểm để pass')} (0-100)</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={crit.passingScore}
+                              onChange={(e) => {
+                                const v = parseInt(e.target.value) || 0;
+                                updateSubjectCriteria(subIdStr, 'passingScore', Math.min(100, Math.max(0, v)));
+                              }}
+                              style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '11px', outline: 'none' }}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{tr('Bắt buộc')}</span>
+                            <input
+                              type="checkbox"
+                              checked={!!crit.isMandatory}
+                              onChange={(e) => updateSubjectCriteria(subIdStr, 'isMandatory', e.target.checked)}
+                              style={{ width: '15px', height: '15px' }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>

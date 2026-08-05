@@ -101,7 +101,7 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
     expect(sessionRecords[0].accountId).toBe(6)
   })
 
-  it('builds attendance data with default status "P" when no record exists', async () => {
+  it('builds attendance data with default status "Present" when no record exists', async () => {
     const sessionId = 1
     const attendanceRecords = await api.get('/attendance')
     const sessionRecords = attendanceRecords.filter((a) => a.sessionId === sessionId)
@@ -116,18 +116,18 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
       return {
         code: student.code,
         name: student.name,
-        status: record ? record.status : 'P',
+        status: record ? record.status : 'Present',
         remarks: record ? record.remarks || '' : '',
         attendanceRecordId: record ? record.attendanceRecordId || record.id : null,
       }
     })
 
     // Jane has a record
-    expect(mappedAttendance[0].status).toBe('P')
+    expect(mappedAttendance[0].status).toBe('Present')
     expect(mappedAttendance[0].attendanceRecordId).toBe(1)
 
     // John has no record → defaults
-    expect(mappedAttendance[1].status).toBe('P')
+    expect(mappedAttendance[1].status).toBe('Present')
     expect(mappedAttendance[1].attendanceRecordId).toBeNull()
   })
 })
@@ -135,8 +135,8 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
 describe('InstructorAttendance - Handle Toggle Status', () => {
   it('toggles student status correctly', () => {
     const initial = [
-      { code: 'HV001', status: 'P' },
-      { code: 'HV002', status: 'P' },
+      { code: 'HV001', status: 'Present' },
+      { code: 'HV002', status: 'Present' },
     ]
     const isConfirmed = false
 
@@ -145,14 +145,14 @@ describe('InstructorAttendance - Handle Toggle Status', () => {
       return initial.map((s) => (s.code === code ? { ...s, status } : s))
     }
 
-    const updated = updateStatus('HV001', 'AE')
-    expect(updated[0].status).toBe('AE')
-    expect(updated[1].status).toBe('P')
+    const updated = updateStatus('HV001', 'Absent')
+    expect(updated[0].status).toBe('Absent')
+    expect(updated[1].status).toBe('Present')
   })
 
   it('does not toggle when confirmed', () => {
     const initial = [
-      { code: 'HV001', status: 'P' },
+      { code: 'HV001', status: 'Present' },
     ]
     const isConfirmed = true
 
@@ -161,15 +161,15 @@ describe('InstructorAttendance - Handle Toggle Status', () => {
       return initial.map((s) => (s.code === code ? { ...s, status } : s))
     }
 
-    const updated = updateStatus('HV001', 'AU')
-    expect(updated[0].status).toBe('P') // unchanged
+    const updated = updateStatus('HV001', 'Late')
+    expect(updated[0].status).toBe('Present') // unchanged
   })
 })
 
 describe('InstructorAttendance - Save Logic', () => {
   it('builds correct payload for save - create new', () => {
     const selectedSession = { sessionId: 1 }
-    const record = { classStudentId: 1, status: 'P', remarks: '', attendanceRecordId: null }
+    const record = { classStudentId: 1, status: 'Present', remarks: '', attendanceRecordId: null }
 
     const payload = {
       sessionId: selectedSession.sessionId,
@@ -180,25 +180,25 @@ describe('InstructorAttendance - Save Logic', () => {
 
     expect(payload.sessionId).toBe(1)
     expect(payload.classStudentId).toBe(1)
-    expect(payload.status).toBe('P')
+    expect(payload.status).toBe('Present')
   })
 
   it('builds correct payload for save - update existing', () => {
-    const record = { attendanceRecordId: 5, status: 'AE', remarks: 'Sick' }
+    const record = { attendanceRecordId: 5, status: 'Absent', remarks: 'Sick' }
 
     const payload = {
       status: record.status,
       remarks: record.remarks || '',
     }
 
-    expect(payload.status).toBe('AE')
+    expect(payload.status).toBe('Absent')
     expect(payload.remarks).toBe('Sick')
   })
 
   it('saves all records and confirm locks the session', async () => {
     const sessionAttendance = [
-      { classStudentId: 1, status: 'P', remarks: '', attendanceRecordId: null },
-      { classStudentId: 2, status: 'AE', remarks: 'Sick', attendanceRecordId: 3 },
+      { classStudentId: 1, status: 'Present', remarks: '', attendanceRecordId: null },
+      { classStudentId: 2, status: 'Absent', remarks: 'Sick', attendanceRecordId: 3 },
     ]
     const selectedSession = { sessionId: 1 }
 

@@ -5,22 +5,12 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
 
-// Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login)
-const getCurrentInstructorName = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    return user.fullName || user.displayName || user.name || "";
-  } catch {
-    return "";
-  }
-};
-
 const InstructorAssessments = () => {
   const { tr } = useLanguage();
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
-  const [sessions, setSessions] = useState([]);
-  const [selectedSession, setSelectedSession] = useState(null);
+  const [assessmentsForClass, setAssessmentsForClass] = useState([]);
+  const [selectedAssessment, setSelectedAssessment] = useState(null);
 
   // Grading sheets state
   const [selectedAssessmentType, setSelectedAssessmentType] =
@@ -38,39 +28,16 @@ const InstructorAssessments = () => {
   // SubjectSignoff state
   const [signingOff, setSigningOff] = useState(false);
   const [confirmSignoffOpen, setConfirmSignoffOpen] = useState(false);
+  const [eligibilityList, setEligibilityList] = useState([]); // per-student 4-rule signoff eligibility
+
+  // PassingScore threshold used for subject signoff theory check
+  const SIGNOFF_ATTENDANCE_THRESHOLD = 80;
 
   // Toast notifications
   const toast = useToast();
 
   // Remarks note modal state
   const [assessmentsList, setAssessmentsList] = useState([]);
-
-  const getAssessmentDisplayName = (assessment) => {
-    if (!assessment) return "Assessment";
-    return (
-      (
-        assessment.componentName ||
-        assessment.assessmentName ||
-        assessment.name ||
-        assessment.title ||
-        assessment.assessmentTitle ||
-        assessment.assessmentType ||
-        `Assessment ${assessment.assessmentId || ""}`
-      )
-        .toString()
-        .trim() || "Assessment"
-    );
-  };
-
-  const getSessionAssessmentName = (session) => {
-    if (!session) return "Assessment";
-    const matchAssessment = assessmentsList.find(
-      (assessment) =>
-        assessment.subjectId === session.subjectId ||
-        assessment.assessmentId === session.assessmentId,
-    );
-    return getAssessmentDisplayName(matchAssessment || session);
-  };
 
   const getAssessmentTypeLabel = (type = selectedAssessmentType) => {
     switch (type) {
@@ -120,6 +87,7 @@ const InstructorAssessments = () => {
             time: cls.time || "08:00 - 11:30",
             status: cls.status || tr("Đang diễn ra"),
             subjectId: cls.subjectId || 1,
+            courseId: course ? course.courseId : (cls.courseId ?? null),
           };
         });
         setClassesData(mapped);
@@ -136,48 +104,31 @@ const InstructorAssessments = () => {
     fetchClasses();
   }, []);
 
-  // Fetch sessions when a class is selected
+  // Fetch assessments for the selected class when class changes
   useEffect(() => {
     if (!selectedClassId) return;
-    const fetchSessions = async () => {
+    // Load assessments for the selected class's subject
+    const fetchAssessmentsForClass = async () => {
       try {
-        const apiSessions = await api.get("/sessions").catch(() => []);
-        const filtered = apiSessions.filter(
-          (s) => s.classId === parseInt(selectedClassId),
+        const classRecord = classesData.find(
+          (c) => c.classId === parseInt(selectedClassId),
         );
+        const targetCourseId = classRecord?.courseId ?? 1;
+        const targetSubjectId = classRecord?.subjectId ?? 1;
 
-        const mapped = filtered.map((s, idx) => {
-          const rawDate = s.sessionDate;
-          let dateStr = "N/A";
-          if (rawDate) {
-            const d = new Date(rawDate);
-            dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-          }
-
-          return {
-            sessionId: s.sessionId,
-            stt: String(idx + 1).padStart(2, "0"),
-            date: dateStr,
-            name: s.sessionTitle || tr("Buổi học"),
-            room: s.location || tr("Phòng học"),
-            instructor: getCurrentInstructorName(),
-            isConfirmed: s.isConfirmed || false,
-            subjectId: s.subjectId || 1,
-            assessmentId:
-              s.assessmentId ??
-              s.assessment?.assessmentId ??
-              s.sessionAssessmentId ??
-              s.assessment?.id ??
-              null,
-          };
-        });
-        setSessions(mapped);
+        const filtered = (assessmentsList || []).filter(
+          (a) =>
+            Number(a.courseId) === targetCourseId &&
+            Number(a.subjectId) === targetSubjectId,
+        );
+        setAssessmentsForClass(filtered);
       } catch (err) {
-        console.error("Lỗi khi tải danh sách buổi học:", err);
+        console.error("Lỗi khi tải danh sách assessment:", err);
+        setAssessmentsForClass([]);
       }
     };
-    fetchSessions();
-  }, [selectedClassId]);
+    fetchAssessmentsForClass();
+  }, [selectedClassId, assessmentsList]);
 
   // Load students of selected class
   const loadStudents = async () => {
@@ -238,9 +189,10 @@ const InstructorAssessments = () => {
     return Array.isArray(result) ? result : [];
   };
 
-  const loadSessionScores = async (session, type = selectedAssessmentType) => {
-    console.log("[InstructorAssessments] loadSessionScores start", {
-      selectedSession: session,
+  // Load all assessment results for a given assessment (not session-based)
+  const loadAssessmentScores = async (assessment, type = selectedAssessmentType) => {
+    console.log("[InstructorAssessments] loadAssessmentScores start", {
+      selectedAssessment: assessment,
       selectedAssessmentType: type,
     });
     setLoading(true);
@@ -250,7 +202,22 @@ const InstructorAssessments = () => {
       const allEtrs = await api.get("/etr").catch(() => []);
       const selectedTypes = getSelectedTypes(type);
 
-      console.log("[InstructorAssessments] loadSessionScores fetched", {
+      // Data for Subject Signoff eligibility (4 validation rules)
+      const currentCourseId = classesData.find(
+        (c) => c.classId === parseInt(selectedClassId),
+      )?.courseId ?? 1;
+      const [allEvidences, allPracticalChecklists, courseDetail] = await Promise.all([
+        api.get("/Evidences").catch(() => api.get("/evidences").catch(() => [])),
+        api.get("/PracticalChecklists").catch(() => api.get("/practicalchecklists").catch(() => [])),
+        api.get(`/courses/${currentCourseId}`).catch(() => null),
+      ]);
+      const evidencesArr = Array.isArray(allEvidences) ? allEvidences : [];
+      const checklistsArr = Array.isArray(allPracticalChecklists) ? allPracticalChecklists : [];
+      const courseDetailArr = courseDetail
+        ? (Array.isArray(courseDetail.subjects) ? courseDetail.subjects : (Array.isArray(courseDetail.courseSubjects) ? courseDetail.courseSubjects : []))
+        : [];
+
+      console.log("[InstructorAssessments] loadAssessmentScores fetched", {
         studentCount: mappedStudents.length,
         etrCount: allEtrs.length,
         selectedTypes,
@@ -262,13 +229,17 @@ const InstructorAssessments = () => {
         : [];
 
       // Pre-fetch all practical results once (instead of per-student)
-      const allPracticalResults = selectedTypes.includes("practical")
-        ? await getAllPracticalResults()
+      // Always fetch: needed for both the grading tab AND signoff eligibility (Rule 3)
+      const allPracticalResults = await getAllPracticalResults();
+
+      // Practical results lookup for signoff eligibility (regardless of current tab)
+      const practicalResultsBySubject = Array.isArray(allPracticalResults)
+        ? allPracticalResults
         : [];
 
-      // Get the assessmentId and sessionId for this session to filter results correctly
-      const sessionAssessmentId = getAssessmentIdForSession(session);
-      const currentSessionId = session?.sessionId;
+      // Assessment-based: use assessmentId directly (no sessionId needed)
+      const currentAssessmentId = assessment?.assessmentId;
+      const currentSubjectId = assessment?.subjectId;
 
       // Pre-fetch ETR details for all students in parallel (batch)
       const etrDetailsMap = {};
@@ -288,7 +259,7 @@ const InstructorAssessments = () => {
             }
           }
         }),
-      )
+      );
 
       // Build list of students with their scores
       for (const student of mappedStudents) {
@@ -299,6 +270,7 @@ const InstructorAssessments = () => {
         let practicalComment = "";
         let practicalResultId = null;
         let subjectResultId = 1;
+        let subjectScore = null;
         let assessmentIsPublished = false;
         let practicalIsPublished = false;
 
@@ -306,71 +278,67 @@ const InstructorAssessments = () => {
         let attendanceRate = null;
         if (etrDetails && etrDetails.subjectResults) {
           const subRes = etrDetails.subjectResults.find(
-            (sr) => sr.subjectId === session.subjectId,
+            (sr) => sr.subjectId === currentSubjectId,
           );
           if (subRes) {
             subjectResultId = subRes.subjectResultId;
+            subjectScore = subRes.score != null ? Number(subRes.score) : null;
             attendanceRate = subRes.attendanceRate != null ? subRes.attendanceRate : null;
 
             if (selectedTypes.includes("assessment")) {
-              // Filter pre-fetched assessment results by accountId, assessmentId, AND sessionId.
-              // Fallback: if no session-specific result found, look for legacy records with null sessionId.
-              let sessionScore = allAssessmentResults.find(
+              // Filter pre-fetched assessment results by accountId and assessmentId only (no sessionId).
+              // This allows grading across all sessions for this assessment.
+              let assessmentScoreResult = allAssessmentResults.find(
                 (ar) =>
                   ar.accountId === student.accountId &&
-                  ar.assessmentId === sessionAssessmentId &&
-                  ar.subjectResultId === subRes.subjectResultId &&
-                  ar.sessionId === currentSessionId,
+                  ar.assessmentId === currentAssessmentId &&
+                  ar.subjectResultId === subRes.subjectResultId,
               );
               // Fallback: allow legacy records (sessionId == null) to show up
-              if (!sessionScore) {
-                sessionScore = allAssessmentResults.find(
+              if (!assessmentScoreResult) {
+                assessmentScoreResult = allAssessmentResults.find(
                   (ar) =>
                     ar.accountId === student.accountId &&
-                    ar.assessmentId === sessionAssessmentId &&
+                    ar.assessmentId === currentAssessmentId &&
                     ar.subjectResultId === subRes.subjectResultId &&
                     ar.sessionId == null,
                 );
               }
-              if (sessionScore) {
-                assessmentScore = sessionScore.score || 0;
-                assessmentComment = sessionScore.remark || "";
+              if (assessmentScoreResult) {
+                assessmentScore = assessmentScoreResult.score || 0;
+                assessmentComment = assessmentScoreResult.remark || "";
                 assessmentResultId =
-                  sessionScore.assessmentResultId ||
-                  sessionScore.resultId ||
-                  sessionScore.id ||
+                  assessmentScoreResult.assessmentResultId ||
+                  assessmentScoreResult.resultId ||
+                  assessmentScoreResult.id ||
                   null;
-                assessmentIsPublished = sessionScore.isPublished || false;
+                assessmentIsPublished = assessmentScoreResult.isPublished || false;
               }
             }
 
             if (selectedTypes.includes("practical")) {
-              // Filter pre-fetched practical results by subjectResultId AND sessionId
-              // Fallback: if no session-specific result found, look for legacy records with null sessionId
-              let sessionScore = allPracticalResults.find(
+              // Filter pre-fetched practical results by subjectResultId only (no sessionId)
+              let practicalScoreResult = allPracticalResults.find(
                 (pr) =>
                   pr.subjectResultId === subRes.subjectResultId &&
-                  pr.sessionId === currentSessionId,
+                  pr.practicalChecklistId != null,
               );
-              // Fallback: allow legacy records (sessionId == null) to show up
-              if (!sessionScore) {
-                sessionScore = allPracticalResults.find(
+              // Fallback: allow legacy records (sessionId == null)
+              if (!practicalScoreResult) {
+                practicalScoreResult = allPracticalResults.find(
                   (pr) =>
-                    pr.subjectResultId === subRes.subjectResultId &&
-                    pr.sessionId == null,
+                    pr.subjectResultId === subRes.subjectResultId,
                 );
               }
-              if (sessionScore) {
-                // PracticalChecklistResult now has Score field
-                practicalScore = sessionScore.score || 0;
-                practicalComment = sessionScore.verificationComment || "";
+              if (practicalScoreResult) {
+                practicalScore = practicalScoreResult.score || 0;
+                practicalComment = practicalScoreResult.verificationComment || "";
                 practicalResultId =
-                  sessionScore.practicalChecklistResultId ||
-                  sessionScore.resultId ||
-                  sessionScore.id ||
+                  practicalScoreResult.practicalChecklistResultId ||
+                  practicalScoreResult.resultId ||
+                  practicalScoreResult.id ||
                   null;
-                // Published status from API
-                practicalIsPublished = sessionScore.isPublished || false;
+                practicalIsPublished = practicalScoreResult.isPublished || false;
               }
             }
           }
@@ -382,6 +350,53 @@ const InstructorAssessments = () => {
             : type === "practical"
               ? practicalIsPublished
               : assessmentIsPublished || practicalIsPublished;
+
+        // === Subject Signoff eligibility (4 validation rules) ===
+        // Rule 1: Attendance >= 80%
+        const attendanceOk = attendanceRate != null
+          ? attendanceRate >= SIGNOFF_ATTENDANCE_THRESHOLD
+          : false;
+
+        // Rule 2: Theory score (avg of required theoretical assessments) >= PassingScore
+        const courseSubject = courseDetailArr.find(
+          (cs) => Number(cs.subjectId) === Number(currentSubjectId),
+        );
+        const passingScore = courseSubject
+          ? Number(courseSubject.passingScore) || 50
+          : 50;
+        const theoryOk = subjectScore != null
+          ? subjectScore >= passingScore
+          : false;
+
+        // Rule 3: All mandatory practical checklists for this subject have a Passed result
+        const requiredChecklists = checklistsArr.filter(
+          (pc) =>
+            Number(pc.subjectId) === Number(currentSubjectId) &&
+            (pc.isRequired || pc.isMandatory),
+        );
+        const practicalResultsForSubject = requiredChecklists.filter((pc) =>
+          practicalResultsBySubject.some(
+            (pr) =>
+              Number(pr.practicalChecklistId) === Number(pc.practicalChecklistId) &&
+              (pr.resultStatus === "Passed" || pr.resultStatus === "Hoàn thành"),
+          ),
+        );
+        const practicalOk = requiredChecklists.length === 0
+          ? false
+          : practicalResultsForSubject.length === requiredChecklists.length;
+
+        // Rule 4: At least one evidence file uploaded & Verified for this subject result
+        const evidencesForSubject = evidencesArr.filter(
+          (ev) => Number(ev.subjectResultId) === Number(subjectResultId),
+        );
+        const evidenceOk = evidencesForSubject.length > 0
+          && evidencesForSubject.every((ev) =>
+              ev.verificationStatus === "Verified"
+              || ev.status === "Verified"
+              || ev.verified === true,
+            );
+
+        const eligible = attendanceOk && theoryOk && practicalOk && evidenceOk;
 
         scoresData.push({
           code: student.code,
@@ -400,10 +415,24 @@ const InstructorAssessments = () => {
           practicalIsPublished,
           isPublished,
           attendanceRate,
+          subjectScore,
+          passingScore,
+          eligibility: { attendanceOk, theoryOk, practicalOk, evidenceOk, eligible },
         });
       }
 
       setStudentScores(scoresData);
+      setEligibilityList(
+        scoresData.map((s) => ({
+          code: s.code,
+          name: s.name,
+          subjectResultId: s.subjectResultId,
+          attendanceRate: s.attendanceRate,
+          subjectScore: s.subjectScore,
+          passingScore: s.passingScore,
+          ...s.eligibility,
+        })),
+      );
     } catch (err) {
       console.error("Lỗi khi tải bảng điểm:", err);
     } finally {
@@ -411,10 +440,10 @@ const InstructorAssessments = () => {
     }
   };
 
-  const handleOpenGradingSheet = (session) => {
-    setSelectedSession(session);
+  const handleOpenGradingSheet = (assessment) => {
+    setSelectedAssessment(assessment);
     setIsEditingScores(false);
-    loadSessionScores(session, selectedAssessmentType);
+    loadAssessmentScores(assessment, selectedAssessmentType);
   };
 
   const handleStartEdit = () => {
@@ -422,25 +451,8 @@ const InstructorAssessments = () => {
     setIsEditingScores(true);
   };
 
-  const getAssessmentIdForSession = (session) => {
-    const directId =
-      session?.assessmentId ??
-      session?.assessment?.assessmentId ??
-      session?.sessionAssessmentId ??
-      session?.assessment?.id;
-
-    if (directId) {
-      return Number(directId);
-    }
-
-    const matchAssessment = assessmentsList.find(
-      (assessment) =>
-        assessment.subjectId === session?.subjectId ||
-        assessment.assessmentId === session?.assessmentId,
-    );
-
-    return matchAssessment?.assessmentId || session?.assessmentId || 1;
-  };
+  // Assessment-based: use the selected assessment's ID directly (no session resolution needed)
+  const getCurrentAssessmentId = () => selectedAssessment?.assessmentId ?? 1;
 
   const handleScoreChange = (enrollmentId, value, field = "assessment") => {
     const scoreVal =
@@ -516,7 +528,7 @@ const InstructorAssessments = () => {
         return;
       }
 
-      const assessmentId = getAssessmentIdForSession(selectedSession);
+      const assessmentId = getCurrentAssessmentId();
       const selectedTypes = getSelectedTypes(selectedAssessmentType);
       const saveRequests = [];
 
@@ -528,7 +540,6 @@ const InstructorAssessments = () => {
               assessmentId: assessmentId,
               accountId: student.accountId,
               subjectResultId: student.subjectResultId || 1,
-              sessionId: selectedSession?.sessionId,
               score: parseFloat(student.assessmentScore) || 0,
               remark: student.assessmentComment || "",
             },
@@ -547,7 +558,6 @@ const InstructorAssessments = () => {
               body: {
                 score: practicalScore,
                 verificationComment: student.practicalComment || "",
-                sessionId: selectedSession?.sessionId,
               },
             });
           } else {
@@ -558,7 +568,6 @@ const InstructorAssessments = () => {
               method: "post",
               body: {
                 subjectResultId: student.subjectResultId || 1,
-                sessionId: selectedSession?.sessionId,
                 score: practicalScore,
                 verificationComment: student.practicalComment || "",
               },
@@ -606,8 +615,8 @@ const InstructorAssessments = () => {
   const handleTypeChange = (e) => {
     const newType = e.target.value;
     setSelectedAssessmentType(newType);
-    if (selectedSession) {
-      loadSessionScores(selectedSession, newType);
+    if (selectedAssessment) {
+      loadAssessmentScores(selectedAssessment, newType);
     }
   };
 
@@ -621,6 +630,23 @@ const InstructorAssessments = () => {
     if (displayScores.length === 0) return false;
     return displayScores.every((s) => s.isPublished);
   }, [isEditingScores, editingScores, studentScores]);
+
+  // Signoff eligibility summary counts
+  const eligibilityStats = useMemo(() => {
+    const eligibleCount = eligibilityList.filter((e) => e.eligible).length;
+    return {
+      eligibleCount,
+      ineligibleCount: eligibilityList.length - eligibleCount,
+      allEligible:
+        eligibilityList.length > 0 && eligibleCount === eligibilityList.length,
+    };
+  }, [eligibilityList]);
+
+  const canSignoff = useMemo(() => {
+    if (loading || signingOff || allPublished) return false;
+    if (eligibilityList.length === 0) return false;
+    return eligibilityStats.allEligible;
+  }, [loading, signingOff, allPublished, eligibilityList, eligibilityStats]);
 
   // Publish (confirm + lock) all scores — called after ConfirmModal confirms
   // Subject Signoff handler
@@ -636,8 +662,30 @@ const InstructorAssessments = () => {
         return;
       }
 
+      // Subject Signoff eligibility gate: only sign off learners who satisfy ALL 4 validation rules
+      const eligibleIds = eligibilityList
+        .filter((e) => e.eligible)
+        .map((e) => e.subjectResultId);
+      const ineligible = eligibilityList.filter((e) => !e.eligible);
+
+      if (ineligible.length > 0) {
+        const names = ineligible.map((e) => e.name).join(", ");
+        toast.warning(
+          tr("Chưa đủ điều kiện ký xác nhận!"),
+          `${tr('Học viên chưa thỏa mãn đầy đủ 4 điều kiện (điểm danh ≥ 80%, điểm lý thuyết ≥ điểm đạt, thực hành bắt buộc đạt, minh chứng đã xác thực): ')}${names}`,
+        );
+        setConfirmSignoffOpen(false);
+        return;
+      }
+
+      if (eligibleIds.length === 0) {
+        toast.warning(tr("Chưa đủ điều kiện ký xác nhận!"), tr("Không có học viên nào thỏa mãn đầy đủ các điều kiện hoàn thành."));
+        setConfirmSignoffOpen(false);
+        return;
+      }
+
       await Promise.all(
-        subjectResultIds.map((subjectResultId) =>
+        eligibleIds.map((subjectResultId) =>
           api.post("/SubjectSignoff", {
             subjectResultId,
             comment: tr("Đã hoàn thành đánh giá và ký xác nhận chuyên đề."),
@@ -646,8 +694,10 @@ const InstructorAssessments = () => {
       );
 
       setConfirmSignoffOpen(false);
-      toast.success(tr("Ký xác nhận thành công!"), `${tr('Đã ký ')}${subjectResultIds.length} ${tr('môn học.')}`);
-      loadSessionScores(selectedSession, selectedAssessmentType);
+      toast.success(tr("Ký xác nhận thành công!"), `${tr('Đã ký ')}${eligibleIds.length} ${tr('môn học.')}`);
+      if (selectedAssessment) {
+        loadAssessmentScores(selectedAssessment, selectedAssessmentType);
+      }
     } catch (err) {
       console.error("Lỗi khi ký xác nhận:", err);
       toast.error(tr("Ký xác nhận thất bại!"), err.message);
@@ -689,54 +739,51 @@ const InstructorAssessments = () => {
         );
       });
 
-      if (changedScores.length > 0) {
-        const assessmentId = getAssessmentIdForSession(selectedSession);
-        const selectedTypes = getSelectedTypes(selectedAssessmentType);
-        const saveRequests = [];
+       if (changedScores.length > 0) {
+         const assessmentId = getCurrentAssessmentId();
+         const selectedTypes = getSelectedTypes(selectedAssessmentType);
+         const saveRequests = [];
 
-        if (selectedTypes.includes("assessment")) {
-          saveRequests.push(
-            ...changedScores.map((student) => ({
-              endpoint: "/AssessmentResults/record",
-              body: {
-                assessmentId: assessmentId,
-                accountId: student.accountId,
-                subjectResultId: student.subjectResultId || 1,
-                sessionId: selectedSession?.sessionId,
-                score: parseFloat(student.assessmentScore) || 0,
-                remark: student.assessmentComment || "",
-              },
-            })),
-          );
-        }
+         if (selectedTypes.includes("assessment")) {
+           saveRequests.push(
+             ...changedScores.map((student) => ({
+               endpoint: "/AssessmentResults/record",
+               body: {
+                 assessmentId: assessmentId,
+                 accountId: student.accountId,
+                 subjectResultId: student.subjectResultId || 1,
+                 score: parseFloat(student.assessmentScore) || 0,
+                 remark: student.assessmentComment || "",
+               },
+             })),
+           );
+         }
 
-        if (selectedTypes.includes("practical")) {
-          for (const student of changedScores) {
-            const practicalScore = parseFloat(student.practicalScore) || 0;
-            if (student.practicalResultId) {
-              saveRequests.push({
-                endpoint: `/PracticalChecklistResults/${student.practicalResultId}/progress`,
-                method: "put",
-                body: {
-                  score: practicalScore,
-                  verificationComment: student.practicalComment || "",
-                  sessionId: selectedSession?.sessionId,
-                },
-              });
-            } else {
-              saveRequests.push({
-                endpoint: "/PracticalChecklistResults",
-                method: "post",
-                body: {
-                  subjectResultId: student.subjectResultId || 1,
-                  sessionId: selectedSession?.sessionId,
-                  score: practicalScore,
-                  verificationComment: student.practicalComment || "",
-                },
-              });
-            }
-          }
-        }
+         if (selectedTypes.includes("practical")) {
+           for (const student of changedScores) {
+             const practicalScore = parseFloat(student.practicalScore) || 0;
+             if (student.practicalResultId) {
+               saveRequests.push({
+                 endpoint: `/PracticalChecklistResults/${student.practicalResultId}/progress`,
+                 method: "put",
+                 body: {
+                   score: practicalScore,
+                   verificationComment: student.practicalComment || "",
+                 },
+               });
+             } else {
+               saveRequests.push({
+                 endpoint: "/PracticalChecklistResults",
+                 method: "post",
+                 body: {
+                   subjectResultId: student.subjectResultId || 1,
+                   score: practicalScore,
+                   verificationComment: student.practicalComment || "",
+                 },
+               });
+             }
+           }
+         }
 
         await Promise.all(
           saveRequests.map((request) =>
@@ -804,7 +851,9 @@ const InstructorAssessments = () => {
         tr("Bảng điểm đã được khóa."),
       );
       setIsEditingScores(false);
-      loadSessionScores(selectedSession, selectedAssessmentType);
+      if (selectedAssessment) {
+        loadAssessmentScores(selectedAssessment, selectedAssessmentType);
+      }
     } catch (err) {
       console.error("Lỗi khi chốt điểm:", err);
       toast.error(tr("Chốt điểm thất bại!"), err.message);
@@ -814,7 +863,7 @@ const InstructorAssessments = () => {
   };
 
   // Grading Spreadsheet View
-  if (selectedSession) {
+  if (selectedAssessment) {
     const displayScores = isEditingScores ? editingScores : studentScores;
 
     return (
@@ -822,7 +871,7 @@ const InstructorAssessments = () => {
         <nav className="breadcrumb-nav">
           <span
             className="breadcrumb-item"
-            onClick={() => setSelectedSession(null)}
+            onClick={() => setSelectedAssessment(null)}
             style={{ cursor: "pointer" }}
           >
             {tr('ĐÁNH GIÁ')}
@@ -833,18 +882,20 @@ const InstructorAssessments = () => {
               fill="currentColor"
             />
           </svg>
-          <span className="breadcrumb-item active">{selectedSession.name}</span>
+          <span className="breadcrumb-item active">
+            {selectedAssessment.componentName}
+          </span>
         </nav>
 
         <section className="content-header">
           <div className="header-left">
-            <h1>{tr('Nhập điểm đánh giá')} — {selectedSession.name}</h1>
+             <h1>{tr('Nhập điểm đánh giá')} — {selectedAssessment.componentName}</h1>
             <div className="divider-gold" />
-            <p className="header-description">
-              {getAssessmentTypeLabel(selectedAssessmentType)} · Assessment:{" "}
-              {getSessionAssessmentName(selectedSession)} · {tr('Lớp: ')}{" "}
-              {selectedClass ? selectedClass.code : "N/A"}
-            </p>
+             <p className="header-description">
+               {getAssessmentTypeLabel(selectedAssessmentType)} · Assessment:{" "}
+               {selectedAssessment.componentName} · {tr('Lớp: ')}{" "}
+               {selectedClass ? selectedClass.code : "N/A"}
+             </p>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -907,18 +958,18 @@ const InstructorAssessments = () => {
               </button>
             )}
 
-            {/* Ký xác nhận (Subject Signoff) button */}
+{/* Ký xác nhận (Subject Signoff) button */}
             <button
               onClick={() => setConfirmSignoffOpen(true)}
               className="create-btn"
               type="button"
-              disabled={loading || signingOff || allPublished}
+              disabled={!canSignoff}
               style={{
-                background: allPublished
+                background: !canSignoff
                   ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
                   : "linear-gradient(159.93deg, #2563eb -27.55%, #1d4ed8 127.55%)",
-                opacity: allPublished ? 0.9 : 1,
-                cursor: allPublished ? "not-allowed" : "pointer",
+                opacity: canSignoff ? 1 : 0.7,
+                cursor: canSignoff ? "pointer" : "not-allowed",
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "4px" }}>
@@ -926,7 +977,11 @@ const InstructorAssessments = () => {
                 <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
               </svg>
               <span>
-                {allPublished ? tr("ĐÃ KÝ") : tr("KÝ XÁC NHẬN")}
+                {allPublished
+                  ? tr("ĐÃ KÝ")
+                  : eligibilityStats.ineligibleCount > 0
+                    ? tr(`CHƯA ĐỦ ĐK KÝ (${eligibilityStats.ineligibleCount})`)
+                    : tr("KÝ XÁC NHẬN")}
               </span>
             </button>
 
@@ -1013,6 +1068,81 @@ const InstructorAssessments = () => {
             <option value="both">{tr('Cả Assessment và Practical')}</option>
           </select>
         </div>
+
+        {/* Subject Signoff Eligibility panel */}
+        <section className="table-card" style={{ border: eligibilityStats.allEligible && eligibilityList.length > 0 ? '1px solid #16a34a' : '1px solid #eab308' }}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 20px", borderBottom: "1px solid #eef2f6",
+            fontSize: "11px", fontWeight: "700", color: "#002147",
+            textTransform: "uppercase", letterSpacing: "0.05em",
+          }}>
+            <span>
+              {tr('ĐIỀU KIỆN KÝ XÁC NHẬN (SUBJECT SIGNOFF)')}
+              <span style={{ fontSize: "10px", fontWeight: 600, color: "rgba(0,33,71,0.5)", marginLeft: "8px" }}>
+                {tr('Học viên phải thỏa mãn cả 4 điều kiện')}
+              </span>
+            </span>
+            {eligibilityList.length > 0 && (
+              <span style={{
+                fontSize: "10px", fontWeight: "800", padding: "4px 12px", borderRadius: "999px",
+                backgroundColor: eligibilityStats.allEligible ? "rgba(34,197,94,0.1)" : "rgba(234,179,8,0.12)",
+                color: eligibilityStats.allEligible ? "#16a34a" : "#d97706",
+              }}>
+                {tr(`Đủ điều kiện: `)}{eligibilityStats.eligibleCount}{tr('/')}{eligibilityList.length}
+              </span>
+            )}
+          </div>
+
+          <div style={{ padding: "12px 20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.9fr 1fr 1.1fr 1.1fr 0.8fr", gap: "10px", alignItems: "center", padding: "6px 0", fontSize: "10px", fontWeight: "800", color: "rgba(0,33,71,0.5)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid #eef2f6" }}>
+              <div>{tr('Học viên')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Điểm danh ≥ 80%')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Điểm lý thuyết ≥ Pass')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Thực hành bắt buộc đạt')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Minh chứng đã xác thực')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Đủ ĐK')}</div>
+            </div>
+            {eligibilityList.length === 0 ? (
+              <div style={{ padding: "16px", textAlign: "center", color: "rgba(0,33,71,0.4)", fontSize: "12px", fontStyle: "italic" }}>
+                {tr("Chưa có dữ liệu. Hãy nhập điểm & ấn Lưu để tính điều kiện ký xác nhận.")}
+              </div>
+            ) : (
+              eligibilityList.map((e) => (
+                <div key={e.code} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.9fr 1fr 1.1fr 2.1fr 0.8fr", gap: "10px", alignItems: "center", padding: "8px 0", fontSize: "12px", fontWeight: "600", color: "#002147", borderBottom: "1px solid #f5f7fa" }}>
+                  <div>{e.code} · {e.name}</div>
+                  {[
+                    { ok: e.attendanceOk, label: e.attendanceRate != null ? `${e.attendanceRate}%` : tr("N/A") },
+                    { ok: e.theoryOk, label: e.subjectScore != null ? `${e.subjectScore}/${e.passingScore}` : tr("N/A") },
+                    { ok: e.practicalOk, label: tr("Bắt buộc") },
+                    { ok: e.evidenceOk, label: tr("Xác thực") },
+                  ].map((c, i) => (
+                    <div key={i} style={{ textAlign: "center" }}>
+                      <span style={{
+                        display: "inline-block", padding: "3px 8px", borderRadius: "6px",
+                        fontSize: "10px", fontWeight: "800",
+                        backgroundColor: c.ok ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+                        color: c.ok ? "#16a34a" : "#ef4444",
+                      }}>
+                        {c.ok ? `✓ ${c.label}` : `✗ ${c.label}`}
+                      </span>
+                    </div>
+                  ))}
+                  <div style={{ textAlign: "center" }}>
+                    <span style={{
+                      display: "inline-block", padding: "3px 10px", borderRadius: "6px",
+                      fontSize: "10px", fontWeight: "800", textTransform: "uppercase",
+                      backgroundColor: e.eligible ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.1)",
+                      color: e.eligible ? "#16a34a" : "#ef4444",
+                    }}>
+                      {e.eligible ? tr("Đạt") : tr("Chưa")}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
 
         {/* Score Table */}
         <section className="table-card">
@@ -1515,14 +1645,14 @@ const InstructorAssessments = () => {
   }
 
   // Session-based assessment selector view
-  return (
+   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <section className="content-header">
         <div className="header-left">
-          <h1>{tr('Đánh giá theo buổi học')}</h1>
+          <h1>{tr('Đánh giá theo Assessment')}</h1>
           <div className="divider-gold" />
           <p className="header-description">
-            {tr('Chọn lớp học và buổi học để nhập điểm theo loại Assessment, Practical hoặc cả hai.')}
+            {tr('Chọn lớp học và assessment để nhập điểm cho học viên.')}
           </p>
         </div>
       </section>
@@ -1588,18 +1718,18 @@ const InstructorAssessments = () => {
               </h3>
               <p style={{ margin: "6px 0 0", color: "rgba(0,33,71,0.7)" }}>
                 {selectedClass
-                  ? `${tr('Danh sách buổi học cho lớp ')}${selectedClass.code} - ${selectedClass.subName}`
-                  : tr("Vui lòng chọn lớp để xem danh sách buổi học.")}
+                  ? `${tr('Danh sách Assessment cho lớp ')}${selectedClass.code} - ${selectedClass.subName}`
+                  : tr("Vui lòng chọn lớp để xem danh sách Assessment.")}
               </p>
             </div>
 
             {loading ? (
               <div style={{ color: "rgba(0,33,71,0.5)", fontStyle: "italic" }}>
-                {tr('Đang tải danh sách buổi học...')}
+                {tr('Đang tải danh sách Assessment...')}
               </div>
-            ) : sessions.length === 0 ? (
+            ) : assessmentsForClass.length === 0 ? (
               <div style={{ color: "rgba(0,33,71,0.5)", fontStyle: "italic" }}>
-                {tr('Chưa có buổi học nào được tạo cho lớp này.')}
+                {tr('Chưa có Assessment nào được tạo cho môn học này.')}
               </div>
             ) : (
               <div
@@ -1609,48 +1739,92 @@ const InstructorAssessments = () => {
                   gap: "12px",
                 }}
               >
-                {sessions.map((session) => (
-                  <div
-                    key={session.sessionId}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "16px",
-                      padding: "16px 18px",
-                      border: "1px solid #dfe6f1",
-                      borderRadius: "12px",
-                      background: "#f8fbff",
-                    }}
-                  >
-                    <div>
-                      <h4 style={{ margin: "0 0 6px", color: "#002147" }}>
-                        {session.name}
-                      </h4>
-                      <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
-                        {session.date} · {session.room}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleOpenGradingSheet(session)}
-                      className="ghost-btn"
-                      type="button"
-                      disabled={loading}
+                {assessmentsForClass
+                  .slice()
+                  .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+                  .map((assessment) => (
+                    <div
+                      key={assessment.assessmentId}
                       style={{
-                        padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700',
-                        backgroundColor: '#c5a059', color: 'white', border: 'none', cursor: 'pointer',
-                        textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s',
-                        boxShadow: '0 2px 4px rgba(197, 160, 89, 0.2)'
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "16px",
+                        padding: "16px 18px",
+                        border: "1px solid #dfe6f1",
+                        borderRadius: "12px",
+                        background: "#f8fbff",
                       }}
                     >
-                      {tr('NHẬP ĐIỂM BUỔI HỌC')}
-                    </button>
-                  </div>
-                ))}
+                      <div>
+                        <h4 style={{ margin: "0 0 6px", color: "#002147" }}>
+                          {assessment.componentName}
+                        </h4>
+                        <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
+                          {assessment.assessmentType} · {tr('Trọng số')}: {assessment.weight}% · {tr('Điểm đạt')}: {assessment.passingScore}
+                          {assessment.isRequired ? ` · ${tr('Bắt buộc')}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleOpenGradingSheet(assessment)}
+                        className="ghost-btn"
+                        type="button"
+                        style={{
+                          padding: "10px 20px",
+                          borderRadius: "10px",
+                          border: "1px solid #dfe6f1",
+                          backgroundColor: "#ffffff",
+                          color: "#002147",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {tr('NHẬP ĐIỂM')}
+                      </button>
+                    </div>
+                  ))}
               </div>
             )}
           </div>
         </section>
+      )}
+
+      {/* Grading Spreadsheet View */}
+      {selectedAssessment && (
+        <>
+          <nav className="breadcrumb-nav">
+            <span
+              className="breadcrumb-item"
+              onClick={() => setSelectedAssessment(null)}
+              style={{ cursor: "pointer" }}
+            >
+              {tr('ĐÁNH GIÁ')}
+            </span>
+            <svg width="4" height="6" viewBox="0 0 4 6" fill="none">
+              <path
+                d="M2.3 3L0 0.7L0.7 0L3.7 3L0.7 6L0 5.3L2.3 3Z"
+                fill="currentColor"
+              />
+            </svg>
+            <span className="breadcrumb-item active">
+              {selectedAssessment.componentName}
+            </span>
+          </nav>
+
+          <section className="content-header">
+            <div className="header-left">
+              <h1>{tr('Nhập điểm đánh giá')} — {selectedAssessment.componentName}</h1>
+              <div className="divider-gold" />
+              <p className="header-description">
+                {getAssessmentTypeLabel(selectedAssessmentType)} · Assessment:{" "}
+                {selectedAssessment.componentName} · {tr('Lớp: ')}{" "}
+                {selectedClass ? selectedClass.code : "N/A"}
+              </p>
+            </div>
+          </section>
+        </>
       )}
     </div>
   );

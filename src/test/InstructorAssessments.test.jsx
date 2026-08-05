@@ -520,3 +520,119 @@ describe('getAssessmentTypeLabel', () => {
     expect('Assessment + Practical').toBe('Assessment + Practical')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Logic: Subject Signoff eligibility (4 validation rules)
+// ---------------------------------------------------------------------------
+describe('Subject Signoff eligibility', () => {
+  const SIGNOFF_ATTENDANCE_THRESHOLD = 80
+
+  const computeEligibility = (input) => {
+    const attendanceOk = input.attendanceRate != null
+      ? input.attendanceRate >= SIGNOFF_ATTENDANCE_THRESHOLD
+      : false
+    const passingScore = input.passingScore || 50
+    const theoryOk = input.subjectScore != null
+      ? input.subjectScore >= passingScore
+      : false
+    const requiredChecklists = input.requiredChecklists || []
+    const passedChecklists = (input.practicalResultsBySubject || []).filter((pr) =>
+      requiredChecklists.some(
+        (pc) =>
+          Number(pr.practicalChecklistId) === Number(pc.practicalChecklistId) &&
+          (pr.resultStatus === 'Passed' || pr.resultStatus === 'Hoàn thành')
+      )
+    )
+    const practicalOk = requiredChecklists.length === 0
+      ? false
+      : passedChecklists.length === requiredChecklists.length
+    const evidences = input.evidences || []
+    const evidenceOk = evidences.length > 0
+      && evidences.every((ev) =>
+          ev.verificationStatus === 'Verified'
+          || ev.status === 'Verified'
+          || ev.verified === true
+        )
+    return { attendanceOk, theoryOk, practicalOk, evidenceOk, eligible: attendanceOk && theoryOk && practicalOk && evidenceOk }
+  }
+
+  it('allows signoff when all 4 rules are satisfied', () => {
+    const result = computeEligibility({
+      attendanceRate: 90,
+      subjectScore: 85,
+      passingScore: 50,
+      requiredChecklists: [{ practicalChecklistId: 1 }],
+      practicalResultsBySubject: [{ practicalChecklistId: 1, resultStatus: 'Passed' }],
+      evidences: [{ verificationStatus: 'Verified' }],
+    })
+    expect(result.eligible).toBe(true)
+  })
+
+  it('blocks signoff when attendance rate is below threshold', () => {
+    const result = computeEligibility({
+      attendanceRate: 70,
+      subjectScore: 85,
+      passingScore: 50,
+      requiredChecklists: [{ practicalChecklistId: 1 }],
+      practicalResultsBySubject: [{ practicalChecklistId: 1, resultStatus: 'Passed' }],
+      evidences: [{ verificationStatus: 'Verified' }],
+    })
+    expect(result.eligible).toBe(false)
+    expect(result.attendanceOk).toBe(false)
+  })
+
+  it('blocks signoff when theory score is below passing score', () => {
+    const result = computeEligibility({
+      attendanceRate: 90,
+      subjectScore: 40,
+      passingScore: 50,
+      requiredChecklists: [{ practicalChecklistId: 1 }],
+      practicalResultsBySubject: [{ practicalChecklistId: 1, resultStatus: 'Passed' }],
+      evidences: [{ verificationStatus: 'Verified' }],
+    })
+    expect(result.eligible).toBe(false)
+    expect(result.theoryOk).toBe(false)
+  })
+
+  it('blocks signoff when a mandatory practical is failed or missing', () => {
+    const result = computeEligibility({
+      attendanceRate: 90,
+      subjectScore: 85,
+      passingScore: 50,
+      requiredChecklists: [
+        { practicalChecklistId: 1 },
+        { practicalChecklistId: 2 },
+      ],
+      practicalResultsBySubject: [{ practicalChecklistId: 1, resultStatus: 'Passed' }],
+      evidences: [{ verificationStatus: 'Verified' }],
+    })
+    expect(result.eligible).toBe(false)
+    expect(result.practicalOk).toBe(false)
+  })
+
+  it('blocks signoff when evidence is missing or not verified', () => {
+    const result = computeEligibility({
+      attendanceRate: 90,
+      subjectScore: 85,
+      passingScore: 50,
+      requiredChecklists: [{ practicalChecklistId: 1 }],
+      practicalResultsBySubject: [{ practicalChecklistId: 1, resultStatus: 'Passed' }],
+      evidences: [{ verificationStatus: 'Pending' }],
+    })
+    expect(result.eligible).toBe(false)
+    expect(result.evidenceOk).toBe(false)
+  })
+
+  it('treats absence of required checklists as not eligible (must be configured)', () => {
+    const result = computeEligibility({
+      attendanceRate: 90,
+      subjectScore: 85,
+      passingScore: 50,
+      requiredChecklists: [],
+      practicalResultsBySubject: [],
+      evidences: [{ verificationStatus: 'Verified' }],
+    })
+    expect(result.practicalOk).toBe(false)
+    expect(result.eligible).toBe(false)
+  })
+})

@@ -28,6 +28,9 @@ globalThis.fetch = async (url, options) => {
     '/api/courses': [
       { courseId: 1, courseName: 'Khóa học A' },
     ],
+    '/api/Subjects': [
+      { subjectId: 1, subjectCode: 'SUB01', subjectName: 'An toàn hàng không', subjectType: 'Theory' },
+    ],
     '/api/Assessments': [
       { assessmentId: 1, subjectId: 1, assessmentName: 'Kiểm tra giữa kỳ' },
     ],
@@ -55,8 +58,11 @@ globalThis.fetch = async (url, options) => {
       { practicalChecklistResultId: 1, sessionId: 1, subjectResultId: 1, practicalChecklistId: 1, score: 75, resultStatus: 'Passed', isPublished: false, verificationComment: 'Well done' },
       { practicalChecklistResultId: 2, sessionId: 2, subjectResultId: 2, practicalChecklistId: 1, score: 45, resultStatus: 'Failed', isPublished: true, verificationComment: 'Needs improvement' },
     ],
+    '/api/PracticalChecklists': [
+      { practicalChecklistId: 1, courseId: 1, subjectId: 1, itemName: 'Thực hành ghi nhận thông số', description: 'Nhập và kiểm tra thông số', isRequired: true, displayOrder: 1 },
+    ],
     '/api/attendance': [
-      { attendanceRecordId: 1, sessionId: 1, accountId: 6, status: 'P', remarks: '' },
+      { attendanceRecordId: 1, sessionId: 1, accountId: 6, status: 'Present', remarks: '' },
     ],
     '/api/Audit': [
       { id: 'LOG-001', timestamp: '2026-07-24 14:10:02', user: 'Auditor Officer', role: 'Auditor', module: 'ETR Inspection', action: 'INSPECT_LOCKED_ETR', target: 'ETR-2026-0891', result: 'SUCCESS', details: 'Inspected ETR details' }

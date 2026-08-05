@@ -182,12 +182,27 @@ const CourseClassManagement = () => {
   // Handler for Creating Course (POST /api/Courses)
   const handleSaveCourse = async (newCourse) => {
     try {
+      const subjectsPayload = Array.isArray(newCourse.subjects) && newCourse.subjects.length > 0
+        ? newCourse.subjects
+        : (Array.isArray(newCourse.selectedSubjectIds)
+            ? newCourse.selectedSubjectIds.map((id, idx) => ({
+                subjectId: Number(id),
+                sequenceNo: idx + 1,
+                requiredHours: newCourse.duration || 0,
+                isMandatory: true,
+                passingScore: 5
+              }))
+            : []);
+
       await api.post("/Courses", {
         courseCode: newCourse.code,
         courseName: newCourse.name,
         description: newCourse.description || '',
         durationHours: parseInt(newCourse.duration) || 0,
-        status: 'Active'
+        status: newCourse.status || 'Active',
+        validityMonths: null,
+        courseType: null,
+        subjects: subjectsPayload
       });
       await refreshData();
       setIsCreatingCourse(false);
@@ -201,7 +216,29 @@ const CourseClassManagement = () => {
   // Handler for Updating Course (PUT /api/Courses/{id})
   const handleSaveUpdateCourse = async (courseId, updateData) => {
     try {
-      await api.put(`/Courses/${courseId}`, updateData);
+      const subjectsPayload = Array.isArray(updateData.subjects) && updateData.subjects.length > 0
+        ? updateData.subjects
+        : (Array.isArray(updateData.selectedSubjectIds)
+            ? updateData.selectedSubjectIds.map((id, idx) => ({
+                subjectId: Number(id),
+                sequenceNo: idx + 1,
+                requiredHours: updateData.durationHours || 0,
+                isMandatory: true,
+                passingScore: 5
+              }))
+            : []);
+
+      await api.put(`/Courses/${courseId}`, {
+        courseId,
+        courseCode: updateData.courseCode || updateData.code,
+        courseName: updateData.courseName || updateData.name,
+        description: updateData.description || '',
+        durationHours: parseInt(updateData.durationHours ?? updateData.duration) || 0,
+        status: updateData.status || 'Active',
+        validityMonths: updateData.validityMonths ?? null,
+        courseType: updateData.courseType ?? null,
+        subjects: subjectsPayload
+      });
       await refreshData();
       setEditingCourseTarget(null);
       toast.success(tr("Cập nhật khóa học thành công!"), tr("Thông tin khóa học và cấu hình môn học đã được lưu."));
