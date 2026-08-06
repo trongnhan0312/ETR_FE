@@ -120,6 +120,10 @@ const InstructorClasses = () => {
           assessmentId: s.assessmentId != null ? Number(s.assessmentId) : null,
           isAssessmentRequired: !!s.isAssessmentRequired,
           isChecklistRequired: !!s.isChecklistRequired,
+          practicalChecklistId:
+            s.practicalChecklistId != null
+              ? Number(s.practicalChecklistId)
+              : null,
         };
       });
       setSessions(mapped);
@@ -249,7 +253,10 @@ const InstructorClasses = () => {
       location: session.room,
       assessmentId:
         session.assessmentId != null ? String(session.assessmentId) : "",
-      practicalChecklistId: session.isChecklistRequired ? "checklist" : "",
+      practicalChecklistId:
+        session.practicalChecklistId != null
+          ? String(session.practicalChecklistId)
+          : "",
     });
     setSelectedSubjectDescription(selectedSubject?.description || "");
     setShowSessionModal(true);
@@ -259,7 +266,9 @@ const InstructorClasses = () => {
     setSessionForm((prev) => ({
       ...prev,
       [field]: value,
-      ...(field === "subjectId" ? { assessmentId: "" } : {}),
+      ...(field === "subjectId"
+        ? { assessmentId: "", practicalChecklistId: "" }
+        : {}),
     }));
     if (field === "subjectId") {
       const selectedSubject = subjectsList.find(
@@ -293,6 +302,9 @@ const InstructorClasses = () => {
           : null,
         isAssessmentRequired: !!sessionForm.assessmentId,
         isChecklistRequired: !!sessionForm.practicalChecklistId,
+        practicalChecklistId: sessionForm.practicalChecklistId
+          ? Number(sessionForm.practicalChecklistId)
+          : null,
       };
 
       if (editingSessionId) {
@@ -944,32 +956,47 @@ const InstructorClasses = () => {
                 <div>
                   <label
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      color: "#002147",
-                      cursor: "pointer",
+                      display: "block",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      color: "rgba(0,33,71,0.55)",
+                      textTransform: "uppercase",
+                      marginBottom: "6px",
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={
-                        subjectPracticalChecklists.length > 0 &&
-                        !!sessionForm.practicalChecklistId
-                      }
-                      onChange={(e) =>
-                        handleSessionFormChange(
-                          "practicalChecklistId",
-                          e.target.checked ? "checklist" : "",
-                        )
-                      }
-                      disabled={subjectPracticalChecklists.length === 0}
-                      style={{ width: "16px", height: "16px", cursor: "pointer" }}
-                    />
-                    {tr('Buổi học yêu cầu đánh giá thực hành (Practical)')}
+                    {tr('Danh sách kiểm tra thực hành (Practical Checklist)')}
                   </label>
+                  <select
+                    value={sessionForm.practicalChecklistId}
+                    onChange={(e) =>
+                      handleSessionFormChange(
+                        "practicalChecklistId",
+                        e.target.value,
+                      )
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "10px",
+                      border: "1px solid #d9e1ec",
+                      fontSize: "13px",
+                      backgroundColor: "#ffffff",
+                    }}
+                  >
+                    <option value="">
+                      {tr('Không yêu cầu kiểm tra thực hành')}
+                    </option>
+                    {subjectPracticalChecklists.map((pc) => (
+                      <option
+                        key={pc.practicalChecklistId}
+                        value={pc.practicalChecklistId}
+                      >
+                        {pc.itemName ||
+                          pc.name ||
+                          `Practical Checklist ${pc.practicalChecklistId}`}
+                      </option>
+                    ))}
+                  </select>
                   {subjectPracticalChecklists.length === 0 && (
                     <div
                       style={{

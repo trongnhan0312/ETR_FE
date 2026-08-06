@@ -1103,6 +1103,8 @@ export const EXTRA_VN_TO_EN = {
   'Không chọn assessment': 'No assessment',
   'Không có assessment chưa được chọn cho môn này.': 'No unassigned assessment for this subject.',
   'Buổi học yêu cầu đánh giá thực hành (Practical)': 'Session requires practical assessment',
+  'Danh sách kiểm tra thực hành (Practical Checklist)': 'Practical Checklist',
+  'Không yêu cầu kiểm tra thực hành': 'No practical checklist required',
   'Chưa có mục thực hành cho môn này.': 'No practical checklist for this subject yet.',
   'Đang tải...': 'Loading...',
   '+ Tạo Assessment': '+ Create Assessment',
