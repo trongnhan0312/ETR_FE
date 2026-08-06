@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import CreateCourse from './CreateCourse';
 import CreateClass from './CreateClass';
 import ClassAttendanceHistory from './ClassAttendanceHistory';
@@ -432,9 +432,43 @@ const CourseClassManagement = () => {
     };
   }).filter((course) => course.shouldShow);
 
+  // Lớp "mồ côi": có CourseId không khớp bất kỳ khóa học nào đang tồn tại (khóa học đã bị xóa
+  // hoặc lớp được tạo với CourseId không hợp lệ) — Academic cần thấy để xử lý (sửa/xóa/ghi danh).
+  const orphanClasses = useMemo(() => {
+    const validCourseIds = new Set(allCoursesRaw.map((c) => String(c.courseId)));
+    return allClassesRaw
+      .filter((cls) => !validCourseIds.has(String(cls.courseId)))
+      .map((cls) => {
+        let insName = tr('Đang cập nhật');
+        if (cls.instructorAccountId) {
+          const acc = instructorsList.find((i) => String(i.accountId) === String(cls.instructorAccountId));
+          insName = acc?.fullName || `GV #${cls.instructorAccountId}`;
+        }
+        return {
+          classId: cls.classId,
+          courseId: cls.courseId,
+          code: cls.classCode,
+          classCode: cls.classCode,
+          name: cls.className,
+          className: cls.className,
+          location: cls.location || '',
+          capacity: cls.capacity || 30,
+          instructorAccountId: cls.instructorAccountId || null,
+          startDateRaw: cls.startDate,
+          endDateRaw: cls.endDate,
+          startDate: cls.startDate ? new Date(cls.startDate).toLocaleDateString('vi-VN') : '',
+          endDate: cls.endDate ? new Date(cls.endDate).toLocaleDateString('vi-VN') : '',
+          statusRaw: cls.status,
+          status: cls.status === 'Active' ? 'Đang diễn ra' : cls.status === 'Upcoming' ? 'Sắp diễn ra' : cls.status === 'Completed' ? 'Đã kết thúc' : cls.status === 'Cancelled' ? 'Đã hủy' : cls.status,
+          instructor: insName,
+          isOrphan: true
+        };
+      });
+  }, [allClassesRaw, allCoursesRaw, instructorsList, tr]);
+
   // Statistics calculation
   const totalClasses = courses.reduce((sum, course) => sum + course.classes.length, 0);
-  const allFlattenedClasses = courses.flatMap((c) => c.classes);
+  const allFlattenedClasses = [...courses.flatMap((c) => c.classes), ...orphanClasses];
 
   // Conditional rendering for Attendance History view
   if (selectedClassForHistory) {
@@ -898,6 +932,164 @@ const CourseClassManagement = () => {
                   );
                 })
               )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Orphan Classes: lớp không thuộc khóa học nào đang tồn tại */}
+      {!loading && orphanClasses.length > 0 && (
+        <section className="table-card" style={{ marginTop: '24px', border: '1px solid #fecaca' }}>
+          <div className="table-toolbar" style={{ flexWrap: 'wrap', gap: '12px' }}>
+            <div className="toolbar-left" style={{ flex: '1 1 auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <span style={{
+                  backgroundColor: '#fef2f2',
+                  color: '#b91c1c',
+                  border: '1px solid #fecaca',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
+                }}>
+                  ⚠️ {tr('LỚP KHÔNG THUỘC KHÓA HỌC')} ({orphanClasses.length})
+                </span>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  {tr('Các lớp này có CourseId không khớp với khóa học nào đang tồn tại (khóa học có thể đã bị xóa hoặc lớp được tạo với khóa học không hợp lệ). Bạn có thể cập nhật trạng thái, ghi danh học viên, xem chi tiết hoặc xóa lớp không dùng.')}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="table-responsive-scroll">
+            <div className="table-header course-table-grid">
+              <div className="col-expand-trigger"></div>
+              <div>{tr('MÃ LỚP')}</div>
+              <div>{tr('TÊN LỚP HỌC')}</div>
+              <div>{tr('LỊCH TRÌNH')}</div>
+              <div>{tr('TRẠNG THÁI')}</div>
+              <div>{tr('GIẢNG VIÊN')}</div>
+              <div style={{ textAlign: 'right' }}>{tr('THAO TÁC')}</div>
+            </div>
+
+            <div className="table-body">
+              {orphanClasses.map((cls) => {
+                const isClassClosed = cls.status === 'Đã kết thúc' || cls.status === 'Completed' || cls.status === 'Đã hủy' || cls.status === 'Cancelled';
+                return (
+                  <div
+                    key={`orphan-${cls.classId}`}
+                    className="table-row course-table-grid class-nested-row"
+                    style={{ alignItems: 'center', backgroundColor: '#fffbfb' }}
+                  >
+                    <div className="col-expand-trigger">
+                      <span style={{ fontSize: '14px' }}>⚠️</span>
+                    </div>
+                    <div className="col-code nested-class-code">{cls.code}</div>
+                    <div className="col-name nested-class-name">{cls.name}</div>
+                    <div className="col-schedule">
+                      {cls.startDate} - {cls.endDate}
+                    </div>
+                    <div className="col-status-badge" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className={`class-status ${
+                        cls.status === 'Đang diễn ra' ? 'status-active' :
+                        cls.status === 'Sắp diễn ra' ? 'status-pending' : 'status-completed'
+                      }`}>
+                        {tr(cls.status)}
+                      </span>
+                    </div>
+                    <div className="col-instructor">{tr('GV:')} {cls.instructor}</div>
+
+                    <div className="col-actions text-right" style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', flexWrap: 'nowrap' }}>
+                      <button
+                        type="button"
+                        title={tr('Cập nhật trạng thái & thông tin lớp')}
+                        style={{
+                          backgroundColor: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          color: '#0f172a',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
+                        }}
+                        onClick={() => setEditingClassTarget(cls)}
+                      >
+                        {tr('✏️ Trạng thái')}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isClassClosed}
+                        title={isClassClosed ? tr('Lớp học đã kết thúc/bị hủy — không thể ghi danh mới') : tr('Ghi danh học viên mới vào lớp')}
+                        style={{
+                          backgroundColor: isClassClosed ? '#e2e8f0' : '#002147',
+                          color: isClassClosed ? '#94a3b8' : '#c5a059',
+                          border: isClassClosed ? '1px solid #cbd5e1' : '1px solid #c5a059',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          cursor: isClassClosed ? 'not-allowed' : 'pointer',
+                          whiteSpace: 'nowrap',
+                          opacity: isClassClosed ? 0.7 : 1,
+                          flexShrink: 0
+                        }}
+                        onClick={() => {
+                          if (isClassClosed) return;
+                          setEnrollClassId(cls.classId);
+                          setIsEnrollingStudent(true);
+                        }}
+                      >
+                        {isClassClosed ? tr('⛔ Đã kết thúc') : tr('➕ Ghi danh')}
+                      </button>
+
+                      <button
+                        type="button"
+                        style={{
+                          backgroundColor: '#f8fafc',
+                          color: '#475569',
+                          border: '1px solid #e2e8f0',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
+                        }}
+                        onClick={() => setSelectedClassForHistory(cls)}
+                      >
+                        {tr('Chi tiết')}
+                      </button>
+
+                      <button
+                        type="button"
+                        title={tr('Xóa Lớp học này')}
+                        style={{
+                          backgroundColor: '#fff1f2',
+                          color: '#e11d48',
+                          border: '1px solid #fecdd3',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
+                        }}
+                        onClick={() => setDeletingClassTarget(cls)}
+                      >
+                        {tr('🗑️ Xóa Lớp')}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>

@@ -101,7 +101,7 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
     expect(sessionRecords[0].accountId).toBe(6)
   })
 
-  it('builds attendance data with default status "Present" when no record exists', async () => {
+  it('builds attendance data: confirmed session + no record → Absent (not Present)', async () => {
     const sessionId = 1
     const attendanceRecords = await api.get('/attendance')
     const sessionRecords = attendanceRecords.filter((a) => a.sessionId === sessionId)
@@ -111,12 +111,15 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
       { accountId: 7, code: 'HV002', name: 'John Student' },
     ]
 
+    // Buổi 1 ĐÃ CHỐT — học viên chưa có bản ghi không được tự động coi là Có mặt
+    const isSessionLocked = true
+
     const mappedAttendance = students.map((student) => {
       const record = sessionRecords.find((r) => r.accountId === student.accountId)
       return {
         code: student.code,
         name: student.name,
-        status: record ? record.status : 'Present',
+        status: record ? record.status : isSessionLocked ? 'Absent' : 'Present',
         remarks: record ? record.remarks || '' : '',
         attendanceRecordId: record ? record.attendanceRecordId || record.id : null,
       }
@@ -126,9 +129,34 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
     expect(mappedAttendance[0].status).toBe('Present')
     expect(mappedAttendance[0].attendanceRecordId).toBe(1)
 
-    // John has no record → defaults
-    expect(mappedAttendance[1].status).toBe('Present')
+    // John has no record in a CONFIRMED session → Absent (ghi danh giữa khóa, chưa tham gia buổi này)
+    expect(mappedAttendance[1].status).toBe('Absent')
     expect(mappedAttendance[1].attendanceRecordId).toBeNull()
+  })
+
+  it('builds attendance data: unlocked session + no record → default Present (instructor marks live)', async () => {
+    const sessionId = 1
+    const attendanceRecords = await api.get('/attendance')
+    const sessionRecords = attendanceRecords.filter((a) => a.sessionId === sessionId)
+
+    const students = [{ accountId: 7, code: 'HV002', name: 'John Student' }]
+
+    // Buổi CHƯA chốt — giữ default Present để giảng viên chấm trực tiếp
+    const isSessionLocked = false
+
+    const mappedAttendance = students.map((student) => {
+      const record = sessionRecords.find((r) => r.accountId === student.accountId)
+      return {
+        code: student.code,
+        name: student.name,
+        status: record ? record.status : isSessionLocked ? 'Absent' : 'Present',
+        remarks: record ? record.remarks || '' : '',
+        attendanceRecordId: record ? record.attendanceRecordId || record.id : null,
+      }
+    })
+
+    expect(mappedAttendance[0].status).toBe('Present')
+    expect(mappedAttendance[0].attendanceRecordId).toBeNull()
   })
 })
 

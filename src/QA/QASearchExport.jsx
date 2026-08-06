@@ -4,7 +4,7 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 
 const QASearchExport = () => {
-  const { tr } = useLanguage();
+  const { tr, trEn } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [results, setResults] = useState(null);
@@ -79,11 +79,10 @@ const QASearchExport = () => {
       <toast.ToastContainer />
 
       <section className="qa-page-card">
-        <p className="qa-eyebrow">Compliance</p>
-        <h1>Search and Export</h1>
+        <p className="qa-eyebrow">{trEn('Compliance')}</p>
+        <h1>{trEn('Search and Export')}</h1>
         <p className="qa-page-description">
-          Search historical and active ETRs, then export training packages for
-          audit or management review.
+          {trEn('Search historical and active ETRs, then export training packages for audit or management review.')}
         </p>
       </section>
 
@@ -91,7 +90,7 @@ const QASearchExport = () => {
         <div className="qa-input-row">
           <input
             className="qa-input"
-            placeholder="Search by learner, course, class, or ETR ID"
+            placeholder={trEn('Search by learner, course, class, or ETR ID')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -101,12 +100,12 @@ const QASearchExport = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="all">All Statuses</option>
-            <option value="InProgress">In Progress</option>
-            <option value="Submitted">Submitted</option>
-            <option value="Verified">QA Verified</option>
-            <option value="Completed">Completed</option>
-            <option value="ReturnedForCorrection">Returned for Correction</option>
+            <option value="all">{trEn('All Statuses')}</option>
+            <option value="InProgress">{trEn('In Progress')}</option>
+            <option value="Submitted">{trEn('Submitted')}</option>
+            <option value="Verified">{trEn('QA Verified')}</option>
+            <option value="Completed">{trEn('Completed')}</option>
+            <option value="ReturnedForCorrection">{trEn('Returned for Correction')}</option>
           </select>
           <button
             className="qa-btn"
@@ -114,7 +113,7 @@ const QASearchExport = () => {
             onClick={handleSearch}
             disabled={searching}
           >
-            {searching ? "Searching..." : "Search ETR Records"}
+            {searching ? trEn('Searching...') : trEn('Search ETR Records')}
           </button>
         </div>
 
@@ -138,7 +137,7 @@ const QASearchExport = () => {
                       {r.className ? ` · ${r.className}` : ""}
                     </p>
                   </div>
-                  <span className="qa-status neutral">Ready</span>
+                  <span className="qa-status neutral">{trEn('Ready')}</span>
                 </div>
               ))
             )}
@@ -150,30 +149,30 @@ const QASearchExport = () => {
         <div className="qa-list">
           <div className="qa-list-item">
             <div>
-              <p className="qa-list-title">Search ETR Records</p>
+              <p className="qa-list-title">{trEn('Search ETR Records')}</p>
               <p className="qa-list-desc">
-                Use learner name, course code, date, or status.
+                {trEn('Use learner name, course code, date, or status.')}
               </p>
             </div>
-            <span className="qa-status neutral">Ready</span>
+            <span className="qa-status neutral">{trEn('Ready')}</span>
           </div>
           <div className="qa-list-item">
             <div>
-              <p className="qa-list-title">Export Training Package</p>
+              <p className="qa-list-title">{trEn('Export Training Package')}</p>
               <p className="qa-list-desc">
-                Generate audit-ready PDF or archive outputs.
+                {trEn('Generate audit-ready PDF or archive outputs.')}
               </p>
             </div>
-            <span className="qa-status neutral">Ready</span>
+            <span className="qa-status neutral">{trEn('Ready')}</span>
           </div>
           <div className="qa-list-item">
             <div>
-              <p className="qa-list-title">Filter scope</p>
+              <p className="qa-list-title">{trEn('Filter scope')}</p>
               <p className="qa-list-desc">
-                Active records, historical records, and reviewed queues.
+                {trEn('Active records, historical records, and reviewed queues.')}
               </p>
             </div>
-            <span className="qa-status neutral">Ready</span>
+            <span className="qa-status neutral">{trEn('Ready')}</span>
           </div>
         </div>
 
@@ -183,14 +182,14 @@ const QASearchExport = () => {
             type="button"
             onClick={handleExportPackage}
           >
-            Export Training Package
+            {trEn('Export Training Package')}
           </button>
           <button
             className="qa-btn-ghost"
             type="button"
             onClick={handleExportAudit}
           >
-            Export Audit Trail
+            {trEn('Export Audit Trail')}
           </button>
         </div>
       </section>

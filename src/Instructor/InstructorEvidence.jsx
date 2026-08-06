@@ -32,6 +32,9 @@ const InstructorEvidence = () => {
   const toast = useToast();
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
+  // Học viên của lớp đã chọn (enrollmentId, accountId, fullName) + học viên đang chọn để upload
+  const [classStudents, setClassStudents] = useState([]);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
   const [evidences, setEvidences] = useState([]);
   const [evidenceTypes, setEvidenceTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -81,6 +84,46 @@ const InstructorEvidence = () => {
     loadInitData();
   }, []);
 
+  // Load học viên của lớp đã chọn (enrollments + tên từ UserProfiles) để chọn người upload
+  const loadClassStudents = async (classId) => {
+    if (!classId) {
+      setClassStudents([]);
+      setSelectedStudentId("");
+      return;
+    }
+    try {
+      const [classEnrollments, profiles] = await Promise.all([
+        api.get("/enrollments").catch(() => []),
+        api.get("/UserProfiles/learners").catch(() => []),
+      ]);
+      const enrollmentsArr = Array.isArray(classEnrollments) ? classEnrollments : [];
+      const profilesArr = Array.isArray(profiles) ? profiles : [];
+      const students = enrollmentsArr
+        .filter((e) => e.classId === parseInt(classId))
+        .map((e) => {
+          const profile = profilesArr.find((p) => p.accountId === e.accountId);
+          return {
+            enrollmentId: e.enrollmentId,
+            accountId: e.accountId,
+            fullName: profile?.fullName || `Student #${e.accountId}`,
+          };
+        });
+      setClassStudents(students);
+      // Giữ lựa chọn cũ nếu vẫn còn trong lớp; ngược lại chọn học viên đầu tiên
+      setSelectedStudentId((prev) =>
+        students.some((s) => String(s.enrollmentId) === prev)
+          ? prev
+          : students.length > 0
+            ? String(students[0].enrollmentId)
+            : ""
+      );
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách học viên:", err);
+      setClassStudents([]);
+      setSelectedStudentId("");
+    }
+  };
+
   // Load evidence files when class is selected
   const loadEvidences = async () => {
     if (!selectedClassId) return;
@@ -92,8 +135,13 @@ const InstructorEvidence = () => {
       ]);
 
       // Filter evidence files by matching subjectResultId for students in this class
-      const classEnrollments = await api.get("/enrollments").catch(() => []);
-      const classEnrollmentIds = classEnrollments
+      const [classEnrollments, profiles] = await Promise.all([
+        api.get("/enrollments").catch(() => []),
+        api.get("/UserProfiles/learners").catch(() => []),
+      ]);
+      const enrollmentsArr = Array.isArray(classEnrollments) ? classEnrollments : [];
+      const profilesArr = Array.isArray(profiles) ? profiles : [];
+      const classEnrollmentIds = enrollmentsArr
         .filter((e) => e.classId === parseInt(selectedClassId))
         .map((e) => e.enrollmentId);
 
@@ -102,6 +150,10 @@ const InstructorEvidence = () => {
         classEnrollmentIds.includes(e.enrollmentId),
       );
       const subjectResultIds = [];
+      // Map subjectResultId → tên học viên (hiển thị trên từng dòng evidence)
+      const learnerBySr = {};
+      // Map subjectResultId → accountId học viên (lọc evidence theo học viên đang chọn)
+      const accountBySr = {};
 
       await Promise.all(
         classEtrs.map(async (etr) => {
@@ -109,16 +161,23 @@ const InstructorEvidence = () => {
             .get(`/etr/${etr.etrCourseRecordId}`)
             .catch(() => null);
           if (etrDetails && etrDetails.subjectResults) {
-            const currentClass = classesData.find(
-              (c) => c.classId === parseInt(selectedClassId),
+            const enrollment = enrollmentsArr.find(
+              (e) => e.enrollmentId === etr.enrollmentId,
             );
-            const subRes = etrDetails.subjectResults.find(
-              (sr) =>
-                sr.subjectId === (currentClass ? currentClass.subjectId : 1),
-            );
-            if (subRes) {
-              subjectResultIds.push(subRes.subjectResultId);
-            }
+            const profile = enrollment
+              ? profilesArr.find((p) => p.accountId === enrollment.accountId)
+              : null;
+            const learnerName =
+              profile?.fullName || `Student #${enrollment?.accountId || ""}`;
+            // Lớp KHÔNG có subjectId (backend Class/Classes không trả field này) → không thể
+            // match theo sr.subjectId === 1 (không bao giờ khớp với ETR thật, gây hiển thị
+            // nhầm evidence của ETR khác). Gom TẤT CẢ subject result của ETR các học viên
+            // trong lớp để danh sách hiển thị đúng minh chứng của lớp này.
+            etrDetails.subjectResults.forEach((sr) => {
+              subjectResultIds.push(sr.subjectResultId);
+              learnerBySr[sr.subjectResultId] = learnerName;
+              accountBySr[sr.subjectResultId] = enrollment?.accountId;
+            });
           }
         }),
       );
@@ -164,6 +223,11 @@ const InstructorEvidence = () => {
                 ? "Rejected"
                 : "Pending",
           fileUrl: ev.filePath || ev.fileUrl,
+          learner: learnerBySr[ev.subjectResultId] || "",
+          // accountId học viên sở hữu evidence — dùng để lọc theo học viên đang chọn
+          accountId: accountBySr[ev.subjectResultId] ?? ev.accountId ?? null,
+          // Lý do từ chối của QA (VerificationComment) — hiển thị để giảng viên biết cách tải lại
+          comment: ev.verificationComment || "",
         };
       });
       setEvidences(mappedEvidences);
@@ -176,6 +240,7 @@ const InstructorEvidence = () => {
 
   useEffect(() => {
     loadEvidences();
+    loadClassStudents(selectedClassId);
   }, [selectedClassId, classesData, evidenceTypes]);
 
   // Handle file select and call upload API
@@ -212,11 +277,25 @@ const InstructorEvidence = () => {
       // Find subjectResultId to link this evidence file
       const allEtrs = await api.get("/etr").catch(() => []);
       const classEnrollments = await api.get("/enrollments").catch(() => []);
+      // Upload cho đúng học viên đã chọn trong dropdown (không phải học viên đầu tiên của lớp).
+      // Nếu không có học viên hợp lệ thì chặn — KHÔNG fallback sang accountId của giảng viên
+      // (điều đó sẽ tái phạm bug "Student #<giảng viên>" trên trang QA).
       const classEnrollment = classEnrollments.find(
-        (e) => e.classId === parseInt(selectedClassId),
-      );
+        (e) => e.enrollmentId === parseInt(selectedStudentId),
+      ) || classEnrollments.find((e) => e.classId === parseInt(selectedClassId));
+      if (!classEnrollment) {
+        throw new Error(
+          tr("Lớp chưa có học viên nào để gắn minh chứng. Vui lòng kiểm tra danh sách học viên của lớp."),
+        );
+      }
 
-      let subjectResultId = 1;
+      // ⚠️ KHÔNG match theo sr.subjectId === currentClass.subjectId: backend Class/Classes
+      // KHÔNG trả field subjectId (TrainingClassResponse không có) nên subjectId luôn fallback
+      // về 1, không khớp subject result nào của ETR mới → trước đây evidence bị gắn nhầm vào
+      // SubjectResultId = 1 thuộc ETR seed Completed/Locked → QA thấy "ETR Locked" và không
+      // Verify/Reject được. Lấy subject result ĐẦU TIÊN của ETR của học viên (giống
+      // Academic/EtrManagement.jsx) — ETR đúng của lần ghi danh mới luôn InProgress/unlocked.
+      let subjectResultId = 0;
       if (classEnrollment) {
         // ETR API returns enrollmentId (not accountId), so match by enrollmentId
         const studentEtr = allEtrs.find(
@@ -226,23 +305,19 @@ const InstructorEvidence = () => {
           const etrDetails = await api
             .get(`/etr/${studentEtr.etrCourseRecordId}`)
             .catch(() => null);
-          if (etrDetails && etrDetails.subjectResults) {
-            const currentClass = classesData.find(
-              (c) => c.classId === parseInt(selectedClassId),
-            );
-            const subRes = etrDetails.subjectResults.find(
-              (sr) =>
-                sr.subjectId === (currentClass ? currentClass.subjectId : 1),
-            );
-            if (subRes) {
-              subjectResultId = subRes.subjectResultId;
-            }
-          }
+          subjectResultId = etrDetails?.subjectResults?.[0]?.subjectResultId || 0;
         }
+      }
+      if (!subjectResultId) {
+        throw new Error(
+          tr("Không tìm thấy môn học (SubjectResult) trong ETR của học viên để gắn minh chứng. Vui lòng kiểm tra ghi danh/ETR của học viên."),
+        );
       }
 
       const evidenceTypeIdInt = parseInt(selectedEvidenceTypeId);
-      const accountIdInt = parseInt(currentAccountId);
+      // Learner accountId — chỉ dùng khi tìm được enrollment hợp lệ (đã kiểm tra ở trên)
+      const learnerAccountId = classEnrollment.accountId;
+      const accountIdInt = parseInt(learnerAccountId);
       const subjectResultIdInt = parseInt(subjectResultId);
 
       console.log("[Upload Evidence] ====== DEBUG UPLOAD ======");
@@ -251,11 +326,7 @@ const InstructorEvidence = () => {
         parsedInt: evidenceTypeIdInt,
         type: typeof selectedEvidenceTypeId,
       });
-      console.log("[Upload Evidence] AccountId:", {
-        raw: currentAccountId,
-        parsedInt: accountIdInt,
-        type: typeof currentAccountId,
-      });
+      console.log("[Upload Evidence] AccountId (learner, from enrollment):", classEnrollment?.accountId);
       console.log("[Upload Evidence] SubjectResultId:", {
         raw: subjectResultId,
         parsedInt: subjectResultIdInt,
@@ -290,7 +361,10 @@ const InstructorEvidence = () => {
 
       const formData = new FormData();
       formData.append("EvidenceTypeId", String(evidenceTypeIdInt));
-      formData.append("AccountId", String(accountIdInt));
+      // AccountId phải là tài khoản HỌC VIÊN (không phải giảng viên đang đăng nhập) —
+      // lấy từ enrollment của học viên đã chọn, khớp với SubjectResultId ở trên.
+      // Trước đây gửi nhầm accountId của giảng viên → QA hiển thị "Student #<giảng viên>".
+      formData.append("AccountId", String(learnerAccountId));
       formData.append("SubjectResultId", String(subjectResultIdInt));
       formData.append("File", file, file.name);
 
@@ -397,6 +471,22 @@ const InstructorEvidence = () => {
     return classesData.find((c) => c.classId === parseInt(selectedClassId));
   }, [classesData, selectedClassId]);
 
+  // Học viên đang chọn trong dropdown (bên phải) — evidence hiển thị bên trái chỉ của học viên này
+  const selectedStudent = useMemo(() => {
+    return classStudents.find(
+      (s) => String(s.enrollmentId) === String(selectedStudentId),
+    );
+  }, [classStudents, selectedStudentId]);
+
+  // Lọc evidence theo học viên đã chọn (so khớp theo accountId học viên sở hữu evidence).
+  // Chưa chọn học viên → hiện toàn bộ evidence của lớp (hành vi cũ).
+  const visibleEvidences = useMemo(() => {
+    if (!selectedStudent) return evidences;
+    return evidences.filter(
+      (ev) => String(ev.accountId) === String(selectedStudent.accountId),
+    );
+  }, [evidences, selectedStudent]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <section className="content-header">
@@ -479,7 +569,9 @@ const InstructorEvidence = () => {
                 margin: "4px 0 0",
               }}
             >
-              {evidences.length} {tr('tệp tài liệu lưu trữ')}
+              {selectedStudent
+                ? `${tr('Minh chứng của học viên:')} ${selectedStudent.fullName} (${visibleEvidences.length} ${tr('tệp')})`
+                : `${visibleEvidences.length} ${tr('tệp tài liệu lưu trữ')}`}
             </p>
           </div>
 
@@ -519,7 +611,7 @@ const InstructorEvidence = () => {
               >
                 {tr('Đang tải tệp bằng chứng...')}
               </div>
-            ) : evidences.length === 0 ? (
+            ) : visibleEvidences.length === 0 ? (
               <div
                 style={{
                   padding: "24px",
@@ -528,10 +620,14 @@ const InstructorEvidence = () => {
                   fontStyle: "italic",
                 }}
               >
-                {tr('Chưa có tệp minh chứng nào được tải lên cho lớp này.')}
+                {selectedStudent
+                  ? tr('Chưa có tệp minh chứng nào cho học viên này.') +
+                    ' ' +
+                    tr('Chọn học viên khác hoặc tải lên minh chứng mới ở khung bên phải.')
+                  : tr('Chưa có tệp minh chứng nào được tải lên cho lớp này.')}
               </div>
             ) : (
-              evidences.map((ev) => (
+              visibleEvidences.map((ev) => (
                 <div
                   key={ev.evidenceFileId}
                   className="table-row"
@@ -578,6 +674,12 @@ const InstructorEvidence = () => {
                         margin: "2px 0 0",
                       }}
                     >
+                      {ev.learner && (
+                        <span style={{ fontWeight: "700", color: "#002147" }}>
+                          {ev.learner}
+                        </span>
+                      )}
+                      {ev.learner ? " · " : ""}
                       {ev.size} ·{" "}
                       <span
                         style={{
@@ -593,6 +695,40 @@ const InstructorEvidence = () => {
                         {ev.status}
                       </span>
                     </p>
+
+                    {/* Lý do từ chối của QA — giảng viên tải lại và gửi lại cho QA duyệt */}
+                    {ev.status === "Rejected" && (
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          padding: "6px 8px",
+                          borderRadius: "6px",
+                          background: "rgba(239,68,68,0.06)",
+                          border: "1px solid rgba(239,68,68,0.15)",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "10px",
+                            fontWeight: "700",
+                            color: "#dc2626",
+                          }}
+                        >
+                          {tr('Lý do từ chối')}:{" "}
+                          {ev.comment || tr('Chưa có lý do chi tiết.')}
+                        </p>
+                        <p
+                          style={{
+                            margin: "2px 0 0",
+                            fontSize: "10px",
+                            color: "rgba(0,33,71,0.55)",
+                          }}
+                        >
+                          {tr('Tải lại minh chứng ở khung bên phải để gửi lại cho QA duyệt.')}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <span
                     style={{
@@ -617,21 +753,53 @@ const InstructorEvidence = () => {
                     {ev.date}
                   </span>
                   <div style={{ textAlign: "right", paddingRight: "12px" }}>
-                    <button
-                      onClick={() => setConfirmDeleteId(ev.evidenceFileId)}
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        border: "none",
-                        backgroundColor: "rgba(239, 68, 68, 0.08)",
-                        color: "#ef4444",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {tr('Xóa bỏ')}
-                    </button>
+                    {/* Đã được QA verify → KHÔNG được xóa nữa (immutable). */}
+                    {ev.status === "Verified" ? (
+                      <span
+                        title={tr("Minh chứng đã được QA xác thực, không thể xóa.")}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          backgroundColor: "rgba(34, 197, 94, 0.1)",
+                          color: "#16a34a",
+                          cursor: "not-allowed",
+                        }}
+                      >
+                        <svg
+                          width="11"
+                          height="11"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                        >
+                          <rect x="3" y="11" width="18" height="11" rx="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        {tr('Đã xác thực')}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(ev.evidenceFileId)}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          border: "none",
+                          backgroundColor: "rgba(239, 68, 68, 0.08)",
+                          color: "#ef4444",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {tr('Xóa bỏ')}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -643,6 +811,63 @@ const InstructorEvidence = () => {
         <div className="dashboard-panel">
           <div className="panel-header">
             <h2>{tr('Tải lên minh chứng mới')}</h2>
+          </div>
+
+          {/* Học viên cần upload (evidence gắn theo từng học viên) */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              marginBottom: "8px",
+            }}
+          >
+            <label
+              style={{
+                fontSize: "11px",
+                fontWeight: "700",
+                color: "rgba(0,33,71,0.5)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {tr('Học viên:')}
+            </label>
+            <select
+              value={selectedStudentId}
+              onChange={(e) => setSelectedStudentId(e.target.value)}
+              style={{
+                padding: "10px 14px",
+                borderRadius: "10px",
+                border: "1px solid #d9e1ec",
+                fontSize: "13px",
+                fontWeight: "600",
+                color: "#002147",
+                outline: "none",
+                cursor: "pointer",
+                width: "100%",
+                backgroundColor: "#ffffff",
+              }}
+            >
+              {classStudents.length === 0 ? (
+                <option value="">{tr('Không có học viên trong lớp')}</option>
+              ) : (
+                classStudents.map((s) => (
+                  <option key={s.enrollmentId} value={s.enrollmentId}>
+                    {s.fullName}
+                  </option>
+                ))
+              )}
+            </select>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "10px",
+                color: "rgba(0,33,71,0.45)",
+              }}
+            >
+              {tr('Minh chứng tải lên sẽ được gắn cho học viên này.')}
+            </p>
           </div>
 
           {/* Evidence Type Selector */}
@@ -724,6 +949,12 @@ const InstructorEvidence = () => {
               </span>
               <span className="dropzone-subtitle">
                 {tr('Hỗ trợ PDF, PNG, JPG, DOCX (Tối đa 10MB)')}
+              </span>
+              <span
+                className="dropzone-subtitle"
+                style={{ color: "rgba(197,160,89,0.9)" }}
+              >
+                {tr('Minh chứng mới sẽ chuyển về trạng thái Pending để QA duyệt lại.')}
               </span>
 
               <input

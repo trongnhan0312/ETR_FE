@@ -4,7 +4,7 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 
 const QARETRReturn = () => {
-  const { tr } = useLanguage();
+  const { tr, trEn } = useLanguage();
   const [etrList, setEtrList] = useState([]);
   const [selectedEtrId, setSelectedEtrId] = useState("");
   const [returnReason, setReturnReason] = useState("");
@@ -98,17 +98,16 @@ const QARETRReturn = () => {
       <toast.ToastContainer />
 
       <section className="qa-page-card">
-        <p className="qa-eyebrow">ETR review</p>
-        <h1>Return for Correction</h1>
+        <p className="qa-eyebrow">{trEn('ETR review')}</p>
+        <h1>{trEn('Return for Correction')}</h1>
         <p className="qa-page-description">
-          Send the ETR back to the training team with a clear reason so they can
-          correct and resubmit it.
+          {trEn('Send the ETR back to the training team with a clear reason so they can correct and resubmit it.')}
         </p>
       </section>
 
       <section className="qa-grid-2">
         <div className="qa-panel">
-          <h2>Select ETR</h2>
+          <h2>{trEn('Select ETR')}</h2>
           <div className="qa-list">
             {loading ? (
               <div style={{ padding: "12px", color: "#64748b" }}>
@@ -142,13 +141,13 @@ const QARETRReturn = () => {
                     </p>
                     <p className="qa-list-desc">{etr.id}</p>
                   </div>
-                  <span className="qa-status pending">{etr.status}</span>
+                  <span className="qa-status pending">{trEn(etr.status)}</span>
                 </div>
               ))
             )}
           </div>
 
-          <h2 style={{ marginTop: "24px" }}>Common Return Reasons</h2>
+          <h2 style={{ marginTop: "24px" }}>{trEn('Common Return Reasons')}</h2>
           <div className="qa-badge-row">
             {returnReasons.map((reason) => (
               <span
@@ -164,17 +163,17 @@ const QARETRReturn = () => {
                 }}
                 onClick={() => handleSelectReason(reason)}
               >
-                {reason}
+                {trEn(reason)}
               </span>
             ))}
           </div>
         </div>
 
         <div className="qa-panel">
-          <h2>Return Message</h2>
+          <h2>{trEn('Return Message')}</h2>
           <textarea
             className="qa-textarea"
-            placeholder="Explain what must be corrected before resubmission."
+            placeholder={trEn('Explain what must be corrected before resubmission.')}
             value={returnReason}
             onChange={(e) => setReturnReason(e.target.value)}
           />
@@ -187,7 +186,7 @@ const QARETRReturn = () => {
                 setReturnReason("");
               }}
             >
-              Clear
+              {trEn('Clear')}
             </button>
             <button
               className="qa-btn"
@@ -195,7 +194,7 @@ const QARETRReturn = () => {
               onClick={handleSendBack}
               disabled={sending || !selectedEtrId || !returnReason.trim()}
             >
-              {sending ? "Sending..." : "Send Back"}
+              {sending ? trEn('Sending...') : trEn('Send Back')}
             </button>
           </div>
         </div>

@@ -162,18 +162,28 @@ const ToastItem = ({ toast, onDismiss }) => {
 };
 
 // Toast container + hook
+// Số toast hiển thị tối đa cùng lúc — khi vượt quá sẽ tự loại bỏ toast cũ nhất
+// (giữ lại 5 toast mới nhất) để danh sách không bị tràn xuống dưới màn hình
+// khi người dùng bấm nhiều lần liên tiếp.
+const MAX_VISIBLE_TOASTS = 5;
+
 export const useToast = () => {
   const [toasts, setToasts] = useState([]);
   const [counter, setCounter] = useState(0);
 
   const showToast = useCallback(
     (type, title, message, duration) => {
-      const id = `toast-${Date.now()}-${counter}`;
+      // Hậu tố ngẫu nhiên đảm bảo id luôn duy nhất — tránh trùng id khi 2 toast
+      // được bắn đồng thời trong cùng một tick (counter trong closure bị stale).
+      const id = `toast-${Date.now()}-${counter}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
       setCounter((c) => c + 1);
-      setToasts((prev) => [
-        ...prev,
-        { id, type, title, message, duration },
-      ]);
+      setToasts((prev) =>
+        [...prev, { id, type, title, message, duration }].slice(
+          -MAX_VISIBLE_TOASTS,
+        ),
+      );
       return id;
     },
     [counter],
@@ -216,20 +226,13 @@ export const useToast = () => {
           flexDirection: "column",
           gap: "10px",
           pointerEvents: "none",
-        }}
-      >
-        <style>
-          {`
-            @keyframes toastSlideIn {
-              from { opacity: 0; transform: translateX(100%); }
-              to { opacity: 1; transform: translateX(0); }
-            }
-            @keyframes toastSlideOut {
-              from { opacity: 1; transform: translateX(0); }
-              to { opacity: 0; transform: translateX(100%); }
-            }
-          `}
-        </style>
+          // An toàn phòng ngừa: không bao giờ để danh sách toast tràn quá chiều cao màn hình
+          maxHeight: "calc(100vh - 40px)",
+          overflowY: "auto",
+        }}        >
+        {/* @keyframes toastSlideIn/toastSlideOut được định nghĩa TOÀN CỤC trong src/index.css
+            (không nằm trong <style> inline) — đảm bảo animation trượt vào từ cạnh phải
+            luôn hoạt động trên mọi màn hình. */}
         {toasts.map((toast) => (
           <div key={toast.id} style={{ pointerEvents: "auto" }}>
             <ToastItem toast={toast} onDismiss={dismissToast} />
