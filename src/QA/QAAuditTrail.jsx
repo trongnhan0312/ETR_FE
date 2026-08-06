@@ -3,7 +3,7 @@ import { api } from "../utils/api";
 import { useLanguage } from '../context/LanguageContext';
 
 const QAAuditTrail = () => {
-  const { tr } = useLanguage();
+  const { tr, trEn } = useLanguage();
   const [auditEntries, setAuditEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [auditError, setAuditError] = useState("");
@@ -56,21 +56,19 @@ const QAAuditTrail = () => {
   return (
     <div className="qa-shell">
       <section className="qa-page-card">
-        <p className="qa-eyebrow">Compliance</p>
-        <h1>Audit Trail</h1>
+        <p className="qa-eyebrow">{trEn('Compliance')}</p>
+        <h1>{trEn('Audit Trail')}</h1>
         <p className="qa-page-description">
-          View activity history of ETRs and users so QA decisions can be traced
-          during review and audit.
+          {trEn('View activity history of ETRs and users so QA decisions can be traced during review and audit.')}
         </p>
       </section>
 
       <section className="qa-table-card">
         <div className="qa-table-header">
           <div>
-            <h2>Recent Activity ({auditEntries.length})</h2>
+            <h2>{trEn('Recent Activity')} ({auditEntries.length})</h2>
             <p className="qa-page-description">
-              Use this page to confirm who reviewed, verified, returned, or
-              exported each record.
+              {trEn('Use this page to confirm who reviewed, verified, returned, or exported each record.')}
             </p>
           </div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -81,9 +79,9 @@ const QAAuditTrail = () => {
               disabled={loading}
               style={{ padding: "6px 12px", fontSize: "11px" }}
             >
-              Refresh
+              {trEn('Refresh')}
             </button>
-            <span className="qa-chip gold">Read Only</span>
+            <span className="qa-chip gold">{trEn('Read Only')}</span>
           </div>
         </div>
 

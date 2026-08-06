@@ -27,6 +27,7 @@ import QADashboard from './QA/QADashboard';
 import QAEvidenceVerification from './QA/QAEvidenceVerification';
 import QARETRReviewQueue from './QA/QARETRReviewQueue';
 import QARETRDetails from './QA/QARETRDetails';
+import QAETRList from './QA/QAETRList';
 import QARETRReturn from './QA/QARETRReturn';
 import QASearchExport from './QA/QASearchExport';
 import QAAuditTrail from './QA/QAAuditTrail';
@@ -151,6 +152,7 @@ function App() {
 						<Route index element={<QADashboard />} />
 						<Route path="evidence" element={<QAEvidenceVerification />} />
 						<Route path="reviews" element={<QARETRReviewQueue />} />
+						<Route path="etrs" element={<QAETRList />} />
 						<Route path="details" element={<QARETRDetails />} />
 						<Route path="return" element={<QARETRReturn />} />
 						<Route path="search" element={<QASearchExport />} />

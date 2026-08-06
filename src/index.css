@@ -108,3 +108,15 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* ── Toast animation (dùng chung cho mọi màn hình) ──
+   Toast trượt vào TỪ CẠNH PHẢI MÀN HÌNH (bắt đầu ngoài khung, dịch 110% chiều rộng
+   sang phải rồi trượt vào đúng vị trí) — keyframes đặt toàn cục để luôn hoạt động. */
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(110%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(110%); }
+}

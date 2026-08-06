@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
@@ -91,14 +92,31 @@ const EtrManagement = () => {
           )
         );
         const srMap = {};
+        const attendanceOkMap = {};
+        const resultsOkMap = {};
         etrsArr.forEach((e, i) => {
           const id = e.etrCourseRecordId || e.eTRCourseRecordId;
-          srMap[id] = (detailsArr[i]?.subjectResults || []).map((sr) => sr.subjectResultId);
+          const srs = detailsArr[i]?.subjectResults || [];
+          srMap[id] = srs.map((sr) => sr.subjectResultId);
+          // Điểm danh/Chuyên cần chỉ "đạt" khi MỌI môn đã có AttendanceRate >= 80 (khớp quy tắc
+          // backend khi Submit ETR). ETR mới chưa điểm danh → attendanceRate null → false →
+          // hiển thị "⌛ ĐANG CHỜ" thay vì "✓ ĐÃ XÁC THỰC" sai lệch.
+          attendanceOkMap[id] = srs.length > 0 && srs.every((sr) => (sr.attendanceRate ?? 0) >= 80);
+          // Bước 3 "Điểm số kết quả kiểm tra" tính từ dữ liệu thật: MỌI môn phải có kết quả
+          // đánh giá (assessment + practical) và TẤT CẢ đều đã được giảng viên chốt điểm
+          // (isPublished = true sau khi bấm "CHỐT ĐIỂM"). Trước đây gắn vào etr.status
+          // Verified/Completed nên đã chốt điểm mà ETR chưa được QA duyệt vẫn hiển thị sai.
+          resultsOkMap[id] = srs.length > 0 && srs.every((sr) => {
+            const all = [...(sr.assessmentResults || []), ...(sr.practicalChecklistResults || [])];
+            // Môn được miễn thi (Exempted) hoặc chưa cấu hình bài kiểm tra → không còn điểm chờ chốt.
+            if (sr.status === 'Exempted' || all.length === 0) return true;
+            return all.every((r) => r.isPublished === true);
+          });
         });
         setSubjectResultIdsByEtr(srMap);
 
         // Merge ETR records with enrollment/profile/evidence data
-        const merged = mergeEtrData(etrsArr, enrollmentsArr, accountsArr, profilesArr, evfsArr, srMap);
+        const merged = mergeEtrData(etrsArr, enrollmentsArr, accountsArr, profilesArr, evfsArr, srMap, attendanceOkMap, resultsOkMap);
         setEtrRecords(merged);
         if (merged.length > 0) {
           setSelectedRecord(merged[0]);
@@ -121,7 +139,7 @@ const EtrManagement = () => {
     loadData();
   }, []);
 
-  const mergeEtrData = (etrs, enrollments, accounts, profiles, evidenceFiles = [], subjectResultIdsByEtr = {}) => {
+  const mergeEtrData = (etrs, enrollments, accounts, profiles, evidenceFiles = [], subjectResultIdsByEtr = {}, attendanceOkMap = {}, resultsOkMap = {}) => {
     const evfsArr = Array.isArray(evidenceFiles) ? evidenceFiles : [];
 
     return etrs.map((etr) => {
@@ -171,11 +189,22 @@ const EtrManagement = () => {
                      etr.verifiedAt ? new Date(etr.verifiedAt).toLocaleString('vi-VN') : '',
         steps: {
           personal: true,
-          attendance: etr.status !== 'Draft',
-          results: etr.status === 'Verified' || etr.status === 'Completed',
+          // Trước đây: attendance = etr.status !== 'Draft' → ETR mới (InProgress) hiển thị nhầm
+          // "✓ ĐÃ XÁC THỰC" dù chưa điểm danh buổi nào. Giờ tính từ AttendanceRate thật của các
+          // môn (backend tự tính khi Instructor điểm danh) — mọi môn >= 80% mới đạt.
+          attendance: attendanceOkMap[etrId] === true,
+          // Bước 3: "đã chốt điểm" khi MỌI kết quả đánh giá của mọi môn đều isPublished = true
+          // (giảng viên bấm "CHỐT ĐIỂM"). Không gắn vào ETR status Verified/Completed nữa nên
+          // đã chốt điểm mà ETR chưa được QA duyệt vẫn hiển thị "✓ ĐÃ XÁC THỰC" đúng.
+          results: resultsOkMap[etrId] === true || etr.status === 'Verified' || etr.status === 'Completed',
           evidence: etr.status === 'Verified' || etr.status === 'Completed'
         },
-        evidenceList: etrEvidences
+        evidenceList: etrEvidences,
+        // Bước chặn "Evidence phải được QA verify xong Academic mới được Submit ETR":
+        // khớp đúng pre-validation của backend (SubmitEtrAsync check #3) — chỉ cho phép
+        // submit khi KHÔNG còn evidence nào chưa Verified. Mảng rỗng → .every() trả true
+        // (giống backend: không có evidence thì không có file chưa verified).
+        evidenceReady: etrEvidences.every((ev) => ev.status === 'Verified')
       };
     });
   };
@@ -201,9 +230,21 @@ const EtrManagement = () => {
         )
       );
       const srMap = {};
+      const attendanceOkMap = {};
+      const resultsOkMap = {};
       etrsArr.forEach((e, i) => {
         const id = e.etrCourseRecordId || e.eTRCourseRecordId;
-        srMap[id] = (detailsArr[i]?.subjectResults || []).map((sr) => sr.subjectResultId);
+        const srs = detailsArr[i]?.subjectResults || [];
+        srMap[id] = srs.map((sr) => sr.subjectResultId);
+        // Điểm danh/Chuyên cần chỉ "đạt" khi MỌI môn đã có AttendanceRate >= 80 (khớp quy tắc
+        // backend khi Submit ETR). ETR mới chưa điểm danh → attendanceRate null → false.
+        attendanceOkMap[id] = srs.length > 0 && srs.every((sr) => (sr.attendanceRate ?? 0) >= 80);
+        // Bước 3 "Điểm số kết quả kiểm tra" tính từ dữ liệu thật (isPublished sau khi CHỐT ĐIỂM).
+        resultsOkMap[id] = srs.length > 0 && srs.every((sr) => {
+          const all = [...(sr.assessmentResults || []), ...(sr.practicalChecklistResults || [])];
+          if (sr.status === 'Exempted' || all.length === 0) return true;
+          return all.every((r) => r.isPublished === true);
+        });
       });
       setSubjectResultIdsByEtr(srMap);
 
@@ -211,7 +252,9 @@ const EtrManagement = () => {
         etrsArr,
         allEnrollments, allAccounts, allProfiles,
         Array.isArray(evfs) ? evfs : [],
-        srMap
+        srMap,
+        attendanceOkMap,
+        resultsOkMap
       );
       setEtrRecords(merged);
       const auditsArr = Array.isArray(audits)
@@ -326,7 +369,18 @@ const EtrManagement = () => {
   };
 
   const handleSubmitEtr = async () => {
+    // Phòng thủ thêm (defense-in-depth): chỉ gửi khi toàn bộ evidence đã được QA verify,
+    // khớp quy tắc backend "Evidence phải được QA verify xong Academic mới được Submit ETR".
     if (!recordToSubmit) return;
+    if (!recordToSubmit.evidenceReady) {
+      setConfirmSubmitOpen(false);
+      setRecordToSubmit(null);
+      toast.warning(
+        tr("Chưa thể gửi ETR"),
+        tr("Minh chứng chưa được QA xác thực. Vui lòng chờ QA duyệt minh chứng trước khi gửi ETR.")
+      );
+      return;
+    }
     setSubmittingEtr(true);
     try {
       await api.post(`/Etr/${recordToSubmit.etrId}/submit`, {});
@@ -374,16 +428,27 @@ const EtrManagement = () => {
   const toast = useToast();
 
   // Xóa minh chứng qua ConfirmModal (thay window.confirm)
-  const [confirmDeleteFile, setConfirmDeleteFile] = useState(null); // { fileId, fileName }
+  const [confirmDeleteFile, setConfirmDeleteFile] = useState(null); // { fileId, fileName, status }
 
-  const handleDeleteFile = (fileId, fileName, e) => {
+  const handleDeleteFile = (fileId, fileName, status, e) => {
     e.stopPropagation();
     if (!selectedRecord) return;
-    setConfirmDeleteFile({ fileId, fileName });
+    // Evidence đã được QA verify → không được xóa (khớp quy tắc backend "Verify xong là immutable").
+    if (status === 'Verified') {
+      toast.warning(tr("Không thể xóa"), tr("Minh chứng đã được QA xác thực, không thể xóa."));
+      return;
+    }
+    setConfirmDeleteFile({ fileId, fileName, status });
   };
 
   const handleConfirmDeleteFile = async () => {
     if (!confirmDeleteFile) return;
+    // Phòng thủ thêm: chặn xóa evidence đã Verified nếu có đường khác gọi tới.
+    if (confirmDeleteFile.status === 'Verified') {
+      setConfirmDeleteFile(null);
+      toast.warning(tr("Không thể xóa"), tr("Minh chứng đã được QA xác thực, không thể xóa."));
+      return;
+    }
     try {
       await api.delete(`/Evidences/${confirmDeleteFile.fileId}`);
       toast.success(tr("Xóa thành công"), `${tr('Đã xóa minh chứng ')}${confirmDeleteFile.fileName}.`);
@@ -777,16 +842,41 @@ const EtrManagement = () => {
                                 <path d="M5.83333 14.1667H7.5V10.6875L8.83333 12.0208L10 10.8333L6.66667 7.5L3.33333 10.8333L4.52083 12L5.83333 10.6875V14.1667ZM1.66667 16.6667C1.20833 16.6667 0.815972 16.5035 0.489583 16.1771C0.163194 15.8507 0 15.4583 0 15V1.66667C0 1.20833 0.163194 0.815972 0.489583 0.489583C0.815972 0.163194 1.20833 0 1.66667 0H8.33333L13.3333 5V15C13.3333 15.4583 13.1701 15.8507 12.8438 16.1771C12.5174 16.5035 12.125 16.6667 11.6667 16.6667H1.66667ZM7.5 5.83333V1.66667H1.66667V15H11.6667V5.83333H7.5ZM1.66667 1.66667V5.83333V1.66667V5.83333V15V1.66667Z" fill="currentColor" fillOpacity="0.6" />
                               </svg>
                             </button>
-                            <button 
-                              type="button"
-                              className="p-2 rounded-lg bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
-                              onClick={(e) => handleDeleteFile(file.id, file.name, e)}
-                              title={tr('Xóa minh chứng')}
-                            >
-                              <svg width={12} height={14} viewBox="0 0 448 512" fill="currentColor" style={{ width: '12px', height: '12px' }}>
-                                <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.2 0 46.2-19.7 47.9-45L416 128z" />
-                              </svg>
-                            </button>
+                            {/* Evidence đã được QA verify → KHÔNG được xóa nữa (immutable).
+                                Chỉ còn xóa được khi Pending/Rejected (chưa verify). */}
+                            {file.status === 'Verified' ? (
+                              <span
+                                title={tr('Minh chứng đã được QA xác thực, không thể xóa.')}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '8px',
+                                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                  border: '1px solid rgba(34, 197, 94, 0.2)',
+                                  color: '#16a34a',
+                                  cursor: 'not-allowed',
+                                }}
+                              >
+                                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                              </span>
+                            ) : (
+                              <button 
+                                type="button"
+                                className="p-2 rounded-lg bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
+                                onClick={(e) => handleDeleteFile(file.id, file.name, file.status, e)}
+                                title={tr('Xóa minh chứng')}
+                              >
+                                <svg width={12} height={14} viewBox="0 0 448 512" fill="currentColor" style={{ width: '12px', height: '12px' }}>
+                                  <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.2 0 46.2-19.7 47.9-45L416 128z" />
+                                </svg>
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -832,7 +922,9 @@ const EtrManagement = () => {
 
         </div>
       </div>
-      {previewFile && (
+      {/* Modal - File Preview (render qua portal vào document.body để luôn nằm giữa toàn màn hình, che luôn menu trái) */}
+      {previewFile &&
+        createPortal(
         <div className="modal-overlay">
           <div className="modal-container" style={{ width: '650px', maxWidth: '95%' }}>
             <header className="modal-header">
@@ -1008,7 +1100,8 @@ const EtrManagement = () => {
               </button>
             </footer>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal - Xác nhận xóa minh chứng (hiển thị trong view Evidence) */}
@@ -1151,7 +1244,7 @@ const EtrManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex justify-start items-center relative gap-2 px-5 py-2.5 rounded-lg border border-slate-200 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'ALL' ? 'APPROVED' : statusFilter === 'APPROVED' ? 'PENDING QA' : statusFilter === 'PENDING QA' ? 'UNDER REVIEW' : 'ALL')}>
+            <div className="flex justify-start items-center relative gap-2 px-5 py-2.5 rounded-lg border border-slate-200 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'ALL' ? 'APPROVED' : statusFilter === 'APPROVED' ? 'PENDING QA' : statusFilter === 'PENDING QA' ? 'UNDER REVIEW' : statusFilter === 'UNDER REVIEW' ? 'RETURNED FOR CORRECTION' : 'ALL')}>
               <svg width={14} height={9} viewBox="0 0 14 9" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5.25 9V7.5H8.25V9H5.25ZM2.25 5.25V3.75H11.25V5.25H2.25ZM0 1.5V0H13.5V1.5H0Z" fill="#002147" />
               </svg>
@@ -1242,24 +1335,39 @@ const EtrManagement = () => {
                       <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none xl:text-[#c5a059]">VIEW FINAL</span>
                     </button>
 
-                    {/* Submit ETR button — only for Draft/UNDER REVIEW records */}
-                    {record.status === 'UNDER REVIEW' && (
-                      <button
-                        className="create-btn gold-gradient-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border-0 !bg-emerald-600 !px-0 !py-0 !text-white !shadow-sm !transition hover:-translate-y-0.5 hover:!bg-emerald-700 xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5"
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRecordToSubmit(record);
-                          setConfirmSubmitOpen(true);
-                        }}
-                        aria-label={tr('Gửi ETR')}
+                    {/* Submit ETR button — for Draft/UNDER REVIEW records và ETR bị QA trả về
+                        (RETURNED FOR CORRECTION) để sửa lại evidence rồi gửi lại cho QA.
+                        Chỉ cho phép bấm khi toàn bộ evidence đã được QA verify (evidenceReady)
+                        — khớp quy tắc backend "Evidence phải được QA verify xong Academic mới
+                        được Submit ETR". */}
+                    {(record.status === 'UNDER REVIEW' || record.status === 'RETURNED FOR CORRECTION') && (
+                      // Tooltip phải nằm trên phần tử BÊN NGOÀI nút: button bị disabled sẽ
+                      // chặn pointer event nên title không hiển thị được trên chính nút đó.
+                      <span
+                        title={!record.evidenceReady
+                          ? tr('Minh chứng chưa được QA xác thực. Vui lòng chờ QA duyệt minh chứng trước khi gửi ETR.')
+                          : undefined}
+                        style={{ display: 'inline-flex' }}
                       >
-                        <svg width="14" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M22 2L11 13" />
-                          <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-                        </svg>
-                        <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none">SUBMIT ETR</span>
-                      </button>
+                        <button
+                          className={`create-btn gold-gradient-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border-0 !bg-emerald-600 !px-0 !py-0 !text-white !shadow-sm !transition hover:-translate-y-0.5 hover:!bg-emerald-700 xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5 ${!record.evidenceReady ? '!cursor-not-allowed !opacity-40 hover:!translate-y-0 hover:!bg-emerald-600' : ''}`}
+                          type="button"
+                          disabled={!record.evidenceReady}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!record.evidenceReady) return;
+                            setRecordToSubmit(record);
+                            setConfirmSubmitOpen(true);
+                          }}
+                          aria-label={tr('Gửi ETR')}
+                        >
+                          <svg width="14" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M22 2L11 13" />
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                          </svg>
+                          <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none">SUBMIT ETR</span>
+                        </button>
+                      </span>
                     )}
 
                   </div>
@@ -1353,8 +1461,9 @@ const EtrManagement = () => {
       {/* Toast notifications */}
       <toast.ToastContainer />
 
-      {/* Modal - Tạo mới ETR */}
-      {isCreateOpen && (
+      {/* Modal - Tạo mới ETR (portal vào document.body để căn giữa toàn màn hình) */}
+      {isCreateOpen &&
+        createPortal(
         <div className="modal-overlay">
           <div className="modal-container" style={{ width: '600px' }}>
             <header className="modal-header">
@@ -1431,11 +1540,13 @@ const EtrManagement = () => {
               </footer>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Modal - Upload Evidence */}
-      {isEvidenceUploadOpen && (
+      {/* Modal - Upload Evidence (portal vào document.body để căn giữa toàn màn hình) */}
+      {isEvidenceUploadOpen &&
+        createPortal(
         <div className="modal-overlay">
           <div className="modal-container" style={{ width: '550px' }}>
             <header className="modal-header">
@@ -1500,12 +1611,16 @@ const EtrManagement = () => {
               </footer>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Modal - File Preview */}
-      {/* Modal - ETR Final View Sheet */}
-      {isFinalViewOpen && finalViewRecord && (
+      {/* Modal - ETR Final View Sheet (portal vào document.body: luôn nằm chính giữa toàn màn
+          hình kể cả vùng menu trái — tránh bị "position: fixed" kẹt trong vùng nội dung do
+          animation transform của shell). */}
+      {isFinalViewOpen &&
+        finalViewRecord &&
+        createPortal(
         <div className="modal-overlay">
           <div className="modal-container" style={{ width: '750px', maxWidth: '95%' }}>
             <header className="modal-header">
@@ -1570,28 +1685,6 @@ const EtrManagement = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Signatures mock */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '40px', textAlign: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>{tr('Cán bộ học vụ')}</div>
-                  <div style={{ height: '60px' }} />
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#002147' }}>Academic Staff</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>{tr('Đã xác nhận điện tử')}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase' }}>{tr('Cán bộ quản lý QA')}</div>
-                  <div style={{ height: '60px' }}>
-                    {finalViewRecord.status === 'APPROVED' && (
-                      <span style={{ color: '#15803d', border: '2px solid #15803d', padding: '4px 12px', borderRadius: '4px', display: 'inline-block', transform: 'rotate(-5deg)', fontWeight: 'bold', fontSize: '11px' }}>
-                        APPROVED E-SIGN
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#002147' }}>{finalViewRecord.status === 'APPROVED' ? 'QA Officer' : '________________'}</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>{finalViewRecord.status === 'APPROVED' ? tr('Đã ký số') : tr('Chưa ký duyệt')}</div>
-                </div>
-              </div>
             </div>
 
             <footer className="modal-footer">
@@ -1600,7 +1693,8 @@ const EtrManagement = () => {
               </button>
             </footer>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       </div>
     </div>

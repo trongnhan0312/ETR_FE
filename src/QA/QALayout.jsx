@@ -1,5 +1,4 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useLanguage } from '../context/LanguageContext';
 import '../Academic/academic.scss';
@@ -11,37 +10,20 @@ const iconDocument = (
   </svg>
 );
 
+// Menu QA — mỗi chức năng chỉ xuất hiện 1 lần (đã gỡ các mục trùng route/trang)
 const navigationGroups = [
   {
     label: 'Dashboard',
     items: [
       { label: 'DASHBOARD', to: '/qa' },
-      { label: 'PENDING EVIDENCE', to: '/qa/evidence' },
-      { label: 'PENDING ETR REVIEWS', to: '/qa/reviews' },
-      { label: 'RECENTLY REVIEWED', to: '/qa/recent' },
-    ],
-  },
-  {
-    label: 'Evidence Management',
-    items: [
       { label: 'VERIFY EVIDENCE', to: '/qa/evidence' },
-      { label: 'REJECTED EVIDENCE', to: '/qa/rejected' },
-      { label: 'EVIDENCE HISTORY', to: '/qa/history' },
-    ],
-  },
-  {
-    label: 'ETR Review',
-    items: [
-      { label: 'SUBMITTED ETR QUEUE', to: '/qa/reviews' },
-      { label: 'REVIEW ETR', to: '/qa/details' },
-      { label: 'RETURN FOR CORRECTION', to: '/qa/return' },
+      { label: 'ETR REVIEW QUEUE', to: '/qa/reviews' },
     ],
   },
   {
     label: 'Compliance',
     items: [
       { label: 'SEARCH ETR RECORDS', to: '/qa/search' },
-      { label: 'EXPORT TRAINING PKG', to: '/qa/export' },
       { label: 'VIEW AUDIT TRAIL', to: '/qa/audit' },
       { label: 'RETAKE HISTORY', to: '/qa/retake-history' },
     ],
@@ -50,7 +32,6 @@ const navigationGroups = [
     label: 'Account',
     items: [
       { label: 'MY PROFILE', to: '/qa/profile' },
-      { label: 'CHANGE PASSWORD', to: '/qa/password' },
     ],
   },
 ];
@@ -59,7 +40,7 @@ const QALayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHomePage = location.pathname === '/qa';
-  const { tr } = useLanguage();
+  const { tr, trEn } = useLanguage();
 
   return (
     <div className="academic-page">
@@ -74,7 +55,7 @@ const QALayout = () => {
             </div>
             <div className="brand-text">
               <div className="brand-title">ETR</div>
-              <div className="brand-subtitle">QA Portal</div>
+              <div className="brand-subtitle">{trEn('QA Portal')}</div>
             </div>
           </div>
 
@@ -82,7 +63,7 @@ const QALayout = () => {
             {navigationGroups.map((group) => (
               <div key={group.label} className="qa-nav-group">
                 <div className="qa-nav-label">
-                  {group.label}
+                  {trEn(group.label)}
                 </div>
                 {group.items.map((item) => (
                   <NavLink
@@ -92,7 +73,7 @@ const QALayout = () => {
                     className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
                   >
                     {iconDocument}
-                    <span>{item.label}</span>
+                    <span>{trEn(item.label)}</span>
                   </NavLink>
                 ))}
               </div>
@@ -106,8 +87,8 @@ const QALayout = () => {
               <div className="avatar-fallback">Q</div>
             </div>
             <div className="user-info">
-              <div className="user-name">QA Staff</div>
-              <div className="user-role">Quality Assurance</div>
+              <div className="user-name">{trEn('QA Staff')}</div>
+              <div className="user-role">{trEn('Quality Assurance')}</div>
             </div>
           </div>
           <button
@@ -187,7 +168,7 @@ const QALayout = () => {
                 whiteSpace: "nowrap",
               }}
             >
-              AeroMetric Aviation Systems / QA Space
+              {trEn('AeroMetric Aviation Systems / QA Space')}
             </div>
 
             <div className="search-field">
@@ -201,7 +182,7 @@ const QALayout = () => {
           </div>
 
           <div className="topbar-right">
-            <button className="notification-btn" type="button" aria-label="Notifications">
+            <button className="notification-btn" type="button" aria-label={trEn('Notifications')}>
               <svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 17V15H2V8C2 6.61667 2.41667 5.3875 3.25 4.3125C4.08333 3.2375 5.16667 2.53333 6.5 2.2V1.5C6.5 1.08333 6.64583 0.729167 6.9375 0.4375C7.22917 0.145833 7.58333 0 8 0C8.41667 0 8.77083 0.145833 9.0625 0.4375C9.35417 0.729167 9.5 1.08333 9.5 1.5V2.2C10.8333 2.53333 11.9167 3.2375 12.75 4.3125C13.5833 5.3875 14 6.61667 14 8V15H16V17H0ZM8 20C7.45 20 6.97917 19.8042 6.5875 19.4125C6.19583 19.0208 6 18.55 6 18H10C10 18.55 9.80417 19.0208 9.4125 19.4125C9.02083 19.8042 8.55 20 8 20ZM4 15H12V8C12 6.9 11.6083 5.95833 10.825 5.175C10.0417 4.39167 9.1 4 8 4C6.9 4 5.95833 4.39167 5.175 5.175C4.39167 5.95833 4 6.9 4 8V15Z" fill="currentColor" />
               </svg>

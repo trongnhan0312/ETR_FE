@@ -19,6 +19,18 @@ describe("API base URL selection", () => {
     expect(order[1]).toContain("azurewebsites.net");
   });
 
+  it("still prefers LOCAL in development even if a DEPLOY url was persisted in a previous session", () => {
+    // Giả lập phiên trước từng khóa DEPLOY (localStorage còn dính giá trị cũ)
+    localStorage.setItem(
+      "activeApiBaseUrl",
+      "https://etrmanagement-be-fwhvagaxf3f3dmf0.southeastasia-01.azurewebsites.net/api",
+    );
+
+    const order = getApiBaseUrlCandidates();
+
+    expect(order[0]).toContain("localhost");
+  });
+
   it("keeps using the first successful backend for later requests", () => {
     setActiveApiBaseUrl("https://deploy.example/api");
 

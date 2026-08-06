@@ -310,17 +310,11 @@ const getManualApiMode = () => {
   return null;
 };
 
-const getPersistedActiveBaseUrl = () => {
-  try {
-    const saved = localStorage.getItem(ACTIVE_BASE_URL_STORAGE_KEY);
-    return saved || null;
-  } catch {
-    return null;
-  }
-};
-
-// Base URL đã khóa — sau request đầu tiên thành công, KHÔNG đổi sang base khác
-let activeBaseUrl = getPersistedActiveBaseUrl();
+// Base URL đã khóa TRONG PHIÊN hiện tại — sau request đầu tiên thành công,
+// KHÔNG đổi sang base khác (tránh trộn LOCAL/DEPLOY giữa các request).
+// LƯU Ý: KHÔNG seed từ localStorage — nếu seed giá trị DEPLOY cũ từ phiên trước,
+// `npm run dev` sẽ mặc định dùng DEPLOY dù backend local đang chạy.
+let activeBaseUrl = null;
 
 export const getApiBaseUrlCandidates = () => {
   if (isProduction) return [API_BASE_URL_DEPLOY];
@@ -328,11 +322,17 @@ export const getApiBaseUrlCandidates = () => {
   if (manual === "LOCAL") return [API_BASE_URL_LOCAL];
   if (manual === "DEPLOY") return [API_BASE_URL_DEPLOY];
 
-  const persisted = activeBaseUrl || getPersistedActiveBaseUrl();
-  if (persisted) {
-    return [persisted, ...API_BASE_URLS.filter((url) => url !== persisted)];
+  // Đã khóa base trong phiên này → base đó đứng đầu, base còn lại làm fallback
+  // (dùng khi base đã khóa bất ngờ không phản hồi được).
+  if (activeBaseUrl) {
+    return [
+      activeBaseUrl,
+      ...API_BASE_URLS.filter((url) => url !== activeBaseUrl),
+    ];
   }
 
+  // Mở lại trang ở DEV: LUÔN thử LOCAL trước (kể cả phiên trước từng dùng DEPLOY),
+  // chỉ fallback sang DEPLOY khi LOCAL không phản hồi được.
   return API_BASE_URLS;
 };
 
@@ -447,7 +447,7 @@ async function fetchWithFallback(endpoint, fetchOptions, method, options) {
     console.log(
       `[API ${method}] ✅ Đang dùng API ${getApiBaseLabel(baseUrl)} cho ${endpoint}`,
     );
-    return await handleResponse(response, method, endpoint, options);
+    return await handleResponse(response, method, endpoint, options, fetchOptions?.body);
   }
   // All URLs failed with network errors
   const errMsg = `Cannot reach any API server for ${endpoint}`;
@@ -482,7 +482,7 @@ const getAuthHeaders = (isFormData = false) => {
   return headers;
 };
 
-const handleResponse = async (response, method, endpoint, options = {}) => {
+const handleResponse = async (response, method, endpoint, options = {}, requestBody = null) => {
   console.log(
     `[API ${method}] Response Status: ${response.status} for ${endpoint}`,
   );
@@ -509,6 +509,8 @@ const handleResponse = async (response, method, endpoint, options = {}) => {
     console.error(
       `[API ${method}] Failed: Status ${response.status}, Error:`,
       err,
+      "\n[DIAG] Request body gửi lên:",
+      requestBody,
     );
     throw new Error(err || `Request failed with status ${response.status}`);
   }
@@ -752,9 +754,13 @@ export const parseApiError = (err, fallback) => {
     );
   }
 
-  if (raw.includes("ETR is locked") || raw.includes("cannot be edited")) {
+  if (
+    raw.includes("Completed or Locked") ||
+    raw.includes("ETR is locked") ||
+    raw.includes("cannot be edited")
+  ) {
     return translateVn(
-      "🔒 Quy tắc an toàn dữ liệu: Hồ sơ ETR này đã bị đóng bằng vĩnh viễn (Freeze Data). Không thể chỉnh sửa.",
+      "🔒 Quy tắc an toàn dữ liệu: Hồ sơ ETR liên quan đã hoàn tất/khóa (Completed/Locked) nên không thể thay đổi minh chứng hoặc dữ liệu đào tạo này. Vui lòng liên hệ Admin nếu cần mở khóa.",
     );
   }
 

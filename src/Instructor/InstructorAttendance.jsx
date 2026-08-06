@@ -156,8 +156,13 @@ const InstructorAttendance = () => {
       const sessionRecords = attendanceRecords.filter(a => a.sessionId === session.sessionId);
       
       // Determine if session is confirmed
+      // Fallback: nếu fetch chi tiết buổi thất bại thì dùng isConfirmed của buổi trong
+      // danh sách đã tải — tránh trường hợp buổi ĐÃ chốt lại bị coi là chưa chốt
+      // (khiến học viên mới ghi danh giữa khóa hiện nhầm thành Có mặt).
       const sessionDetails = await api.get(`/sessions/${session.sessionId}`).catch(() => null);
-      const isSessionLocked = sessionDetails ? sessionDetails.isConfirmed : false;
+      const isSessionLocked = sessionDetails
+        ? sessionDetails.isConfirmed
+        : session.isConfirmed || false;
       setIsConfirmed(isSessionLocked);
 
       const mappedAttendance = mappedStudents.map(student => {
@@ -168,7 +173,15 @@ const InstructorAttendance = () => {
           name: student.name,
           accountId: student.accountId,
           classStudentId: student.classStudentId,
-          status: record ? record.status : "Present",
+          // BUỔI ĐÃ CHỐT (IsConfirmed) + học viên CHƯA có bản ghi điểm danh (vd: ghi danh
+          // giữa khóa, bắt đầu học từ buổi sau) → mặc định "Absent" thay vì "Present",
+          // để không tự động coi học viên là CÓ MẶT ở buổi họ chưa tham gia.
+          // Buổi chưa chốt giữ nguyên "Present" (giảng viên sẽ chấm trực tiếp).
+          status: record
+            ? record.status
+            : isSessionLocked
+              ? "Absent"
+              : "Present",
           remarks: record ? record.remarks || "" : "",
           attendanceRecordId: record ? record.attendanceRecordId || record.id : null
         };

@@ -4,7 +4,7 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 
 const QAAccount = () => {
-  const { tr } = useLanguage();
+  const { tr, trEn } = useLanguage();
   const [profile, setProfile] = useState({
     name: "QA Staff",
     role: "Quality Assurance Officer",
@@ -61,63 +61,62 @@ const QAAccount = () => {
       <toast.ToastContainer />
 
       <section className="qa-page-card">
-        <p className="qa-eyebrow">Account</p>
-        <h1>My Profile</h1>
+        <p className="qa-eyebrow">{trEn('Account')}</p>
+        <h1>{trEn('My Profile')}</h1>
         <p className="qa-page-description">
-          Manage your own account, update your profile information, and change
-          your password here.
+          {trEn('Manage your own account, update your profile information, and change your password here.')}
         </p>
       </section>
 
       <section className="qa-grid-2">
         <div className="qa-panel">
-          <h2>Profile</h2>
+          <h2>{trEn('Profile')}</h2>
           <div className="qa-kv-grid">
             <div className="qa-kv">
-              <strong>Name</strong>
-              <span>{profile.name}</span>
+              <strong>{trEn('Name')}</strong>
+              <span>{trEn(profile.name)}</span>
             </div>
             <div className="qa-kv">
-              <strong>Role</strong>
-              <span>{profile.role}</span>
+              <strong>{trEn('Role')}</strong>
+              <span>{trEn(profile.role)}</span>
             </div>
             <div className="qa-kv">
-              <strong>Email</strong>
-              <span>{profile.email}</span>
+              <strong>{trEn('Email')}</strong>
+              <span>{trEn(profile.email)}</span>
             </div>
             <div className="qa-kv">
-              <strong>Status</strong>
-              <span>{profile.status}</span>
+              <strong>{trEn('Status')}</strong>
+              <span>{trEn(profile.status)}</span>
             </div>
           </div>
         </div>
 
         <div className="qa-panel">
-          <h2>Change Password</h2>
+          <h2>{trEn('Change Password')}</h2>
           <form className="qa-list" onSubmit={handleChangePassword}>
             <input
               className="qa-input"
               type="password"
-              placeholder="Current password"
+              placeholder={trEn('Current password')}
               value={currentPwd}
               onChange={(e) => setCurrentPwd(e.target.value)}
             />
             <input
               className="qa-input"
               type="password"
-              placeholder="New password"
+              placeholder={trEn('New password')}
               value={newPwd}
               onChange={(e) => setNewPwd(e.target.value)}
             />
             <input
               className="qa-input"
               type="password"
-              placeholder="Confirm new password"
+              placeholder={trEn('Confirm new password')}
               value={confirmPwd}
               onChange={(e) => setConfirmPwd(e.target.value)}
             />
             <button className="qa-btn" type="submit">
-              Update Password
+              {trEn('Update Password')}
             </button>
           </form>
         </div>

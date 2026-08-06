@@ -3,7 +3,7 @@ import { api } from "../utils/api";
 import { useLanguage } from '../context/LanguageContext';
 
 const QARetakeHistory = () => {
-  const { tr } = useLanguage();
+  const { tr, trEn } = useLanguage();
   const [retakes, setRetakes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subjectFilter, setSubjectFilter] = useState("");
@@ -69,20 +69,19 @@ const QARetakeHistory = () => {
   return (
     <div className="qa-shell">
       <section className="qa-page-card">
-        <p className="qa-eyebrow">Compliance</p>
-        <h1>Retake History</h1>
+        <p className="qa-eyebrow">{trEn('Compliance')}</p>
+        <h1>{trEn('Retake History')}</h1>
         <p className="qa-page-description">
-          View all retake attempts for subject results. Track score changes and
-          authorization details across all learners.
+          {trEn('View all retake attempts for subject results. Track score changes and authorization details across all learners.')}
         </p>
       </section>
 
       <section className="qa-table-card">
         <div className="qa-table-header">
           <div>
-            <h2>Retake Records ({retakes.length})</h2>
+            <h2>{trEn('Retake Records')} ({retakes.length})</h2>
             <p className="qa-page-description">
-              Each entry records a score change made after initial publication.
+              {trEn('Each entry records a score change made after initial publication.')}
             </p>
           </div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -92,7 +91,7 @@ const QARetakeHistory = () => {
               onChange={(e) => setSubjectFilter(e.target.value)}
               style={{ minWidth: "160px" }}
             >
-              <option value="">All Subject Results</option>
+              <option value="">{trEn('All Subject Results')}</option>
               {subjectResults.map((sr) => (
                 <option key={sr.subjectResultId} value={sr.subjectResultId}>
                   SR #{sr.subjectResultId}
@@ -106,7 +105,7 @@ const QARetakeHistory = () => {
               disabled={loading}
               style={{ padding: "6px 12px", fontSize: "11px" }}
             >
-              Refresh
+              {trEn('Refresh')}
             </button>
           </div>
         </div>
@@ -145,7 +144,7 @@ const QARetakeHistory = () => {
                     }}
                   >
                     <p className="qa-list-title">
-                      Subject Result #{entry.subjectResultId} — Attempt #{entry.attemptNo}
+                      {trEn('Subject Result')} #{entry.subjectResultId} — {trEn('Attempt')} #{entry.attemptNo}
                     </p>
                     <span
                       className={`qa-chip ${
@@ -169,15 +168,15 @@ const QARetakeHistory = () => {
                     </span>
                   </div>
                   <p className="qa-list-desc">
-                    {entry.retakeDate} — Reason: {entry.reason}
+                    {entry.retakeDate} — {trEn('Reason:')} {entry.reason}
                   </p>
                   <p className="qa-list-desc" style={{ fontSize: "11px" }}>
-                    Previous: {entry.previousScore} → New: {entry.newScore} |
-                    Authorized: {entry.authorizedBy} | Status: {entry.srStatus}
+                    {trEn('Previous:')} {entry.previousScore} → {trEn('New:')} {entry.newScore} |
+                    {trEn('Authorized:')} {entry.authorizedBy} | {trEn('Status:')} {entry.srStatus}
                   </p>
                 </div>
                 <span className="qa-status neutral">
-                  Attempt {entry.attemptNo}
+                  {trEn('Attempt')} {entry.attemptNo}
                 </span>
               </div>
             ))

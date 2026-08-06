@@ -11,6 +11,19 @@ Currently, two official plugins are available:
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
+## API URL: Local vs Deploy (Vercel)
+
+Frontend tự phân biệt môi trường qua `import.meta.env.PROD` (xem `src/utils/api.js`):
+
+| Môi trường | File cấu hình | API dùng |
+| --- | --- | --- |
+| `npm run dev` (local) | `.env.local` (gitignored) | `VITE_API_URL_LOCAL` → `https://localhost:7169/api` |
+| Vercel build (`npm run build`) | `.env.production` (committed) | `VITE_API_URL_DEPLOY` → API đã deploy |
+
+- Khi push lên git, Vercel tự chạy `npm run build` (mode production) → chỉ gọi API deploy.
+- Muốn đổi API deploy: sửa `VITE_API_URL_DEPLOY` trong `.env.production` rồi push.
+- `vercel.json` chứa SPA rewrite để react-router hoạt động khi refresh/deep-link trên Vercel.
+
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

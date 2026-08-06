@@ -6,12 +6,16 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 
 const QARETRDetails = () => {
-  const { tr } = useLanguage();
+  const { tr, trEn } = useLanguage();
   const [etrList, setEtrList] = useState([]);
   const [selectedEtr, setSelectedEtr] = useState(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [reviewNotes, setReviewNotes] = useState("");
+  // Lưu trạng thái xác thực của từng EvidenceFile (key: evidenceFileId) — lấy từ GET /Evidences
+  const [evidenceById, setEvidenceById] = useState({});
+  // ETR đã tải xong chi tiết evidence (GET /Etr/{id}) — để hiển thị "…" trong lúc chờ
+  const [loadedEtrId, setLoadedEtrId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -32,6 +36,17 @@ const QARETRDetails = () => {
       const profilesArr = Array.isArray(profiles) ? profiles : [];
       const evfsArr = Array.isArray(evidences) ? evidences : [];
 
+      // EvidenceResponse (GET /Evidences) KHÔNG trả ETRCourseRecordId — chỉ có SubjectResultId.
+      // Lưu map evidenceFileId → verificationStatus để nối khi lấy chi tiết ETR (GET /Etr/{id}).
+      const evMap = {};
+      evfsArr.forEach((ev) => {
+        evMap[ev.evidenceFileId] = {
+          verificationStatus: ev.verificationStatus,
+          fileName: ev.fileName,
+        };
+      });
+      setEvidenceById(evMap);
+
       const mapped = etrsArr
         .filter((e) => e.status === "Submitted" || e.status === "Verified")
         .map((etr) => {
@@ -42,20 +57,17 @@ const QARETRDetails = () => {
           const profile = enrollment
             ? profilesArr.find((p) => p.accountId === enrollment.accountId)
             : null;
-          const etrEvfs = evfsArr.filter(
-            (ev) => (ev.eTRCourseRecordId || ev.etrCourseRecordId) === etrId
-          );
 
+          // evidenceCount/verifiedCount được điền chính xác khi chọn ETR (xem effect bên dưới)
           return {
             etrId,
             id: `#ETR-${String(etrId).padStart(4, "0")}`,
             learner: profile?.fullName || `Student #${enrollment?.accountId || ""}`,
             course: `Lớp #${enrollment?.classId || ""}`,
             status: etr.status,
-            evidenceCount: etrEvfs.length,
-            verifiedCount: etrEvfs.filter(
-              (ev) => ev.verificationStatus === "Verified"
-            ).length,
+            evidenceCount: 0,
+            verifiedCount: 0,
+            evidenceFiles: [],
             submittedAt: etr.submittedAt
               ? new Date(etr.submittedAt).toLocaleString("vi-VN")
               : "N/A",
@@ -122,16 +134,60 @@ const QARETRDetails = () => {
     setReviewNotes("");
   };
 
+  // Khi chọn ETR: lấy GET /Etr/{id} (trả EvidenceFiles thuộc ETR này) rồi nối trạng thái
+  // xác thực từ map /Evidences — EvidenceResponse không có ETRCourseRecordId nên không thể
+  // lọc trực tiếp, phải nối qua EvidenceFileId.
+  useEffect(() => {
+    if (!selectedEtr) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const details = await api
+          .get(`/Etr/${selectedEtr.etrId}`)
+          .catch(() => null);
+        if (cancelled || !details) return;
+        const evfs = Array.isArray(details.evidenceFiles)
+          ? details.evidenceFiles
+          : [];
+        const stats = evfs.map((e) => ({
+          id: e.evidenceFileId,
+          fileName: e.fileName,
+          uploadedAt: e.uploadedAt,
+          status:
+            evidenceById[e.evidenceFileId]?.verificationStatus || "Pending",
+        }));
+        setSelectedEtr((prev) =>
+          prev && prev.etrId === selectedEtr.etrId
+            ? {
+                ...prev,
+                evidenceCount: stats.length,
+                verifiedCount: stats.filter(
+                  (s) => s.status === "Verified"
+                ).length,
+                evidenceFiles: stats,
+              }
+            : prev
+        );
+        setLoadedEtrId(selectedEtr.etrId);
+      } catch {
+        /* ignore — giữ nguyên số liệu nếu không tải được chi tiết */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEtr?.etrId]);
+
   return (
     <div className="qa-shell">
       {/* Toast notifications */}
       <toast.ToastContainer />
       <section className="qa-page-card">
-        <p className="qa-eyebrow">ETR details</p>
-        <h1>Review ETR Details</h1>
+        <p className="qa-eyebrow">{trEn('ETR details')}</p>
+        <h1>{trEn('Review ETR Details')}</h1>
         <p className="qa-page-description">
-          Inspect the learner profile, attendance, assessment, evidence, and
-          approval history before approving or returning the ETR.
+          {trEn('Inspect the learner profile, attendance, assessment, evidence, and approval history before approving or returning the ETR.')}
         </p>
       </section>
 
@@ -139,10 +195,10 @@ const QARETRDetails = () => {
       <section className="qa-table-card">
         <div className="qa-table-header">
           <div>
-            <h2>Select ETR Record</h2>
+            <h2>{trEn('Select ETR Record')}</h2>
           </div>
           <button className="qa-btn" type="button" onClick={loadData} disabled={loading}>
-            Refresh
+            {trEn('Refresh')}
           </button>
         </div>
 
@@ -184,7 +240,7 @@ const QARETRDetails = () => {
                 <span
                   className={`qa-status ${etr.status === "Verified" ? "verified" : "pending"}`}
                 >
-                  {etr.status === "Submitted" ? "Pending QA" : "Verified"}
+                  {etr.status === "Submitted" ? trEn('Pending QA') : trEn('Verified')}
                 </span>
               </div>
             ))
@@ -195,43 +251,84 @@ const QARETRDetails = () => {
       {selectedEtr && (
         <section className="qa-detail-grid">
           <div className="qa-panel">
-            <h2 className="qa-section-title">Record Summary</h2>
-            <h2 className="qa-section-title" style={{ marginTop: "24px" }}>Approval History</h2>
+            <h2 className="qa-section-title">{trEn('Record Summary')}</h2>
+            <h2 className="qa-section-title" style={{ marginTop: "24px" }}>{trEn('Approval History')}</h2>
             <ApprovalHistory etrId={selectedEtr.etrId} />
             <div className="qa-kv-grid">
               <div className="qa-kv">
-                <strong>ETR ID</strong>
+                <strong>{trEn('ETR ID')}</strong>
                 <span>{selectedEtr.id}</span>
               </div>
               <div className="qa-kv">
-                <strong>Learner</strong>
+                <strong>{trEn('Learner')}</strong>
                 <span>{selectedEtr.learner}</span>
               </div>
               <div className="qa-kv">
-                <strong>Course / Class</strong>
+                <strong>{trEn('Course / Class')}</strong>
                 <span>{selectedEtr.course}</span>
               </div>
               <div className="qa-kv">
-                <strong>Evidence</strong>
+                <strong>{trEn('Evidence')}</strong>
                 <span>
-                  {selectedEtr.verifiedCount}/{selectedEtr.evidenceCount} verified
+                  {selectedEtr.etrId === loadedEtrId
+                    ? `${selectedEtr.verifiedCount}/${selectedEtr.evidenceCount} ${trEn('verified')}`
+                    : "…"}
                 </span>
               </div>
               <div className="qa-kv">
-                <strong>Submitted At</strong>
+                <strong>{trEn('Submitted At')}</strong>
                 <span>{selectedEtr.submittedAt}</span>
               </div>
             </div>
+
+            {selectedEtr.evidenceFiles?.length > 0 && (
+              <div className="qa-list" style={{ marginTop: "12px" }}>
+                {selectedEtr.evidenceFiles.map((f) => (
+                  <div
+                    key={f.id}
+                    className="qa-list-item"
+                    style={{ padding: "8px 10px" }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        className="qa-list-title"
+                        style={{ fontSize: "12px" }}
+                        title={f.fileName}
+                      >
+                        {f.fileName}
+                      </p>
+                      {f.uploadedAt && (
+                        <p className="qa-list-desc" style={{ fontSize: "10px" }}>
+                          {new Date(f.uploadedAt).toLocaleString("vi-VN")}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`qa-status ${
+                        f.status === "Rejected"
+                          ? "rejected"
+                          : f.status === "Verified"
+                            ? "verified"
+                            : "pending"
+                      }`}
+                      style={{ fontSize: "10px" }}
+                    >
+                      {trEn(f.status)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="qa-panel">
-            <h2 className="qa-section-title">QA Review Form</h2>
+            <h2 className="qa-section-title">{trEn('QA Review Form')}</h2>
             <div className="qa-list">
               <div>
-                <label className="qa-section-title">Review Notes</label>
+                <label className="qa-section-title">{trEn('Review Notes')}</label>
                 <textarea
                   className="qa-textarea"
-                  placeholder="Add verification notes, missing items, or approval remarks."
+                  placeholder={trEn('Add verification notes, missing items, or approval remarks.')}
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
                 />
@@ -243,7 +340,7 @@ const QARETRDetails = () => {
                   onClick={handleVerifyEtr}
                   disabled={verifying}
                 >
-                  Verify ETR
+                  {trEn('Verify ETR')}
                 </button>
                 <button
                   className="qa-btn-secondary"
@@ -251,7 +348,7 @@ const QARETRDetails = () => {
                   onClick={handleReturnEtr}
                   disabled={verifying}
                 >
-                  Return for Correction
+                  {trEn('Return for Correction')}
                 </button>
               </div>
             </div>

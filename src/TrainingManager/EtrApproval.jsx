@@ -18,7 +18,7 @@ const EtrApproval = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const [approvalRequests, setApprovalRequests] = useState([]);
-  // B1 (giới hạn backend): TM bị 403 khi GET /Etr & /Enrollments → danh sách được dựng từ /Approvals
+  // Fallback chỉ kích hoạt khi TM thật sự bị 403 ở GET /Etr (danh sách dựng từ /Approvals)
   const [approvalFallbackActive, setApprovalFallbackActive] = useState(false);
   const [etrs, setEtrs] = useState([]);
   const [metrics, setMetrics] = useState({
@@ -77,18 +77,34 @@ const EtrApproval = () => {
   const loadEtrsFromApi = async () => {
     try {
       let etrForbidden = false;
-      let enrollmentsForbidden = false;
-      const [etrData, enrollmentsData, profilesData, approvalsData] = await Promise.all([
+      const [
+        etrData,
+        enrollmentsData,
+        profilesData,
+        approvalsData,
+        classStudentsData,
+        classesData,
+      ] = await Promise.all([
         api.get("/Etr").catch((err) => {
           if (isForbiddenErr(err)) etrForbidden = true;
           return [];
         }),
         api.get("/Enrollments").catch((err) => {
-          if (isForbiddenErr(err)) enrollmentsForbidden = true;
+          // Không dùng làm điều kiện fallback nữa — tên học viên/lớp được nối qua
+          // /ClassStudents bên dưới. Log này chỉ để chẩn đoán khi TM bị 403 ở /Enrollments.
+          if (isForbiddenErr(err)) {
+            console.info(
+              "[EtrApproval] GET /Enrollments bị 403 → dùng /ClassStudents để nối tên học viên/lớp.",
+            );
+          }
           return [];
         }),
         api.get("/UserProfiles/learners").catch(() => []),
         api.get("/Approvals").catch(() => []),
+        // B2: TM có thể bị 403 ở GET /Enrollments — nhưng VẪN đọc được /ClassStudents,
+        // /Classes và /UserProfiles/learners → nối được tên học viên/lớp mà không cần /Enrollments.
+        api.get("/ClassStudents").catch(() => []),
+        api.get("/Classes").catch(() => []),
       ]);
 
       const approvalsArr = Array.isArray(approvalsData) ? approvalsData : [];
@@ -98,12 +114,43 @@ const EtrApproval = () => {
       const enrollmentsArr = Array.isArray(enrollmentsData) ? enrollmentsData : [];
       const profilesArr = Array.isArray(profilesData) ? profilesData : [];
 
-      // B1 (giới hạn backend): EtrController method-level GET /Etr & GET /Etr/{id} chưa cấp role
-      // TrainingManager (chỉ Instructor/QA/Admin/Audit/Academic), EnrollmentsController cũng chưa cấp TM.
-      // Fallback: dựng danh sách phê duyệt từ /Approvals (TM được phép đọc) để hàng chờ không bị trống.
-      // Chỉ fallback khi thực sự bị 403 (không fallback khi /Etr trả về rỗng hợp lệ cho role có quyền)
-      const fallbackFromApprovals =
-        (etrForbidden || enrollmentsForbidden) && approvalsArr.length > 0;
+      // Bản đồ courseEnrollmentId → { accountId, classId } từ /ClassStudents (TM đọc được)
+      const classStudentByEnrollment = {};
+      (Array.isArray(classStudentsData) ? classStudentsData : []).forEach(
+        (cs) => {
+          if (cs.courseEnrollmentId != null) {
+            classStudentByEnrollment[cs.courseEnrollmentId] = cs;
+          }
+        },
+      );
+      // Bản đồ classId → thông tin lớp (tên lớp thật thay vì "Class #")
+      const classMap = {};
+      (Array.isArray(classesData) ? classesData : []).forEach((c) => {
+        classMap[c.classId] = c;
+      });
+
+      // Giải quyết (accountId, classId) của 1 ETR: ưu tiên /Enrollments, fallback /ClassStudents
+      const resolveEnrollment = (etrEnrollmentId) => {
+        const fromEnrollments = enrollmentsArr.find(
+          (enr) => enr.enrollmentId === etrEnrollmentId,
+        );
+        if (fromEnrollments) {
+          return {
+            accountId: fromEnrollments.accountId,
+            classId: fromEnrollments.classId,
+          };
+        }
+        const cs = classStudentByEnrollment[etrEnrollmentId];
+        if (cs) {
+          return { accountId: cs.accountId, classId: cs.classId };
+        }
+        return null;
+      };
+
+      // Chỉ fallback sang danh sách dựng từ /Approvals khi thực sự KHÔNG đọc được /Etr (403).
+      // Khi chỉ bị 403 ở /Enrollments thì VẪN dùng nhánh chính — tên học viên/lớp được nối
+      // qua /ClassStudents + /UserProfiles/learners + /Classes (TM được phép đọc).
+      const fallbackFromApprovals = etrForbidden && approvalsArr.length > 0;
       setApprovalFallbackActive(fallbackFromApprovals);
 
       // Chi tiết từng ETR (subjectResults) + toàn bộ evidence — dữ liệu thật cho transcript
@@ -125,18 +172,33 @@ const EtrApproval = () => {
         .filter((e) => e.status === "Verified" || e.status === "Completed")
         .map((etr, i) => {
           const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
-          const enrollment = enrollmentsArr.find(
-            (enr) => enr.enrollmentId === etr.enrollmentId
-          );
-          const profile = enrollment
-            ? profilesArr.find((p) => p.accountId === enrollment.accountId)
-            : null;
+          const enrollmentLink = resolveEnrollment(etr.enrollmentId);
+          const accountId = enrollmentLink?.accountId;
+          const classId = enrollmentLink?.classId;
+          const profile =
+            accountId != null
+              ? profilesArr.find((p) => p.accountId === accountId)
+              : null;
+          const classInfo = classId != null ? classMap[classId] : null;
           const detail = detailsArr[i];
           const subjectResults = (detail?.subjectResults || []).map((sr) => sr);
           const subjectResultIds = subjectResults.map((sr) => sr.subjectResultId);
-          const evidence = evfsArr.filter((ev) =>
+          // Evidence đầy đủ (fileSize/verificationStatus) từ GET /Evidences.
+          // Nếu tài khoản chưa được cấp quyền đọc /Evidences (403 → rỗng), fallback sang
+          // evidenceFiles đã có sẵn trong GET /Etr/{id} — TrainingManager luôn được phép đọc
+          // endpoint này, nên danh sách tài liệu đã xác thực vẫn hiển thị (chỉ thiếu fileSize).
+          let evidence = evfsArr.filter((ev) =>
             subjectResultIds.includes(ev.subjectResultId)
           );
+          if (!evidence.length && Array.isArray(detail?.evidenceFiles) && detail.evidenceFiles.length) {
+            evidence = detail.evidenceFiles.map((ef) => ({
+              evidenceFileId: ef.evidenceFileId,
+              fileName: ef.fileName,
+              fileSize: null,
+              verificationStatus: "Verified",
+              subjectResultId: null,
+            }));
+          }
           const attendanceValues = subjectResults
             .map((sr) => sr.attendanceRate)
             .filter((v) => v != null);
@@ -160,10 +222,13 @@ const EtrApproval = () => {
           return {
             id: `#ETR-${String(etrId).padStart(4, "0")}`,
             etrId,
-            traineeName: profile?.fullName || `Student #${enrollment?.accountId || ""}`,
-            traineeCode: `ID: ${profile?.employeeCode || `AV-${enrollment?.accountId || ""}`}`,
+            traineeName: profile?.fullName || `Student #${accountId ?? ""}`,
+            traineeCode: `ID: ${profile?.employeeCode || `AV-${accountId ?? ""}`}`,
             initials: (profile?.fullName || "XX").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "XX",
-            className: `Class #${enrollment?.classId || ""}`,
+            // Tên lớp THẬT (className) thay vì "Class #" khi nối được qua /Classes
+            className: classInfo
+              ? classInfo.className
+              : `Class #${classId ?? ""}`,
             avgScore: avgAttendance,
             qaVerified: etr.status === "Verified" || etr.status === "Completed",
             qaVerifier: "QA Staff",
@@ -278,6 +343,17 @@ const EtrApproval = () => {
     }
   };
 
+  // Định dạng dòng meta của thẻ minh chứng: [kích thước MB] • [trạng thái xác thực]
+  // (evidence fallback từ GET /Etr/{id} không có fileSize → bỏ qua phần kích thước)
+  const formatEvidenceMeta = (ev) => {
+    if (!ev) return "—";
+    const size =
+      ev.fileSize != null && ev.fileSize > 0
+        ? `${(ev.fileSize / (1024 * 1024)).toFixed(1)} MB • `
+        : "";
+    return `${size}${ev.verificationStatus || "Pending"}`;
+  };
+
   // Tải xuống minh chứng có xác thực (GET /Evidences/{id}/download yêu cầu Bearer token)
   const handleDownloadEvidence = async (ev) => {
     if (!ev) {
@@ -295,7 +371,15 @@ const EtrApproval = () => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      showAlert(`${tr('Tải xuống thất bại:')} ${err.message}`, "error");
+      // Backend hiện chưa cấp quyền đọc/tải minh chứng cho role TrainingManager
+      // (EvidencesController giới hạn Instructor,QA,Admin,Academic,Audit) → 403.
+      // Báo rõ ràng để user biết đây là vấn đề phân quyền backend, không phải lỗi FE.
+      showAlert(
+        isForbiddenErr(err)
+          ? tr("Tài khoản TrainingManager chưa được backend cấp quyền tải minh chứng (GET /Evidences/{id}/download đang chặn role này). Vui lòng liên hệ Admin để mở quyền đọc/tải minh chứng.")
+          : `${tr('Tải xuống thất bại:')} ${err.message}`,
+        "error"
+      );
     }
   };
 
@@ -354,11 +438,8 @@ const EtrApproval = () => {
   if (viewingHistory) {
     return (
       <div className="tm-transcript-container">
-        {/* SUB TOPBAR / TABS */}
+        {/* SUB TOPBAR / TABS — bỏ hàng "Digital Transcript Vault" theo yêu cầu */}
         <div className="tm-transcript-sub-topbar">
-          <div className="brand-text">
-            Digital <span>Transcript Vault</span>
-          </div>
           <div className="sub-tabs">
             <span className="sub-tab">Profile</span>
             <span className="sub-tab">Activity</span>
@@ -406,12 +487,6 @@ const EtrApproval = () => {
           <div className="header-actions">
             <button className="btn-close-detail" onClick={() => setViewingHistory(null)}>
               Close Detail
-            </button>
-            <button className="btn-export-transcript" onClick={() => showAlert("OFFICIAL TRANSCRIPT EXPORTED SUCCESSFULLY.")}>
-              <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-                <path d="M6 9L2.25 5.25L3.3 4.1625L5.25 6.1125V0H6.75V6.1125L8.7 4.1625L9.75 5.25L6 9ZM1.5 12C1.0875 12 0.734375 11.8531 0.440625 11.5594C0.146875 11.2656 0 10.9125 0 10.5V8.25H1.5V10.5H10.5V8.25H12V10.5C12 10.9125 11.8531 11.2656 11.5594 11.5594C11.2656 11.8531 10.9125 12 10.5 12H1.5Z" fill="currentColor" />
-              </svg>
-              Export Official Transcript
             </button>
           </div>
         </div>
@@ -634,9 +709,7 @@ const EtrApproval = () => {
                   <div className="doc-info">
                     <span className="name">{viewingHistory.evidence?.[0]?.fileName || tr("Chưa có minh chứng")}</span>
                     <span className="meta">
-                      {viewingHistory.evidence?.[0]
-                        ? `${(viewingHistory.evidence[0].fileSize / (1024 * 1024)).toFixed(1)} MB • ${viewingHistory.evidence[0].verificationStatus || "Pending"}`
-                        : "—"}
+                      {formatEvidenceMeta(viewingHistory.evidence?.[0])}
                     </span>
                   </div>
                   <div className="download-btn">
@@ -656,9 +729,7 @@ const EtrApproval = () => {
                   <div className="doc-info">
                     <span className="name">{viewingHistory.evidence?.[1]?.fileName || tr("Chưa có minh chứng")}</span>
                     <span className="meta">
-                      {viewingHistory.evidence?.[1]
-                        ? `${(viewingHistory.evidence[1].fileSize / (1024 * 1024)).toFixed(1)} MB • ${viewingHistory.evidence[1].verificationStatus || "Pending"}`
-                        : "—"}
+                      {formatEvidenceMeta(viewingHistory.evidence?.[1])}
                     </span>
                   </div>
                   <div className="download-btn">
@@ -678,9 +749,7 @@ const EtrApproval = () => {
                   <div className="doc-info">
                     <span className="name">{viewingHistory.evidence?.[2]?.fileName || tr("Chưa có minh chứng")}</span>
                     <span className="meta">
-                      {viewingHistory.evidence?.[2]
-                        ? `${(viewingHistory.evidence[2].fileSize / (1024 * 1024)).toFixed(1)} MB • ${viewingHistory.evidence[2].verificationStatus || "Pending"}`
-                        : "—"}
+                      {formatEvidenceMeta(viewingHistory.evidence?.[2])}
                     </span>
                   </div>
                   <div className="download-btn">
@@ -712,13 +781,14 @@ const EtrApproval = () => {
       {/* Toast notifications */}
       <toast.ToastContainer />
 
-      {/* B1: thông báo khi danh sách đang dựng từ Approval Requests (TM bị 403 ở GET /Etr) */}
+      {/* Cảnh báo chỉ xuất hiện khi tài khoản thật sự bị 403 ở GET /Etr (hiếm gặp) —
+          danh sách khi đó được dựng từ Approval Requests (thiếu tên học viên/lớp). */}
       {approvalFallbackActive && (
         <div className="tm-alert-banner warning" style={{ marginBottom: "12px" }}>
           <div className="alert-left">
             <span className="alert-dot" />
             <p>
-              {tr('Tài khoản Training Manager chưa được backend cho phép đọc danh sách ETR (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR được cấp ở backend.')}
+              {tr('Tài khoản hiện tại chưa được backend cho phép đọc danh sách ETR (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR được cấp ở backend.')}
             </p>
           </div>
           <button

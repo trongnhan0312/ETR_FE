@@ -118,37 +118,60 @@ const InstructorAssessments = () => {
           (s) => Number(s.classId) === classId,
         );
 
-        // Assessments signed to sessions of this class (deduplicated by assessmentId)
+        // Assessments/Checklists signed to sessions of this class — MỖI (buổi, đánh giá) là 1 dòng riêng.
+        // Tự động nhận diện Assessment Type từ buổi đã tạo: có bài kiểm tra (assessmentId) và/hoặc bảng
+        // kiểm thực hành (practicalChecklistId) → chọn đúng chế độ nhập điểm assessment/practical/both.
         const signed = classSessions.filter(
-          (s) => s.assessmentId != null && s.sessionId != null,
+          (s) =>
+            s.sessionId != null &&
+            (s.assessmentId != null || s.practicalChecklistId != null),
         );
 
-        const byId = new Map();
-        for (const s of signed) {
+        const entries = signed.map((s) => {
           const id = Number(s.assessmentId);
-          if (!byId.has(id)) {
-            const detail = (assessmentsList || []).find(
-              (a) => Number(a.assessmentId) === id,
-            );
-            byId.set(id, {
-              assessmentId: id,
-              subjectId: s.subjectId,
-              courseId: detail?.courseId ?? null,
-              componentName:
-                s.assessmentName ||
-                detail?.componentName ||
-                detail?.assessmentName ||
-                `Assessment ${id}`,
-              assessmentType: s.assessmentType || detail?.assessmentType || "",
-              weight: detail?.weight,
-              passingScore: detail?.passingScore,
-              isRequired: detail?.isRequired,
-              displayOrder: detail?.displayOrder,
-              sessionId: s.sessionId,
-            });
-          }
-        }
-        setAssessmentsForClass(Array.from(byId.values()));
+          const detail = (assessmentsList || []).find(
+            (a) => Number(a.assessmentId) === id,
+          );
+
+          const hasAssessment =
+            s.assessmentId != null || s.isAssessmentRequired === true;
+          const hasChecklist =
+            s.practicalChecklistId != null || s.isChecklistRequired === true;
+
+          return {
+            assessmentId: s.assessmentId != null ? id : null,
+            // practicalChecklistId của buổi — dùng để (1) khoá dropdown chỉ cho nhập đúng
+            // hình thức buổi có, (2) lọc/ghi điểm thực hành đúng theo buổi này.
+            practicalChecklistId:
+              s.practicalChecklistId != null
+                ? Number(s.practicalChecklistId)
+                : null,
+            subjectId: s.subjectId,
+            courseId: detail?.courseId ?? null,
+            componentName:
+              s.assessmentName ||
+              s.assessment?.componentName ||
+              detail?.componentName ||
+              detail?.assessmentName ||
+              s.practicalChecklist?.itemName ||
+              (hasAssessment ? `Assessment ${id}` : tr("Thực hành")),
+            assessmentType: hasAssessment && hasChecklist
+              ? "both"
+              : hasChecklist
+                ? "practical"
+                : "assessment",
+            weight: detail?.weight,
+            passingScore: detail?.passingScore,
+            isRequired: detail?.isRequired,
+            displayOrder: detail?.displayOrder,
+            sessionId: s.sessionId,
+            sessionTitle: s.sessionTitle || `Buổi ${s.sessionId}`,
+            sessionDate: s.sessionDate
+              ? new Date(s.sessionDate).toLocaleDateString("vi-VN")
+              : "",
+          };
+        });
+        setAssessmentsForClass(entries);
       } catch (err) {
         console.error("Lỗi khi tải danh sách assessment:", err);
         setAssessmentsForClass([]);
@@ -264,9 +287,20 @@ const InstructorAssessments = () => {
         ? allPracticalResults
         : [];
 
-      // Assessment-based: use assessmentId directly (no sessionId needed)
+      // Assessment-based: dùng assessmentId + sessionId của buổi đang chọn để lọc đúng bảng điểm từng buổi.
       const currentAssessmentId = assessment?.assessmentId;
       const currentSubjectId = assessment?.subjectId;
+      const currentSessionId = assessment?.sessionId ?? null;
+
+      // [DIAG] Nếu buổi đang chọn KHÔNG có sessionId → backend sẽ coi mọi buổi là 1 buổi duy nhất
+      // (sessionId=null), ghi đè chung 1 dòng và dễ kẹt lỗi 400 retake. Cảnh báo thật to để lộ ngay.
+      if (assessment?.sessionId == null) {
+        console.warn(
+          `[DIAG] ⚠️ CRITICAL: selectedAssessment KHÔNG có sessionId (assessmentId=${assessment?.assessmentId}, componentName=${assessment?.componentName}). ` +
+            `Backend sẽ coi mọi buổi là sessionId=null → ghi đè chung 1 dòng trong DB + lỗi 400 retake. ` +
+            `Nếu bạn vẫn thấy log này khi build mới thì lỗi nằm ở nguồn dữ liệu /sessions (thiếu sessionId).`,
+        );
+      }
 
       // Pre-fetch ETR details for all students in parallel (batch)
       const etrDetailsMap = {};
@@ -310,27 +344,24 @@ const InstructorAssessments = () => {
           if (subRes) {
             subjectResultId = subRes.subjectResultId;
             subjectScore = subRes.score != null ? Number(subRes.score) : null;
-            attendanceRate = subRes.attendanceRate != null ? subRes.attendanceRate : null;
+            // Giới hạn tối đa 100%: backend có thể trả tỉ lệ > 100% (tử số đếm cả bản ghi
+            // của buổi chưa chốt nhưng mẫu số chỉ tính buổi đã chốt). Cắt tại 100 cho hiển thị.
+            attendanceRate =
+              subRes.attendanceRate != null
+                ? Math.min(Number(subRes.attendanceRate), 100)
+                : null;
 
             if (selectedTypes.includes("assessment")) {
-              // Filter pre-fetched assessment results by accountId and assessmentId only (no sessionId).
-              // This allows grading across all sessions for this assessment.
+              // Lọc theo đúng buổi (sessionId) — điểm của buổi khác KHÔNG hiện vào bảng điểm buổi này.
               let assessmentScoreResult = allAssessmentResults.find(
                 (ar) =>
                   ar.accountId === student.accountId &&
                   ar.assessmentId === currentAssessmentId &&
-                  ar.subjectResultId === subRes.subjectResultId,
+                  ar.subjectResultId === subRes.subjectResultId &&
+                  (currentSessionId == null
+                    ? ar.sessionId == null
+                    : ar.sessionId === currentSessionId),
               );
-              // Fallback: allow legacy records (sessionId == null) to show up
-              if (!assessmentScoreResult) {
-                assessmentScoreResult = allAssessmentResults.find(
-                  (ar) =>
-                    ar.accountId === student.accountId &&
-                    ar.assessmentId === currentAssessmentId &&
-                    ar.subjectResultId === subRes.subjectResultId &&
-                    ar.sessionId == null,
-                );
-              }
               if (assessmentScoreResult) {
                 assessmentScore = assessmentScoreResult.score || 0;
                 assessmentComment = assessmentScoreResult.remark || "";
@@ -344,17 +375,29 @@ const InstructorAssessments = () => {
             }
 
             if (selectedTypes.includes("practical")) {
-              // Filter pre-fetched practical results by subjectResultId only (no sessionId)
-              let practicalScoreResult = allPracticalResults.find(
-                (pr) =>
-                  pr.subjectResultId === subRes.subjectResultId &&
-                  pr.practicalChecklistId != null,
-              );
-              // Fallback: allow legacy records (sessionId == null)
+              // Lọc theo ĐÚNG BUỔI: khớp cả practicalChecklistId của buổi (nếu có) lẫn
+              // sessionId — điểm thực hành của buổi khác KHÔNG hiện vào bảng điểm buổi này.
+              const currentChecklistId = assessment?.practicalChecklistId ?? null;
+              const matchPracticalBySession = (pr) =>
+                pr.subjectResultId === subRes.subjectResultId &&
+                (currentChecklistId == null ||
+                  Number(pr.practicalChecklistId) ===
+                    Number(currentChecklistId)) &&
+                (currentSessionId == null
+                  ? pr.sessionId == null
+                  : pr.sessionId === currentSessionId);
+              let practicalScoreResult =
+                allPracticalResults.find(matchPracticalBySession);
+              // Fallback: dữ liệu legacy (được tạo trước khi gắn sessionId) — chỉ khi khớp
+              // đúng checklist của buổi và KHÔNG gắn buổi nào, tuyệt đối không lấy điểm buổi khác.
               if (!practicalScoreResult) {
                 practicalScoreResult = allPracticalResults.find(
                   (pr) =>
-                    pr.subjectResultId === subRes.subjectResultId,
+                    pr.subjectResultId === subRes.subjectResultId &&
+                    (currentChecklistId == null ||
+                      Number(pr.practicalChecklistId) ===
+                        Number(currentChecklistId)) &&
+                    pr.sessionId == null,
                 );
               }
               if (practicalScoreResult) {
@@ -377,6 +420,45 @@ const InstructorAssessments = () => {
             : type === "practical"
               ? practicalIsPublished
               : assessmentIsPublished || practicalIsPublished;
+
+        // === [DIAG] Ghi log trạng thái khớp điểm từng học viên — debug lỗi 400
+        // "A retake must be authorized by an account different from the one recording the score."
+        // (backend coi việc ghi lại điểm của 1 (assessment, account, session) ĐÃ CHỐT là thi lại
+        // và bắt buộc kèm AuthorizedByAccountId ≠ tài khoản đang ghi điểm).
+        const diagAllResultsForStudent = Array.isArray(allAssessmentResults)
+          ? allAssessmentResults.filter(
+              (ar) =>
+                ar.accountId === student.accountId &&
+                ar.assessmentId === currentAssessmentId,
+            )
+          : [];
+        console.log(
+          `[DIAG] loadAssessmentScores · HV ${student.code} (accountId=${student.accountId})`,
+          {
+            currentAssessmentId,
+            currentSessionId,
+            subjectResultId,
+            matchedAssessmentResultId: assessmentResultId,
+            matchedIsPublished: assessmentIsPublished,
+            isPublished,
+            // Mọi kết quả của HV này cho assessment này (mọi session) — để biết FE có
+            // "thấy" điểm đã chốt hay không (nếu có dòng published nhưng matched=null
+            // tức khớp bị lệch sessionId/subjectResultId → sẽ POST /record và dính lỗi retake).
+            allResultsForStudentAssessment: diagAllResultsForStudent.map((ar) => ({
+              assessmentResultId: ar.assessmentResultId,
+              sessionId: ar.sessionId,
+              subjectResultId: ar.subjectResultId,
+              score: ar.score,
+              isPublished: ar.isPublished,
+              resultStatus: ar.resultStatus,
+              attemptNo: ar.attemptNo,
+            })),
+            requestWillBe:
+              assessmentResultId && !assessmentIsPublished
+                ? "PUT /AssessmentResults/{id} (sửa tại chỗ — không dính luật retake)"
+                : "POST /AssessmentResults/record (⚠️ có thể bị backend coi là RETAKẺ nếu đã có điểm chốt cùng buổi)",
+          },
+        );
 
         // === Subject Signoff eligibility (4 validation rules) ===
         // Rule 1: Attendance >= 80%
@@ -468,9 +550,17 @@ const InstructorAssessments = () => {
   };
 
   const handleOpenGradingSheet = (assessment) => {
+    // Tự động chọn chế độ nhập điểm theo đúng Assessment Type của buổi đã tạo
+    // (assessment / practical / both) thay vì giữ chế độ cũ từ buổi trước.
+    const autoType = ["assessment", "practical", "both"].includes(
+      assessment.assessmentType,
+    )
+      ? assessment.assessmentType
+      : "assessment";
+    setSelectedAssessmentType(autoType);
     setSelectedAssessment(assessment);
     setIsEditingScores(false);
-    loadAssessmentScores(assessment, selectedAssessmentType);
+    loadAssessmentScores(assessment, autoType);
   };
 
   const handleStartEdit = () => {
@@ -479,7 +569,73 @@ const InstructorAssessments = () => {
   };
 
   // Assessment-based: use the selected assessment's ID directly (no session resolution needed)
-  const getCurrentAssessmentId = () => selectedAssessment?.assessmentId ?? 1;
+
+  // Xây danh sách request lưu điểm Assessment:
+  // - Học viên ĐÃ có điểm (chưa khóa) trong chính buổi này → PUT /AssessmentResults/{id}
+  //   (sửa điểm tại chỗ, không tạo attempt mới, không vướng luật "thi lại cần người duyệt").
+  // - Chưa có điểm → POST /AssessmentResults/record kèm sessionId để phân biệt từng buổi.
+  const buildAssessmentSaveRequests = (students) => {
+    // Buổi chỉ có thực hành (không gán bài kiểm tra) → KHÔNG ghi điểm assessment,
+    // tránh gửi assessmentId mặc định (1) sai lệch.
+    const assessmentId = selectedAssessment?.assessmentId;
+    if (!assessmentId) return [];
+
+    const requests = [];
+    for (const student of students) {
+      const score = parseFloat(student.assessmentScore) || 0;
+      const remark = student.assessmentComment || "";
+      if (student.assessmentResultId && !student.assessmentIsPublished) {
+        requests.push({
+          endpoint: `/AssessmentResults/${student.assessmentResultId}`,
+          method: "put",
+          enrollmentId: student.enrollmentId,
+          body: { score, remark },
+        });
+        console.log(
+          `[DIAG] Save HV ${student.code} (accountId=${student.accountId}) → PUT /AssessmentResults/${student.assessmentResultId} (sửa điểm chưa chốt)`,
+          { body: { score, remark } },
+        );
+      } else {
+        const sessionId = selectedAssessment?.sessionId ?? null;
+        // [DIAG] Cảnh báo nếu sessionId trống — payload lúc này sẽ bị backend coi là sessionId=null.
+        if (sessionId == null) {
+          console.warn(
+            `[DIAG] ⚠️ CRITICAL: POST /AssessmentResults/record gửi sessionId = null (selectedAssessment.sessionId trống, buổi ${selectedAssessment?.sessionTitle || "?"}). ` +
+              `Hậu quả: mọi buổi bị backend ghi chung 1 dòng duy nhất → "lay chung 1 diem" + lỗi 400 retake khi dòng đó đã chốt.`,
+          );
+        }
+        const body = {
+          assessmentId,
+          accountId: student.accountId,
+          subjectResultId: student.subjectResultId || 1,
+          score,
+          remark,
+          sessionId,
+        };
+        requests.push({
+          endpoint: "/AssessmentResults/record",
+          method: "post",
+          enrollmentId: student.enrollmentId,
+          body,
+        });
+        console.log(
+          `[DIAG] Save HV ${student.code} (accountId=${student.accountId}) → POST /AssessmentResults/record`,
+          {
+            body,
+            daCoKetQua: !!student.assessmentResultId,
+            ketQuaDaChot: student.assessmentIsPublished || false,
+            isPublished: student.isPublished || false,
+            canhBao: student.assessmentIsPublished
+              ? "⚠️ HV này ĐÃ có điểm chốt ở buổi này — backend sẽ coi là RETAKẺ và báo lỗi 400 (thiếu AuthorizedByAccountId)"
+              : student.assessmentResultId
+                ? "⚠️ Có kết quả cũ nhưng chưa chốt — dùng PUT sẽ an toàn hơn"
+                : "Lần ghi điểm đầu (khớp placeholder Pending) hoặc FE không khớp được kết quả cũ",
+          },
+        );
+      }
+    }
+    return requests;
+  };
 
   const handleScoreChange = (enrollmentId, value, field = "assessment") => {
     const scoreVal =
@@ -555,23 +711,11 @@ const InstructorAssessments = () => {
         return;
       }
 
-      const assessmentId = getCurrentAssessmentId();
       const selectedTypes = getSelectedTypes(selectedAssessmentType);
       const saveRequests = [];
 
       if (selectedTypes.includes("assessment")) {
-        saveRequests.push(
-          ...changedScores.map((student) => ({
-            endpoint: "/AssessmentResults/record",
-            body: {
-              assessmentId: assessmentId,
-              accountId: student.accountId,
-              subjectResultId: student.subjectResultId || 1,
-              score: parseFloat(student.assessmentScore) || 0,
-              remark: student.assessmentComment || "",
-            },
-          })),
-        );
+        saveRequests.push(...buildAssessmentSaveRequests(changedScores));
       }
 
       if (selectedTypes.includes("practical")) {
@@ -582,9 +726,12 @@ const InstructorAssessments = () => {
             saveRequests.push({
               endpoint: `/PracticalChecklistResults/${student.practicalResultId}/progress`,
               method: "put",
+              enrollmentId: student.enrollmentId,
               body: {
                 score: practicalScore,
                 verificationComment: student.practicalComment || "",
+                // Gắn buổi học để phân biệt điểm thực hành của từng buổi (backend hỗ trợ SessionId)
+                sessionId: selectedAssessment?.sessionId ?? null,
               },
             });
           } else {
@@ -593,26 +740,97 @@ const InstructorAssessments = () => {
             saveRequests.push({
               endpoint: "/PracticalChecklistResults",
               method: "post",
+              enrollmentId: student.enrollmentId,
               body: {
                 subjectResultId: student.subjectResultId || 1,
                 score: practicalScore,
                 verificationComment: student.practicalComment || "",
+                // Gắn buổi học để phân biệt điểm thực hành của từng buổi (backend hỗ trợ SessionId)
+                sessionId: selectedAssessment?.sessionId ?? null,
               },
             });
           }
         }
       }
 
-      await Promise.all(
-        saveRequests.map((request) =>
-          request.method === "put"
-            ? api.put(request.endpoint, request.body)
-            : api.post(request.endpoint, request.body),
-        ),
+      // [DIAG] Log tổng quan lần lưu — biết chính xác gửi gì đi đâu.
+      const studentByEnrollment = {};
+      changedScores.forEach((s) => {
+        studentByEnrollment[s.enrollmentId] = s;
+      });
+      console.log(
+        `[DIAG] handleSaveScores · ${changedScores.length} HV thay đổi · assessmentId=${selectedAssessment?.assessmentId} sessionId=${selectedAssessment?.sessionId}`,
+        changedScores.map((s) => ({
+          code: s.code,
+          name: s.name,
+          accountId: s.accountId,
+          enrollmentId: s.enrollmentId,
+          subjectResultId: s.subjectResultId,
+          assessmentResultId: s.assessmentResultId,
+          assessmentIsPublished: s.assessmentIsPublished,
+          isPublished: s.isPublished,
+          score: s.assessmentScore,
+        })),
       );
 
+      // Ghi nhận ID dòng điểm vừa tạo mới (POST) — lần lưu sau sẽ dùng PUT để sửa đúng dòng đó,
+      // tránh POST lại cùng (assessment, account, session) bị backend coi là "thi lại".
+      // [DIAG] Dùng allSettled + log TỪNG request (endpoint + body + kết quả/lỗi) để biết
+      // chính xác request nào fail, gửi gì, và backend trả lỗi gì — thay vì Promise.all nuốt chung.
+      const newResultIds = {};
+      const failedSaves = [];
+      const failedEnrollmentIds = new Set();
+      await Promise.allSettled(
+        saveRequests.map(async (request) => {
+          try {
+            const resp =
+              request.method === "put"
+                ? await api.put(request.endpoint, request.body)
+                : await api.post(request.endpoint, request.body);
+            if (
+              request.endpoint === "/AssessmentResults/record" &&
+              resp?.assessmentResultId
+            ) {
+              newResultIds[request.enrollmentId] = resp.assessmentResultId;
+            }
+            const st = studentByEnrollment[request.enrollmentId];
+            console.log(
+              `[DIAG] ✅ Save OK · HV ${st?.code || "?"} · ${request.method.toUpperCase()} ${request.endpoint}`,
+              { body: request.body, resp },
+            );
+          } catch (err) {
+            const st = studentByEnrollment[request.enrollmentId];
+            failedSaves.push({ request, error: err });
+            if (request.enrollmentId != null) {
+              failedEnrollmentIds.add(request.enrollmentId);
+            }
+            console.error(
+              `[DIAG] ❌ Save FAILED · HV ${st?.code || "?"} (${st?.name || ""}) · ${request.method.toUpperCase()} ${request.endpoint}`,
+              {
+                body: request.body,
+                // Lỗi backend trả dạng ProblemDetails JSON — giữ nguyên để tra cứu
+                errorMessage: err?.message,
+                rawError: err?.message,
+              },
+            );
+          }
+        }),
+      );
+
+      // Chỉ ký xác nhận cho HV lưu điểm THÀNH CÔNG (bỏ qua HV bị lỗi — vd: 400 retake).
+      const signoffStudents = changedScores.filter(
+        (student) => !failedEnrollmentIds.has(student.enrollmentId),
+      );
+      if (signoffStudents.length !== changedScores.length) {
+        console.warn(
+          `[DIAG] Bỏ qua SubjectSignoff cho ${changedScores.length - signoffStudents.length} HV lưu điểm thất bại:`,
+          changedScores
+            .filter((s) => failedEnrollmentIds.has(s.enrollmentId))
+            .map((s) => `${s.code} ${s.name}`),
+        );
+      }
       await Promise.all(
-        changedScores.map((student) => {
+        signoffStudents.map((student) => {
           if (student.subjectResultId) {
             return api
               .post("/SubjectSignoff", {
@@ -625,12 +843,44 @@ const InstructorAssessments = () => {
         }),
       );
 
-      setStudentScores(editingScores);
-      setIsEditingScores(false);
-      toast.success(
-        tr("Lưu điểm thành công!"),
-        tr("Đã cập nhật bảng điểm đánh giá."),
+      const syncedScores = editingScores.map((s) =>
+        newResultIds[s.enrollmentId]
+          ? { ...s, assessmentResultId: newResultIds[s.enrollmentId] }
+          : s,
       );
+      setStudentScores(syncedScores);
+
+      // [DIAG] Tổng kết lần lưu: nếu có request fail (vd: lỗi 400 retake thiếu người duyệt),
+      // log rõ từng HV + endpoint + body + lỗi thay vì chỉ báo chung "Lưu điểm thất bại".
+      // Khi có lỗi: GIỮ chế độ sửa (không thoát) để giảng viên sửa/ghi lại ngay.
+      if (failedSaves.length > 0) {
+        const seen = new Set();
+        const failedDetails = failedSaves
+          .filter((f) => {
+            if (seen.has(f.request.enrollmentId)) return false;
+            seen.add(f.request.enrollmentId);
+            return true;
+          })
+          .map((f) => {
+            const st = studentByEnrollment[f.request.enrollmentId];
+            const label = st ? `${st.code} ${st.name}` : `enrollmentId=${f.request.enrollmentId}`;
+            return `${label} · ${f.request.method ? f.request.method.toUpperCase() + " " : ""}${f.request.endpoint} · ${f.error?.message || f.error}`;
+          });
+        console.error(
+          `[DIAG] ❌ Tổng kết: ${failedSaves.length}/${saveRequests.length} request thất bại`,
+          { failedDetails, failedBodies: failedSaves.map((f) => f.request.body) },
+        );
+        toast.error(
+          tr("Lưu điểm: có học viên bị lỗi!"),
+          `${tr("Thành công ")}${saveRequests.length - failedSaves.length}/${saveRequests.length} · ${tr("Thất bại: ")}${failedDetails.join(" | ")}`,
+        );
+      } else {
+        setIsEditingScores(false);
+        toast.success(
+          tr("Lưu điểm thành công!"),
+          tr("Đã cập nhật bảng điểm đánh giá."),
+        );
+      }
     } catch (err) {
       console.error("Lỗi khi lưu bảng điểm:", err);
       toast.error(tr("Lưu điểm thất bại!"), err.message);
@@ -641,6 +891,17 @@ const InstructorAssessments = () => {
 
   const handleTypeChange = (e) => {
     const newType = e.target.value;
+    // Phòng thủ: chỉ cho chuyển sang hình thức mà buổi học THỰC SỰ có
+    // (co bài nào thì chỉ cho nhập điểm bài đó).
+    const hasAssessment = !!selectedAssessment?.assessmentId;
+    const hasChecklist = !!selectedAssessment?.practicalChecklistId;
+    const supported =
+      newType === "assessment"
+        ? hasAssessment
+        : newType === "practical"
+          ? hasChecklist
+          : hasAssessment && hasChecklist;
+    if (!supported) return;
     setSelectedAssessmentType(newType);
     if (selectedAssessment) {
       loadAssessmentScores(selectedAssessment, newType);
@@ -766,62 +1027,122 @@ const InstructorAssessments = () => {
         );
       });
 
+       let newResultIds = {};
+       const failedSaves = [];
+       const failedEnrollmentIds = new Set();
+       const studentByEnrollment = {};
+       changedScores.forEach((s) => {
+         studentByEnrollment[s.enrollmentId] = s;
+       });
+       console.log(
+         `[DIAG] handlePublishScores · ${changedScores.length} HV thay đổi · assessmentId=${selectedAssessment?.assessmentId} sessionId=${selectedAssessment?.sessionId}`,
+         changedScores.map((s) => ({
+           code: s.code,
+           name: s.name,
+           accountId: s.accountId,
+           enrollmentId: s.enrollmentId,
+           subjectResultId: s.subjectResultId,
+           assessmentResultId: s.assessmentResultId,
+           assessmentIsPublished: s.assessmentIsPublished,
+           isPublished: s.isPublished,
+           score: s.assessmentScore,
+         })),
+       );
+
        if (changedScores.length > 0) {
-         const assessmentId = getCurrentAssessmentId();
          const selectedTypes = getSelectedTypes(selectedAssessmentType);
          const saveRequests = [];
 
          if (selectedTypes.includes("assessment")) {
-           saveRequests.push(
-             ...changedScores.map((student) => ({
-               endpoint: "/AssessmentResults/record",
-               body: {
-                 assessmentId: assessmentId,
-                 accountId: student.accountId,
-                 subjectResultId: student.subjectResultId || 1,
-                 score: parseFloat(student.assessmentScore) || 0,
-                 remark: student.assessmentComment || "",
-               },
-             })),
-           );
+           saveRequests.push(...buildAssessmentSaveRequests(changedScores));
          }
 
          if (selectedTypes.includes("practical")) {
-           for (const student of changedScores) {
-             const practicalScore = parseFloat(student.practicalScore) || 0;
-             if (student.practicalResultId) {
-               saveRequests.push({
-                 endpoint: `/PracticalChecklistResults/${student.practicalResultId}/progress`,
-                 method: "put",
-                 body: {
-                   score: practicalScore,
-                   verificationComment: student.practicalComment || "",
-                 },
-               });
-             } else {
-               saveRequests.push({
-                 endpoint: "/PracticalChecklistResults",
-                 method: "post",
-                 body: {
-                   subjectResultId: student.subjectResultId || 1,
-                   score: practicalScore,
-                   verificationComment: student.practicalComment || "",
-                 },
-               });
-             }
+         for (const student of changedScores) {
+           const practicalScore = parseFloat(student.practicalScore) || 0;
+           if (student.practicalResultId) {
+             saveRequests.push({
+               endpoint: `/PracticalChecklistResults/${student.practicalResultId}/progress`,
+               method: "put",
+               enrollmentId: student.enrollmentId,
+               body: {
+                 score: practicalScore,
+                 verificationComment: student.practicalComment || "",
+                 // Gắn buổi học để phân biệt điểm thực hành của từng buổi (backend hỗ trợ SessionId)
+                 sessionId: selectedAssessment?.sessionId ?? null,
+               },
+             });
+           } else {
+             saveRequests.push({
+               endpoint: "/PracticalChecklistResults",
+               method: "post",
+               enrollmentId: student.enrollmentId,
+               body: {
+                 subjectResultId: student.subjectResultId || 1,
+                 score: practicalScore,
+                 verificationComment: student.practicalComment || "",
+                 // Gắn buổi học để phân biệt điểm thực hành của từng buổi (backend hỗ trợ SessionId)
+                 sessionId: selectedAssessment?.sessionId ?? null,
+               },
+             });
            }
          }
+         }
 
-        await Promise.all(
-          saveRequests.map((request) =>
-            request.method === "put"
-              ? api.put(request.endpoint, request.body)
-              : api.post(request.endpoint, request.body),
-          ),
+        // Lưu điểm + ghi nhận ID của các dòng vừa tạo mới (để chốt điểm ngay sau đó)
+        // [DIAG] allSettled + log từng request (endpoint + body + kết quả/lỗi) để biết request
+        // nào fail (vd: 400 retake thiếu AuthorizedByAccountId) và gửi body gì.
+        newResultIds = {};
+        await Promise.allSettled(
+          saveRequests.map(async (request) => {
+            try {
+              const resp =
+                request.method === "put"
+                  ? await api.put(request.endpoint, request.body)
+                  : await api.post(request.endpoint, request.body);
+              if (
+                request.endpoint === "/AssessmentResults/record" &&
+                resp?.assessmentResultId
+              ) {
+                newResultIds[request.enrollmentId] = resp.assessmentResultId;
+              }
+              const st = studentByEnrollment[request.enrollmentId];
+              console.log(
+                `[DIAG] ✅ Publish-step save OK · HV ${st?.code || "?"} · ${request.method.toUpperCase()} ${request.endpoint}`,
+                { body: request.body, resp },
+              );
+            } catch (err) {
+              const st = studentByEnrollment[request.enrollmentId];
+              failedSaves.push({ request, error: err });
+              if (request.enrollmentId != null) {
+                failedEnrollmentIds.add(request.enrollmentId);
+              }
+              console.error(
+                `[DIAG] ❌ Publish-step save FAILED · HV ${st?.code || "?"} (${st?.name || ""}) · ${request.method.toUpperCase()} ${request.endpoint}`,
+                {
+                  body: request.body,
+                  errorMessage: err?.message,
+                  rawError: err?.message,
+                },
+              );
+            }
+          }),
         );
 
+        // Chỉ ký xác nhận cho HV lưu điểm THÀNH CÔNG (bỏ qua HV bị lỗi — vd: 400 retake).
+        const signoffStudents = changedScores.filter(
+          (student) => !failedEnrollmentIds.has(student.enrollmentId),
+        );
+        if (signoffStudents.length !== changedScores.length) {
+          console.warn(
+            `[DIAG] Bỏ qua SubjectSignoff cho ${changedScores.length - signoffStudents.length} HV lưu điểm thất bại:`,
+            changedScores
+              .filter((s) => failedEnrollmentIds.has(s.enrollmentId))
+              .map((s) => `${s.code} ${s.name}`),
+          );
+        }
         await Promise.all(
-          changedScores.map((student) => {
+          signoffStudents.map((student) => {
             if (student.subjectResultId) {
               return api
                 .post("/SubjectSignoff", {
@@ -844,40 +1165,87 @@ const InstructorAssessments = () => {
 
       const scoresToPublish = changedScores.length > 0 ? editingScores : studentScores;
       for (const student of scoresToPublish) {
+        // Bỏ qua HV lưu điểm thất bại ở bước 1 — không publish điểm cũ của họ
+        // (tránh lỗi "already published" lặp lại và 2 lỗi cùng 1 HV trong tổng kết).
+        if (failedEnrollmentIds.has(student.enrollmentId)) {
+          console.warn(`[DIAG] Bỏ qua Publish cho HV ${student.code} — bước lưu điểm đã thất bại.`);
+          continue;
+        }
+        const resultId =
+          newResultIds[student.enrollmentId] || student.assessmentResultId;
         if (
           selectedTypes.includes("assessment") &&
-          student.assessmentResultId &&
+          resultId &&
           !student.assessmentIsPublished
         ) {
-          publishRequests.push(
-            api.patch(
-              `/AssessmentResults/${student.assessmentResultId}/publish`,
-            ),
-          );
+          publishRequests.push({
+            label: `PATCH /AssessmentResults/${resultId}/publish (HV ${student.code})`,
+            promise: api.patch(`/AssessmentResults/${resultId}/publish`),
+          });
         }
         if (
           selectedTypes.includes("practical") &&
           student.practicalResultId &&
           !student.practicalIsPublished
         ) {
-          publishRequests.push(
-            api.patch(
+          publishRequests.push({
+            label: `PATCH /PracticalChecklistResults/${student.practicalResultId}/publish (HV ${student.code})`,
+            promise: api.patch(
               `/PracticalChecklistResults/${student.practicalResultId}/publish`,
             ),
-          );
+          });
         }
       }
 
       if (publishRequests.length > 0) {
-        await Promise.all(publishRequests);
+        // [DIAG] Log từng request chốt điểm để biết publish nào fail và vì sao.
+        await Promise.allSettled(
+          publishRequests.map(async (r) => {
+            try {
+              const resp = await r.promise;
+              console.log(`[DIAG] ✅ Publish OK · ${r.label}`, { resp });
+            } catch (err) {
+              failedSaves.push({ request: { endpoint: r.label }, error: err });
+              console.error(`[DIAG] ❌ Publish FAILED · ${r.label}`, {
+                errorMessage: err?.message,
+                rawError: err?.message,
+              });
+            }
+          }),
+        );
       }
 
       setConfirmPublishOpen(false);
-      toast.success(
-        tr("Chốt điểm thành công!"),
-        tr("Bảng điểm đã được khóa."),
-      );
-      setIsEditingScores(false);
+
+      if (failedSaves.length > 0) {
+        // Có lỗi → giữ chế độ sửa để giảng viên xử lý; de-dup theo enrollmentId.
+        const seen = new Set();
+        const failedDetails = failedSaves
+          .filter((f) => {
+            if (seen.has(f.request.enrollmentId)) return false;
+            seen.add(f.request.enrollmentId);
+            return true;
+          })
+          .map((f) => {
+            const st = studentByEnrollment[f.request.enrollmentId];
+            const label = st ? `${st.code} ${st.name}` : `enrollmentId=${f.request.enrollmentId}`;
+            return `${label} · ${f.request.method ? f.request.method.toUpperCase() + " " : ""}${f.request.endpoint} · ${f.error?.message || f.error}`;
+          });
+        console.error(
+          `[DIAG] ❌ Tổng kết chốt điểm: ${failedSaves.length} request thất bại`,
+          { failedDetails },
+        );
+        toast.error(
+          tr("Chốt điểm: có học viên bị lỗi!"),
+          `${tr("Thất bại: ")}${failedDetails.join(" | ")}`,
+        );
+      } else {
+        setIsEditingScores(false);
+        toast.success(
+          tr("Chốt điểm thành công!"),
+          tr("Bảng điểm đã được khóa."),
+        );
+      }
       if (selectedAssessment) {
         loadAssessmentScores(selectedAssessment, selectedAssessmentType);
       }
@@ -892,6 +1260,11 @@ const InstructorAssessments = () => {
   // Grading Spreadsheet View
   if (selectedAssessment) {
     const displayScores = isEditingScores ? editingScores : studentScores;
+
+    // Hình thức đánh giá buổi này THỰC SỰ có: lý thuyết (assessmentId) và/hoặc
+    // thực hành (practicalChecklistId) — dùng để khoá dropdown chỉ cho nhập bài tồn tại.
+    const sessionHasAssessment = !!selectedAssessment?.assessmentId;
+    const sessionHasChecklist = !!selectedAssessment?.practicalChecklistId;
 
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -919,8 +1292,16 @@ const InstructorAssessments = () => {
              <h1>{tr('Nhập điểm đánh giá')} — {selectedAssessment.componentName}</h1>
             <div className="divider-gold" />
              <p className="header-description">
-               {getAssessmentTypeLabel(selectedAssessmentType)} · Assessment:{" "}
-               {selectedAssessment.componentName} · {tr('Lớp: ')}{" "}
+               {getAssessmentTypeLabel(selectedAssessmentType)} ·{" "}
+               {selectedAssessment.assessmentId
+                 ? `Assessment: ${selectedAssessment.componentName}`
+                 : selectedAssessment.componentName}{" "}
+               · {tr('Buổi: ')}{" "}
+               {selectedAssessment.sessionTitle}
+               {selectedAssessment.sessionDate
+                 ? ` (${selectedAssessment.sessionDate})`
+                 : ""}{" "}
+               · {tr('Lớp: ')}{" "}
                {selectedClass ? selectedClass.code : "N/A"}
              </p>
           </div>
@@ -1090,10 +1471,48 @@ const InstructorAssessments = () => {
             value={selectedAssessmentType}
             onChange={handleTypeChange}
           >
-            <option value="assessment">{tr('Đánh giá lý thuyết (Assessment)')}</option>
-            <option value="practical">{tr('Đánh giá thực hành (Practical)')}</option>
-            <option value="both">{tr('Cả Assessment và Practical')}</option>
+            <option
+              value="assessment"
+              disabled={!sessionHasAssessment}
+            >
+              {tr('Đánh giá lý thuyết (Assessment)')}
+            </option>
+            <option
+              value="practical"
+              disabled={!sessionHasChecklist}
+            >
+              {tr('Đánh giá thực hành (Practical)')}
+            </option>
+            <option
+              value="both"
+              disabled={!sessionHasAssessment || !sessionHasChecklist}
+            >
+              {tr('Cả Assessment và Practical')}
+            </option>
           </select>
+          {/* Nhắc nhở: hình thức nào buổi không có sẽ bị khoá trong dropdown */}
+          {!sessionHasChecklist && (
+            <span
+              style={{
+                fontSize: "11px",
+                fontStyle: "italic",
+                color: "rgba(0,33,71,0.45)",
+              }}
+            >
+              {tr('Buổi này không có bài thực hành.')}
+            </span>
+          )}
+          {!sessionHasAssessment && sessionHasChecklist && (
+            <span
+              style={{
+                fontSize: "11px",
+                fontStyle: "italic",
+                color: "rgba(0,33,71,0.45)",
+              }}
+            >
+              {tr('Buổi này không có bài lý thuyết.')}
+            </span>
+          )}
         </div>
 
         {/* Subject Signoff Eligibility panel */}
@@ -1768,10 +2187,14 @@ const InstructorAssessments = () => {
               >
                 {assessmentsForClass
                   .slice()
-                  .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+                  .sort(
+                    (a, b) =>
+                      (a.sessionId || 0) - (b.sessionId || 0) ||
+                      (a.displayOrder || 0) - (b.displayOrder || 0),
+                  )
                   .map((assessment) => (
                     <div
-                      key={assessment.assessmentId}
+                      key={`${assessment.sessionId}-${assessment.assessmentId}`}
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -1788,7 +2211,14 @@ const InstructorAssessments = () => {
                           {assessment.componentName}
                         </h4>
                         <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
-                          {assessment.assessmentType} · {tr('Trọng số')}: {assessment.weight}% · {tr('Điểm đạt')}: {assessment.passingScore}
+                          {tr('Buổi: ')}{assessment.sessionTitle}
+                          {assessment.sessionDate
+                            ? ` (${assessment.sessionDate})`
+                            : ""}{" "}
+                          · {getAssessmentTypeLabel(assessment.assessmentType)}
+                          {assessment.assessmentId
+                            ? ` · ${tr('Trọng số')}: ${assessment.weight}% · ${tr('Điểm đạt')}: ${assessment.passingScore}`
+                            : ""}
                           {assessment.isRequired ? ` · ${tr('Bắt buộc')}` : ""}
                         </p>
                       </div>
@@ -1846,7 +2276,12 @@ const InstructorAssessments = () => {
               <div className="divider-gold" />
               <p className="header-description">
                 {getAssessmentTypeLabel(selectedAssessmentType)} · Assessment:{" "}
-                {selectedAssessment.componentName} · {tr('Lớp: ')}{" "}
+                {selectedAssessment.componentName} · {tr('Buổi: ')}{" "}
+                {selectedAssessment.sessionTitle}
+                {selectedAssessment.sessionDate
+                  ? ` (${selectedAssessment.sessionDate})`
+                  : ""}{" "}
+                · {tr('Lớp: ')}{" "}
                 {selectedClass ? selectedClass.code : "N/A"}
               </p>
             </div>
