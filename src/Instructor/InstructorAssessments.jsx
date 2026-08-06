@@ -104,24 +104,51 @@ const InstructorAssessments = () => {
     fetchClasses();
   }, []);
 
-  // Fetch assessments for the selected class when class changes
+  // Derive the gradable assessments for the selected class from its sessions.
+  // Each session may have an assessment signed to it (assessmentId + assessmentName).
+  // These are the assessments the class can be graded on. Sessions without a signed
+  // assessment (attendance-only) are excluded.
   useEffect(() => {
     if (!selectedClassId) return;
-    // Load assessments for the selected class's subject
     const fetchAssessmentsForClass = async () => {
       try {
-        const classRecord = classesData.find(
-          (c) => c.classId === parseInt(selectedClassId),
+        const classId = parseInt(selectedClassId);
+        const apiSessions = await api.get("/sessions").catch(() => []);
+        const classSessions = (Array.isArray(apiSessions) ? apiSessions : []).filter(
+          (s) => Number(s.classId) === classId,
         );
-        const targetCourseId = classRecord?.courseId ?? 1;
-        const targetSubjectId = classRecord?.subjectId ?? 1;
 
-        const filtered = (assessmentsList || []).filter(
-          (a) =>
-            Number(a.courseId) === targetCourseId &&
-            Number(a.subjectId) === targetSubjectId,
+        // Assessments signed to sessions of this class (deduplicated by assessmentId)
+        const signed = classSessions.filter(
+          (s) => s.assessmentId != null && s.sessionId != null,
         );
-        setAssessmentsForClass(filtered);
+
+        const byId = new Map();
+        for (const s of signed) {
+          const id = Number(s.assessmentId);
+          if (!byId.has(id)) {
+            const detail = (assessmentsList || []).find(
+              (a) => Number(a.assessmentId) === id,
+            );
+            byId.set(id, {
+              assessmentId: id,
+              subjectId: s.subjectId,
+              courseId: detail?.courseId ?? null,
+              componentName:
+                s.assessmentName ||
+                detail?.componentName ||
+                detail?.assessmentName ||
+                `Assessment ${id}`,
+              assessmentType: s.assessmentType || detail?.assessmentType || "",
+              weight: detail?.weight,
+              passingScore: detail?.passingScore,
+              isRequired: detail?.isRequired,
+              displayOrder: detail?.displayOrder,
+              sessionId: s.sessionId,
+            });
+          }
+        }
+        setAssessmentsForClass(Array.from(byId.values()));
       } catch (err) {
         console.error("Lỗi khi tải danh sách assessment:", err);
         setAssessmentsForClass([]);

@@ -30,7 +30,11 @@ const InstructorClasses = () => {
     sessionTitle: "",
     sessionDate: "",
     location: "",
+    assessmentId: "",
+    practicalChecklistId: "",
   });
+  const [assessmentsList, setAssessmentsList] = useState([]);
+  const [practicalChecklistsList, setPracticalChecklistsList] = useState([]);
   const [sessionError, setSessionError] = useState("");
   const [submittingSession, setSubmittingSession] = useState(false);
   const [subjectsList, setSubjectsList] = useState([]);
@@ -41,13 +45,24 @@ const InstructorClasses = () => {
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        const [apiClasses, apiCourses, apiSubjects] = await Promise.all([
-          api.get("/classes").catch(() => []),
-          api.get("/courses").catch(() => []),
-          api.get("/subjects").catch(() => []),
-        ]);
+        const [apiClasses, apiCourses, apiSubjects, apiAssessments, apiPracticalChecklists] =
+          await Promise.all([
+            api.get("/classes").catch(() => []),
+            api.get("/courses").catch(() => []),
+            api.get("/subjects").catch(() => []),
+            api
+              .get("/Assessments")
+              .catch(() => api.get("/assessments").catch(() => [])),
+            api
+              .get("/PracticalChecklists")
+              .catch(() => api.get("/practicalchecklists").catch(() => [])),
+          ]);
 
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
+        setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
+        setPracticalChecklistsList(
+          Array.isArray(apiPracticalChecklists) ? apiPracticalChecklists : [],
+        );
 
         const mapped = apiClasses.map((cls, idx) => {
           const course = apiCourses.find((c) => c.courseId === cls.courseId);
@@ -102,6 +117,9 @@ const InstructorClasses = () => {
           sessionDateValue: s.sessionDate || "",
           subjectId: s.subjectId || selectedClass.subjectId || 1,
           classId: s.classId || selectedClass.classId,
+          assessmentId: s.assessmentId != null ? Number(s.assessmentId) : null,
+          isAssessmentRequired: !!s.isAssessmentRequired,
+          isChecklistRequired: !!s.isChecklistRequired,
         };
       });
       setSessions(mapped);
@@ -159,6 +177,40 @@ const InstructorClasses = () => {
     );
   }, [sessions, sessionSearch]);
 
+  // Assessments for the selected subject that are not already signed to another session.
+  // While editing, keep the currently assigned assessment selectable.
+  const availableAssessments = useMemo(() => {
+    const subjectId = Number(sessionForm.subjectId);
+    const selectedSubjectId = Number(selectedClass?.subjectId || 1);
+    const usedAssessmentIds = new Set(
+      sessions
+        .filter(
+          (s) =>
+            s.assessmentId != null &&
+            s.sessionId !== editingSessionId,
+        )
+        .map((s) => Number(s.assessmentId)),
+    );
+    return (assessmentsList || []).filter((a) => {
+      const aSubject = Number(a.subjectId);
+      const matchesSubject =
+        subjectId > 0 ? aSubject === subjectId : aSubject === selectedSubjectId;
+      return matchesSubject && !usedAssessmentIds.has(Number(a.assessmentId));
+    });
+  }, [assessmentsList, sessions, sessionForm.subjectId, selectedClass, editingSessionId]);
+
+  // Practical checklists scoped to the selected subject
+  const subjectPracticalChecklists = useMemo(() => {
+    const subjectId = Number(sessionForm.subjectId);
+    const selectedSubjectId = Number(selectedClass?.subjectId || 1);
+    return (practicalChecklistsList || []).filter((pc) => {
+      const pcSubject = Number(pc.subjectId);
+      return subjectId > 0
+        ? pcSubject === subjectId
+        : pcSubject === selectedSubjectId;
+    });
+  }, [practicalChecklistsList, sessionForm.subjectId, selectedClass]);
+
   const openCreateSessionModal = () => {
     setEditingSessionId(null);
     setSessionError("");
@@ -173,6 +225,8 @@ const InstructorClasses = () => {
       sessionTitle: "",
       sessionDate: new Date().toISOString(),
       location: "",
+      assessmentId: "",
+      practicalChecklistId: "",
     });
     setSelectedSubjectDescription(defaultSubject?.description || "");
     setShowSessionModal(true);
@@ -193,13 +247,20 @@ const InstructorClasses = () => {
       sessionTitle: session.name,
       sessionDate: session.sessionDateValue || new Date().toISOString(),
       location: session.room,
+      assessmentId:
+        session.assessmentId != null ? String(session.assessmentId) : "",
+      practicalChecklistId: session.isChecklistRequired ? "checklist" : "",
     });
     setSelectedSubjectDescription(selectedSubject?.description || "");
     setShowSessionModal(true);
   };
 
   const handleSessionFormChange = (field, value) => {
-    setSessionForm((prev) => ({ ...prev, [field]: value }));
+    setSessionForm((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(field === "subjectId" ? { assessmentId: "" } : {}),
+    }));
     if (field === "subjectId") {
       const selectedSubject = subjectsList.find(
         (subject) => subject.subjectId === Number(value),
@@ -227,6 +288,11 @@ const InstructorClasses = () => {
         sessionTitle: sessionForm.sessionTitle.trim(),
         sessionDate: sessionForm.sessionDate || new Date().toISOString(),
         location: sessionForm.location.trim(),
+        assessmentId: sessionForm.assessmentId
+          ? Number(sessionForm.assessmentId)
+          : null,
+        isAssessmentRequired: !!sessionForm.assessmentId,
+        isChecklistRequired: !!sessionForm.practicalChecklistId,
       };
 
       if (editingSessionId) {
@@ -812,6 +878,110 @@ const InstructorClasses = () => {
                     >
                       <strong style={{ color: "#002147" }}>{tr('Mô tả:')}</strong>{" "}
                       {selectedSubjectDescription}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      color: "rgba(0,33,71,0.55)",
+                      textTransform: "uppercase",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {tr('Assessment (tùy chọn)')}
+                  </label>
+                  <select
+                    value={sessionForm.assessmentId}
+                    onChange={(e) =>
+                      handleSessionFormChange("assessmentId", e.target.value)
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "10px",
+                      border: "1px solid #d9e1ec",
+                      fontSize: "13px",
+                      backgroundColor: "#ffffff",
+                    }}
+                  >
+                    <option value="">{tr('Không chọn assessment')}</option>
+                    {availableAssessments.map((assessment) => (
+                      <option
+                        key={assessment.assessmentId}
+                        value={assessment.assessmentId}
+                      >
+                        {assessment.componentName ||
+                          assessment.assessmentName ||
+                          assessment.name ||
+                          `Assessment ${assessment.assessmentId}`}
+                        {assessment.assessmentType
+                          ? ` (${assessment.assessmentType})`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {availableAssessments.length === 0 && (
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        backgroundColor: "#f8fafc",
+                        color: "rgba(0,33,71,0.6)",
+                        fontSize: "12px",
+                      }}
+                    >
+                      {tr('Không có assessment chưa được chọn cho môn này.')}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      color: "#002147",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        subjectPracticalChecklists.length > 0 &&
+                        !!sessionForm.practicalChecklistId
+                      }
+                      onChange={(e) =>
+                        handleSessionFormChange(
+                          "practicalChecklistId",
+                          e.target.checked ? "checklist" : "",
+                        )
+                      }
+                      disabled={subjectPracticalChecklists.length === 0}
+                      style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                    />
+                    {tr('Buổi học yêu cầu đánh giá thực hành (Practical)')}
+                  </label>
+                  {subjectPracticalChecklists.length === 0 && (
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        backgroundColor: "#f8fafc",
+                        color: "rgba(0,33,71,0.6)",
+                        fontSize: "12px",
+                      }}
+                    >
+                      {tr('Chưa có mục thực hành cho môn này.')}
                     </div>
                   )}
                 </div>
