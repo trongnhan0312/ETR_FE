@@ -337,8 +337,6 @@ const StudentMyETR = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'history'
 
-  useEffect(() => { loadData(); }, []);
-
   const loadData = async () => {
     setLoading(true);
     try {
@@ -349,6 +347,55 @@ const StudentMyETR = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const openDetail = async (row) => {
+    const id = row?.ETRCourseRecordId ?? row?.etrCourseRecordId;
+    let detail = row;
+    try {
+      if (id) {
+        const enriched = await api
+          .get(`/Etr/${id}`, { suppressAuthRedirect: true })
+          .catch(() => null);
+        if (enriched) {
+          // EtrDetailsResponse: SubjectResults, EvidenceFiles, ApprovalHistories →
+          // DetailView expects subjectResults / evidences / historyLogs.
+          const subjects = Array.isArray(enriched.SubjectResults ?? enriched.subjectResults)
+            ? (enriched.SubjectResults ?? enriched.subjectResults).map((sr) => ({
+                ...sr,
+                SubjectId: sr.SubjectId ?? sr.subjectId,
+                Score: sr.Score ?? sr.score,
+                AttendanceRate: sr.AttendanceRate ?? sr.attendanceRate,
+                IsPassed: sr.IsSignedOff ?? sr.isSignedOff,
+              }))
+            : null;
+          const evidences = Array.isArray(enriched.EvidenceFiles ?? enriched.evidenceFiles)
+            ? (enriched.EvidenceFiles ?? enriched.evidenceFiles).map((ev) => ({
+                ...ev,
+                FileName: ev.FileName ?? ev.fileName,
+              }))
+            : null;
+          const historyLogs = Array.isArray(enriched.ApprovalHistories ?? enriched.approvalHistories)
+            ? (enriched.ApprovalHistories ?? enriched.approvalHistories).map((h) => ({
+                ...h,
+                Description: h.ActionType ?? h.actionType,
+                Timestamp: h.ActionAt ?? h.actionAt,
+              }))
+            : null;
+          detail = {
+            ...enriched,
+            SubjectResults: subjects ?? enriched.SubjectResults ?? null,
+            Evidences: evidences ?? enriched.Evidences ?? null,
+            HistoryLogs: historyLogs ?? enriched.HistoryLogs ?? null,
+          };
+        }
+      }
+    } catch {
+      // fall back to the list row
+    }
+    setSelectedEtr(detail);
   };
 
   const mapped = etrs.map(mapEtr);
@@ -449,14 +496,14 @@ const StudentMyETR = () => {
                   <div className="student-table-cell student-table-cell--header student-table-cell--end">&nbsp;</div>
 
                   {filtered.map((e, idx) => (
-                    <div className="student-table-row" key={e.id || idx} style={{ cursor: 'pointer' }} onClick={() => setSelectedEtr(etrs.find(r => (r.ETRCourseRecordId ?? r.etrCourseRecordId) === e.id) || etrs[idx])}>
+                    <div className="student-table-row" key={e.id || idx} style={{ cursor: 'pointer' }} onClick={() => openDetail(etrs.find(r => (r.ETRCourseRecordId ?? r.etrCourseRecordId) === e.id) || etrs[idx])}>
                       <div className="student-table-cell student-table-cell--index">{idx + 1}</div>
                       <div className="student-table-cell student-table-cell--strong">{e.id ? `ETR #${e.id}` : `${tr('Hồ sơ #')}${idx + 1}`}</div>
                       <div className="student-table-cell">{e.enrollmentId ? `${tr('Mã GD: ')}${e.enrollmentId}` : '--'}</div>
                       <div className="student-table-cell">{formatDate(e.completedAt || e.verifiedAt || e.submittedAt)}</div>
                       <div className="student-table-cell"><Badge status={e.status} /></div>
                       <div className="student-table-cell student-table-cell--end">
-                        <button className="action-btn" type="button" onClick={(e2) => { e2.stopPropagation(); setSelectedEtr(etrs.find(r => (r.ETRCourseRecordId ?? r.etrCourseRecordId) === e.id) || etrs[idx]); }}>
+                        <button className="action-btn" type="button" onClick={(e2) => { e2.stopPropagation(); openDetail(etrs.find(r => (r.ETRCourseRecordId ?? r.etrCourseRecordId) === e.id) || etrs[idx]); }}>
                           {tr('Chi tiết')}
                         </button>
                       </div>

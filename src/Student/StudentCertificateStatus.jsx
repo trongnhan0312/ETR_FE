@@ -100,7 +100,18 @@ const StudentCertificateStatus = () => {
         suppressAuthRedirect: true,
       }).catch(() => []);
 
-      setStatusList(Array.isArray(data) ? data : []);
+      setStatusList(
+        (Array.isArray(data) ? data : []).map((s) => ({
+          ...s,
+          ValidityStatus: s.ValidityStatus ?? s.validityStatus,
+          ExpiryDate: s.ExpiryDate ?? s.expiryDate ?? null,
+          IssuedDate: s.IssuedDate ?? s.issuedDate ?? null,
+          CourseName: s.CourseName ?? s.courseName,
+          CourseId: s.CourseId ?? s.courseId,
+          ETRCourseRecordId:
+            s.ETRCourseRecordId ?? s.etrCourseRecordId ?? s.courseRecordId,
+        })),
+      );
     } catch (err) {
       console.error('Error loading certificate status:', err);
       setError(tr('Không thể tải trạng thái chứng chỉ. Vui lòng thử lại sau.'));

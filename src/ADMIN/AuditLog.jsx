@@ -15,7 +15,7 @@ const AuditLog = () => {
         setAuditLogs(audits.slice(0, 50).map((a) => ({
           user: `Account #${a.accountId || 'System'}`,
           action: a.actionType || a.entityName || 'UPDATE',
-          date: a.recordedAt ? new Date(a.recordedAt).toLocaleDateString('vi-VN') : 'N/A',
+          date: a.createdAt ? new Date(a.createdAt).toLocaleDateString('vi-VN') : 'N/A',
           status: 'Success',
         })));
       } catch (err) {

@@ -176,7 +176,18 @@ const normalizeExportJob = (raw) => ({
 
 /** POST /api/Exports/pdf */
 export const exportPdf = async (payload = {}) => {
-  const res = await api.post("/Exports/pdf", payload);
+  let body = { ...payload };
+  if (!body.ETRCourseRecordId && !body.etrCourseRecordId) {
+    const etrs = await api.get("/Etr").catch(() => []);
+    const firstCompleted = extractList(etrs).find(
+      (etr) => String(etr.status || "").toLowerCase() === "completed",
+    );
+    const fallback = extractList(etrs)[0];
+    if (firstCompleted || fallback) {
+      body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);
+    }
+  }
+  const res = await api.post("/Exports/pdf", body);
   const pkg = normalizeExportJob(res);
   exportJobCache.unshift(pkg);
   return pkg;
@@ -255,9 +266,9 @@ export const fetchDashboardStats = async () => {
   };
 };
 
-/** GET /api/Reports/summary (Tổng hợp lớp học + ETR) */
+/** GET /api/Dashboard/stats (Tổng hợp; not used by live pages, kept for tests/tools) */
 export const fetchReportsSummary = async () => {
-  const data = await api.get("/Reports/summary");
+  const data = await api.get("/Dashboard/stats");
   return {
     totalClasses: data?.totalClasses ?? data?.TotalClasses ?? "—",
     totalEtrs: data?.totalEtrs ?? data?.TotalEtrs ?? "—",

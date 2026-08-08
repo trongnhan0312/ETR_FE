@@ -27,8 +27,6 @@ const STATUS_LABEL = {
   'Returned': 'Trả lại',
 };
 
-const T = (label) => ({ __vn: label });
-
 /** Format an ISO date string → Vietnamese locale, or '--' */
 const formatDate = (d) => {
   if (!d) return '--';
@@ -76,7 +74,20 @@ const StudentDashboard = () => {
         ]);
         if (Array.isArray(etrData)) setEtrs(etrData);
         if (profileData) setProfile(profileData);
-        if (Array.isArray(certData)) setCertStatus(certData);
+        if (Array.isArray(certData)) {
+          setCertStatus(
+            certData.map((c) => ({
+              ...c,
+              ValidityStatus: c.ValidityStatus ?? c.validityStatus,
+              ExpiryDate: c.ExpiryDate ?? c.expiryDate ?? null,
+              IssuedDate: c.IssuedDate ?? c.issuedDate ?? null,
+              CourseName: c.CourseName ?? c.courseName,
+              CourseId: c.CourseId ?? c.courseId,
+              ETRCourseRecordId:
+                c.ETRCourseRecordId ?? c.etrCourseRecordId ?? c.courseRecordId,
+            })),
+          );
+        }
       } catch {
         // silent
       } finally {
@@ -107,12 +118,6 @@ const StudentDashboard = () => {
   };
 
   const mapped = etrs.map(mapEtr);
-
-  const certStats = {
-    valid: Array.isArray(certStatus) ? certStatus.filter(c => c.ValidityStatus === 'Valid').length : 0,
-    expiringSoon: Array.isArray(certStatus) ? certStatus.filter(c => c.ValidityStatus === 'ExpiringSoon').length : 0,
-    expired: Array.isArray(certStatus) ? certStatus.filter(c => c.ValidityStatus === 'Expired').length : 0,
-  };
 
   const metrics = [
     { label: tr('Tổng số hồ sơ'), value: mapped.length, cls: '' },
