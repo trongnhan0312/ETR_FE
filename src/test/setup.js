@@ -65,7 +65,8 @@ globalThis.fetch = async (url, options) => {
       { attendanceRecordId: 1, sessionId: 1, accountId: 6, status: 'Present', remarks: '' },
     ],
     '/api/Audit': [
-      { id: 'LOG-001', timestamp: '2026-07-24 14:10:02', user: 'Auditor Officer', role: 'Auditor', module: 'ETR Inspection', action: 'INSPECT_LOCKED_ETR', target: 'ETR-2026-0891', result: 'SUCCESS', details: 'Inspected ETR details' }
+      { auditLogId: 1, accountId: 4, etrRecordId: 20260891, actionType: 'SUBMIT', entityName: 'ETRCourseRecord', recordId: 20260891, oldValue: 'Draft', newValue: 'Submitted', description: 'ETR #20260891 submitted', createdAt: '2026-07-24T14:10:02Z' },
+      { auditLogId: 2, accountId: 5, etrRecordId: 20260891, actionType: 'VERIFY', entityName: 'ETRCourseRecord', recordId: 20260891, oldValue: 'Submitted', newValue: 'Verified', description: 'ETR #20260891 verified', createdAt: '2026-07-25T09:05:11Z' },
     ],
     '/api/Approvals': [
       { approvalRequestId: 1, etrCourseRecordId: 20260891, currentStatus: 'Submitted', submittedByAccountId: 4, submittedAt: '2026-06-15T16:45:00', completedAt: null, stage: 1, roleTitle: 'Academic Staff', user: 'Phạm Thu Hà', role: 'Academic Officer', timestamp: '2026-06-15 16:45', action: 'Verified learner eligibility', status: 'Completed', hash: '0x89A12019BC4F' }

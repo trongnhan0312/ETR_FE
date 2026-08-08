@@ -88,21 +88,24 @@ const accountName = (lookup, accountId) => {
 
 /** GET /api/Audit?page=&pageSize= (Danh sách nhật ký hệ thống) */
 export const fetchAuditLogs = async (page = 1, pageSize = 50) => {
+  const lookup = await loadLookup();
   const data = await api.get(`/Audit?page=${page}&pageSize=${pageSize}`);
-  return extractList(data).map(normalizeAuditLog);
+  return extractList(data).map((log) => normalizeAuditLog(log, lookup));
 };
 
 /** GET /api/Audit/{id} (Chi tiết một nhật ký) */
 export const fetchAuditLogById = async (id) => {
+  const lookup = await loadLookup();
   const data = await api.get(`/Audit/${id}`);
-  return data ? normalizeAuditLog(data) : null;
+  return data ? normalizeAuditLog(data, lookup) : null;
 };
 
-/** GET /api/Audit/search?query= (Tìm kiếm nhật ký; filterModule lọc client-side theo entityName) */
+/** GET /api/Audit/search?query= (Tìm kiếm nhật ký; filterModule lọc theo entityName) */
 export const searchAuditLogs = async (query = "", filterModule = "All", page = 1, pageSize = 50) => {
+  const lookup = await loadLookup();
   const q = String(query || "").trim();
   const endpoint = `/Audit/search?query=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`;
-  let logs = extractList(await api.get(endpoint)).map(normalizeAuditLog);
+  let logs = extractList(await api.get(endpoint)).map((log) => normalizeAuditLog(log, lookup));
   if (filterModule && filterModule !== "All") {
     logs = logs.filter((log) =>
       String(log.module || "").toLowerCase().includes(String(filterModule).toLowerCase()),
@@ -179,13 +182,18 @@ export const exportPdf = async (payload = {}) => {
   return pkg;
 };
 
-/** POST /api/Exports/training-package (cần ETRCourseRecordId; tự lấy ETR gần nhất nếu thiếu) */
+/** POST /api/Exports/training-package (cần ETRCourseRecordId; tự chọn ETR Completed đầu tiên nếu thiếu) */
 export const exportTrainingPackage = async (payload = {}) => {
   let body = { ...payload };
   if (!body.ETRCourseRecordId && !body.etrCourseRecordId) {
     const etrs = await api.get("/Etr").catch(() => []);
-    const first = extractList(etrs)[0];
-    if (first) body.ETRCourseRecordId = extractEtrId(first);
+    const firstCompleted = extractList(etrs).find(
+      (etr) => String(etr.status || "").toLowerCase() === "completed",
+    );
+    const fallback = extractList(etrs)[0];
+    if (firstCompleted || fallback) {
+      body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);
+    }
   }
   const res = await api.post("/Exports/training-package", body);
   const pkg = normalizeExportJob(res);
@@ -230,7 +238,7 @@ export const downloadExportFile = async (id, fileName = "export.zip") => {
     return { success: true, id, fileName };
   } catch (err) {
     console.warn(`[Auditor API] Không tới được ${baseUrl} cho download:`, err.message);
-    throw new Error(`Không thể tải file export #${id}.`);
+    throw new Error(`Không thể tải file export #${id}.`, { cause: err });
   }
 };
 
@@ -262,15 +270,20 @@ export const fetchReportsSummary = async () => {
 
 // --- Normalization Functions ---
 
-function normalizeAuditLog(raw) {
+function normalizeAuditLog(raw, lookup) {
   return {
     id: raw.auditLogId ?? raw.AuditLogId ?? "—",
-    timestamp: "—",
-    user: raw.accountId ? `Account #${raw.accountId}` : "—",
+    timestamp: fmtDate(raw.createdAt ?? raw.CreatedAt),
+    accountId: raw.accountId ?? raw.AccountId ?? null,
+    user: raw.accountId
+      ? accountName(lookup || {}, raw.accountId)
+      : "—",
     role: "—",
     module: raw.entityName || raw.EntityName || "—",
     action: raw.actionType || raw.ActionType || "—",
     target: raw.recordId ?? raw.RecordId ?? "—",
+    oldValue: raw.oldValue || raw.OldValue || "—",
+    newValue: raw.newValue || raw.NewValue || "—",
     result: "SUCCESS",
     details: raw.description || raw.Description || `${raw.actionType || ""} ${raw.entityName || ""} #${raw.recordId ?? ""}`.trim(),
   };

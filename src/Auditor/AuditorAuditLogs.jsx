@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { fetchAuditLogs, searchAuditLogs } from './auditorApi';
+import { searchAuditLogs } from './auditorApi';
 
 const AuditorAuditLogs = () => {
   const { trEn } = useLanguage();
@@ -82,10 +82,11 @@ const AuditorAuditLogs = () => {
         <div className="table-responsive-scroll">
           <div className="table-header auditor-logs-grid">
             <div>{trEn('Timestamp')}</div>
-            <div>{trEn('User')}</div>
-            <div>{trEn('Role')}</div>
-            <div>{trEn('Module')}</div>
+            <div>{trEn('Actor')}</div>
             <div>{trEn('Action')}</div>
+            <div>{trEn('Module')}</div>
+            <div>{trEn('Old Value')}</div>
+            <div>{trEn('New Value')}</div>
             <div style={{ textAlign: 'right' }}>{trEn('Result')}</div>
           </div>
 
@@ -99,9 +100,32 @@ const AuditorAuditLogs = () => {
                 <div key={log.id} className="table-row auditor-logs-grid">
                   <div style={{ fontSize: '12px', color: 'rgba(0,33,71,0.6)' }}>{log.timestamp}</div>
                   <div className="col-name">{log.user}</div>
-                  <div>{log.role}</div>
-                  <div style={{ fontWeight: '600', color: '#002147' }}>{log.module}</div>
                   <div style={{ fontWeight: '700', color: '#c5a059' }}>{log.action}</div>
+                  <div style={{ fontWeight: '600', color: '#002147' }}>{log.module}</div>
+                  <div
+                    title={log.oldValue}
+                    style={{
+                      fontSize: '12px',
+                      color: 'rgba(0,33,71,0.6)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {log.oldValue}
+                  </div>
+                  <div
+                    title={log.newValue}
+                    style={{
+                      fontSize: '12px',
+                      color: 'rgba(0,33,71,0.6)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {log.newValue}
+                  </div>
                   <div style={{ textAlign: 'right' }}>
                     <span 
                       className={String(log.result).includes('FORBIDDEN') ? 'badge-locked' : 'badge-compliant'} 
