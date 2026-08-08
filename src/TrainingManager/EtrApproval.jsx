@@ -82,7 +82,6 @@ const EtrApproval = () => {
         enrollmentsData,
         profilesData,
         approvalsData,
-        classStudentsData,
         classesData,
       ] = await Promise.all([
         api.get("/Etr").catch((err) => {
@@ -90,20 +89,17 @@ const EtrApproval = () => {
           return [];
         }),
         api.get("/Enrollments").catch((err) => {
-          // Không dùng làm điều kiện fallback nữa — tên học viên/lớp được nối qua
-          // /ClassStudents bên dưới. Log này chỉ để chẩn đoán khi TM bị 403 ở /Enrollments.
+          // Log này chỉ để chẩn đoán khi TM bị 403 ở /Enrollments.
           if (isForbiddenErr(err)) {
             console.info(
-              "[EtrApproval] GET /Enrollments bị 403 → dùng /ClassStudents để nối tên học viên/lớp.",
+              "[EtrApproval] GET /Enrollments bị 403.",
             );
           }
           return [];
         }),
         api.get("/UserProfiles/learners").catch(() => []),
         api.get("/Approvals").catch(() => []),
-        // B2: TM có thể bị 403 ở GET /Enrollments — nhưng VẪN đọc được /ClassStudents,
-        // /Classes và /UserProfiles/learners → nối được tên học viên/lớp mà không cần /Enrollments.
-        api.get("/ClassStudents").catch(() => []),
+        // B2: Dùng /Classes và /UserProfiles/learners để nối được tên học viên/lớp
         api.get("/Classes").catch(() => []),
       ]);
 
@@ -114,22 +110,13 @@ const EtrApproval = () => {
       const enrollmentsArr = Array.isArray(enrollmentsData) ? enrollmentsData : [];
       const profilesArr = Array.isArray(profilesData) ? profilesData : [];
 
-      // Bản đồ courseEnrollmentId → { accountId, classId } từ /ClassStudents (TM đọc được)
-      const classStudentByEnrollment = {};
-      (Array.isArray(classStudentsData) ? classStudentsData : []).forEach(
-        (cs) => {
-          if (cs.courseEnrollmentId != null) {
-            classStudentByEnrollment[cs.courseEnrollmentId] = cs;
-          }
-        },
-      );
       // Bản đồ classId → thông tin lớp (tên lớp thật thay vì "Class #")
       const classMap = {};
       (Array.isArray(classesData) ? classesData : []).forEach((c) => {
         classMap[c.classId] = c;
       });
 
-      // Giải quyết (accountId, classId) của 1 ETR: ưu tiên /Enrollments, fallback /ClassStudents
+      // Giải quyết (accountId, classId) của 1 ETR thông qua /Enrollments
       const resolveEnrollment = (etrEnrollmentId) => {
         const fromEnrollments = enrollmentsArr.find(
           (enr) => enr.enrollmentId === etrEnrollmentId,
@@ -139,10 +126,6 @@ const EtrApproval = () => {
             accountId: fromEnrollments.accountId,
             classId: fromEnrollments.classId,
           };
-        }
-        const cs = classStudentByEnrollment[etrEnrollmentId];
-        if (cs) {
-          return { accountId: cs.accountId, classId: cs.classId };
         }
         return null;
       };

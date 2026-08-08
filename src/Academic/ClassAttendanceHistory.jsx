@@ -60,7 +60,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
               students: sessionAttendance.map((a) => ({
                 attendanceId: a.attendanceRecordId || a.attendanceId,
                 code: '',
-                name: `Học viên #${a.classStudentId || a.accountId}`,
+                name: `Học viên #${a.enrollmentId || a.accountId}`,
                 status: a.status === 'Present' ? 'Có mặt' :
                         a.status === 'Excused' ? 'Vắng có phép' :
                         a.status === 'Absent' ? 'Vắng không phép' :

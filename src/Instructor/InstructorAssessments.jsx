@@ -183,10 +183,9 @@ const InstructorAssessments = () => {
   // Load students of selected class
   const loadStudents = async () => {
     try {
-      const [allEnrollments, allProfiles, allClassStudents] = await Promise.all([
+      const [allEnrollments, allProfiles] = await Promise.all([
         api.get("/enrollments").catch(() => []),
         api.get("/userprofiles").catch(() => []),
-        api.get("/classStudents").catch(() => []),
       ]);
 
       const classEnrollments = allEnrollments.filter(
@@ -194,10 +193,6 @@ const InstructorAssessments = () => {
       );
       const mappedStudents = classEnrollments.map((en) => {
         const profile = allProfiles.find((p) => p.accountId === en.accountId);
-        // Lấy ClassStudentId thật (AttendanceRecord dùng classStudentId, không phải enrollmentId)
-        const classStudentRec = Array.isArray(allClassStudents)
-          ? allClassStudents.find((cs) => cs.courseEnrollmentId === en.enrollmentId)
-          : null;
         return {
           code: profile
             ? profile.employeeCode || `HV${en.accountId}`
@@ -205,9 +200,6 @@ const InstructorAssessments = () => {
           name: profile ? profile.fullName : tr("Học viên"),
           accountId: en.accountId,
           enrollmentId: en.enrollmentId,
-          classStudentId: classStudentRec
-            ? classStudentRec.classStudentId
-            : en.enrollmentId,
         };
       });
 
@@ -512,7 +504,7 @@ const InstructorAssessments = () => {
           name: student.name,
           accountId: student.accountId,
           enrollmentId: student.enrollmentId,
-          classStudentId: student.classStudentId,
+          enrollmentId: student.enrollmentId,
           subjectResultId,
           assessmentResultId,
           assessmentScore,

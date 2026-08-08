@@ -105,7 +105,6 @@ const DEMO_DATA = {
     { accountId: 6, fullName: "Jane Student", employeeCode: "HV001" },
     { accountId: 7, fullName: "John Student", employeeCode: "HV002" },
   ],
-  "/classstudents": [],
   "/evidences": [
     {
       evidenceId: 1,
@@ -282,7 +281,6 @@ const shouldUseDemoFallback = (endpoint, response, method) => {
     normalized.startsWith("/accounts") ||
     normalized.startsWith("/userprofiles") ||
     normalized.startsWith("/subjects") ||
-    normalized.startsWith("/classstudents") ||
     normalized.startsWith("/evidences") ||
     normalized.startsWith("/attendance") ||
     normalized.startsWith("/assessmentresults") ||

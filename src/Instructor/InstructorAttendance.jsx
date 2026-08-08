@@ -127,26 +127,20 @@ const InstructorAttendance = () => {
     setSelectedSession(session);
     setLoading(true);
     try {
-      // 1. Get class details, enrollments, and class-student mappings
-      const [allEnrollments, allProfiles, allClassStudents] = await Promise.all([
+      // 1. Get class details, enrollments
+      const [allEnrollments, allProfiles] = await Promise.all([
         api.get("/enrollments").catch(() => []),
-        api.get("/userprofiles").catch(() => []),
-        api.get("/classStudents").catch(() => [])
+        api.get("/userprofiles").catch(() => [])
       ]);
       
       const classEnrollments = allEnrollments.filter(e => e.classId === parseInt(selectedClassId));
       const mappedStudents = classEnrollments.map((en, idx) => {
         const profile = allProfiles.find(p => p.accountId === en.accountId);
-        // Find the correct ClassStudent record by CourseEnrollmentId
-        const classStudentRec = Array.isArray(allClassStudents)
-          ? allClassStudents.find(cs => cs.courseEnrollmentId === en.enrollmentId)
-          : null;
         return {
           code: profile ? profile.employeeCode || `HV${en.accountId}` : `HV${en.accountId}`,
           name: profile ? profile.fullName : tr("Học viên"),
           accountId: en.accountId,
-          enrollmentId: en.enrollmentId,
-          classStudentId: classStudentRec ? classStudentRec.classStudentId : en.enrollmentId
+          enrollmentId: en.enrollmentId
         };
       });
       setStudents(mappedStudents);
@@ -166,13 +160,13 @@ const InstructorAttendance = () => {
       setIsConfirmed(isSessionLocked);
 
       const mappedAttendance = mappedStudents.map(student => {
-        // Match by classStudentId instead of accountId (API response has classStudentId, not accountId)
-        const record = sessionRecords.find(r => r.classStudentId === student.classStudentId);
+        // Match by enrollmentId instead of accountId
+        const record = sessionRecords.find(r => r.enrollmentId === student.enrollmentId);
         return {
           code: student.code,
           name: student.name,
           accountId: student.accountId,
-          classStudentId: student.classStudentId,
+          enrollmentId: student.enrollmentId,
           // BUỔI ĐÃ CHỐT (IsConfirmed) + học viên CHƯA có bản ghi điểm danh (vd: ghi danh
           // giữa khóa, bắt đầu học từ buổi sau) → mặc định "Absent" thay vì "Present",
           // để không tự động coi học viên là CÓ MẶT ở buổi họ chưa tham gia.
@@ -209,7 +203,7 @@ const InstructorAttendance = () => {
         sessionAttendance.map(async (record) => {
           const payload = {
             sessionId: selectedSession.sessionId,
-            classStudentId: record.classStudentId || 1,
+            enrollmentId: record.enrollmentId || 1,
             status: record.status,
             remarks: record.remarks || ""
           };
@@ -251,7 +245,7 @@ const InstructorAttendance = () => {
         sessionAttendance.map(async (record) => {
           const payload = {
             sessionId: selectedSession.sessionId,
-            classStudentId: record.classStudentId || 1,
+            enrollmentId: record.enrollmentId || 1,
             status: record.status,
             remarks: record.remarks || ""
           };

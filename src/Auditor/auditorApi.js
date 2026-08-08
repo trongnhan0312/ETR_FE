@@ -49,19 +49,17 @@ const loadLookup = () => {
       api.get("/UserProfiles/learners").catch(() => []),
       api.get("/Classes").catch(() => []),
       api.get("/Courses").catch(() => []),
-      api.get("/ClassStudents").catch(() => []),
       api.get("/Evidences").catch(() => []),
       api.get("/Attendance").catch(() => []),
       api.get("/AssessmentResults").catch(() => []),
       api.get("/Approvals").catch(() => []),
       api.get("/Audit?page=1&pageSize=100").catch(() => []),
-    ]).then(([enrollments, accounts, profiles, classes, courses, classStudents, evidences, attendance, assessmentResults, approvals, auditLogs]) => ({
+    ]).then(([enrollments, accounts, profiles, classes, courses, evidences, attendance, assessmentResults, approvals, auditLogs]) => ({
       enrollments: extractList(enrollments),
       accounts: extractList(accounts),
       profiles: extractList(profiles),
       classes: extractList(classes),
       courses: extractList(courses),
-      classStudents: extractList(classStudents),
       evidences: extractList(evidences),
       attendance: extractList(attendance),
       assessmentResults: extractList(assessmentResults),
@@ -316,9 +314,6 @@ function normalizeEtr(raw, lookup) {
     ? lookup.classes.find((c) => c.classId === enrollment.classId)
     : null;
   const course = cls ? lookup.courses.find((c) => c.courseId === cls.courseId) : null;
-  const classStudent = accountId
-    ? lookup.classStudents.find((cs) => cs.accountId === accountId && cs.classId === enrollment?.classId)
-    : null;
 
   // Người phê duyệt cuối: ưu tiên AuditLog ActionType=APPROVE (ghi bởi TrainingManager/Admin khi chốt),
   // fallback CurrentApproverId → SubmittedBy trên ApprovalRequest của ETR này. Lưu ý: SubmittedBy là
@@ -349,10 +344,10 @@ function normalizeEtr(raw, lookup) {
       (accountId && ev.uploadedBy === accountId),
   );
 
-  // Attendance for the learner's ClassStudent
-  const attendanceList = classStudent
+  // Attendance for the learner's Enrollment
+  const attendanceList = enrollment
     ? lookup.attendance
-        .filter((a) => a.classStudentId === classStudent.classStudentId)
+        .filter((a) => a.enrollmentId === enrollment.enrollmentId)
         .map((a) => ({
           session: a.sessionId,
           date: fmtDate(a.recordedAt),
