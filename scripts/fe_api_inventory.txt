@@ -1,0 +1,116 @@
+delete /Accounts/${user.accountId}                     F:\ETR_FE\src\Academic\LearnerManagement.jsx:421, F:\ETR_FE\src\ADMIN\UserManagement.jsx:375
+delete /Assessments/${item.assessmentId}               F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:618
+delete /Classes/${deletingClassTarget.classId}         F:\ETR_FE\src\Academic\CourseClassManagement.jsx:377
+delete /Courses/${deletingCourseTarget.courseId}       F:\ETR_FE\src\Academic\CourseClassManagement.jsx:260
+delete /Departments/${id}                              F:\ETR_FE\src\ADMIN\DepartmentManagement.jsx:145
+delete /Enrollments/${cls.enrollmentId}                F:\ETR_FE\src\Academic\EditLearner.jsx:73
+delete /Evidences/${confirmDeleteFile.fileId}          F:\ETR_FE\src\Academic\EtrManagement.jsx:453
+delete /Evidences/${confirmDeleteId}                   F:\ETR_FE\src\Instructor\InstructorEvidence.jsx:441
+delete /PracticalChecklists/${item.practicalChecklistId}F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:624
+delete /Subjects/${subject.subjectId}                  F:\ETR_FE\src\Academic\SubjectManagement.jsx:171
+delete /sessions/${confirmDeleteSessionId}             F:\ETR_FE\src\Instructor\InstructorClasses.jsx:333
+get /Accounts                                          F:\ETR_FE\src\Academic\CourseClassManagement.jsx:55, F:\ETR_FE\src\Academic\CourseClassManagement.jsx:157, F:\ETR_FE\src\Academic\EnrollStudentModal.jsx:35
+get /Approvals                                         F:\ETR_FE\src\Auditor\auditorApi.js:55, F:\ETR_FE\src\Auditor\auditorApi.js:151, F:\ETR_FE\src\components\ApprovalHistory.jsx:66
+get /AssessmentResults                                 F:\ETR_FE\src\Auditor\auditorApi.js:54, F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:223, F:\ETR_FE\src\test\InstructorAssessments.test.jsx:141
+get /Assessments                                       F:\ETR_FE\src\QA\QARETRReviewQueue.jsx:174, F:\ETR_FE\src\test\InstructorAssessmentStructure.test.jsx:15, F:\ETR_FE\src\test\InstructorAssessmentStructure.test.jsx:115
+get /Attendance                                        F:\ETR_FE\src\Academic\ClassAttendanceHistory.jsx:30, F:\ETR_FE\src\Auditor\auditorApi.js:53
+get /Audit/${id}                                       F:\ETR_FE\src\Auditor\auditorApi.js:97
+get /Audit?page=${page}&pageSize=${pageSize}           F:\ETR_FE\src\Auditor\auditorApi.js:90
+get /Audit?page=1&pageSize=100                         F:\ETR_FE\src\Auditor\auditorApi.js:56, F:\ETR_FE\src\components\ApprovalHistory.jsx:26
+get /Audit?page=1&pageSize=50                          F:\ETR_FE\src\Academic\EtrManagement.jsx:67, F:\ETR_FE\src\Academic\EtrManagement.jsx:222, F:\ETR_FE\src\ADMIN\AuditLog.jsx:13
+get /Classes                                           F:\ETR_FE\src\Academic\CourseClassManagement.jsx:51, F:\ETR_FE\src\Academic\CourseClassManagement.jsx:155, F:\ETR_FE\src\Academic\EditLearner.jsx:32
+get /Courses                                           F:\ETR_FE\src\Academic\CourseClassManagement.jsx:50, F:\ETR_FE\src\Academic\CourseClassManagement.jsx:154, F:\ETR_FE\src\Academic\ExpiringStudents.jsx:54
+get /Courses/${course.courseId}                        F:\ETR_FE\src\Academic\UpdateCourseModal.jsx:27
+get /Courses/${parentCourse}                           F:\ETR_FE\src\Academic\CreateClass.jsx:40
+get /Courses/${selectedClassObj.courseId}              F:\ETR_FE\src\Academic\EnrollStudentModal.jsx:164
+get /Dashboard/stats                                   F:\ETR_FE\src\Academic\CourseClassManagement.jsx:54, F:\ETR_FE\src\Auditor\auditorApi.js:258, F:\ETR_FE\src\Auditor\auditorApi.js:269
+get /Departments                                       F:\ETR_FE\src\Academic\LearnerManagement.jsx:130, F:\ETR_FE\src\Academic\StudentProfiles.jsx:122, F:\ETR_FE\src\ADMIN\DepartmentManagement.jsx:27
+get /Enrollments                                       F:\ETR_FE\src\Academic\EditLearner.jsx:31, F:\ETR_FE\src\Academic\EnrollStudentModal.jsx:37, F:\ETR_FE\src\Academic\EtrManagement.jsx:68
+get /Etr                                               F:\ETR_FE\src\Academic\EnrollStudentModal.jsx:38, F:\ETR_FE\src\Academic\EtrManagement.jsx:60, F:\ETR_FE\src\Academic\EtrManagement.jsx:215
+get /Etr/${e.etrCourseRecordId || e.eTRCourseRecordId} F:\ETR_FE\src\Academic\EtrManagement.jsx:91, F:\ETR_FE\src\Academic\EtrManagement.jsx:229, F:\ETR_FE\src\TrainingManager\EtrApproval.jsx:142
+get /Etr/${etrId}                                      F:\ETR_FE\src\utils\evidenceEnrich.js:41
+get /Etr/${numericId}                                  F:\ETR_FE\src\Auditor\auditorApi.js:129
+get /Etr/${record.etrId}                               F:\ETR_FE\src\QA\QARETRReviewQueue.jsx:207
+get /Etr/${selectedRecord.etrId}                       F:\ETR_FE\src\Academic\EtrManagement.jsx:329
+get /Etr/my-etr                                        F:\ETR_FE\src\Student\StudentDashboard.jsx:61, F:\ETR_FE\src\Student\StudentMyETR.jsx:343
+get /Etr/student/${accountId}/current-status           F:\ETR_FE\src\Student\StudentCertificateStatus.jsx:99
+get /Etr/student/${accountId}/history                  F:\ETR_FE\src\Student\StudentMyETR.jsx:240
+get /Etr/student/${aid}/current-status                 F:\ETR_FE\src\Student\StudentDashboard.jsx:69
+get /Etr/student/${studentId}/current-status           F:\ETR_FE\src\Auditor\auditorApi.js:136
+get /Etr/student/${studentId}/history                  F:\ETR_FE\src\Auditor\auditorApi.js:142
+get /EvidenceTypes                                     F:\ETR_FE\src\Academic\EtrManagement.jsx:71, F:\ETR_FE\src\Instructor\InstructorEvidence.jsx:56
+get /Evidences                                         F:\ETR_FE\src\Academic\EtrManagement.jsx:61, F:\ETR_FE\src\Academic\EtrManagement.jsx:216, F:\ETR_FE\src\Auditor\auditorApi.js:52
+get /PracticalChecklistResults                         F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:230, F:\ETR_FE\src\test\InstructorAssessments.test.jsx:221
+get /PracticalChecklists                               F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:253, F:\ETR_FE\src\QA\QARETRReviewQueue.jsx:175, F:\ETR_FE\src\test\InstructorAssessmentStructure.test.jsx:21
+get /Reports/summary                                   F:\ETR_FE\src\TrainingManager\TrainingManagerDashboard.jsx:38
+get /RetakeHistory?page=1&pageSize=100                 F:\ETR_FE\src\QA\QARetakeHistory.jsx:21
+get /Sessions                                          F:\ETR_FE\src\Academic\ClassAttendanceHistory.jsx:29, F:\ETR_FE\src\Academic\CourseClassManagement.jsx:53, F:\ETR_FE\src\Academic\CourseClassManagement.jsx:156
+get /Subjects                                          F:\ETR_FE\src\Academic\CourseClassManagement.jsx:52, F:\ETR_FE\src\Academic\CreateCourse.jsx:39, F:\ETR_FE\src\Academic\SubjectManagement.jsx:43
+get /UserProfiles                                      F:\ETR_FE\src\Academic\CourseClassManagement.jsx:56, F:\ETR_FE\src\Academic\CourseClassManagement.jsx:158, F:\ETR_FE\src\Academic\LearnerManagement.jsx:129
+get /UserProfiles/learners                             F:\ETR_FE\src\Academic\EnrollStudentModal.jsx:36, F:\ETR_FE\src\Academic\EtrManagement.jsx:70, F:\ETR_FE\src\Academic\StudentProfiles.jsx:120
+get /UserProfiles/me                                   F:\ETR_FE\src\Student\StudentProfile.jsx:75
+get /assessments                                       F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:74, F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:393, F:\ETR_FE\src\Instructor\InstructorClasses.jsx:55
+get /attendance                                        F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:149, F:\ETR_FE\src\test\InstructorAttendance.test.jsx:97, F:\ETR_FE\src\test\InstructorAttendance.test.jsx:106
+get /auth/me                                           F:\ETR_FE\src\Student\StudentDashboard.jsx:62
+get /classes                                           F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:70, F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:57, F:\ETR_FE\src\Instructor\InstructorClasses.jsx:50
+get /courses                                           F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:71, F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:366, F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:58
+get /courses/${currentCourseId}                        F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:254
+get /enrollments                                       F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:187, F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:132, F:\ETR_FE\src\Instructor\InstructorEvidence.jsx:96
+get /error                                             F:\ETR_FE\src\test\InstructorAssessments.test.jsx:33
+get /etr                                               F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:244, F:\ETR_FE\src\Instructor\InstructorEvidence.jsx:134, F:\ETR_FE\src\Instructor\InstructorEvidence.jsx:278
+get /etr/${studentEtr.etrCourseRecordId}               F:\ETR_FE\src\test\InstructorAssessments.test.jsx:156, F:\ETR_FE\src\test\InstructorAssessments.test.jsx:234
+get /evidences                                         F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:252
+get /practicalchecklists                               F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:253, F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:396, F:\ETR_FE\src\Instructor\InstructorClasses.jsx:58
+get /sessions                                          F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:116, F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:94, F:\ETR_FE\src\Instructor\InstructorClasses.jsx:94
+get /sessions/${session.sessionId}                     F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:156
+get /subjects                                          F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:367, F:\ETR_FE\src\Instructor\InstructorClasses.jsx:52
+get /userprofiles                                      F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:188, F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:133, F:\ETR_FE\src\test\InstructorAssessments.test.jsx:96
+patch /AssessmentResults/${resultId}/publish           F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:1175
+patch /PracticalChecklistResults/${student.practicalResultId}/publishF:\ETR_FE\src\Instructor\InstructorAssessments.jsx:1185
+post /Accounts                                         F:\ETR_FE\src\Academic\LearnerManagement.jsx:231, F:\ETR_FE\src\Academic\StudentProfiles.jsx:225, F:\ETR_FE\src\ADMIN\UserManagement.jsx:237
+post /Approvals/${request.approvalRequestId}/process?action=ApproveF:\ETR_FE\src\TrainingManager\EtrApproval.jsx:311
+post /AssessmentResults/record                         F:\ETR_FE\src\test\InstructorAssessments.test.jsx:21
+post /Assessments                                      F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:499, F:\ETR_FE\src\test\InstructorAssessmentStructure.test.jsx:33
+post /Classes                                          F:\ETR_FE\src\Academic\CourseClassManagement.jsx:327, F:\ETR_FE\src\TrainingManager\ClassStatus.jsx:184
+post /Courses                                          F:\ETR_FE\src\Academic\CourseClassManagement.jsx:200
+post /Departments                                      F:\ETR_FE\src\ADMIN\DepartmentManagement.jsx:83
+post /Enrollments                                      F:\ETR_FE\src\Academic\CourseClassManagement.jsx:392, F:\ETR_FE\src\Academic\EditLearner.jsx:96
+post /Etr/${confirmVerifyId}/verify                    F:\ETR_FE\src\QA\QARETRReviewQueue.jsx:223
+post /Etr/${etrId}/complete                            F:\ETR_FE\src\TrainingManager\EtrApproval.jsx:316
+post /Etr/${etrId}/reopen                              F:\ETR_FE\src\TrainingManager\EtrApproval.jsx:383
+post /Etr/${recordToSubmit.etrId}/submit               F:\ETR_FE\src\Academic\EtrManagement.jsx:386
+post /Etr/${returnTarget}/return                       F:\ETR_FE\src\QA\QARETRReviewQueue.jsx:244
+post /Etr/${selectedEtr.etrId}/return                  F:\ETR_FE\src\QA\QARETRDetails.jsx:102
+post /Etr/${selectedEtr.etrId}/verify                  F:\ETR_FE\src\QA\QARETRDetails.jsx:97
+post /Etr/${selectedEtrId}/return                      F:\ETR_FE\src\QA\QARETRReturn.jsx:77
+post /Exports/dashboard                                F:\ETR_FE\src\Auditor\auditorApi.js:215
+post /Exports/pdf                                      F:\ETR_FE\src\Auditor\auditorApi.js:188
+post /Exports/training-package                         F:\ETR_FE\src\Auditor\auditorApi.js:207
+post /PracticalChecklists                              F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:577, F:\ETR_FE\src\test\InstructorAssessmentStructure.test.jsx:47
+post /SubjectSignoff                                   F:\ETR_FE\src\Instructor\InstructorAssessments.jsx:969
+post /Subjects                                         F:\ETR_FE\src\Academic\SubjectManagement.jsx:117
+post /UserProfiles/${accId}                            F:\ETR_FE\src\Academic\LearnerManagement.jsx:241, F:\ETR_FE\src\ADMIN\UserManagement.jsx:247
+post /UserProfiles/${createdAccount.accountId}         F:\ETR_FE\src\Academic\StudentProfiles.jsx:282
+post /UserProfiles/${profileAcc.accountId}             F:\ETR_FE\src\Academic\LearnerManagement.jsx:301
+post /attendance/record                                F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:219, F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:259, F:\ETR_FE\src\test\InstructorAttendance.test.jsx:245
+post /attendance/sessions/${selectedSession.sessionId}/confirmF:\ETR_FE\src\Instructor\InstructorAttendance.jsx:265, F:\ETR_FE\src\test\InstructorAttendance.test.jsx:257
+post /auth/change-password                             F:\ETR_FE\src\QA\QAAccount.jsx:45, F:\ETR_FE\src\Student\StudentProfile.jsx:151
+post /sessions                                         F:\ETR_FE\src\Instructor\InstructorClasses.jsx:313
+put /Accounts/${editingUser.accountId}/department      F:\ETR_FE\src\Academic\LearnerManagement.jsx:383, F:\ETR_FE\src\ADMIN\UserManagement.jsx:339
+put /Accounts/${editingUser.accountId}/role            F:\ETR_FE\src\ADMIN\UserManagement.jsx:328
+put /Accounts/${user.accountId}/status                 F:\ETR_FE\src\Academic\LearnerManagement.jsx:422, F:\ETR_FE\src\Academic\LearnerManagement.jsx:425, F:\ETR_FE\src\Academic\LearnerManagement.jsx:433
+put /Assessments/${editingAssessment.assessmentId}     F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:493
+put /Classes/${classId}                                F:\ETR_FE\src\Academic\CourseClassManagement.jsx:361
+put /Courses/${courseId}                               F:\ETR_FE\src\Academic\CourseClassManagement.jsx:234
+put /Departments/${id}                                 F:\ETR_FE\src\ADMIN\DepartmentManagement.jsx:121
+put /Evidences/${rejectTarget.id}/verify               F:\ETR_FE\src\QA\QAEvidenceVerification.jsx:122
+put /Evidences/${reviewTarget.id}/verify               F:\ETR_FE\src\QA\QAEvidenceVerification.jsx:193, F:\ETR_FE\src\QA\QAEvidenceVerification.jsx:218
+put /Evidences/${row.id}/verify                        F:\ETR_FE\src\QA\QAEvidenceVerification.jsx:91
+put /PracticalChecklistResults/1/progress              F:\ETR_FE\src\test\InstructorAssessments.test.jsx:26
+put /PracticalChecklists/${editingChecklist.practicalChecklistId}F:\ETR_FE\src\Instructor\InstructorAssessmentStructure.jsx:568
+put /Subjects/${editingSubject.subjectId}              F:\ETR_FE\src\Academic\SubjectManagement.jsx:147
+put /UserProfiles/${editingProfile.accountId}          F:\ETR_FE\src\Academic\StudentProfiles.jsx:339
+put /UserProfiles/${editingUser.accountId}             F:\ETR_FE\src\Academic\LearnerManagement.jsx:368, F:\ETR_FE\src\ADMIN\UserManagement.jsx:317
+put /UserProfiles/me                                   F:\ETR_FE\src\Student\StudentProfile.jsx:110
+put /attendance/${record.attendanceRecordId}           F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:213, F:\ETR_FE\src\Instructor\InstructorAttendance.jsx:254, F:\ETR_FE\src\test\InstructorAttendance.test.jsx:240
+put /sessions/${editingSessionId}                      F:\ETR_FE\src\Instructor\InstructorClasses.jsx:311

@@ -25,7 +25,7 @@ const TrainingManagerDashboard = () => {
           /403|Forbidden|không có quyền|unauthorized|not authorized/i.test(
             err?.message || "",
           );
-        const [enrollments, etrs, statsData, reportData] = await Promise.all([
+        const [enrollments, etrs, statsData] = await Promise.all([
           api.get("/Enrollments").catch((err) => {
             if (isForbiddenErr(err)) restricted = true;
             return [];
@@ -35,7 +35,6 @@ const TrainingManagerDashboard = () => {
             return [];
           }),
           api.get("/Dashboard/stats").catch(() => null),
-          api.get("/Reports/summary").catch(() => null),
         ]);
         setDataRestricted(restricted);
 
@@ -55,8 +54,7 @@ const TrainingManagerDashboard = () => {
           );
         }
 
-        // Process Report summary fields if needed
-        // reportData fields available for future use
+        // Summary metrics come from /Dashboard/stats (processed above)
 
         const enrArr = Array.isArray(enrollments) ? enrollments : [];
         const etrArr = Array.isArray(etrs) ? etrs : [];
