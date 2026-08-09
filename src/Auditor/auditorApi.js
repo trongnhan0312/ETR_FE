@@ -341,7 +341,7 @@ function normalizeEtr(raw, lookup) {
   const evidences = lookup.evidences.filter(
     (ev) =>
       extractEtrId(ev) === etrId ||
-      (accountId && ev.uploadedBy === accountId),
+      (accountId && ev.uploadedByAccountId === accountId),
   );
 
   // Attendance for the learner's Enrollment
@@ -408,7 +408,7 @@ function normalizeEtr(raw, lookup) {
       name: ev.fileName || "—",
       size: fmtSize(ev.fileSize),
       uploadedAt: fmtDate(ev.uploadedAt),
-      uploadedBy: ev.uploadedBy ? accountName(lookup, ev.uploadedBy) : "—",
+      uploadedBy: ev.uploadedByAccountId ? accountName(lookup, ev.uploadedByAccountId) : "—",
       type: ev.mimeType?.startsWith("image/") ? "PHOTO" : ev.fileExtension?.toUpperCase() || "—",
     })),
   };

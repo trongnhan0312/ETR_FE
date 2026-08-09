@@ -43,7 +43,7 @@ const QAAccount = () => {
     }
     try {
       await api.post("/auth/change-password", {
-        currentPassword: currentPwd,
+        oldPassword: currentPwd,
         newPassword: newPwd,
       });
       toast.success(tr("Cập nhật mật khẩu thành công"), tr("Mật khẩu của bạn đã được cập nhật."));

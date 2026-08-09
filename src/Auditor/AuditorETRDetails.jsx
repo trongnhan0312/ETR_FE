@@ -244,7 +244,7 @@ const AuditorETRDetails = () => {
                   <div style={{ fontWeight: '600', color: '#002147' }}>{evd.name}</div>
                   <div>{evd.size}</div>
                   <div>{evd.uploadedAt}</div>
-                  <div>{evd.uploadedBy}</div>
+                  <div>{evd.uploadedByAccountId ? `#${evd.uploadedByAccountId}` : '—'}</div>
                   <div style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '10px', color: '#16a34a' }}>{trEn('VERIFIED MATCH')}</div>
                 </div>
               ))}

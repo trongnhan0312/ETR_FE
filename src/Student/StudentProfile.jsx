@@ -150,7 +150,7 @@ const StudentProfile = () => {
     try {
       await api.post(
         '/auth/change-password',
-        { currentPassword: currentPwd, newPassword: newPwd },
+        { oldPassword: currentPwd, newPassword: newPwd },
         { suppressAuthRedirect: true },
       );
       toast.success(tr('Đổi mật khẩu thành công'), tr('Mật khẩu của bạn đã được cập nhật.'));
