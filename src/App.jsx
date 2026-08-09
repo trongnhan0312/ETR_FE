@@ -1,6 +1,21 @@
 import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom';
 import Homepage from './Homepage/homepage';
 import Login from './Homepage/login';
+import PublicLayout from './Homepage/PublicLayout';
+import RecordsPage from './Homepage/pages/RecordsPage';
+import CompetencyPage from './Homepage/pages/CompetencyPage';
+import CompliancePage from './Homepage/pages/CompliancePage';
+import AnalyticsPage from './Homepage/pages/AnalyticsPage';
+import IntegrationsPage from './Homepage/pages/IntegrationsPage';
+import AboutPage from './Homepage/pages/AboutPage';
+import CustomersPage from './Homepage/pages/CustomersPage';
+import CareersPage from './Homepage/pages/CareersPage';
+import NewsroomPage from './Homepage/pages/NewsroomPage';
+import NewsDetailPage from './Homepage/pages/NewsDetailPage';
+import DocsPage from './Homepage/pages/DocsPage';
+import SecurityPage from './Homepage/pages/SecurityPage';
+import RegulatoryLibraryPage from './Homepage/pages/RegulatoryLibraryPage';
+import ContactPage from './Homepage/pages/ContactPage';
 import AdminLayout from './ADMIN/AdminLayout';
 import Dashboard from './ADMIN/Dashboard';
 import UserManagement from './ADMIN/UserManagement';
@@ -97,6 +112,27 @@ function App() {
 			<Routes>
 				<Route path="/" element={<Homepage />} />
 				<Route path="/login" element={<Login />} />
+
+				{/* Public Footer Routes */}
+				<Route element={<PublicLayout />}>
+					<Route path="/records" element={<RecordsPage />} />
+					<Route path="/competency" element={<CompetencyPage />} />
+					<Route path="/compliance" element={<CompliancePage />} />
+					<Route path="/analytics" element={<AnalyticsPage />} />
+					<Route path="/integrations" element={<IntegrationsPage />} />
+
+					<Route path="/about" element={<AboutPage />} />
+					<Route path="/customers" element={<CustomersPage />} />
+					<Route path="/careers" element={<CareersPage />} />
+					<Route path="/newsroom" element={<NewsroomPage />} />
+					<Route path="/newsroom/:id" element={<NewsDetailPage />} />
+
+					<Route path="/docs" element={<DocsPage />} />
+					<Route path="/docs/*" element={<DocsPage />} />
+					<Route path="/security" element={<SecurityPage />} />
+					<Route path="/regulatory-library" element={<RegulatoryLibraryPage />} />
+					<Route path="/contact" element={<ContactPage />} />
+				</Route>
 
 				{/* Protected Admin Routes */}
 				<Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import PublicFooter from './PublicFooter';
 import './homepage.scss';
 
 const Homepage = () => {
@@ -440,63 +441,7 @@ const Homepage = () => {
       </section>
 
       {/* ================= FOOTER ================= */}
-      <footer className="landing-footer">
-        <div className="footer-top">
-          <div className="footer-brand-col">
-            <div className="nav-brand" onClick={() => navigate('/')}>
-              <div className="brand-logo-icon">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="#FF7A36" stroke="#FF7A36" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <div className="brand-logo-text">
-                <span className="logo-main">ETR</span>
-                <span className="logo-sub">AVIATION</span>
-              </div>
-            </div>
-            <p className="footer-tagline">
-              The enterprise Electrical Training Record platform for aviation. Certification, competency, and compliance — audit-ready by default.
-            </p>
-          </div>
-
-          <div className="footer-links-grid">
-            <div className="link-col">
-              <h4>PLATFORM</h4>
-              <a href="#platform">Records</a>
-              <a href="#platform">Competency</a>
-              <a href="#platform">Compliance</a>
-              <a href="#platform">Analytics</a>
-              <a href="#platform">Integrations</a>
-            </div>
-
-            <div className="link-col">
-              <h4>COMPANY</h4>
-              <button type="button" onClick={handleGoToLogin}>About</button>
-              <button type="button" onClick={handleGoToLogin}>Customers</button>
-              <button type="button" onClick={handleGoToLogin}>Careers</button>
-              <button type="button" onClick={handleGoToLogin}>Newsroom</button>
-            </div>
-
-            <div className="link-col">
-              <h4>RESOURCES</h4>
-              <button type="button" onClick={handleGoToLogin}>Docs</button>
-              <button type="button" onClick={handleGoToLogin}>Security</button>
-              <button type="button" onClick={handleGoToLogin}>Regulatory library</button>
-              <button type="button" onClick={handleGoToLogin}>Contact</button>
-            </div>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <span className="copyright">&copy; 2026 ETR Aviation, Inc. All rights reserved.</span>
-          <div className="legal-links">
-            <button type="button" onClick={handleGoToLogin}>Privacy</button>
-            <button type="button" onClick={handleGoToLogin}>Terms</button>
-            <button type="button" onClick={handleGoToLogin}>Security</button>
-            <button type="button" onClick={handleGoToLogin}>Status</button>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 };
