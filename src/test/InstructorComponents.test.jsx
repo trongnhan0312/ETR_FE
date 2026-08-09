@@ -309,8 +309,8 @@ describe('InstructorAttendance - Status toggle', () => {
 
   it('builds save payload - create', () => {
     const sessionId = 1
-    const record = { classStudentId: 5, status: 'P', remarks: '' }
-    const payload = { sessionId, classStudentId: record.classStudentId, status: record.status, remarks: record.remarks }
+    const record = { enrollmentId: 5, status: 'P', remarks: '' }
+    const payload = { sessionId, enrollmentId: record.enrollmentId, status: record.status, remarks: record.remarks }
     expect(payload.sessionId).toBe(1)
     expect(payload.status).toBe('P')
   })
@@ -328,11 +328,11 @@ describe('InstructorAttendance - Status toggle', () => {
 // ---------------------------------------------------------------------------
 describe('InstructorAttendance - Attendance mapping', () => {
   it('maps student to attendance with default P status', () => {
-    const students = [{ accountId: 6, code: 'HV001' }, { accountId: 7, code: 'HV002' }]
-    const attendanceRecords = [{ sessionId: 1, accountId: 6, status: 'AE', remarks: 'Late' }]
+    const students = [{ accountId: 6, enrollmentId: 1, code: 'HV001' }, { accountId: 7, enrollmentId: 2, code: 'HV002' }]
+    const attendanceRecords = [{ sessionId: 1, enrollmentId: 1, status: 'AE', remarks: 'Late' }]
 
     const mapped = students.map((s) => {
-      const record = attendanceRecords.find((r) => r.accountId === s.accountId)
+      const record = attendanceRecords.find((r) => r.enrollmentId === s.enrollmentId)
       return {
         code: s.code,
         status: record?.status || 'P',

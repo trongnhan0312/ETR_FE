@@ -62,7 +62,7 @@ globalThis.fetch = async (url, options) => {
       { practicalChecklistId: 1, courseId: 1, subjectId: 1, itemName: 'Thực hành ghi nhận thông số', description: 'Nhập và kiểm tra thông số', isRequired: true, displayOrder: 1 },
     ],
     '/api/attendance': [
-      { attendanceRecordId: 1, sessionId: 1, accountId: 6, status: 'Present', remarks: '' },
+      { attendanceRecordId: 1, sessionId: 1, enrollmentId: 1, status: 'Present', remarks: '' },
     ],
     '/api/Audit': [
       { auditLogId: 1, accountId: 4, etrRecordId: 20260891, actionType: 'SUBMIT', entityName: 'ETRCourseRecord', recordId: 20260891, oldValue: 'Draft', newValue: 'Submitted', description: 'ETR #20260891 submitted', createdAt: '2026-07-24T14:10:02Z' },

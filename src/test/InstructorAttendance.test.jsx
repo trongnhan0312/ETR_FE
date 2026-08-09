@@ -83,7 +83,7 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
         code: profile?.employeeCode || `HV${en.accountId}`,
         name: profile?.fullName || 'Học viên',
         accountId: en.accountId,
-        classStudentId: en.enrollmentId,
+        enrollmentId: en.enrollmentId,
       }
     })
 
@@ -98,7 +98,7 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
     const sessionRecords = attendanceRecords.filter((a) => a.sessionId === sessionId)
 
     expect(sessionRecords.length).toBe(1)
-    expect(sessionRecords[0].accountId).toBe(6)
+    expect(sessionRecords[0].enrollmentId).toBe(1)
   })
 
   it('builds attendance data: confirmed session + no record → Absent (not Present)', async () => {
@@ -107,15 +107,15 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
     const sessionRecords = attendanceRecords.filter((a) => a.sessionId === sessionId)
 
     const students = [
-      { accountId: 6, code: 'HV001', name: 'Jane Student' },
-      { accountId: 7, code: 'HV002', name: 'John Student' },
+      { accountId: 6, enrollmentId: 1, code: 'HV001', name: 'Jane Student' },
+      { accountId: 7, enrollmentId: 2, code: 'HV002', name: 'John Student' },
     ]
 
     // Buổi 1 ĐÃ CHỐT — học viên chưa có bản ghi không được tự động coi là Có mặt
     const isSessionLocked = true
 
     const mappedAttendance = students.map((student) => {
-      const record = sessionRecords.find((r) => r.accountId === student.accountId)
+      const record = sessionRecords.find((r) => r.enrollmentId === student.enrollmentId)
       return {
         code: student.code,
         name: student.name,
@@ -139,13 +139,13 @@ describe('InstructorAttendance - Load Attendance Logic', () => {
     const attendanceRecords = await api.get('/attendance')
     const sessionRecords = attendanceRecords.filter((a) => a.sessionId === sessionId)
 
-    const students = [{ accountId: 7, code: 'HV002', name: 'John Student' }]
+    const students = [{ accountId: 7, enrollmentId: 2, code: 'HV002', name: 'John Student' }]
 
     // Buổi CHƯA chốt — giữ default Present để giảng viên chấm trực tiếp
     const isSessionLocked = false
 
     const mappedAttendance = students.map((student) => {
-      const record = sessionRecords.find((r) => r.accountId === student.accountId)
+      const record = sessionRecords.find((r) => r.enrollmentId === student.enrollmentId)
       return {
         code: student.code,
         name: student.name,
@@ -197,17 +197,17 @@ describe('InstructorAttendance - Handle Toggle Status', () => {
 describe('InstructorAttendance - Save Logic', () => {
   it('builds correct payload for save - create new', () => {
     const selectedSession = { sessionId: 1 }
-    const record = { classStudentId: 1, status: 'Present', remarks: '', attendanceRecordId: null }
+    const record = { enrollmentId: 1, status: 'Present', remarks: '', attendanceRecordId: null }
 
     const payload = {
       sessionId: selectedSession.sessionId,
-      classStudentId: record.classStudentId || 1,
+      enrollmentId: record.enrollmentId || 1,
       status: record.status,
       remarks: record.remarks || '',
     }
 
     expect(payload.sessionId).toBe(1)
-    expect(payload.classStudentId).toBe(1)
+    expect(payload.enrollmentId).toBe(1)
     expect(payload.status).toBe('Present')
   })
 
@@ -225,8 +225,8 @@ describe('InstructorAttendance - Save Logic', () => {
 
   it('saves all records and confirm locks the session', async () => {
     const sessionAttendance = [
-      { classStudentId: 1, status: 'Present', remarks: '', attendanceRecordId: null },
-      { classStudentId: 2, status: 'Absent', remarks: 'Sick', attendanceRecordId: 3 },
+      { enrollmentId: 1, status: 'Present', remarks: '', attendanceRecordId: null },
+      { enrollmentId: 2, status: 'Absent', remarks: 'Sick', attendanceRecordId: 3 },
     ]
     const selectedSession = { sessionId: 1 }
 
@@ -244,7 +244,7 @@ describe('InstructorAttendance - Save Logic', () => {
         } else {
           await api.post('/attendance/record', {
             sessionId: selectedSession.sessionId,
-            classStudentId: record.classStudentId || 1,
+            enrollmentId: record.enrollmentId || 1,
             status: record.status,
             remarks: record.remarks || '',
           })

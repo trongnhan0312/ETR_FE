@@ -118,7 +118,7 @@ const DEMO_DATA = {
     {
       attendanceRecordId: 1,
       sessionId: 1,
-      accountId: 6,
+      enrollmentId: 1,
       status: "Present",
       remarks: "",
     },
