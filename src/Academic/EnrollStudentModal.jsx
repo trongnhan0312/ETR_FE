@@ -404,7 +404,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
             <div style={{ fontSize: '12px', color: '#475569', backgroundColor: '#f1f5f9', padding: '12px 16px', borderRadius: '6px', lineHeight: '1.6' }}>
               💡 <strong>{tr('Quy tắc nghiệp vụ ghi danh ETR bắt buộc (Compliance Rules):')}</strong><br />
               • {tr('Khóa học phải có ít nhất 1 môn học (Subject) được cấu hình trước khi ghi danh.')}<br />
-              • {tr('Lớp học ở trạng thái')} <code>Active</code> {tr('hoặc')} <code>Upcoming</code> {tr('mới được ghi danh.')}<br />
+              • {tr('Lớp học ở trạng thái')} <code>InProgress</code> {tr('hoặc')} <code>Planned</code> {tr('mới được ghi danh.')}<br />
               • <strong>{tr('Một Học viên chỉ có 01 Hồ sơ ETR đang học (InProgress) cho 01 Khóa học tại một thời điểm. Các học viên đã có ETR chưa đóng bằng sẽ bị khóa lựa chọn.')}</strong>
             </div>
           </div>

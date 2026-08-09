@@ -13,7 +13,7 @@ const ASSESSMENT_TYPES = [
 
 const EMPTY_ASSESSMENT = {
   componentName: "",
-  assessmentType: "Quiz",
+  assessmentType: "Theory",
   weight: 0,
   passingScore: 0,
   isRequired: true,
@@ -457,7 +457,7 @@ const InstructorAssessmentStructure = () => {
     setEditingAssessment(item);
     setAssessmentForm({
       componentName: item.componentName || "",
-      assessmentType: item.assessmentType || "Quiz",
+      assessmentType: item.assessmentType || "Theory",
       weight: Number(item.weight) || 0,
       passingScore: Number(item.passingScore) || 0,
       isRequired: item.isRequired ?? true,

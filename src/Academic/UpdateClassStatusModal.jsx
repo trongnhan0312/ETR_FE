@@ -7,10 +7,11 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], onSave, onCance
   const [classCode, setClassCode] = useState(targetClass.code || targetClass.classCode || '');
   const [className, setClassName] = useState(targetClass.name || targetClass.className || '');
   const [status, setStatus] = useState(() => {
-    const raw = targetClass.status || 'Active';
-    if (raw === 'Đang diễn ra') return 'Active';
-    if (raw === 'Sắp diễn ra') return 'Upcoming';
-    if (raw === 'Đã kết thúc') return 'Completed';
+    const raw = targetClass.status || 'InProgress';
+    if (raw === 'Đang diễn ra' || raw === 'Active') return 'InProgress';
+    if (raw === 'Sắp diễn ra' || raw === 'Upcoming' || raw === 'Planned') return 'Planned';
+    if (raw === 'Đã kết thúc' || raw === 'Completed') return 'Completed';
+    if (raw === 'Đã hủy' || raw === 'Cancelled') return 'Cancelled';
     return raw;
   });
 
@@ -185,8 +186,8 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], onSave, onCance
                   onChange={(e) => setStatus(e.target.value)}
                   required
                 >
-                  <option value="Active">{tr('🟢 Active (Đang diễn ra - Cho phép Ghi danh)')}</option>
-                  <option value="Upcoming">{tr('🟡 Upcoming (Sắp diễn ra - Cho phép Ghi danh)')}</option>
+                  <option value="InProgress">{tr('🟢 InProgress (Đang diễn ra - Cho phép Ghi danh)')}</option>
+                  <option value="Planned">{tr('🟡 Planned (Sắp diễn ra - Cho phép Ghi danh)')}</option>
                   <option value="Completed">{tr('🔴 Completed (Đã kết thúc - Khóa ghi danh mới)')}</option>
                   <option value="Cancelled">{tr('⚫ Cancelled (Đã hủy - Khóa lớp)')}</option>
                 </select>

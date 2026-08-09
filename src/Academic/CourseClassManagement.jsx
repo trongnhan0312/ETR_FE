@@ -113,7 +113,10 @@ const CourseClassManagement = () => {
         duration: course.durationHours || 0,
         structure: { theory: 40, practice: 40, assignment: 10, attendance: 10 },
         attendanceProgress: Math.min(100, sessionCount > 0 ? 100 : 0),
-        activeClassesCount: courseClasses.filter((c) => c.status === 'Active' || c.status === 'Đang diễn ra').length,
+        activeClassesCount: courseClasses.filter((c) => {
+          const st = c.status;
+          return st === 'InProgress' || st === 'Planned' || st === 'Active' || st === 'Upcoming' || st === 'Đang diễn ra' || st === 'Sắp diễn ra';
+        }).length,
         classes: courseClasses.map((cls) => {
           let insName = tr('Đang cập nhật');
           if (cls.instructorAccountId) {
@@ -136,7 +139,7 @@ const CourseClassManagement = () => {
             startDate: cls.startDate ? new Date(cls.startDate).toLocaleDateString('vi-VN') : '',
             endDate: cls.endDate ? new Date(cls.endDate).toLocaleDateString('vi-VN') : '',
             statusRaw: cls.status,
-            status: cls.status === 'Active' ? 'Đang diễn ra' : cls.status === 'Upcoming' ? 'Sắp diễn ra' : cls.status === 'Completed' ? 'Đã kết thúc' : cls.status === 'Cancelled' ? 'Đã hủy' : cls.status,
+status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn ra' : (cls.status === 'Upcoming' || cls.status === 'Planned') ? 'Sắp diễn ra' : cls.status === 'Completed' ? 'Đã kết thúc' : cls.status === 'Cancelled' ? 'Đã hủy' : cls.status,
             attendanceRate: 0,
             instructor: insName
           };
@@ -316,9 +319,9 @@ const CourseClassManagement = () => {
         : null;
 
       const mappedStatus = (newClass.status === 'Đang diễn ra' || newClass.status === 'Active')
-        ? 'Active'
+        ? 'InProgress'
         : (newClass.status === 'Sắp diễn ra' || newClass.status === 'Upcoming')
-        ? 'Upcoming'
+        ? 'Planned'
         : 'Completed';
 
       await api.post("/Classes", {
@@ -459,7 +462,7 @@ const CourseClassManagement = () => {
           startDate: cls.startDate ? new Date(cls.startDate).toLocaleDateString('vi-VN') : '',
           endDate: cls.endDate ? new Date(cls.endDate).toLocaleDateString('vi-VN') : '',
           statusRaw: cls.status,
-          status: cls.status === 'Active' ? 'Đang diễn ra' : cls.status === 'Upcoming' ? 'Sắp diễn ra' : cls.status === 'Completed' ? 'Đã kết thúc' : cls.status === 'Cancelled' ? 'Đã hủy' : cls.status,
+          status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn ra' : (cls.status === 'Upcoming' || cls.status === 'Planned') ? 'Sắp diễn ra' : cls.status === 'Completed' ? 'Đã kết thúc' : cls.status === 'Cancelled' ? 'Đã hủy' : cls.status,
           instructor: insName,
           isOrphan: true
         };

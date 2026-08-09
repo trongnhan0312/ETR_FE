@@ -107,7 +107,11 @@ const ClassStatus = () => {
           endDate: cls.endDate ? new Date(cls.endDate).toLocaleDateString("vi-VN") : "TBD",
           progress: 0,
           attendance: "--",
-          status: cls.status === "Active" ? "IN PROGRESS" : cls.status === "Scheduled" ? "SCHEDULED" : "IN PROGRESS",
+          status: (cls.status === "Active" || cls.status === "InProgress" || cls.status === "Đang diễn ra") ? "IN PROGRESS"
+            : (cls.status === "Scheduled" || cls.status === "Upcoming" || cls.status === "Planned" || cls.status === "Sắp diễn ra") ? "SCHEDULED"
+            : (cls.status === "Completed" || cls.status === "Đã kết thúc") ? "COMPLETED"
+            : (cls.status === "Cancelled" || cls.status === "Đã hủy") ? "CANCELLED"
+            : "IN PROGRESS",
           simRoom: "",
           trainees: classEnrollments.length,
           type: "",
@@ -185,7 +189,7 @@ const ClassStatus = () => {
         endDate: toIso(newEndDate, nextMonthIso),
         location: newRoom || "",
         capacity: Number(newTraineesCount) || 15,
-        status: "Scheduled",
+        status: "Planned",
         instructorAccountId: newInstructorAccountId
           ? Number(newInstructorAccountId)
           : null,
