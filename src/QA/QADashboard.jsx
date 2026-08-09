@@ -51,8 +51,9 @@ const QADashboard = () => {
           (e) => e.verificationStatus === "Rejected"
         ).length;
         const todayReviewed = audits.filter((a) => {
-          if (!a.recordedAt) return false;
-          const d = new Date(a.recordedAt);
+          const t = a.createdAt ?? a.recordedAt;
+          if (!t) return false;
+          const d = new Date(t);
           const today = new Date();
           return d.toDateString() === today.toDateString();
         }).length;

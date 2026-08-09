@@ -34,8 +34,8 @@ const QAAuditTrail = () => {
           ? data.items
           : [];
       const mapped = audits.slice(0, 50).map((a) => ({
-        time: a.recordedAt
-          ? new Date(a.recordedAt).toLocaleString("vi-VN")
+        time: a.createdAt ?? a.recordedAt
+          ? new Date(a.createdAt ?? a.recordedAt).toLocaleString("vi-VN")
           : "N/A",
         actor: `Account #${a.accountId || "System"}`,
         action: a.actionType || a.entityName || "UPDATE",

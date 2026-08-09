@@ -46,11 +46,12 @@ const ApprovalHistory = ({ etrId, onClose }) => {
         const mapped = etrActions
           .sort(
             (a, b) =>
-              new Date(b.recordedAt || 0) - new Date(a.recordedAt || 0),
+              new Date((b.createdAt ?? b.recordedAt) || 0) -
+              new Date((a.createdAt ?? a.recordedAt) || 0),
           )
           .map((a) => ({
-            time: a.recordedAt
-              ? new Date(a.recordedAt).toLocaleString("vi-VN")
+            time: a.createdAt ?? a.recordedAt
+              ? new Date(a.createdAt ?? a.recordedAt).toLocaleString("vi-VN")
               : "N/A",
             action: (a.actionType || "—").toUpperCase(),
             actor: `Account #${a.accountId || "?"}`,

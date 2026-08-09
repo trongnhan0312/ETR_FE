@@ -125,7 +125,7 @@ const EtrManagement = () => {
         // Merge audit trail
         const auditsArr = Array.isArray(audits) ? audits : [];
         setAuditTrail(auditsArr.map((a, idx) => ({
-          time: a.recordedAt ? new Date(a.recordedAt).toLocaleString('vi-VN') : '',
+          time: a.createdAt ?? a.recordedAt ? new Date(a.createdAt ?? a.recordedAt).toLocaleString('vi-VN') : '',
           actor: `Account #${a.accountId || 'N/A'}`,
           action: a.actionType || (a.entityName || 'UPDATE'),
           desc: a.description || `${a.actionType || tr('Cập nhật')} ${a.entityName || tr('hồ sơ')} #${a.recordId || ''}`
@@ -263,7 +263,7 @@ const EtrManagement = () => {
           ? audits.items
           : [];
       setAuditTrail(auditsArr.map((a) => ({
-        time: a.recordedAt ? new Date(a.recordedAt).toLocaleString('vi-VN') : '',
+        time: a.createdAt ?? a.recordedAt ? new Date(a.createdAt ?? a.recordedAt).toLocaleString('vi-VN') : '',
         actor: `Account #${a.accountId || 'N/A'}`,
         action: a.actionType || 'UPDATE',
         desc: a.description || tr('Cập nhật hồ sơ')
