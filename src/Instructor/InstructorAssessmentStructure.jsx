@@ -56,7 +56,7 @@ const AssessmentModal = ({
             className="close-btn"
             onClick={onCancel}
             type="button"
-            aria-label="Đóng"
+            aria-label={tr('Đóng')}
           >
             ×
           </button>
@@ -80,18 +80,18 @@ const AssessmentModal = ({
           )}
 
           <div className="form-group">
-            <label>Tên đánh giá (ComponentName)</label>
+            <label>{tr('Tên đánh giá (ComponentName)')}</label>
             <input
               type="text"
               value={form.componentName}
-              placeholder="VD: Kiểm tra cuối kỳ LT"
+              placeholder={tr('VD: Kiểm tra cuối kỳ LT')}
               onChange={(e) => onFormUpdate({ ...form, componentName: e.target.value })}
             />
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>Loại đánh giá</label>
+              <label>{tr('Loại đánh giá')}</label>
               <select
                 value={form.assessmentType}
                 onChange={(e) => onFormUpdate({ ...form, assessmentType: e.target.value })}
@@ -104,7 +104,7 @@ const AssessmentModal = ({
               </select>
             </div>
             <div className="form-group">
-              <label>Trọng số (%)</label>
+              <label>{tr('Trọng số (%)')}</label>
               <input
                 type="number"
                 min="0"
@@ -123,7 +123,7 @@ const AssessmentModal = ({
 
           <div className="form-row">
             <div className="form-group">
-              <label>Điểm đạt (PassingScore)</label>
+              <label>{tr('Điểm đạt (PassingScore)')}</label>
               <input
                 type="number"
                 min="0"
@@ -139,7 +139,7 @@ const AssessmentModal = ({
               />
             </div>
             <div className="form-group">
-              <label>Thứ tự hiển thị (DisplayOrder)</label>
+              <label>{tr('Thứ tự hiển thị (DisplayOrder)')}</label>
               <input
                 type="number"
                 min="0"
@@ -169,7 +169,7 @@ const AssessmentModal = ({
                 onChange={(e) => onFormUpdate({ ...form, isRequired: e.target.checked })}
                 style={{ cursor: "pointer" }}
               />
-              <span style={{ textTransform: "none" }}>Bắt buộc (IsRequired)</span>
+              <span style={{ textTransform: "none" }}>{tr('Bắt buộc (IsRequired)')}</span>
             </label>
           </div>
         </div>
@@ -219,7 +219,7 @@ const ChecklistModal = ({
             className="close-btn"
             onClick={onCancel}
             type="button"
-            aria-label="Đóng"
+            aria-label={tr('Đóng')}
           >
             ×
           </button>
@@ -243,21 +243,21 @@ const ChecklistModal = ({
           )}
 
           <div className="form-group">
-            <label>Tên mục thực hành (ItemName)</label>
+            <label>{tr('Tên mục thực hành (ItemName)')}</label>
             <input
               type="text"
               value={form.itemName}
-              placeholder="VD: Ghi nhận và xử lý thông số chuyến bay"
+              placeholder={tr('VD: Ghi nhận và xử lý thông số chuyến bay')}
               onChange={(e) => onFormUpdate({ ...form, itemName: e.target.value })}
             />
           </div>
 
           <div className="form-group">
-            <label>Mô tả (Description)</label>
+            <label>{tr('Mô tả (Description)')}</label>
             <textarea
               value={form.description}
               rows={3}
-              placeholder="Mô tả yêu cầu / tiêu chí đánh giá"
+              placeholder={tr('Mô tả yêu cầu / tiêu chí đánh giá')}
               onChange={(e) => onFormUpdate({ ...form, description: e.target.value })}
               style={{
                 padding: "10px 14px",
@@ -272,7 +272,7 @@ const ChecklistModal = ({
           </div>
 
           <div className="form-group">
-            <label>Thứ tự hiển thị (DisplayOrder)</label>
+            <label>{tr('Thứ tự hiển thị (DisplayOrder)')}</label>
             <input
               type="number"
               min="0"
@@ -301,7 +301,7 @@ const ChecklistModal = ({
                 onChange={(e) => onFormUpdate({ ...form, isRequired: e.target.checked })}
                 style={{ cursor: "pointer" }}
               />
-              <span style={{ textTransform: "none" }}>Mục bắt buộc (bắt buộc Pass)</span>
+              <span style={{ textTransform: "none" }}>{tr('Mục bắt buộc (bắt buộc Pass)')}</span>
             </label>
           </div>
         </div>
@@ -1128,9 +1128,9 @@ const InstructorAssessmentStructure = () => {
           onConfirm={handleConfirmDelete}
           loading={deleting}
           confirmVariant="danger"
-          title="Xác nhận xóa"
+          title={tr('Xác nhận xóa')}
           message={confirmDelete.name}
-          bodyMessage="Mục này sẽ bị xóa vĩnh viễn. Bạn chắc chắn chứ?"
+          bodyMessage={tr('Mục này sẽ bị xóa vĩnh viễn. Bạn chắc chắn chứ?')}
           confirmText="XÓA"
         />
       )}

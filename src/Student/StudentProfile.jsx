@@ -169,7 +169,7 @@ const StudentProfile = () => {
       {/* ── Header ── */}
       <section className="student-welcome" style={{ marginBottom: 24 }}>
         <div className="student-welcome-left">
-          <p className="eyebrow">Student Portal</p>
+          <p className="eyebrow">{tr('Student Portal')}</p>
           <h1>{tr('Hồ sơ của tôi')}</h1>
           <p className="welcome-sub">
             {tr('Quản lý thông tin cá nhân, ngày sinh, số điện thoại và mật khẩu.')}

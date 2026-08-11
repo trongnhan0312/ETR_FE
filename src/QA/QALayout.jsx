@@ -28,12 +28,6 @@ const navigationGroups = [
       { label: 'RETAKE HISTORY', to: '/qa/retake-history' },
     ],
   },
-  {
-    label: 'Account',
-    items: [
-      { label: 'MY PROFILE', to: '/qa/profile' },
-    ],
-  },
 ];
 
 const QALayout = () => {

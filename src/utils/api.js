@@ -1,12 +1,8 @@
 import { translateVn } from "./translate";
 
-// --- API Base URLs ---
-// Chế độ dev: ưu tiên local trước, fallback sang deploy nếu local không phản hồi.
-// Chế độ production: chỉ gọi deploy để tránh dùng localhost.
-const API_BASE_URL_LOCAL =
-  import.meta.env.VITE_API_URL_LOCAL ||
-  import.meta.env.VITE_API_URL ||
-  "https://localhost:7169/api";
+// --- API Base URL ---
+// Theo yêu cầu: FE CHỈ gọi API đã deploy (Azure) — KHÔNG còn gọi API local,
+// áp dụng cho cả môi trường dev lẫn production.
 const API_BASE_URL_DEPLOY =
   import.meta.env.VITE_API_URL_DEPLOY ||
   "https://etrmanagement-be-fwhvagaxf3f3dmf0.southeastasia-01.azurewebsites.net/api";
@@ -14,25 +10,30 @@ const API_BASE_URL_DEPLOY =
 // Vite tự động nhận biết môi trường: import.meta.env.PROD === true khi build production
 const isProduction = import.meta.env.PROD;
 
-export const API_BASE_URLS = isProduction
-  ? [API_BASE_URL_DEPLOY]
-  : [API_BASE_URL_LOCAL, API_BASE_URL_DEPLOY];
+// Luôn chỉ có đúng 1 base URL: DEPLOY.
+export const API_BASE_URLS = [API_BASE_URL_DEPLOY];
 
 /**
- * Gán nhãn LOCAL/DEPLOY cho base URL — dùng để log rõ ràng frontend đang gọi API nào.
+ * Nhãn base URL — luôn là DEPLOY (FE chỉ gọi API đã deploy).
  */
-export const getApiBaseLabel = (baseUrl) => {
-  if (baseUrl === API_BASE_URL_LOCAL) return "LOCAL";
-  if (baseUrl === API_BASE_URL_DEPLOY) return "DEPLOY";
-  return "CUSTOM";
-};
+export const getApiBaseLabel = () => "DEPLOY";
 
-// ==================== Chế độ chọn base URL: KHÔNG trộn LOCAL/DEPLOY ====================
-// - PRODUCTION: luôn DEPLOY.
-// - DEV: tự khóa base URL đầu tiên phản hồi được (sticky) — mọi request sau đó chỉ dùng base đó.
-// - Bắt buộc thủ công bằng: localStorage.setItem("apiBaseMode", "local" | "deploy")
-const API_MODE_STORAGE_KEY = "apiBaseMode";
-const ACTIVE_BASE_URL_STORAGE_KEY = "activeApiBaseUrl";
+// ==================== Chế độ chọn base URL: CHỈ DEPLOY ====================
+// FE chỉ gọi đúng 1 base URL đã deploy (Azure) — không còn LOCAL, không fallback,
+// không khóa base theo phiên, không bắt buộc bằng localStorage.
+// (Giữ 2 hàm dưới đây để tương thích với code/tests cũ.)
+
+/** Danh sách base URL sẽ gọi — luôn chỉ có đúng 1: DEPLOY. */
+export const getApiBaseUrlCandidates = () => API_BASE_URLS;
+
+/** Base URL đang dùng (cho các tầng fetch riêng như auditorApi download) — luôn DEPLOY */
+export const getActiveApiBaseUrl = () => API_BASE_URL_DEPLOY;
+
+/** No-op giữ tương thích — FE không còn khóa/chuyển base URL trong phiên. */
+export const setActiveApiBaseUrl = () => null;
+
+/** No-op giữ tương thích — FE không còn bắt buộc base theo localStorage. */
+export const setApiBaseMode = () => null;
 
 const DEMO_DATA = {
   "/auth/login": {
@@ -297,183 +298,100 @@ const shouldUseDemoFallback = (endpoint, response, method) => {
   return response && !response.ok;
 };
 
-const getManualApiMode = () => {
-  try {
-    const v = localStorage.getItem(API_MODE_STORAGE_KEY);
-    if (v === "local") return "LOCAL";
-    if (v === "deploy") return "DEPLOY";
-  } catch {
-    /* bỏ qua nếu localStorage không khả dụng */
-  }
-  return null;
-};
-
-// Base URL đã khóa TRONG PHIÊN hiện tại — sau request đầu tiên thành công,
-// KHÔNG đổi sang base khác (tránh trộn LOCAL/DEPLOY giữa các request).
-// LƯU Ý: KHÔNG seed từ localStorage — nếu seed giá trị DEPLOY cũ từ phiên trước,
-// `npm run dev` sẽ mặc định dùng DEPLOY dù backend local đang chạy.
-let activeBaseUrl = null;
-
-export const getApiBaseUrlCandidates = () => {
-  if (isProduction) return [API_BASE_URL_DEPLOY];
-  const manual = getManualApiMode();
-  if (manual === "LOCAL") return [API_BASE_URL_LOCAL];
-  if (manual === "DEPLOY") return [API_BASE_URL_DEPLOY];
-
-  // Đã khóa base trong phiên này → base đó đứng đầu, base còn lại làm fallback
-  // (dùng khi base đã khóa bất ngờ không phản hồi được).
-  if (activeBaseUrl) {
-    return [
-      activeBaseUrl,
-      ...API_BASE_URLS.filter((url) => url !== activeBaseUrl),
-    ];
-  }
-
-  // Mở lại trang ở DEV: LUÔN thử LOCAL trước (kể cả phiên trước từng dùng DEPLOY),
-  // chỉ fallback sang DEPLOY khi LOCAL không phản hồi được.
-  return API_BASE_URLS;
-};
-
-export const setActiveApiBaseUrl = (baseUrl) => {
-  activeBaseUrl = baseUrl || null;
-  try {
-    if (activeBaseUrl) {
-      localStorage.setItem(ACTIVE_BASE_URL_STORAGE_KEY, activeBaseUrl);
-    } else {
-      localStorage.removeItem(ACTIVE_BASE_URL_STORAGE_KEY);
-    }
-  } catch {
-    /* bỏ qua nếu localStorage không khả dụng */
-  }
-  return activeBaseUrl;
-};
-
-export const setApiBaseMode = (mode) => {
-  try {
-    if (mode === null) {
-      localStorage.removeItem(API_MODE_STORAGE_KEY);
-    } else {
-      localStorage.setItem(API_MODE_STORAGE_KEY, mode);
-    }
-  } catch {
-    /* bỏ qua nếu localStorage không khả dụng */
-  }
-  return mode;
-};
-
-const resolveBaseUrlOrder = () => {
-  return getApiBaseUrlCandidates();
-};
-
-const lockBaseUrl = (baseUrl) => {
-  if (!baseUrl) return;
-  if (!activeBaseUrl || activeBaseUrl !== baseUrl) {
-    setActiveApiBaseUrl(baseUrl);
-    console.info(
-      `[API] 🔒 Đã khóa base URL: ${getApiBaseLabel(baseUrl)} (${baseUrl}) — MỌI request tiếp theo chỉ gọi base này.`,
-    );
-  }
-};
-
-/** Base URL đang dùng (cho các tầng fetch riêng như auditorApi download) */
-export const getActiveApiBaseUrl = () => {
-  const candidates = getApiBaseUrlCandidates();
-  return candidates[0] || API_BASE_URL_DEPLOY;
-};
-
-// --- Banner khởi động: log rõ chế độ + base URL sẽ dùng (LOCAL hay DEPLOY) ---
+// --- Banner khởi động: log rõ chế độ DEPLOY-ONLY ---
 if (typeof console !== "undefined") {
-  const mode = isProduction ? "PRODUCTION" : "DEV";
-  const manual = getManualApiMode();
-  const order = API_BASE_URLS.map((u) => `${getApiBaseLabel(u)} (${u})`).join(
-    " → ",
-  );
-  let detail;
-  if (isProduction) {
-    detail = "Bản PRODUCTION: chỉ gọi DEPLOY (Azure) — bỏ qua localhost.";
-  } else if (manual) {
-    detail = `Bắt buộc dùng ${manual} (apiBaseMode=${manual.toLowerCase()}) — bỏ qua auto-fallback.`;
-  } else {
-    detail = `Tự khóa base đầu tiên phản hồi được theo thứ tự: ${order} — sau đó MỌI request chỉ dùng base đó (không trộn LOCAL/DEPLOY).`;
-  }
   console.info(
-    `%c[API] Chế độ: ${mode}%c — ${detail}`,
+    `%c[API] Chế độ: DEPLOY-ONLY%c — MỌI request gọi API đã deploy (${API_BASE_URL_DEPLOY}). KHÔNG còn gọi API local.`,
     "color:#0a7d3f;font-weight:bold",
     "color:inherit",
   );
 }
 
 /**
- * Gọi API theo base URL đã khóa (hoặc tự khóa ở request đầu tiên).
- * KHÔNG fallback sang base khác sau khi đã khóa — tránh trộn LOCAL/DEPLOY.
+ * Gọi API — CHỈ dùng đúng 1 base URL DEPLOY (không còn fallback local).
  */
 async function fetchWithFallback(endpoint, fetchOptions, method, options) {
-  const urls = resolveBaseUrlOrder();
-  for (const baseUrl of urls) {
-    let response;
-    // Timeout 20s cho mỗi request — nếu backend treo (không phản hồi, không trả lỗi),
-    // fetch sẽ bị abort để FE hiển thị lỗi rõ ràng thay vì treo vô hạn.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
-    try {
-      const url = `${baseUrl}${endpoint}`;
-      console.log(
-        `[API ${method}] Requesting: ${getApiBaseLabel(baseUrl)} (${url})`,
-      );
-      response = await fetch(url, {
-        ...fetchOptions,
-        signal: controller.signal,
-      });
-    } catch (error) {
-      // Network error / timeout - server not reachable. Nếu đã khóa base thì KHÔNG đổi base khác.
-      console.warn(
-        `[API ${method}] ⚠️ Không tới được API ${getApiBaseLabel(baseUrl)} (${baseUrl}${endpoint}):`,
-        error.message,
-        urls.length > 1
-          ? "→ thử base URL kế tiếp (chỉ ở request đầu tiên)"
-          : "",
-      );
-      if (shouldUseDemoFallback(endpoint, { ok: false, status: 0 }, method)) {
-        return getDemoData(endpoint);
-      }
-      continue;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-    // Server đã phản hồi → khóa base URL này cho toàn bộ phiên làm việc
-    lockBaseUrl(baseUrl);
-    console.log(
-      `[API ${method}] ✅ Đang dùng API ${getApiBaseLabel(baseUrl)} cho ${endpoint}`,
-    );
+  const baseUrl = API_BASE_URL_DEPLOY;
+  // Timeout 20s — nếu backend treo (không phản hồi, không trả lỗi),
+  // fetch sẽ bị abort để FE hiển thị lỗi rõ ràng thay vì treo vô hạn.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  try {
+    const url = `${baseUrl}${endpoint}`;
+    console.log(`[API ${method}] Requesting: DEPLOY (${url})`);
+    const response = await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal,
+    });
+    console.log(`[API ${method}] ✅ Đang dùng API DEPLOY cho ${endpoint}`);
     return await handleResponse(response, method, endpoint, options, fetchOptions?.body);
+  } catch (error) {
+    // Network error / timeout - server not reachable.
+    console.warn(
+      `[API ${method}] ⚠️ Không tới được API DEPLOY (${baseUrl}${endpoint}):`,
+      error.message,
+    );
+    if (shouldUseDemoFallback(endpoint, { ok: false, status: 0 }, method)) {
+      return getDemoData(endpoint);
+    }
+    const errMsg = `Cannot reach API server for ${endpoint}`;
+    console.error(`[API ${method}] ${errMsg}`);
+    throw new Error(errMsg);
+  } finally {
+    clearTimeout(timeoutId);
   }
-  // All URLs failed with network errors
-  const errMsg = `Cannot reach any API server for ${endpoint}`;
-  console.error(`[API ${method}] ${errMsg}`);
-  throw new Error(errMsg);
 }
 
 /**
- * Clears authentication data and redirects to login page.
- * Called automatically when the API returns 401 (token expired/invalid).
+ * Utility to check if a JWT token is expired based on its payload exp claim.
  */
-const handleUnauthorized = () => {
+export const isTokenExpired = (token) => {
+  if (!token) return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false; // Non-JWT or demo token
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    if (payload && typeof payload.exp === 'number') {
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      return payload.exp < nowInSeconds;
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+ * Clears authentication data and redirects to login page.
+ * Called automatically when the API returns 401 or token expires.
+ */
+export const handleUnauthorized = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
-  // Only redirect if not already on the login page to avoid loops
-  if (window.location.pathname !== "/login") {
+  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
     window.location.href = "/login";
   }
 };
 
 const getAuthHeaders = (isFormData = false) => {
   const token = localStorage.getItem("token");
-  const headers = {};
+  if (token && isTokenExpired(token)) {
+    handleUnauthorized();
+    throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+  }
 
+  const headers = {};
   if (!isFormData) {
     headers["Content-Type"] = "application/json";
   }
-
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
@@ -491,16 +409,15 @@ const handleResponse = async (response, method, endpoint, options = {}, requestB
       return getDemoData(endpoint);
     }
 
-    // Auto-logout on 401 (token expired or invalid)
-    if (response.status === 401) {
-      if (!options.suppressAuthRedirect) {
-        handleUnauthorized();
-        throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    // Auto-logout on 401 (token expired or invalid) or 403 (unauthorized/token invalid)
+    if (response.status === 401 || response.status === 403) {
+      const token = localStorage.getItem("token");
+      if (response.status === 401 || (token && isTokenExpired(token))) {
+        if (!options.suppressAuthRedirect) {
+          handleUnauthorized();
+          throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        }
       }
-      // If suppressAuthRedirect, just throw without redirecting
-      const errText = await response.text().catch(() => "");
-      console.warn(`[API ${method}] 401 suppressed for ${endpoint}:`, errText);
-      throw new Error(errText || "Unauthorized");
     }
 
     const err = await response.text();
@@ -602,58 +519,47 @@ export const api = {
    * PhysicalFile/FileStream (api.get parse JSON nên không dùng được cho blob).
    */
   downloadFile: async (endpoint) => {
-    const urls = resolveBaseUrlOrder();
-    for (const baseUrl of urls) {
-      let response;
-      // Timeout 20s — tránh treo vô hạn khi backend không phản hồi
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
-      try {
-        const url = `${baseUrl}${endpoint}`;
-        console.log(
-          `[API DOWNLOAD] Requesting: ${getApiBaseLabel(baseUrl)} (${url})`,
-        );
-        response = await fetch(url, {
-          method: "GET",
-          headers: getAuthHeaders(),
-          signal: controller.signal,
-        });
-      } catch (error) {
-        // Network error / timeout — nếu đã khóa base thì KHÔNG đổi base khác
-        console.warn(
-          `[API DOWNLOAD] ⚠️ Không tới được API ${getApiBaseLabel(baseUrl)} (${baseUrl}${endpoint}):`,
-          error.message,
-          urls.length > 1
-            ? "→ thử base URL kế tiếp (chỉ ở request đầu tiên)"
-            : "",
-        );
-        continue;
-      } finally {
-        clearTimeout(timeoutId);
-      }
-      if (response.status === 401) {
-        handleUnauthorized();
-        throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
-      }
-      if (!response.ok) {
-        const err = await response.text().catch(() => "");
-        console.error(
-          `[API DOWNLOAD] Failed: Status ${response.status} for ${endpoint}:`,
-          err,
-        );
-        throw new Error(
-          err || `Download failed with status ${response.status}`,
-        );
-      }
-      lockBaseUrl(baseUrl);
-      console.log(
-        `[API DOWNLOAD] ✅ Đang dùng API ${getApiBaseLabel(baseUrl)} cho ${endpoint}`,
+    const baseUrl = API_BASE_URL_DEPLOY;
+    let response;
+    // Timeout 20s — tránh treo vô hạn khi backend không phản hồi
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    try {
+      const url = `${baseUrl}${endpoint}`;
+      console.log(`[API DOWNLOAD] Requesting: DEPLOY (${url})`);
+      response = await fetch(url, {
+        method: "GET",
+        headers: getAuthHeaders(),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      // Network error / timeout — CHỈ có 1 base URL nên báo lỗi luôn
+      console.warn(
+        `[API DOWNLOAD] ⚠️ Không tới được API DEPLOY (${baseUrl}${endpoint}):`,
+        error.message,
       );
-      return await response.blob();
+      const errMsg = `Cannot reach API server for ${endpoint}`;
+      console.error(`[API DOWNLOAD] ${errMsg}`);
+      throw new Error(errMsg);
+    } finally {
+      clearTimeout(timeoutId);
     }
-    const errMsg = `Cannot reach any API server for ${endpoint}`;
-    console.error(`[API DOWNLOAD] ${errMsg}`);
-    throw new Error(errMsg);
+    if (response.status === 401) {
+      handleUnauthorized();
+      throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    }
+    if (!response.ok) {
+      const err = await response.text().catch(() => "");
+      console.error(
+        `[API DOWNLOAD] Failed: Status ${response.status} for ${endpoint}:`,
+        err,
+      );
+      throw new Error(
+        err || `Download failed with status ${response.status}`,
+      );
+    }
+    console.log(`[API DOWNLOAD] ✅ Đang dùng API DEPLOY cho ${endpoint}`);
+    return await response.blob();
   },
 };
 

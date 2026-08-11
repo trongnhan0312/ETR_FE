@@ -11,37 +11,31 @@ import {
   FaShieldAlt,
   FaUser,
 } from "react-icons/fa";
-import { getApiBaseUrlCandidates, setActiveApiBaseUrl } from "../utils/api";
+import { getApiBaseUrlCandidates } from "../utils/api";
 import { useLanguage } from "../context/LanguageContext";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import "./login.scss";
 
-/** Helper: try fetching from each base URL until one succeeds (network-level retry only) */
+/** Helper: gọi API deploy duy nhất (FE không còn fallback local) */
 async function tryFetchWithFallback(path, fetchOptions) {
-  const urls = getApiBaseUrlCandidates();
-  for (const baseUrl of urls) {
-    // Timeout cho mỗi base URL (12s) — nếu backend treo (không phản hồi, không trả lỗi),
-    // FE phải bỏ qua và thử base kế tiếp / báo lỗi rõ ràng, KHÔNG được spinner vô hạn.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
-    try {
-      const url = `${baseUrl}${path}`;
-      console.log(`[Fetch] Trying: ${url}`);
-      const res = await fetch(url, {
-        ...fetchOptions,
-        signal: controller.signal,
-      });
-      if (res.ok || res.status >= 400) {
-        setActiveApiBaseUrl(baseUrl);
-        return res;
-      }
-    } catch (err) {
-      console.warn(`[Fetch] Cannot reach ${baseUrl}${path}:`, err.message);
-    } finally {
-      clearTimeout(timeoutId);
-    }
+  const baseUrl = getApiBaseUrlCandidates()[0];
+  // Timeout 12s — nếu backend treo (không phản hồi, không trả lỗi),
+  // FE phải báo lỗi rõ ràng, KHÔNG được spinner vô hạn.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  try {
+    const url = `${baseUrl}${path}`;
+    console.log(`[Fetch] Trying: ${url}`);
+    return await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    console.warn(`[Fetch] Cannot reach ${baseUrl}${path}:`, err.message);
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return null;
 }
 
 const VALIDATION_RULES = {
@@ -376,6 +370,16 @@ const Login = () => {
 
   return (
     <div className="login-container">
+      <button
+        type="button"
+        className="login-home-btn"
+        onClick={() => navigate("/")}
+        title={tr("Quay về trang chủ")}
+      >
+        <FaArrowLeft />
+        <span>{tr("Quay về trang chủ")}</span>
+      </button>
+
       <div className="login-lang-switcher">
         <LanguageSwitcher dark />
       </div>
@@ -426,13 +430,13 @@ const Login = () => {
         <div className="logo-section login-logo">
           <div className="logo-text">
             <span className="brand-name">ETR Aviation Training</span>
-            <span className="brand-sub">Electronic Training Record Portal</span>
+            <span className="brand-sub">{tr('Electronic Training Record Portal')}</span>
           </div>
         </div>
 
         <div className="intro-copy">
-          <span className="eyebrow">Aviation training operations</span>
-          <h1>Secure access for ETR administration and training workflows.</h1>
+          <span className="eyebrow">{tr('Aviation training operations')}</span>
+          <h1>{tr('Secure access for ETR administration and training workflows.')}</h1>
           <p>
             Manage learners, courses, attendance, evidence, and ETR approval
             flows from one central aviation training portal.
@@ -656,10 +660,31 @@ const Login = () => {
 
                 <div className="login-divider" aria-hidden="true" />
 
-                <p className="assistance-text">Need assistance?</p>
+                <p className="assistance-text">{tr('Need assistance?')}</p>
                 <p className="assistance-text assistance-text--muted">
-                  Contact your system administrator.
+                  {tr('Contact your system administrator.')}
                 </p>
+
+                <div style={{ marginTop: "16px", textAlign: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#c5a059",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <FaArrowLeft />
+                    <span>{tr("Quay về trang chủ")}</span>
+                  </button>
+                </div>
               </form>
             </>
           )}

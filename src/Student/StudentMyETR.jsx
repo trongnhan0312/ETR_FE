@@ -197,7 +197,7 @@ const DetailView = ({ etr, onBack }) => {
       {s.historyLogs && s.historyLogs.length > 0 && (
         <section className="student-info-card" style={{ marginBottom: 24 }}>
           <p className="info-eyebrow">{tr('Lịch sử')}</p>
-          <h3>Audit Trail</h3>
+          <h3>{tr('Audit Trail')}</h3>
           <div className="student-audit-list">
             {s.historyLogs.map((log, idx) => (
               <div key={idx} className="student-audit-item">
@@ -301,7 +301,7 @@ const TrainingHistory = () => {
                 </div>
                 {record.previousRecordId && (
                   <div className="student-history-detail">
-                    <span className="student-history-label">ETR trước</span>
+                    <span className="student-history-label">{tr('ETR trước')}</span>
                     <span className="student-history-value">
                       <span className="student-history-prev-link">#{record.previousRecordId}</span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 4, color: '#c5a059' }}>
@@ -417,7 +417,7 @@ const StudentMyETR = () => {
       {/* Header */}
       <section className="student-welcome" style={{ marginBottom: 20 }}>
         <div className="student-welcome-left">
-          <p className="eyebrow">Student Portal</p>
+          <p className="eyebrow">{tr('Student Portal')}</p>
           <h1>{tr('Hồ sơ ETR của tôi')}</h1>
           <p className="welcome-sub">{tr('Danh sách các hồ sơ đào tạo điện tử (ETR) của bạn.')}</p>
         </div>
@@ -488,7 +488,7 @@ const StudentMyETR = () => {
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <div className="student-table-grid" style={{ gridTemplateColumns: '48px 1.2fr 1.2fr 120px 140px 100px' }}>
-                  <div className="student-table-cell student-table-cell--header">STT</div>
+                  <div className="student-table-cell student-table-cell--header">{tr('STT')}</div>
                   <div className="student-table-cell student-table-cell--header">{tr('Mã hồ sơ')}</div>
                   <div className="student-table-cell student-table-cell--header">{tr('Ghi danh')}</div>
                   <div className="student-table-cell student-table-cell--header">{tr('Ngày')}</div>

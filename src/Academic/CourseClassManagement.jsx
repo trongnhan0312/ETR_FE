@@ -563,45 +563,6 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
             </div>
           </div>
         </div>
-
-        <div className="featured-course-card">
-          <div className="featured-left">
-            <div className="featured-header">
-              <div className="featured-course-title">
-                <h2>{tr('Kỹ thuật Bảo trì Tàu bay A320')}</h2>
-              </div>
-              <div className="featured-badge">
-                <span>{tr('ĐANG TUYỂN SINH')}</span>
-              </div>
-            </div>
-
-            <p className="featured-desc">
-              {tr('Chương trình đào tạo chuyên sâu về hệ thống cơ khí, thủy lực và điện tử hàng không dành cho dòng tàu bay phản lực Airbus A320.')}
-            </p>
-
-            <div className="featured-footer">
-              <div className="student-avatars">
-                <div className="avatar" style={{ backgroundColor: '#c5a059' }}>T</div>
-                <div className="avatar" style={{ backgroundColor: '#002147' }}>N</div>
-                <div className="avatar" style={{ backgroundColor: '#475569' }}>H</div>
-                <div className="avatar-more">+12</div>
-              </div>
-              <button className="featured-details-link" type="button">
-                <span>{tr('Chi tiết')}</span>
-                <svg width="5" height="8" viewBox="0 0 5 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3.06667 4L0 0.933333L0.933333 0L4.93333 4L0.933333 8L0 7.06667L3.06667 4Z" fill="currentColor" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div className="featured-right">
-            <div className="featured-image-gradient" />
-            <div className="featured-label-badge">
-              <span>{tr('TIÊU BIỂU')}</span>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* Loading State */}

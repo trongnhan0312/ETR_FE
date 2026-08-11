@@ -10,9 +10,9 @@ const PromptModal = ({
   isOpen,
   onClose,
   onConfirm,
-  title = "Nhập thông tin",
+  title = tr('Nhập thông tin'),
   message = "",
-  placeholder = "Nhập nội dung...",
+  placeholder = tr('Nhập nội dung...'),
   confirmText = "XÁC NHẬN",
   cancelText = "HỦY BỎ",
   variant = "primary", // "primary" | "danger" | "gold"
@@ -144,7 +144,7 @@ const PromptModal = ({
                 color: "#ffffff",
               }}
             >
-              {title}
+              {tr(title)}
             </h3>
             {message && (
               <p
@@ -155,7 +155,7 @@ const PromptModal = ({
                   lineHeight: 1.5,
                 }}
               >
-                {message}
+                {tr(message)}
               </p>
             )}
           </div>
@@ -172,7 +172,7 @@ const PromptModal = ({
             autoFocus
             value={value}
             onChange={handleInput}
-            placeholder={placeholder}
+            placeholder={tr(placeholder)}
             maxLength={maxLength}
             rows={3}
             onKeyDown={(e) => {
@@ -243,7 +243,7 @@ const PromptModal = ({
               e.currentTarget.style.color = "#002147";
             }}
           >
-            {cancelText}
+            {tr(cancelText)}
           </button>
 
           <button
@@ -264,7 +264,7 @@ const PromptModal = ({
               border: "none"
             }}
           >
-            {confirmText}
+            {tr(confirmText)}
           </button>
         </div>
       </div>

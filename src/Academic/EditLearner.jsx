@@ -133,15 +133,15 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Breadcrumb Area */}
       <nav className="breadcrumb-nav">
-        <span className="breadcrumb-item" onClick={onCancel} style={{ cursor: 'pointer' }}>DASHBOARD</span>
+        <span className="breadcrumb-item" onClick={onCancel} style={{ cursor: 'pointer' }}>{tr('DASHBOARD')}</span>
         <svg width="4" height="6" viewBox="0 0 4 6" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M2.3 3L0 0.7L0.7 0L3.7 3L0.7 6L0 5.3L2.3 3Z" fill="currentColor" />
         </svg>
-        <span className="breadcrumb-item" onClick={onCancel} style={{ cursor: 'pointer' }}>LEARNERS</span>
+        <span className="breadcrumb-item" onClick={onCancel} style={{ cursor: 'pointer' }}>{tr('LEARNERS')}</span>
         <svg width="4" height="6" viewBox="0 0 4 6" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M2.3 3L0 0.7L0.7 0L3.7 3L0.7 6L0 5.3L2.3 3Z" fill="currentColor" />
         </svg>
-        <span className="breadcrumb-item active">UPDATE PROFILE</span>
+        <span className="breadcrumb-item active">{tr('UPDATE PROFILE')}</span>
       </nav>
 
       {/* Page Title */}

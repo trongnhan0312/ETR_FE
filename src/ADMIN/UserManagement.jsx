@@ -22,6 +22,7 @@ const UserManagement = () => {
   // Create Form State
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('Default@123');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -374,7 +375,7 @@ const handleEditRoleChange = (newRoleId) => {
       } else if (type === 'delete') {
         await api.delete(`/Accounts/${user.accountId}`);
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-        toast.success("Soft Delete", trt('softDeletedAccount', { username: user.username }));
+        toast.success(tr("Soft Delete"), trt('softDeletedAccount', { username: user.username }));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
         toast.success(tr("Kích hoạt thành công"), trt('activatedAccount', { username: user.username }));
@@ -416,32 +417,32 @@ const handleEditRoleChange = (newRoleId) => {
     <div className="page-shell">
       <section className="page-header-card">
         <div>
-          <p className="eyebrow">Administrator Management</p>
-          <h1>User Management</h1>
+          <p className="eyebrow">{tr('Administrator Management')}</p>
+          <h1>{tr('User Management')}</h1>
           <p className="page-description">
             {tr('Quản lý tài khoản hệ thống: Tạo mới, cập nhật hồ sơ, đổi vai trò (Role), phòng ban (Department), vô hiệu hóa (Soft Delete) và kích hoạt lại tài khoản.')}
           </p>
         </div>
 
         <button className="primary-btn" type="button" onClick={handleOpenCreateModal}>
-          + Create User
+          {tr('+ Create User')}
         </button>
       </section>
 
       <section className="split-panel">
         <div className="info-card">
-          <p className="section-label">Functions</p>
+          <p className="section-label">{tr('Functions')}</p>
           <div className="pill-row">
-            <span className="tag-chip" style={{ cursor: 'pointer' }} onClick={handleOpenCreateModal}>+ Create User</span>
-            <span className="tag-chip">Edit User & Role</span>
-            <span className="tag-chip">Department Assignment</span>
-            <span className="tag-chip">Soft Delete (Inactive)</span>
-            <span className="tag-chip">Activate Account</span>
+            <span className="tag-chip" style={{ cursor: 'pointer' }} onClick={handleOpenCreateModal}>{tr('+ Create User')}</span>
+            <span className="tag-chip">{tr('Edit User & Role')}</span>
+            <span className="tag-chip">{tr('Department Assignment')}</span>
+            <span className="tag-chip">{tr('Soft Delete (Inactive)')}</span>
+            <span className="tag-chip">{tr('Activate Account')}</span>
           </div>
         </div>
 
         <div className="info-card">
-          <p className="section-label">Filter by Role</p>
+          <p className="section-label">{tr('Filter by Role')}</p>
           <div className="pill-row" style={{ marginTop: '8px' }}>
             {['ALL', 'Admin', 'Instructor', 'QA', 'Academic', 'Student', 'TrainingManager', 'Audit'].map((r) => (
               <span
@@ -465,7 +466,7 @@ const handleEditRoleChange = (newRoleId) => {
       <section className="table-section">
         <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p className="section-label">System Accounts</p>
+            <p className="section-label">{tr('System Accounts')}</p>
             <h2>{tr('Danh sách tài khoản')} ({filteredUsers.length})</h2>
           </div>
           <input
@@ -486,14 +487,14 @@ const handleEditRoleChange = (newRoleId) => {
 
         <div className="data-table user-table" style={{ marginTop: '16px' }}>
           <div className="table-header table-layout user-layout" style={{ gridTemplateColumns: '1.1fr 1.2fr 1.2fr 0.9fr 1.1fr 0.8fr 0.8fr 1.2fr' }}>
-            <div>Username</div>
-            <div>Full Name</div>
-            <div>Email</div>
-            <div>Role</div>
-            <div>Department</div>
-            <div>Gender</div>
-            <div>Status</div>
-            <div style={{ textAlign: 'right' }}>Actions</div>
+            <div>{tr('Username')}</div>
+            <div>{tr('Full Name')}</div>
+            <div>{tr('Email')}</div>
+            <div>{tr('Role')}</div>
+            <div>{tr('Department')}</div>
+            <div>{tr('Gender')}</div>
+            <div>{tr('Status')}</div>
+            <div style={{ textAlign: 'right' }}>{tr('Actions')}</div>
           </div>
 
           {loading ? (
@@ -529,7 +530,7 @@ const handleEditRoleChange = (newRoleId) => {
                       style={{ cursor: 'pointer', border: 'none' }}
                       title={tr('Click để toggle Active/Inactive')}
                     >
-                      {isInactive ? 'Inactive' : 'Active'}
+                      {isInactive ? tr('Inactive') : tr('Active')}
                     </button>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -539,7 +540,7 @@ const handleEditRoleChange = (newRoleId) => {
                       onClick={() => handleOpenEditModal(user)}
                       style={{ padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
                     >
-                      Edit
+                      {tr('Edit')}
                     </button>
                     {isInactive ? (
                       <button
@@ -556,7 +557,7 @@ const handleEditRoleChange = (newRoleId) => {
                           fontWeight: '600'
                         }}
                       >
-                        Activate Account
+                        {tr('Activate Account')}
                       </button>
                     ) : (
                       <button
@@ -572,7 +573,7 @@ const handleEditRoleChange = (newRoleId) => {
                           cursor: 'pointer'
                         }}
                       >
-                        Delete
+                        {tr('Delete')}
                       </button>
                     )}
                   </div>
@@ -610,13 +611,43 @@ const handleEditRoleChange = (newRoleId) => {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Mật khẩu *')}</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    style={{ width: '100%', padding: '8px 38px 8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? tr('Ẩn mật khẩu') : tr('Hiện mật khẩu')}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '4px',
+                    }}
+                  >
+                    {showPassword ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -649,13 +680,13 @@ const handleEditRoleChange = (newRoleId) => {
                     }}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                   >
-                    <option value="1">Admin</option>
-                    <option value="2">Instructor</option>
-                    <option value="3">QA</option>
-                    <option value="4">Academic</option>
-                    <option value="5">Training Manager</option>
-                    <option value="6">Student</option>
-                    <option value="7">Audit</option>
+                    <option value="1">{tr('Admin')}</option>
+                    <option value="2">{tr('Instructor')}</option>
+                    <option value="3">{tr('QA')}</option>
+                    <option value="4">{tr('Academic')}</option>
+                    <option value="5">{tr('Training Manager')}</option>
+                    <option value="6">{tr('Student')}</option>
+                    <option value="7">{tr('Audit')}</option>
                   </select>
                 </div>
 
@@ -747,7 +778,7 @@ const handleEditRoleChange = (newRoleId) => {
 
             <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Họ và tên *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Họ và tên *')}</label>
                 <input
                   type="text"
                   required
@@ -806,7 +837,7 @@ const handleEditRoleChange = (newRoleId) => {
 )}
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Email</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Email')}</label>
                 <input
                   type="email"
                   value={editEmail}
@@ -816,7 +847,7 @@ const handleEditRoleChange = (newRoleId) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Số điện thoại</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Số điện thoại')}</label>
                 <input
                   type="text"
                   value={editPhone}
@@ -826,15 +857,15 @@ const handleEditRoleChange = (newRoleId) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Giới tính')}</label>
                 <select
                   value={editGender}
                   onChange={(e) => setEditGender(e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                 >
-                  <option value="Male">Nam (Male)</option>
-                  <option value="Female">Nữ (Female)</option>
-                  <option value="Other">Khác (Other)</option>
+                  <option value="Male">{tr('Nam (Male)')}</option>
+                  <option value="Female">{tr('Nữ (Female)')}</option>
+                  <option value="Other">{tr('Khác (Other)')}</option>
                 </select>
               </div>
 
@@ -844,7 +875,7 @@ const handleEditRoleChange = (newRoleId) => {
                   onClick={() => setIsEditOpen(false)}
                   style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
                 >
-                  Hủy
+                  {tr('Hủy')}
                 </button>
                 <button
                   type="submit"

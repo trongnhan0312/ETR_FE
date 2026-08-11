@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 
 const PublicFooter = () => {
   const navigate = useNavigate();
+  const { tr } = useLanguage();
 
   return (
     <footer className="landing-footer">
@@ -20,45 +22,45 @@ const PublicFooter = () => {
             </div>
           </div>
           <p className="footer-tagline">
-            The enterprise Electronic Training Record platform for aviation. Certification, competency, and compliance — audit-ready by default.
+            {tr('The enterprise Electronic Training Record platform for aviation. Certification, competency, and compliance — audit-ready by default.')}
           </p>
         </div>
 
         <div className="footer-links-grid">
           <div className="link-col">
-            <h4>PLATFORM</h4>
-            <Link to="/records">Records</Link>
-            <Link to="/competency">Competency</Link>
-            <Link to="/compliance">Compliance</Link>
-            <Link to="/analytics">Analytics</Link>
-            <Link to="/integrations">Integrations</Link>
+            <h4>{tr('PLATFORM')}</h4>
+            <Link to="/records">{tr('Records')}</Link>
+            <Link to="/competency">{tr('Competency')}</Link>
+            <Link to="/compliance">{tr('Compliance')}</Link>
+            <Link to="/analytics">{tr('Analytics')}</Link>
+            <Link to="/integrations">{tr('Integrations')}</Link>
           </div>
 
           <div className="link-col">
-            <h4>COMPANY</h4>
-            <Link to="/about">About</Link>
-            <Link to="/customers">Customers</Link>
-            <Link to="/careers">Careers</Link>
-            <Link to="/newsroom">Newsroom</Link>
+            <h4>{tr('COMPANY')}</h4>
+            <Link to="/about">{tr('About')}</Link>
+            <Link to="/customers">{tr('Customers')}</Link>
+            <Link to="/careers">{tr('Careers')}</Link>
+            <Link to="/newsroom">{tr('Newsroom')}</Link>
           </div>
 
           <div className="link-col">
-            <h4>RESOURCES</h4>
-            <Link to="/docs">Docs</Link>
-            <Link to="/security">Security</Link>
-            <Link to="/regulatory-library">Regulatory Library</Link>
-            <Link to="/contact">Contact</Link>
+            <h4>{tr('RESOURCES')}</h4>
+            <Link to="/docs">{tr('Docs')}</Link>
+            <Link to="/security">{tr('Security')}</Link>
+            <Link to="/regulatory-library">{tr('Regulatory Library')}</Link>
+            <Link to="/contact">{tr('Contact')}</Link>
           </div>
         </div>
       </div>
 
       <div className="footer-bottom">
-        <span className="copyright">&copy; {new Date().getFullYear()} ETR Aviation, Inc. All rights reserved.</span>
+        <span className="copyright">&copy; {new Date().getFullYear()} ETR Aviation, Inc. {tr('All rights reserved.')}</span>
         <div className="legal-links">
-          <Link to="/security">Privacy</Link>
-          <Link to="/docs">Terms</Link>
-          <Link to="/security">Security</Link>
-          <Link to="/contact">Status</Link>
+          <Link to="/security">{tr('Privacy')}</Link>
+          <Link to="/docs">{tr('Terms')}</Link>
+          <Link to="/security">{tr('Security')}</Link>
+          <Link to="/contact">{tr('Status')}</Link>
         </div>
       </div>
     </footer>

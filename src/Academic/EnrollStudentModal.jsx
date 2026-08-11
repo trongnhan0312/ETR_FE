@@ -395,7 +395,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px', color: '#334155' }}>
                   <div><strong>{tr('Họ và tên')}:</strong> {selectedStudentObj.fullName}</div>
                   <div><strong>{tr('Mã HV')}:</strong> {selectedStudentObj.userCode}</div>
-                  <div><strong>Email/Username:</strong> {selectedStudentObj.email}</div>
+                  <div><strong>{tr('Email/Username:')}</strong> {selectedStudentObj.email}</div>
                   <div><strong>{tr('Tài khoản ID')}:</strong> #{selectedStudentObj.accountId}</div>
                 </div>
               </div>

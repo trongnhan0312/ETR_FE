@@ -1628,13 +1628,9 @@
 
 .courses-dashboard-top {
   display: grid;
-  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 20px;
   align-items: stretch;
-
-  @media (max-width: 992px) {
-    grid-template-columns: 1fr;
-  }
 }
 
 .stats-card-dark {

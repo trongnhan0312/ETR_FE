@@ -137,7 +137,7 @@ const StudentDashboard = () => {
       {/* ── Welcome Hero ── */}
       <section className="student-welcome">
         <div className="student-welcome-left">
-          <p className="eyebrow">Student Portal</p>
+          <p className="eyebrow">{tr('Student Portal')}</p>
           <h1>{tr('Xin chào, ')}{userName}</h1>
           <p className="welcome-sub">
             {tr('Theo dõi tiến độ đào tạo, kết quả học tập và hồ sơ ETR của bạn.')}
@@ -181,7 +181,7 @@ const StudentDashboard = () => {
           <div style={{ overflowX: 'auto' }}>
             <div className="student-table-grid" style={{ gridTemplateColumns: '48px 1.2fr 1.8fr 120px 140px 100px' }}>
               {/* Header */}
-              <div className="student-table-cell student-table-cell--header">STT</div>
+              <div className="student-table-cell student-table-cell--header">{tr('STT')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Mã hồ sơ')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Ghi danh')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Ngày')}</div>

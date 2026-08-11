@@ -126,7 +126,7 @@ const StudentLayout = () => {
             </div>
             <div className="brand-text">
               <div className="brand-title">ETR</div>
-              <div className="brand-subtitle">Student Portal</div>
+              <div className="brand-subtitle">{tr('Student Portal')}</div>
             </div>
           </div>
 
@@ -248,7 +248,7 @@ const StudentLayout = () => {
             <button
               className="notification-btn"
               type="button"
-              aria-label="Notifications"
+              aria-label={tr('Notifications')}
             >
               <svg
                 width="16"

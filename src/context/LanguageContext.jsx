@@ -20,11 +20,16 @@ export const LanguageProvider = ({ children }) => {
     setLang((prev) => (prev === 'en' ? 'vi' : 'en'));
   };
 
-  /** Dịch chuỗi tĩnh: nguồn là tiếng Việt, hiển thị EN khi lang=en, VN khi lang=vi */
+  /** Dịch chuỗi tĩnh: tự động chuyển sang EN khi lang=en, và VN khi lang=vi, áp dụng cho cả chuỗi nguồn tiếng Việt và tiếng Anh */
   const tr = (text) => {
     if (typeof text !== 'string' || !text) return text;
-    if (lang === 'vi') return text;
-    return translateVn(text);
+    if (lang === 'en') {
+      const translated = translateVn(text);
+      return translated !== undefined ? translated : text;
+    } else {
+      const translated = translateEn(text);
+      return translated !== undefined ? translated : text;
+    }
   };
 
   /** Dịch chuỗi động theo key + params */
@@ -33,17 +38,16 @@ export const LanguageProvider = ({ children }) => {
     return renderTemplate(template, params);
   };
 
-  /** Dịch chuỗi nguồn tiếng ANH → VN (dùng cho các khu viết sẵn tiếng Anh như Auditor).
-   *  Khi lang=en trả nguyên bản tiếng Anh; khi lang=vi tra EN_TO_VN. */
+  /** Dịch chuỗi nguồn tiếng ANH / VI — đồng bộ với tr */
   const trEn = (text) => {
-    if (typeof text !== 'string' || !text) return text;
-    if (lang === 'en') return text;
-    return translateEn(text);
+    return tr(text);
   };
 
   /** Dịch theo key (giữ tương thích với dictionary cũ) */
   const t = (key) => {
-    return DICTIONARY[lang]?.[key] ?? DICTIONARY.en?.[key] ?? DICTIONARY.vi?.[key] ?? key;
+    const dictMatch = DICTIONARY[lang]?.[key] ?? DICTIONARY.en?.[key] ?? DICTIONARY.vi?.[key];
+    if (dictMatch !== undefined) return dictMatch;
+    return tr(key);
   };
 
   return (

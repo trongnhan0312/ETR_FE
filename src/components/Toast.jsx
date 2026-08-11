@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLanguage } from '../context/LanguageContext';
 
 const TOAST_TYPES = {
   success: {
@@ -48,6 +49,7 @@ const TOAST_TYPES = {
 };
 
 const ToastItem = ({ toast, onDismiss }) => {
+  const { tr } = useLanguage();
   const { id, type, title, message, duration = 4000 } = toast;
   const config = TOAST_TYPES[type] || TOAST_TYPES.success;
 
@@ -111,7 +113,7 @@ const ToastItem = ({ toast, onDismiss }) => {
             lineHeight: 1.4,
           }}
         >
-          {title}
+          {tr(title)}
         </p>
         {message && (
           <p
@@ -122,7 +124,7 @@ const ToastItem = ({ toast, onDismiss }) => {
               lineHeight: 1.4,
             }}
           >
-            {message}
+            {tr(message)}
           </p>
         )}
       </div>

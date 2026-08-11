@@ -12,6 +12,34 @@
   color: #ffffff;
 }
 
+/* Nút quay về trang chủ — góc trên bên trái */
+.login-home-btn {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(212, 175, 55, 0.5);
+    color: #d4af37;
+    transform: translateX(-2px);
+  }
+}
+
 /* Nút chuyển ngôn ngữ — góc trên bên phải */
 .login-lang-switcher {
   position: absolute;

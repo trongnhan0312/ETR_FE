@@ -68,12 +68,17 @@ import AuditorExportPackages from './Auditor/AuditorExportPackages';
 import AuditorProfile from './Auditor/AuditorProfile';
 import './App.css';
 
-// Protected Route Guard based on role stored in localStorage
+import { useEffect } from 'react';
+import { isTokenExpired, handleUnauthorized } from './utils/api';
+
+// Protected Route Guard based on role stored in localStorage and token expiry
 const ProtectedRoute = ({ allowedRoles }) => {
 	const token = localStorage.getItem('token');
 	const userJson = localStorage.getItem('user');
 
-	if (!token || !userJson) {
+	if (!token || !userJson || isTokenExpired(token)) {
+		localStorage.removeItem('token');
+		localStorage.removeItem('user');
 		return <Navigate to="/login" replace />;
 	}
 
@@ -102,11 +107,33 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
 		return <Outlet />;
 	} catch (e) {
+		localStorage.removeItem('token');
+		localStorage.removeItem('user');
 		return <Navigate to="/login" replace />;
 	}
 };
 
 function App() {
+	useEffect(() => {
+		// Tự động kiểm tra hạn Token định kỳ & khi chuyển tab/window focus cho TẤT CẢ các Role
+		const checkTokenExpiry = () => {
+			const token = localStorage.getItem('token');
+			if (token && isTokenExpired(token)) {
+				console.warn('Phiên làm việc hết hạn. Tự động chuyển về trang đăng nhập.');
+				handleUnauthorized();
+			}
+		};
+
+		checkTokenExpiry();
+		const intervalId = setInterval(checkTokenExpiry, 5000);
+		window.addEventListener('focus', checkTokenExpiry);
+
+		return () => {
+			clearInterval(intervalId);
+			window.removeEventListener('focus', checkTokenExpiry);
+		};
+	}, []);
+
 	return (
 		<BrowserRouter>
 			<Routes>
