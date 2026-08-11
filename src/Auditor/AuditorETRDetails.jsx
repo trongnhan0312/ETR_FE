@@ -57,11 +57,11 @@ const AuditorETRDetails = () => {
     setExporting(true);
     try {
       await exportPdf({ etrId, name: `${etrId}_Compliance_Dossier.pdf` });
-      toast.success(tr("Xuất PDF thành công"), tr("Hồ sơ tuân thủ đã được xuất ra Training Package."));
+      toast.success(tr("Xuất PDF thành công"));
       navigate('/auditor/export-packages');
     } catch (err) {
       console.error('Export PDF failed:', err);
-      toast.error(tr("Xuất PDF thất bại"), err.message || tr('Tạo file PDF thất bại. Vui lòng thử lại sau.'));
+      toast.error(tr("Xuất PDF thất bại"));
     } finally {
       setExporting(false);
     }

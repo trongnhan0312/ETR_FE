@@ -50,7 +50,8 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
             return {
               sessionId: s.sessionId,
               stt: String(idx + 1).padStart(2, '0'),
-              date: s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '',
+              // SessionDate có thể null (buổi nháp chưa xếp lịch) → hiển thị TBA
+              date: s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : 'TBA',
               name: s.sessionTitle || `Buổi ${idx + 1}`,
               instructor: classInstructor,
               attendance: totalCount > 0 ? `${presentCount}/${totalCount}` : '0/0',

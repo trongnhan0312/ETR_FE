@@ -6,7 +6,7 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
 
 const EtrManagement = () => {
-  const { tr, trt } = useLanguage();
+  const { tr } = useLanguage();
   const [etrRecords, setEtrRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [auditTrail, setAuditTrail] = useState([]);
@@ -386,29 +386,19 @@ const EtrManagement = () => {
         : null;
 
       if (!enrollment) {
-        toast.error(
-          tr("Không tìm thấy ghi danh"),
-          tr(
-            "Không tìm thấy thông tin ghi danh của học viên này. Vui lòng ghi danh trước.",
-          ),
-        );
+        toast.error(tr("Không tìm thấy ghi danh"));
         return;
       }
 
       // ETR tự động được tạo khi Enrollment được tạo thành công (backend auto-generates)
       // Nếu ETR chưa tồn tại, hệ thống sẽ tự động tạo khi ghi danh
       // Chỉ cần refresh dữ liệu để hiển thị ETR mới
-      toast.success(
-        tr("ETR tự động tạo"),
-        tr(
-          "ETR được tự động tạo khi ghi danh. Vui lòng kiểm tra lại danh sách hoặc tạo Enrollment mới.",
-        ),
-      );
+      toast.success(tr("ETR tự động tạo"));
       await refreshData();
       setIsCreateOpen(false);
     } catch (error) {
       console.error("Error:", error);
-      toast.error(tr("Lỗi"), error.message || tr("Lỗi không xác định"));
+      toast.error(tr("Lỗi"));
     }
   };
 
@@ -427,17 +417,11 @@ const EtrManagement = () => {
 
     try {
       if (!uploadFile) {
-        toast.warning(
-          tr("Thiếu tệp tin"),
-          tr("Vui lòng chọn tệp tin trước khi tải lên."),
-        );
+        toast.warning(tr("Thiếu tệp tin"));
         return;
       }
       if (!uploadEvidenceTypeId) {
-        toast.warning(
-          tr("Thiếu loại minh chứng"),
-          tr("Vui lòng chọn loại minh chứng."),
-        );
+        toast.warning(tr("Thiếu loại minh chứng"));
         return;
       }
 
@@ -448,21 +432,11 @@ const EtrManagement = () => {
       const subjectResults = etrDetail?.subjectResults || [];
       const subjectResultId = subjectResults[0]?.subjectResultId;
       if (!subjectResultId) {
-        toast.warning(
-          tr("Chưa có kết quả môn học"),
-          tr(
-            "ETR chưa có kết quả môn học nào để gắn minh chứng. Vui lòng nhập điểm đánh giá trước.",
-          ),
-        );
+        toast.warning(tr("Chưa có kết quả môn học"));
         return;
       }
       if (!selectedRecord.accountId) {
-        toast.error(
-          tr("Thiếu thông tin học viên"),
-          tr(
-            "Không tìm thấy AccountId của học viên (thiếu enrollment hợp lệ). Vui lòng kiểm tra ghi danh.",
-          ),
-        );
+        toast.error(tr("Thiếu thông tin học viên"));
         return;
       }
 
@@ -474,24 +448,13 @@ const EtrManagement = () => {
 
       await api.postFormData("/Evidences/upload", formData);
 
-      toast.success(
-        tr("Tải lên thành công"),
-        `${tr("Đã tải lên minh chứng: ")}${uploadFile.name}` +
-          (evidenceAccessDenied
-            ? tr(
-                " (danh sách minh chứng có thể chưa hiển thị vì tài khoản của bạn chưa có quyền đọc danh sách minh chứng trên backend hiện tại).",
-              )
-            : ""),
-      );
+      toast.success(tr("Tải lên thành công"));
       setUploadFile(null);
       setIsEvidenceUploadOpen(false);
       await refreshData();
     } catch (error) {
       console.error("Error uploading evidence:", error);
-      toast.error(
-        tr("Tải lên thất bại"),
-        error.message || tr("Lỗi không xác định"),
-      );
+      toast.error(tr("Tải lên thất bại"));
     }
   };
 
@@ -508,12 +471,7 @@ const EtrManagement = () => {
     if (!recordToSubmit.evidenceReady) {
       setConfirmSubmitOpen(false);
       setRecordToSubmit(null);
-      toast.warning(
-        tr("Chưa thể gửi ETR"),
-        tr(
-          "Minh chứng chưa được QA xác thực. Vui lòng chờ QA duyệt minh chứng trước khi gửi ETR.",
-        ),
-      );
+      toast.warning(tr("Chưa thể gửi ETR"));
       return;
     }
     setSubmittingEtr(true);
@@ -522,24 +480,10 @@ const EtrManagement = () => {
       await refreshData();
       setConfirmSubmitOpen(false);
       setRecordToSubmit(null);
-      toast.success(
-        tr("Gửi ETR thành công"),
-        `ETR ${recordToSubmit.id} ${tr("đã được gửi lên QA thành công!")}`,
-      );
+      toast.success(tr("Gửi ETR thành công"));
     } catch (error) {
       console.error("Error submitting ETR:", error);
-      const isForbidden =
-        /403|Forbidden|không có quyền|unauthorized|not authorized/i.test(
-          error?.message || "",
-        );
-      toast.error(
-        tr("Gửi ETR thất bại"),
-        isForbidden
-          ? tr(
-              "Tài khoản của bạn chưa được backend cho phép Submit ETR (hiện chỉ dành cho Instructor/Admin). Vui lòng dùng tài khoản có quyền hoặc liên hệ Admin.",
-            )
-          : error.message || tr("Lỗi không xác định"),
-      );
+      toast.error(tr("Gửi ETR thất bại"));
     } finally {
       setSubmittingEtr(false);
     }
@@ -558,10 +502,7 @@ const EtrManagement = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading file:", error);
-      toast.error(
-        tr("Tải xuống thất bại"),
-        error.message || tr("Lỗi không xác định"),
-      );
+      toast.error(tr("Tải xuống thất bại"));
     }
   };
 
@@ -578,10 +519,7 @@ const EtrManagement = () => {
     if (!selectedRecord) return;
     // Evidence đã được QA verify → không được xóa (khớp quy tắc backend "Verify xong là immutable").
     if (status === "Verified") {
-      toast.warning(
-        tr("Không thể xóa"),
-        tr("Minh chứng đã được QA xác thực, không thể xóa."),
-      );
+      toast.warning(tr("Không thể xóa"));
       return;
     }
     setConfirmDeleteFile({ fileId, fileName, status });
@@ -592,25 +530,16 @@ const EtrManagement = () => {
     // Phòng thủ thêm: chặn xóa evidence đã Verified nếu có đường khác gọi tới.
     if (confirmDeleteFile.status === "Verified") {
       setConfirmDeleteFile(null);
-      toast.warning(
-        tr("Không thể xóa"),
-        tr("Minh chứng đã được QA xác thực, không thể xóa."),
-      );
+      toast.warning(tr("Không thể xóa"));
       return;
     }
     try {
       await api.delete(`/Evidences/${confirmDeleteFile.fileId}`);
-      toast.success(
-        tr("Xóa thành công"),
-        `${tr("Đã xóa minh chứng ")}${confirmDeleteFile.fileName}.`,
-      );
+      toast.success(tr("Xóa thành công"));
       await refreshData();
     } catch (error) {
       console.error("Error deleting file:", error);
-      toast.error(
-        tr("Xóa thất bại"),
-        error.message || tr("Lỗi không xác định"),
-      );
+      toast.error(tr("Xóa thất bại"));
     } finally {
       setConfirmDeleteFile(null);
     }

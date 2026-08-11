@@ -98,7 +98,8 @@ const InstructorClasses = () => {
 
       const mapped = filtered.map((s, idx) => {
         const rawDate = s.sessionDate;
-        let dateStr = "N/A";
+        // SessionDate có thể null (buổi nháp chưa xếp lịch) → hiển thị TBA
+        let dateStr = "TBA";
         if (rawDate) {
           const d = new Date(rawDate);
           dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
@@ -215,27 +216,8 @@ const InstructorClasses = () => {
     });
   }, [practicalChecklistsList, sessionForm.subjectId, selectedClass]);
 
-  const openCreateSessionModal = () => {
-    setEditingSessionId(null);
-    setSessionError("");
-    const defaultSubject =
-      subjectsList.find(
-        (subject) => subject.subjectId === (selectedClass?.subjectId || 1),
-      ) || subjectsList[0];
-    const defaultSubjectId = defaultSubject?.subjectId || 1;
-    setSessionForm({
-      classId: selectedClass?.classId || "",
-      subjectId: defaultSubjectId,
-      sessionTitle: "",
-      sessionDate: new Date().toISOString(),
-      location: "",
-      assessmentId: "",
-      practicalChecklistId: "",
-    });
-    setSelectedSubjectDescription(defaultSubject?.description || "");
-    setShowSessionModal(true);
-  };
-
+  // Lưu ý: BE đã KHÓA API tạo buổi học (Create Session) — Giảng viên chỉ được UPDATE các khung buổi
+  // do hệ thống tự sinh khi tạo Lớp (auto-provision theo RequiredSessions). Nút "+ Tạo buổi học" đã bị xóa.
   const openEditSessionModal = (session) => {
     setEditingSessionId(session.sessionId);
     setSessionError("");
@@ -285,17 +267,20 @@ const InstructorClasses = () => {
       return;
     }
 
+    // SessionDate hiển thị trống (TBA) khi chưa xếp lịch — nhưng UpdateSessionRequest của BE
+    // vẫn bắt buộc SessionDate (DateTime không nullable), nên phải chọn ngày trước khi lưu.
+    if (!sessionForm.sessionDate) {
+      setSessionError(tr("Vui lòng chọn Ngày học trước khi lưu buổi học (buổi nháp hiển thị TBA cho đến khi có ngày)."));
+      return;
+    }
+
     setSubmittingSession(true);
     setSessionError("");
 
     try {
       const payload = {
-        classId: Number(sessionForm.classId),
-        subjectId: Number(
-          sessionForm.subjectId || selectedClass?.subjectId || 1,
-        ),
         sessionTitle: sessionForm.sessionTitle.trim(),
-        sessionDate: sessionForm.sessionDate || new Date().toISOString(),
+        sessionDate: sessionForm.sessionDate,
         location: sessionForm.location.trim(),
         assessmentId: sessionForm.assessmentId
           ? Number(sessionForm.assessmentId)
@@ -307,10 +292,12 @@ const InstructorClasses = () => {
           : null,
       };
 
+      // Chỉ cho phép UPDATE (BE đã khóa tạo buổi học mới)
       if (editingSessionId) {
         await api.put(`/sessions/${editingSessionId}`, payload);
       } else {
-        await api.post("/sessions", payload);
+        setSessionError(tr("Không thể tạo buổi học mới — hệ thống tự sinh buổi học khi tạo Lớp."));
+        return;
       }
 
       await loadSessions();
@@ -331,11 +318,11 @@ const InstructorClasses = () => {
     if (!confirmDeleteSessionId) return;
     try {
       await api.delete(`/sessions/${confirmDeleteSessionId}`);
-      toast.success(tr("Xóa thành công"), tr("Đã xóa buổi học."));
+      toast.success(tr("Xóa thành công"));
       await loadSessions();
     } catch (err) {
       console.error("Lỗi khi xóa buổi học:", err);
-      toast.error(tr("Xóa buổi học thất bại"), err.message || tr("Không thể xóa buổi học."));
+      toast.error(tr("Xóa buổi học thất bại"));
     } finally {
       setConfirmDeleteSessionId(null);
     }
@@ -502,23 +489,6 @@ const InstructorClasses = () => {
                 flexWrap: "wrap",
               }}
             >
-              <button
-                onClick={openCreateSessionModal}
-                type="button"
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "12px",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: "700",
-                  color: "#ffffff",
-                  backgroundColor: "#c5a059",
-                  boxShadow: "0 2px 8px rgba(197, 160, 89, 0.2)",
-                }}
-              >
-                {tr('+ Tạo buổi học')}
-              </button>
               <div style={{ position: "relative" }}>
                 <input
                   type="text"
@@ -727,7 +697,7 @@ const InstructorClasses = () => {
                     margin: 0,
                   }}
                 >
-                  {editingSessionId ? tr("Cập nhật buổi học") : tr("Tạo buổi học mới")}
+                  {tr("Cập nhật buổi học")}
                 </h3>
                 <button
                   onClick={() => setShowSessionModal(false)}
@@ -819,7 +789,7 @@ const InstructorClasses = () => {
                       marginBottom: "6px",
                     }}
                   >
-                    {tr('Ngày học')}
+                    {tr('Ngày học')} {tr('(trống = TBA — bắt buộc chọn trước khi lưu)')}
                   </label>
                   <input
                     type="datetime-local"
@@ -831,10 +801,11 @@ const InstructorClasses = () => {
                     onChange={(e) =>
                       handleSessionFormChange(
                         "sessionDate",
-                        new Date(e.target.value).toISOString(),
+                        e.target.value
+                          ? new Date(e.target.value).toISOString()
+                          : "",
                       )
                     }
-                    required
                     style={{
                       width: "100%",
                       padding: "10px 12px",

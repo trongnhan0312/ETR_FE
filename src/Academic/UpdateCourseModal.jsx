@@ -50,6 +50,7 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
           criteria[subIdStr] = {
             sequenceNo: cs.sequenceNo ?? cs.sequenceNo ?? idx + 1,
             requiredHours: cs.requiredHours ?? subObj?.defaultHours ?? 0,
+            requiredSessions: cs.requiredSessions ?? subObj?.minSessions ?? 1,
             isMandatory: cs.isMandatory !== undefined ? cs.isMandatory : true,
             passingScore: cs.passingScore ?? 5
           };
@@ -77,7 +78,7 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
   const updateSubjectCriteria = (subIdStr, field, value) => {
     setSubjectCriteria((prev) => ({
       ...prev,
-      [subIdStr]: { ...(prev[subIdStr] || { requiredHours: 0, isMandatory: true, passingScore: 5, sequenceNo: 1 }), [field]: value }
+      [subIdStr]: { ...(prev[subIdStr] || { requiredHours: 0, requiredSessions: 1, isMandatory: true, passingScore: 5, sequenceNo: 1 }), [field]: value }
     }));
   };
 
@@ -91,11 +92,12 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
     }
 
     const subjectsPayload = selectedSubjectIds.map((idStr, idx) => {
-      const crit = subjectCriteria[idStr] || { requiredHours: 0, isMandatory: true, passingScore: 5 };
+      const crit = subjectCriteria[idStr] || { requiredHours: 0, requiredSessions: 1, isMandatory: true, passingScore: 5 };
       return {
         subjectId: Number(idStr),
         sequenceNo: crit.sequenceNo ?? idx + 1,
         requiredHours: Number(crit.requiredHours) || 0,
+        requiredSessions: Number(crit.requiredSessions) || 1,
         isMandatory: !!crit.isMandatory,
         passingScore: Number(crit.passingScore) || 0
       };
@@ -271,7 +273,7 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                       const subIdStr = String(sub.subjectId);
                       const crit = subjectCriteria[subIdStr] || { requiredHours: 0, isMandatory: true, passingScore: 5 };
                       return (
-                        <div key={sub.subjectId} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.6fr', gap: '10px', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#ffffff' : '#fbfdff' }}>
+                        <div key={sub.subjectId} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.8fr 0.6fr', gap: '10px', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#ffffff' : '#fbfdff' }}>
                           <div style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>
                             <span style={{ color: '#c5a059', fontWeight: 800 }}>#{idx + 1}</span> [{sub.subjectCode}] {sub.subjectName}
                           </div>
@@ -296,6 +298,16 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                                 const v = parseInt(e.target.value) || 0;
                                 updateSubjectCriteria(subIdStr, 'passingScore', Math.min(100, Math.max(0, v)));
                               }}
+                              style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '11px', outline: 'none' }}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{tr('Số buổi yêu cầu')} *</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={crit.requiredSessions ?? 1}
+                              onChange={(e) => updateSubjectCriteria(subIdStr, 'requiredSessions', parseInt(e.target.value) || 1)}
                               style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '11px', outline: 'none' }}
                             />
                           </div>

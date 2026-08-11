@@ -76,13 +76,6 @@ const QAEvidenceVerification = () => {
     }
   };
 
-  // Backend chặn sửa evidence khi ETR Completed/Locked → hiển thị thông báo rõ ràng thay vì lỗi thô
-  const isLockedEtrError = (err) =>
-    /Completed or Locked|ETR is locked|cannot be edited/i.test(err?.message || "");
-
-  const lockedEtrMessage = () =>
-    tr("Hồ sơ ETR liên quan đã hoàn tất/khóa (Completed/Locked) nên không thể thay đổi minh chứng này.");
-
   // Verify nhanh từng evidence ngay trên dòng (QA được phép verify)
   const handleVerifyRow = async (row) => {
     if (!row || processing) return;
@@ -91,13 +84,10 @@ const QAEvidenceVerification = () => {
       await api.put(`/Evidences/${row.id}/verify`, {
         VerificationStatus: "Verified",
       });
-      toast.success(tr("Xác thực thành công"), row.fileName);
+      toast.success(tr("Xác thực thành công"));
       await loadEvidences();
     } catch (err) {
-      toast.error(
-        tr("Xác thực thất bại"),
-        isLockedEtrError(err) ? lockedEtrMessage() : err.message || tr("Lỗi không xác định")
-      );
+      toast.error(tr("Xác thực thất bại"));
     } finally {
       setProcessing(false);
     }
@@ -113,7 +103,7 @@ const QAEvidenceVerification = () => {
   const handleRejectWithReason = async (reason) => {
     if (!rejectTarget || processing) return;
     if (!reason || !reason.trim()) {
-      toast.error(tr("Cần nêu lý do"), tr("Vui lòng nhập lý do từ chối."));
+      toast.error(tr("Cần nêu lý do"));
       setRejectOpen(false);
       return;
     }
@@ -123,14 +113,11 @@ const QAEvidenceVerification = () => {
         VerificationStatus: "Rejected",
         VerificationComment: reason.trim(),
       });
-      toast.warning(tr("Đã từ chối"), rejectTarget.fileName);
+      toast.warning(tr("Đã từ chối"));
       setRejectTarget(null);
       await loadEvidences();
     } catch (err) {
-      toast.error(
-        tr("Từ chối thất bại"),
-        isLockedEtrError(err) ? lockedEtrMessage() : err.message || tr("Lỗi không xác định")
-      );
+      toast.error(tr("Từ chối thất bại"));
     } finally {
       setProcessing(false);
       setRejectOpen(false);
@@ -153,10 +140,7 @@ const QAEvidenceVerification = () => {
         return url;
       });
     } catch (err) {
-      toast.error(
-        tr("Không tải được bản xem trước"),
-        err.message || tr("Lỗi không xác định")
-      );
+      toast.error(tr("Không tải được bản xem trước"));
     } finally {
       setPreviewLoading(false);
     }
@@ -193,14 +177,11 @@ const QAEvidenceVerification = () => {
       await api.put(`/Evidences/${reviewTarget.id}/verify`, {
         VerificationStatus: "Verified",
       });
-      toast.success(tr("Xác thực thành công"), reviewTarget.fileName);
+      toast.success(tr("Xác thực thành công"));
       closeReview();
       await loadEvidences();
     } catch (err) {
-      toast.error(
-        tr("Xác thực thất bại"),
-        isLockedEtrError(err) ? lockedEtrMessage() : err.message || tr("Lỗi không xác định")
-      );
+      toast.error(tr("Xác thực thất bại"));
     } finally {
       setProcessing(false);
     }
@@ -209,7 +190,7 @@ const QAEvidenceVerification = () => {
   const handleReviewReject = async (reason) => {
     if (!reviewTarget || processing) return;
     if (!reason || !reason.trim()) {
-      toast.error(tr("Cần nêu lý do"), tr("Vui lòng nhập lý do từ chối."));
+      toast.error(tr("Cần nêu lý do"));
       setReviewRejectOpen(false);
       return;
     }
@@ -219,14 +200,11 @@ const QAEvidenceVerification = () => {
         VerificationStatus: "Rejected",
         VerificationComment: reason.trim(),
       });
-      toast.warning(tr("Đã từ chối"), reviewTarget.fileName);
+      toast.warning(tr("Đã từ chối"));
       closeReview();
       await loadEvidences();
     } catch (err) {
-      toast.error(
-        tr("Từ chối thất bại"),
-        isLockedEtrError(err) ? lockedEtrMessage() : err.message || tr("Lỗi không xác định")
-      );
+      toast.error(tr("Từ chối thất bại"));
     } finally {
       setProcessing(false);
       setReviewRejectOpen(false);
@@ -246,7 +224,7 @@ const QAEvidenceVerification = () => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      toast.error(tr("Tải xuống thất bại"), err.message || tr("Lỗi không xác định"));
+      toast.error(tr("Tải xuống thất bại"));
     }
   };
 

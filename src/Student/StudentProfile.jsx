@@ -121,9 +121,9 @@ const StudentProfile = () => {
         },
         { suppressAuthRedirect: true },
       );
-      toast.success(tr('Cập nhật thành công'), tr('Thông tin hồ sơ đã được lưu.'));
+      toast.success(tr('Cập nhật thành công'));
     } catch (err) {
-      toast.error(tr('Cập nhật thất bại'), err.message || tr('Lỗi không xác định'));
+      toast.error(tr('Cập nhật thất bại'));
     } finally {
       setSaving(false);
     }
@@ -134,15 +134,15 @@ const StudentProfile = () => {
     e.preventDefault();
 
     if (!currentPwd || !newPwd || !confirmPwd) {
-      toast.error(tr('Thiếu thông tin'), tr('Vui lòng điền đầy đủ thông tin.'));
+      toast.error(tr('Thiếu thông tin'));
       return;
     }
     if (newPwd !== confirmPwd) {
-      toast.error(tr('Mật khẩu không khớp'), tr('Mật khẩu mới không khớp.'));
+      toast.error(tr('Mật khẩu không khớp'));
       return;
     }
     if (newPwd.length < 6) {
-      toast.error(tr('Mật khẩu quá ngắn'), tr('Mật khẩu phải có ít nhất 6 ký tự.'));
+      toast.error(tr('Mật khẩu quá ngắn'));
       return;
     }
 
@@ -153,12 +153,12 @@ const StudentProfile = () => {
         { oldPassword: currentPwd, newPassword: newPwd },
         { suppressAuthRedirect: true },
       );
-      toast.success(tr('Đổi mật khẩu thành công'), tr('Mật khẩu của bạn đã được cập nhật.'));
+      toast.success(tr('Đổi mật khẩu thành công'));
       setCurrentPwd('');
       setNewPwd('');
       setConfirmPwd('');
     } catch (err) {
-      toast.error(tr('Đổi mật khẩu thất bại'), err.message || tr('Lỗi không xác định'));
+      toast.error(tr('Đổi mật khẩu thất bại'));
     } finally {
       setLoadingPwd(false);
     }

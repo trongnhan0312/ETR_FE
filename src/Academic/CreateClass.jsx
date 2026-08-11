@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 
-const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], onSave, onCancel }) => {
+const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], subjects = [], onSave, onCancel }) => {
   const { tr } = useLanguage();
   const getInitialCourseId = () => {
     if (initialCourseId && courses.some(c => String(c.courseId) === String(initialCourseId))) {
@@ -29,20 +29,38 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], o
 
   const [startDate, setStartDate] = useState(todayStr);
   const [endDate, setEndDate] = useState(nextMonthStr);
-  const [instructorAccountId, setInstructorAccountId] = useState('');
   const [status, setStatus] = useState('Sắp diễn ra');
   const [subjectWarning, setSubjectWarning] = useState('');
+
+  // Danh sách môn học của khóa đã chọn (từ /Courses/{id}) — dùng để gán Giảng viên theo từng Môn học
+  const [courseSubjects, setCourseSubjects] = useState([]);
+  // instructorBySubject: subjectId -> instructorAccountId ('' = Chưa phân công)
+  const [instructorBySubject, setInstructorBySubject] = useState({});
 
   useEffect(() => {
     if (!parentCourse) return;
     setSubjectWarning('');
+    setCourseSubjects([]);
+    setInstructorBySubject({});
 
     api.get(`/Courses/${parentCourse}`).then((cDetail) => {
       if (cDetail && Array.isArray(cDetail.courseSubjects) && cDetail.courseSubjects.length === 0) {
         setSubjectWarning(`${tr('⚠️ Khóa học')} "${cDetail.courseName || cDetail.courseCode}" ${tr('chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.')}`);
       }
+      if (cDetail && Array.isArray(cDetail.courseSubjects)) {
+        setCourseSubjects(cDetail.courseSubjects);
+      }
     }).catch(() => {});
   }, [parentCourse]);
+
+  const subjectName = (subjectId) => {
+    const sub = subjects.find((s) => String(s.subjectId) === String(subjectId));
+    return sub ? `[${sub.subjectCode}] ${sub.subjectName}` : `Môn #${subjectId}`;
+  };
+
+  const setSubjectInstructor = (subjectId, accountId) => {
+    setInstructorBySubject((prev) => ({ ...prev, [subjectId]: accountId }));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -52,6 +70,14 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], o
       return;
     }
 
+    // Giảng viên được phân công theo từng Môn học (ClassSubjects) — không còn 1 giảng viên cấp lớp.
+    const instructorAssignments = courseSubjects.map((cs) => ({
+      subjectId: cs.subjectId,
+      instructorAccountId: instructorBySubject[String(cs.subjectId)]
+        ? Number(instructorBySubject[String(cs.subjectId)])
+        : null
+    }));
+
     const newClass = {
       code: code.trim(),
       name: name.trim(),
@@ -59,7 +85,7 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], o
       endDate: endDate || nextMonthStr,
       status,
       attendanceRate: 0,
-      instructorAccountId: instructorAccountId ? Number(instructorAccountId) : null
+      instructorAssignments
     };
 
     onSave(Number(parentCourse), newClass);
@@ -137,34 +163,17 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], o
               <div style={{ fontSize: '13px', fontWeight: '700', color: '#002147', borderBottom: '1px solid #e0e4e9', paddingBottom: '8px' }}>
                 {tr('THÔNG TIN LỚP HỌC')}
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="class-code-input">{tr('Mã lớp học (Tối đa 20 ký tự) *')}</label>
-                  <input
-                    id="class-code-input"
-                    type="text"
-                    placeholder={tr('Ví dụ: JET-2024-Q3')}
-                    value={code}
-                    maxLength={20}
-                    onChange={(e) => setCode(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="class-instructor-select">{tr('Giảng viên giảng dạy')}</label>
-                  <select
-                    id="class-instructor-select"
-                    value={instructorAccountId}
-                    onChange={(e) => setInstructorAccountId(e.target.value)}
-                  >
-                    <option value="">{tr('Chưa phân công')}</option>
-                    {instructors.map((ins) => (
-                      <option key={ins.accountId} value={ins.accountId}>
-                        {ins.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="form-group">
+                <label htmlFor="class-code-input">{tr('Mã lớp học (Tối đa 20 ký tự) *')}</label>
+                <input
+                  id="class-code-input"
+                  type="text"
+                  placeholder={tr('Ví dụ: JET-2024-Q3')}
+                  value={code}
+                  maxLength={20}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="form-group">
@@ -178,6 +187,40 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], o
                   required
                 />
               </div>
+            </div>
+
+            {/* Instructor Assignment per Subject */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#002147', borderBottom: '1px solid #e0e4e9', paddingBottom: '8px' }}>
+                {tr('PHÂN CÔNG GIẢNG VIÊN THEO MÔN HỌC')}
+              </div>
+              {courseSubjects.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
+                  {tr('Khóa học này chưa có môn học. Vui lòng cấu hình môn học cho khóa trước khi phân công giảng viên.')}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {courseSubjects.map((cs, idx) => (
+                    <div key={cs.subjectId} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#002147', flex: '1 1 auto' }}>
+                        <span style={{ color: '#c5a059', fontWeight: 800 }}>#{idx + 1}</span> {subjectName(cs.subjectId)}
+                      </span>
+                      <select
+                        style={{ width: '260px', padding: '8px 12px', borderRadius: '4px', border: '1px solid #e0e4e8', fontSize: '13px', outline: 'none', backgroundColor: '#fff' }}
+                        value={instructorBySubject[String(cs.subjectId)] || ''}
+                        onChange={(e) => setSubjectInstructor(String(cs.subjectId), e.target.value)}
+                      >
+                        <option value="">{tr('Chưa phân công')}</option>
+                        {instructors.map((ins) => (
+                          <option key={ins.accountId} value={ins.accountId}>
+                            {ins.fullName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Training Schedule */}

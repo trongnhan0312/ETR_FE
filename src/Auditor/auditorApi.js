@@ -315,6 +315,16 @@ function normalizeEtr(raw, lookup) {
     : null;
   const course = cls ? lookup.courses.find((c) => c.courseId === cls.courseId) : null;
 
+  // Class không còn InstructorAccountId cấp lớp — Giảng viên được phân công theo Môn học
+  // (InstructorAssignments). Lấy danh sách tên giảng viên từ các assignment.
+  const classInstructorNames = (() => {
+    const assignments = Array.isArray(cls?.instructorAssignments) ? cls.instructorAssignments : [];
+    const names = assignments
+      .filter((a) => a.instructorAccountId)
+      .map((a) => accountName(lookup, a.instructorAccountId));
+    return names.length > 0 ? names.join(', ') : "—";
+  })();
+
   // Người phê duyệt cuối: ưu tiên AuditLog ActionType=APPROVE (ghi bởi TrainingManager/Admin khi chốt),
   // fallback CurrentApproverId → SubmittedBy trên ApprovalRequest của ETR này. Lưu ý: SubmittedBy là
   // NGƯỜI GỬI yêu cầu (thường là Instructor submit), không phải người phê duyệt thật — chỉ là fallback
@@ -392,7 +402,7 @@ function normalizeEtr(raw, lookup) {
     approvedBy: resolvedApprovedBy,
     qaVerifiedBy: resolvedQaVerifiedBy,
     academicStaff: "—",
-    instructor: cls?.instructorAccountId ? accountName(lookup, cls.instructorAccountId) : "—",
+    instructor: classInstructorNames,
     status: raw.isLocked ? "Locked & Compliant" : (raw.status || "—"),
     isLocked: !!raw.isLocked,
     verificationHash: "—",

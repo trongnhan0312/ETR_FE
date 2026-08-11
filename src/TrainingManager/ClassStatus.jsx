@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
-import { api, parseApiError } from "../utils/api";
+import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import "./training-manager.scss";
@@ -20,7 +20,6 @@ const ClassStatus = () => {
   const [newClassId, setNewClassId] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [newClassSub, setNewClassSub] = useState("");
-  const [newInstructorAccountId, setNewInstructorAccountId] = useState("");
   const [newStartDate, setNewStartDate] = useState("");
   const [newEndDate, setNewEndDate] = useState("");
   const [newRoom, setNewRoom] = useState("");
@@ -154,14 +153,14 @@ const ClassStatus = () => {
     // Chống submit 2 lần liên tiếp (double-click) — tránh trùng mã → DbUpdateException
     if (creatingClass) return;
     if (!newClassId || !newClassName || !newCourseId) {
-      toast.warning(tr("Thiếu thông tin bắt buộc"), tr("Vui lòng điền đầy đủ (Mã lớp, Tên lớp, Khóa đào tạo)."));
+      toast.warning(tr("Thiếu thông tin bắt buộc"));
       return;
     }
 
     // Chặn trùng Mã lớp ngay tại FE (khớp unique index IX_Classes_ClassCode của CSDL)
     const codeUpper = newClassId.trim().toUpperCase();
     if (rawClasses.some((c) => String(c.classCode || "").trim().toUpperCase() === codeUpper)) {
-      toast.error(tr("Tạo lớp học thất bại"), trt('classCodeExists', { code: newClassId }));
+      toast.error(tr("Tạo lớp học thất bại"));
       return;
     }
 
@@ -180,7 +179,9 @@ const ClassStatus = () => {
     setCreatingClass(true);
     try {
       // Call API to create class — khớp CreateClassRequest của backend:
-      // { classCode, className, courseId, startDate, endDate, location, capacity, status, instructorAccountId? }
+      // { classCode, className, courseId, startDate, endDate, location, capacity, status, instructorAssignments? }
+      // Lưu ý: Class KHÔNG còn InstructorAccountId cấp lớp — Giảng viên được phân công theo Môn học
+      // (InstructorAssignments) thông qua màn hình Khóa & Lớp học (Academic).
       await api.post("/Classes", {
         classCode: newClassId.toUpperCase(),
         className: newClassName,
@@ -190,9 +191,7 @@ const ClassStatus = () => {
         location: newRoom || "",
         capacity: Number(newTraineesCount) || 15,
         status: "Planned",
-        instructorAccountId: newInstructorAccountId
-          ? Number(newInstructorAccountId)
-          : null,
+        instructorAssignments: []
       });
 
       // Reload classes from API after creation
@@ -203,14 +202,13 @@ const ClassStatus = () => {
       setNewClassId("");
       setNewClassName("");
       setNewClassSub("");
-      setNewInstructorAccountId("");
       setNewStartDate("");
       setNewEndDate("");
       setNewRoom("");
       setNewTraineesCount(15);
     } catch (error) {
       console.error("Error creating class:", error);
-      toast.error(tr("Tạo lớp học thất bại"), parseApiError(error));
+      toast.error(tr("Tạo lớp học thất bại"));
     } finally {
       setCreatingClass(false);
     }
@@ -428,7 +426,7 @@ const ClassStatus = () => {
               className="flex justify-start items-center gap-2 px-8 py-3 rounded-sm bg-[#002147] border-none text-white cursor-pointer hover:bg-[#002147]/90 transition-all font-bold text-sm shadow-sm"
               onClick={() => {
                 // Export endpoint chỉ cho Admin/Audit/Academic — TrainingManager không có quyền
-                toast.warning(tr("Không có quyền xuất báo cáo"), tr("Tài khoản TrainingManager không có quyền xuất báo cáo (chỉ Admin/Audit/Academic)."));
+                toast.warning(tr("Không có quyền xuất báo cáo"));
               }}
             >
               <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
@@ -590,7 +588,7 @@ const ClassStatus = () => {
                   className="flex justify-start items-center gap-2 px-6 py-2 rounded-sm border border-[#dee2e6] bg-white cursor-pointer hover:bg-slate-50 transition-all font-semibold text-xs text-[#495057]"
                   onClick={() => {
                     // Filter is already applied via statusFilter and searchQuery
-                    toast.success(tr("Đã áp dụng bộ lọc"), tr("Danh sách đã được lọc theo trạng thái và từ khóa tìm kiếm."));
+                    toast.success(tr("Đã áp dụng bộ lọc"));
                   }}
                 >
                   <svg width={14} height={9} viewBox="0 0 14 9" fill="none">
@@ -605,7 +603,7 @@ const ClassStatus = () => {
                   className="flex justify-start items-center gap-2 px-6 py-2 rounded-sm border border-[#dee2e6] bg-white cursor-pointer hover:bg-slate-50 transition-all font-semibold text-xs text-[#495057]"
                   onClick={() => {
                     // Buổi học selector - opens session picker for this class
-                    toast.info(tr("Chọn buổi học"), tr("Chức năng chọn buổi học đang được hoàn thiện. Vui lòng dùng màn hình Điểm danh của Instructor để chọn buổi."));
+                    toast.info(tr("Chọn buổi học"));
                   }}
                 >
                   <svg width={14} height={15} viewBox="0 0 14 15" fill="none">
@@ -961,7 +959,7 @@ const ClassStatus = () => {
             <div className="flex justify-start items-center gap-3 text-white">
               <div
                 className="p-1.5 cursor-pointer hover:bg-white/10 rounded"
-                onClick={() => toast.info(tr("Bộ lọc"), tr("Danh sách đã được lọc theo trạng thái hiện hành."))}
+                onClick={() => toast.info(tr("Bộ lọc"))}
               >
                 <svg width={18} height={12} viewBox="0 0 18 12" fill="none">
                   <path
@@ -974,7 +972,7 @@ const ClassStatus = () => {
                 className="p-1.5 cursor-pointer hover:bg-white/10 rounded"
                 onClick={() => {
                   // Export endpoint chỉ cho Admin/Audit/Academic — TrainingManager không có quyền
-                  toast.warning(tr("Không có quyền xuất dữ liệu"), tr("Tài khoản TrainingManager không có quyền xuất dữ liệu (chỉ Admin/Audit/Academic)."));
+                  toast.warning(tr("Không có quyền xuất dữ liệu"));
                 }}
               >
                 <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
@@ -1299,18 +1297,9 @@ const ClassStatus = () => {
                 <label className="text-xs font-semibold text-gray-600">
                   GIẢNG VIÊN PHỤ TRÁCH
                 </label>
-                <select
-                  value={newInstructorAccountId}
-                  onChange={(e) => setNewInstructorAccountId(e.target.value)}
-                  className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                >
-                  <option value="">{tr('Chưa phân công')}</option>
-                  {instructorsList.map((ins) => (
-                    <option key={ins.accountId} value={ins.accountId}>
-                      {ins.fullName}
-                    </option>
-                  ))}
-                </select>
+                <div className="p-2 border border-dashed border-gray-300 rounded bg-gray-50 text-xs text-gray-500">
+                  {tr('Giảng viên được phân công theo từng Môn học (ClassSubjects) tại màn hình Khóa & Lớp học (Academic).')}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

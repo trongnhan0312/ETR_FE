@@ -249,7 +249,7 @@ const InstructorEvidence = () => {
 
     // Validate evidence type is selected
     if (!selectedEvidenceTypeId) {
-      toast.warning(tr("Thiếu loại bằng chứng"), tr("Vui lòng chọn loại bằng chứng trước khi tải lên."));
+      toast.warning(tr("Thiếu loại bằng chứng"));
       return;
     }
 
@@ -369,46 +369,12 @@ const InstructorEvidence = () => {
       formData.append("File", file, file.name);
 
       await api.postFormData("/Evidences/upload", formData);
-      toast.success(tr("Tải lên thành công"), `${tr('Đã tải lên tệp minh chứng: ')}${file.name}.`);
+      toast.success(tr("Tải lên thành công"));
       loadEvidences();
     } catch (err) {
       console.error("[Upload Evidence] Lỗi khi upload minh chứng:", err);
 
-      let message = tr("Đã xảy ra lỗi khi tải lên minh chứng.");
-      const errText = err?.message || "";
-
-      // Try to extract response body for more detail
-      if (err?.responseBody) {
-        console.log("[Upload Evidence] Backend response body:", err.responseBody);
-      }
-
-      if (
-        errText.includes("Failed to fetch") ||
-        errText.includes("ERR_CONNECTION_REFUSED") ||
-        errText.includes("NetworkError")
-      ) {
-        message =
-          tr("Không thể kết nối tới máy chủ API. Vui lòng đảm bảo backend đang chạy và đang lắng nghe tại https://localhost:7169.");
-      } else if (errText.includes("400")) {
-        message =
-          tr("Yêu cầu không hợp lệ (400). Vui lòng kiểm tra lại thông tin EvidenceTypeId, AccountId, SubjectResultId và File.");
-      } else if (errText.includes("401")) {
-        message =
-          tr("Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.");
-      } else if (errText.includes("413")) {
-        message =
-          tr("Tệp quá lớn (413). Vui lòng chọn tệp nhỏ hơn 10MB.");
-      } else if (errText.includes("415")) {
-        message =
-          tr("Định dạng tệp không được hỗ trợ (415). Vui lòng chọn PDF, PNG, JPG hoặc DOCX.");
-      } else if (errText.includes("500")) {
-        message =
-          tr("Lỗi máy chủ nội bộ (500). Vui lòng kiểm tra log backend để biết chi tiết InnerException.");
-      } else if (errText) {
-        message = `${tr('Lỗi: ')}${errText}`;
-      }
-
-      toast.error(tr("Tải lên thất bại"), message);
+      toast.error(tr("Tải lên thất bại"));
     } finally {
       setUploading(false);
       setUploadingFileName("");
@@ -439,11 +405,11 @@ const InstructorEvidence = () => {
     if (!confirmDeleteId) return;
     try {
       await api.delete(`/Evidences/${confirmDeleteId}`);
-      toast.success(tr("Xóa thành công"), tr("Đã xóa tệp minh chứng."));
+      toast.success(tr("Xóa thành công"));
       loadEvidences();
     } catch (err) {
       console.error("Lỗi khi xóa minh chứng:", err);
-      toast.error(tr("Xóa thất bại"), err.message || tr("Lỗi không xác định"));
+      toast.error(tr("Xóa thất bại"));
     } finally {
       setConfirmDeleteId(null);
     }
@@ -463,7 +429,7 @@ const InstructorEvidence = () => {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Lỗi tải xuống minh chứng:", err);
-      toast.error(tr("Tải xuống thất bại"), err.message || tr("Lỗi không xác định"));
+      toast.error(tr("Tải xuống thất bại"));
     }
   };
 

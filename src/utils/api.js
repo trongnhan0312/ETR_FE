@@ -53,6 +53,7 @@ const DEMO_DATA = {
       courseId: 1,
       status: "Đang diễn ra",
       subjectId: 1,
+      instructorAssignments: [{ classSubjectId: 1, subjectId: 1, instructorAccountId: 2 }],
     },
     {
       classId: 2,
@@ -61,15 +62,25 @@ const DEMO_DATA = {
       courseId: 1,
       status: "Đang diễn ra",
       subjectId: 1,
+      instructorAssignments: [],
     },
   ],
-  "/courses": [{ courseId: 1, courseName: "Khóa học A" }],
+  "/courses": [
+    {
+      courseId: 1,
+      courseName: "Khóa học A",
+      courseCode: "AV-MNT-101",
+      courseSubjects: [{ courseId: 1, subjectId: 1, sequenceNo: 1, requiredHours: 20, requiredSessions: 5, isMandatory: true, passingScore: 5 }],
+    }
+  ],
   "/subjects": [
     {
       subjectId: 1,
       subjectCode: "SUB01",
       subjectName: "An toàn hàng không",
       subjectType: "Theory",
+      minSessions: 1,
+      maxSessions: 10,
     },
   ],
   "/assessments": [
@@ -95,6 +106,15 @@ const DEMO_DATA = {
       subjectId: 1,
       assessmentId: 1,
       isConfirmed: true,
+    },
+    {
+      sessionId: 3,
+      classId: 1,
+      sessionTitle: "Buổi 3 (nháp)",
+      sessionDate: null,
+      location: "Phòng C",
+      subjectId: 1,
+      isConfirmed: false,
     },
   ],
   "/enrollments": [
