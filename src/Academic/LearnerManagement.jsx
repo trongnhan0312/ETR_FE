@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
@@ -30,6 +31,7 @@ const LearnerManagement = () => {
   // Create Form State (Student only)
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('Default@123');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -183,6 +185,7 @@ const getStudentDepartments = () => {
   const handleOpenCreateModal = () => {
     setUsername('');
     setPassword('Default@123');
+    setShowPassword(false);
     setFullName('');
     setPhone('');
     setDateOfBirth('');
@@ -512,174 +515,178 @@ const getStudentDepartments = () => {
           />
         </div>
 
-        <div className="data-table" style={{ width: '100%' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '0.7fr 1.2fr 1.3fr 1.3fr 1.1fr 1fr 0.8fr 0.8fr 1.2fr',
-              padding: '12px 16px',
-              background: '#002147',
-              color: '#fff',
-              borderRadius: '8px 8px 0 0',
-              fontWeight: '600',
-              fontSize: '12px',
-              letterSpacing: '0.03em',
-            }}
-          >
-            <div>UserID</div>
-            <div>{tr('Username / Mã HV')}</div>
-            <div>{tr('Họ và tên')}</div>
-            <div>{tr('Email')}</div>
-            <div>{tr('Phòng ban')}</div>
-            <div>{tr('Số điện thoại')}</div>
-            <div>{tr('Giới tính')}</div>
-            <div>{tr('Trạng thái')}</div>
-            <div style={{ textAlign: 'right' }}>{tr('Hành động')}</div>
-          </div>
+        <div style={{ width: '100%', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', background: '#fff' }}>
+          <div className="data-table" style={{ minWidth: '1280px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '80px 160px 180px 200px 160px 130px 90px 100px minmax(180px, 1fr)',
+                padding: '12px 16px',
+                background: '#002147',
+                color: '#fff',
+                fontWeight: '600',
+                fontSize: '12px',
+                letterSpacing: '0.03em',
+                alignItems: 'center',
+              }}
+            >
+              <div>{tr('UserID')}</div>
+              <div>{tr('Username / Mã HV')}</div>
+              <div>{tr('Họ và tên')}</div>
+              <div>{tr('Email')}</div>
+              <div>{tr('Phòng ban')}</div>
+              <div>{tr('Số điện thoại')}</div>
+              <div>{tr('Giới tính')}</div>
+              <div>{tr('Trạng thái')}</div>
+              <div style={{ textAlign: 'right' }}>{tr('Hành động')}</div>
+            </div>
 
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-              {tr('Đang tải danh sách học viên...')}
-            </div>
-          ) : filteredLearners.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#64748b', fontStyle: 'italic' }}>
-              {searchTerm ? tr('Không tìm thấy học viên phù hợp.') : tr('Chưa có tài khoản học viên nào trong hệ thống.')}
-            </div>
-          ) : (
-            filteredLearners.map((learner) => {
-              const isInactive = learner.status?.toLowerCase() === 'inactive' || learner.status?.toLowerCase() === 'disabled';
-              return (
-                <div
-                  key={learner.accountId}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '0.7fr 1.2fr 1.3fr 1.3fr 1.1fr 1fr 0.8fr 0.8fr 1.2fr',
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #f1f5f9',
-                    alignItems: 'center',
-                    fontSize: '13px',
-                  }}
-                >
-                  <div style={{ fontWeight: '700', color: '#c5a059' }}>{learner.accountId}</div>
-                  <div style={{ fontWeight: '600', color: '#0f172a' }}>{learner.username}</div>
-                  <div style={{ color: '#334155' }}>
-                    <span>{learner.fullName}</span>
-                    {!learner.hasProfile && (
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                {tr('Đang tải danh sách học viên...')}
+              </div>
+            ) : filteredLearners.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#64748b', fontStyle: 'italic' }}>
+                {searchTerm ? tr('Không tìm thấy học viên phù hợp.') : tr('Chưa có tài khoản học viên nào trong hệ thống.')}
+              </div>
+            ) : (
+              filteredLearners.map((learner) => {
+                const isInactive = learner.status?.toLowerCase() === 'inactive' || learner.status?.toLowerCase() === 'disabled';
+                return (
+                  <div
+                    key={learner.accountId}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '80px 160px 180px 200px 160px 130px 90px 100px minmax(180px, 1fr)',
+                      padding: '12px 16px',
+                      borderBottom: '1px solid #f1f5f9',
+                      alignItems: 'center',
+                      fontSize: '13px',
+                      background: '#fff',
+                    }}
+                  >
+                    <div style={{ fontWeight: '700', color: '#c5a059', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.accountId}</div>
+                    <div style={{ fontWeight: '600', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.username}</div>
+                    <div style={{ color: '#334155', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.fullName}</span>
+                      {!learner.hasProfile && (
+                        <span
+                          style={{
+                            marginLeft: '6px',
+                            padding: '2px 6px',
+                            borderRadius: '999px',
+                            background: '#fffbeb',
+                            border: '1px solid #fde68a',
+                            color: '#b45309',
+                            fontSize: '10px',
+                            fontWeight: '700',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {tr('Chưa có hồ sơ')}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={learner.email}>{learner.email}</div>
+                    <div style={{ color: '#334155', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.departmentName}</div>
+                    <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.phone || 'N/A'}</div>
+                    <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.gender || 'N/A'}</div>
+                    <div>
                       <span
                         style={{
-                          marginLeft: '6px',
-                          padding: '2px 6px',
-                          borderRadius: '999px',
-                          background: '#fffbeb',
-                          border: '1px solid #fde68a',
-                          color: '#b45309',
-                          fontSize: '10px',
-                          fontWeight: '700',
-                          whiteSpace: 'nowrap',
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          background: isInactive ? '#fef2f2' : '#ecfdf5',
+                          color: isInactive ? '#ef4444' : '#10b981',
                         }}
                       >
-                        {tr('Chưa có hồ sơ')}
+                        {isInactive ? 'Inactive' : 'Active'}
                       </span>
-                    )}
-                  </div>
-                  <div style={{ color: '#64748b' }}>{learner.email}</div>
-                  <div style={{ color: '#334155', fontWeight: '500' }}>{learner.departmentName}</div>
-                  <div style={{ color: '#64748b' }}>{learner.phone || 'N/A'}</div>
-                  <div style={{ color: '#64748b' }}>{learner.gender || 'N/A'}</div>
-                  <div>
-                    <span
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        background: isInactive ? '#fef2f2' : '#ecfdf5',
-                        color: isInactive ? '#ef4444' : '#10b981',
-                      }}
-                    >
-                      {isInactive ? 'Inactive' : 'Active'}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    {!learner.hasProfile && (
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      {!learner.hasProfile && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenProfileModal(learner)}
+                          title={tr('Tạo hồ sơ cho học viên này')}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '12px',
+                            borderRadius: '6px',
+                            border: '1px solid #fbbf24',
+                            background: '#fffbeb',
+                            color: '#b45309',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                          }}
+                        >
+                          {tr('+ Tạo hồ sơ')}
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => handleOpenProfileModal(learner)}
-                        title={tr('Tạo hồ sơ cho học viên này')}
+                        onClick={() => handleOpenEditModal(learner)}
                         style={{
                           padding: '4px 10px',
                           fontSize: '12px',
                           borderRadius: '6px',
-                          border: '1px solid #fbbf24',
-                          background: '#fffbeb',
-                          color: '#b45309',
-                          cursor: 'pointer',
-                          fontWeight: '600',
-                        }}
-                      >
-                        {tr('+ Tạo hồ sơ')}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditModal(learner)}
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: '12px',
-                        borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        background: '#fff',
-                        color: '#334155',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Edit
-                    </button>
-                    {isInactive ? (
-                      <button
-                        type="button"
-                        onClick={() => setConfirmAction({ type: 'activate', user: learner })}
-                        style={{
-                          padding: '4px 10px',
-                          fontSize: '12px',
-                          borderRadius: '6px',
-                          border: '1px solid #a7f3d0',
-                          background: '#ecfdf5',
-                          color: '#059669',
-                          cursor: 'pointer',
-                          fontWeight: '600',
-                        }}
-                      >
-                        Activate Account
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setConfirmAction({ type: 'disable', user: learner })}
-                        style={{
-                          padding: '4px 10px',
-                          fontSize: '12px',
-                          borderRadius: '6px',
-                          border: '1px solid #fca5a5',
-                          background: '#fff5f5',
-                          color: '#ef4444',
+                          border: '1px solid #cbd5e1',
+                          background: '#fff',
+                          color: '#334155',
                           cursor: 'pointer',
                         }}
                       >
-                        Disable
+                        Edit
                       </button>
-                    )}
+                      {isInactive ? (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmAction({ type: 'activate', user: learner })}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '12px',
+                            borderRadius: '6px',
+                            border: '1px solid #a7f3d0',
+                            background: '#ecfdf5',
+                            color: '#059669',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                          }}
+                        >
+                          Activate Account
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmAction({ type: 'disable', user: learner })}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '12px',
+                            borderRadius: '6px',
+                            border: '1px solid #fca5a5',
+                            background: '#fff5f5',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Disable
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
       </section>
 
       {/* CREATE STUDENT MODAL */}
-      {isCreateOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      {isCreateOpen && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>{tr('Tạo tài khoản học viên (Student Role)')}</h2>
             
@@ -704,13 +711,43 @@ const getStudentDepartments = () => {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Mật khẩu *')}</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    style={{ width: '100%', padding: '8px 38px 8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? tr('Ẩn mật khẩu') : tr('Hiện mật khẩu')}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '4px',
+                    }}
+                  >
+                    {showPassword ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -816,12 +853,13 @@ const getStudentDepartments = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* EDIT STUDENT MODAL */}
-      {isEditOpen && editingUser && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      {isEditOpen && editingUser && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>{tr('Chỉnh sửa hồ sơ học viên')}</h2>
             <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>{tr('Tài khoản:')} <strong>{editingUser.username}</strong></p>
@@ -834,7 +872,7 @@ const getStudentDepartments = () => {
 
             <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Họ và tên *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Họ và tên *')}</label>
                 <input
                   type="text"
                   required
@@ -865,7 +903,7 @@ const getStudentDepartments = () => {
                     onChange={(e) => setEditDepartmentId(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                   >
-                    {getNonTrainingDepts().map((d) => (
+                    {getStudentDepartments().map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
@@ -916,15 +954,15 @@ const getStudentDepartments = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Giới tính')}</label>
                 <select
                   value={editGender}
                   onChange={(e) => setEditGender(e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                 >
-                  <option value="Male">Nam (Male)</option>
-                  <option value="Female">Nữ (Female)</option>
-                  <option value="Other">Khác (Other)</option>
+                  <option value="Male">{tr('Nam (Male)')}</option>
+                  <option value="Female">{tr('Nữ (Female)')}</option>
+                  <option value="Other">{tr('Khác (Other)')}</option>
                 </select>
               </div>
 
@@ -946,11 +984,12 @@ const getStudentDepartments = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {/* CREATE PROFILE MODAL (student account has no profile yet) */}
-      {isProfileOpen && profileAcc && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      {isProfileOpen && profileAcc && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>{tr('Tạo hồ sơ học viên')}</h2>
             <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
@@ -999,15 +1038,15 @@ const getStudentDepartments = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Giới tính</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Giới tính')}</label>
                 <select
                   value={pGender}
                   onChange={(e) => setPGender(e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                 >
-                  <option value="Male">Nam (Male)</option>
-                  <option value="Female">Nữ (Female)</option>
-                  <option value="Other">Khác (Other)</option>
+                  <option value="Male">{tr('Nam (Male)')}</option>
+                  <option value="Female">{tr('Nữ (Female)')}</option>
+                  <option value="Other">{tr('Khác (Other)')}</option>
                 </select>
               </div>
 
@@ -1050,7 +1089,8 @@ const getStudentDepartments = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Xác nhận vô hiệu hóa / kích hoạt tài khoản */}

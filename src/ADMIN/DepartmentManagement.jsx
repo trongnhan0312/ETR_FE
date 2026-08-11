@@ -158,7 +158,7 @@ const DepartmentManagement = () => {
       {/* Header Card */}
       <div className="page-header-card">
         <div>
-          <div className="eyebrow">QUẢN LÝ TỔ CHỨC / ADMIN</div>
+          <div className="eyebrow">{tr('QUẢN LÝ TỔ CHỨC / ADMIN')}</div>
           <h1>{tr('Quản lý phòng ban (Departments)')}</h1>
           <p className="page-description">
             {tr('Quản lý danh sách phòng ban trong hệ thống ETR Management.')}
@@ -353,7 +353,7 @@ const DepartmentManagement = () => {
                   required
                   value={deptName}
                   onChange={(e) => setDeptName(e.target.value)}
-                  placeholder="e.g. Flight Operations, Technical Training..."
+                  placeholder={tr('e.g. Flight Operations, Technical Training...')}
                   style={{
                     width: '100%',
                     padding: '9px 12px',

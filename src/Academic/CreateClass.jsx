@@ -84,7 +84,7 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], o
       <div className="modal-container" style={{ width: '700px', maxWidth: '95vw', maxHeight: '90vh', margin: 'auto' }}>
         <header className="modal-header">
           <h2>{tr('TẠO LỚP HỌC MỚI')}</h2>
-          <button className="close-btn" type="button" onClick={onCancel} aria-label="Đóng">
+          <button className="close-btn" type="button" onClick={onCancel} aria-label={tr('Đóng')}>
             &times;
           </button>
         </header>

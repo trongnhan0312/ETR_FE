@@ -77,10 +77,10 @@ const RolePermissionManagement = () => {
     <div className="page-shell">
       <section className="page-header-card">
         <div>
-          <p className="eyebrow">Administrator page 3 of 5</p>
-          <h1>Role & Permission Management</h1>
+          <p className="eyebrow">{tr('Administrator page 3 of 5')}</p>
+          <h1>{tr('Role & Permission Management')}</h1>
           <p className="page-description">
-            Define access boundaries and keep business responsibilities separated.
+            {tr('Define access boundaries and keep business responsibilities separated.')}
           </p>
         </div>
       </section>
@@ -123,8 +123,8 @@ const RolePermissionManagement = () => {
       <section className="student-table-section" style={{ marginBottom: 20 }}>
         <div className="student-table-header">
           <div className="student-table-header-left">
-            <p className="student-section-label">Role Permissions</p>
-            <h2>Access Matrix</h2>
+            <p className="student-section-label">{tr('Role Permissions')}</p>
+            <h2>{tr('Access Matrix')}</h2>
           </div>
         </div>
         <div style={{ overflowX: 'auto', padding: '0 16px 16px' }}>
@@ -166,7 +166,7 @@ const RolePermissionManagement = () => {
       <section className="student-table-section">
         <div className="student-table-header">
           <div className="student-table-header-left">
-            <p className="student-section-label">User Accounts</p>
+            <p className="student-section-label">{tr('User Accounts')}</p>
             <h2>{tr('Tài khoản theo vai trò')} ({filteredAccounts.length})</h2>
           </div>
         </div>
@@ -178,11 +178,11 @@ const RolePermissionManagement = () => {
           <div style={{ overflowX: 'auto' }}>
             <div className="student-table-grid" style={{ gridTemplateColumns: '40px 1.5fr 1fr 1.5fr 100px 110px' }}>
               <div className="student-table-cell student-table-cell--header">{tr('STT')}</div>
-              <div className="student-table-cell student-table-cell--header">Username</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Username')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Vai trò')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Phòng ban')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Trạng thái')}</div>
-              <div className="student-table-cell student-table-cell--header student-table-cell--end">Account ID</div>
+              <div className="student-table-cell student-table-cell--header student-table-cell--end">{tr('Account ID')}</div>
               {filteredAccounts.map((acct, idx) => (
                 <div className="student-table-row" key={acct.accountId || acct.AccountId || idx}>
                   <div className="student-table-cell student-table-cell--index">{idx + 1}</div>

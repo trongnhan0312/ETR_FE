@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -78,6 +79,7 @@ const StudentProfiles = () => {
   const { tr, lang } = useLanguage();
   const [profiles, setProfiles] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [studentAccounts, setStudentAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -90,22 +92,12 @@ const StudentProfiles = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  // Create wizard state
-  const [createStep, setCreateStep] = useState('account'); // 'account' | 'profile'
-  const [createdAccount, setCreatedAccount] = useState(null);
-
-  // Step 1: Account form state
-  const [aUsername, setAUsername] = useState('');
-  const [aPassword, setAPassword] = useState('Default@123');
-  const [aDepartmentId, setADepartmentId] = useState('');
-
-  // Step 2: Profile form state
+  // Create Student Form State
+  const [selectedAccountId, setSelectedAccountId] = useState('');
   const [cFullName, setCFullName] = useState('');
-  const [cEmail, setCEmail] = useState('');
   const [cPhone, setCPhone] = useState('');
   const [cDateOfBirth, setCDateOfBirth] = useState('');
   const [cGender, setCGender] = useState('Male');
-  const [cGeneratedUserCode, setCGeneratedUserCode] = useState('');
 
   // Edit form state
   const [eFullName, setEFullName] = useState('');
@@ -139,6 +131,8 @@ const StudentProfiles = () => {
         const mappedRole = (ROLE_MAP[acc.roleId] || acc.role || acc.roleName || '').toLowerCase();
         return rId === 6 || mappedRole === 'student' || mappedRole === 'learner';
       });
+
+      setStudentAccounts(learnerAccs);
 
       setProfiles(
         profs.map((p) => ({
@@ -185,87 +179,35 @@ const getStudentDepartments = () => {
 };
 
   const handleOpenCreateModal = () => {
-    setCreateStep('account');
-    setCreatedAccount(null);
-    setAUsername('');
-    setAPassword('Default@123');
-    const studentDepts = getStudentDepartments();
-    setADepartmentId(String(studentDepts[0]?.id || '3'));
+    setSelectedAccountId(studentAccounts[0]?.accountId || studentAccounts[0]?.id || '');
     setCFullName('');
-    setCEmail('');
     setCPhone('');
     setCDateOfBirth('');
     setCGender('Male');
-    setCGeneratedUserCode('');
     setFormError('');
     setIsCreateOpen(true);
   };
 
-  // Step 1: Create Account (Student role only, enforced by backend)
-  const handleAccountSubmit = async (e) => {
+  // Submit Create Profile for Selected Student Account
+  const handleCreateStudentSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
 
-    const trimmedUsername = aUsername.trim();
-    if (!trimmedUsername) {
-      setFormError(tr('Vui lòng nhập Tên đăng nhập (Username).'));
-      return;
-    }
-    if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
-      setFormError(tr('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).'));
-      return;
-    }
-    if (!aPassword) {
-      setFormError(tr('Vui lòng nhập Mật khẩu.'));
+    if (!selectedAccountId) {
+      setFormError(tr('Vui lòng chọn tài khoản học viên.'));
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const newAcc = await api.post('/Accounts', {
-        username: trimmedUsername,
-        password: aPassword,
-        roleId: 6, // Student role
-        departmentId: Number(aDepartmentId || getStudentDepartments()[0]?.id || 3),
-      });
+    const selectedAcc = studentAccounts.find((a) => String(a.accountId || a.id) === String(selectedAccountId));
+    const accountEmail = selectedAcc?.username || selectedAcc?.email || '';
 
-      const accId = newAcc?.accountId ?? newAcc?.id;
-      if (!accId) {
-        setFormError(tr('Tạo tài khoản thành công nhưng không nhận được accountId từ hệ thống.'));
-        return;
-      }
-
-setCreatedAccount({ accountId: accId, username: trimmedUsername });
-       setCEmail(trimmedUsername);
-      setFormError('');
-      setCreateStep('profile');
-    } catch (err) {
-      console.error('Failed to create student account:', err);
-      setFormError(parseApiError(err, tr('Tạo tài khoản học viên thất bại.'), tr));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Step 2: Create Profile linked to the accountId from Step 1
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    setFormError('');
-
-    if (!createdAccount?.accountId) {
-      setFormError(tr('Thiếu accountId. Vui lòng quay lại Bước 1 để tạo tài khoản.'));
-      return;
-    }
-    if (!cFullName.trim()) {
+    const trimmedFullName = cFullName.trim();
+    if (!trimmedFullName) {
       setFormError(tr('Vui lòng nhập Họ và tên.'));
       return;
     }
-    if (!isValidFullName(cFullName.trim())) {
+    if (!isValidFullName(trimmedFullName)) {
       setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
-      return;
-    }
-    if (!cEmail.trim() || !cEmail.includes('@')) {
-      setFormError(tr('Email phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).'));
       return;
     }
     if (cPhone.trim() && !isValidPhone(cPhone.trim())) {
@@ -277,19 +219,19 @@ setCreatedAccount({ accountId: accId, username: trimmedUsername });
       return;
     }
 
-setSubmitting(true);
-      try {
-        const response = await api.post(`/UserProfiles/${createdAccount.accountId}`, {
-          fullName: cFullName.trim(),
-          email: cEmail.trim(),
-          phone: cPhone.trim() || null,
-          dateOfBirth: new Date(`${cDateOfBirth}T00:00:00`).toISOString(),
-          gender: cGender,
-          organization: 'ETR Aviation',
-        });
-        setCGeneratedUserCode(response?.userCode || `USR-${createdAccount.accountId}`);
-        await loadProfiles();
-        setIsCreateOpen(false);
+    setSubmitting(true);
+    try {
+      await api.post(`/UserProfiles/${selectedAccountId}`, {
+        fullName: trimmedFullName,
+        email: accountEmail,
+        phone: cPhone.trim() || null,
+        dateOfBirth: new Date(`${cDateOfBirth}T00:00:00`).toISOString(),
+        gender: cGender,
+        organization: 'ETR Aviation',
+      });
+
+      await loadProfiles();
+      setIsCreateOpen(false);
     } catch (err) {
       console.error('Failed to create profile:', err);
       setFormError(parseApiError(err, tr('Tạo hồ sơ học viên thất bại.'), tr));
@@ -436,130 +378,106 @@ setSubmitting(true);
           />
         </div>
 
-        <div className="data-table" style={{ width: '100%' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1.1fr 1.3fr 1.4fr 1fr 1fr 0.8fr 1.1fr 0.9fr',
-              padding: '12px 16px',
-              background: '#002147',
-              color: '#fff',
-              borderRadius: '8px 8px 0 0',
-              fontWeight: '600',
-              fontSize: '12px',
-              letterSpacing: '0.03em',
-            }}
-          >
-            <div>{tr('Mã học viên')}</div>
-            <div>{tr('Họ và tên')}</div>
-            <div>{tr('Email')}</div>
-            <div>{tr('Số điện thoại')}</div>
-            <div>{tr('Ngày sinh')}</div>
-            <div>{tr('Giới tính')}</div>
-            <div>{tr('Tổ chức')}</div>
-            <div style={{ textAlign: 'right' }}>{tr('Hành động')}</div>
-          </div>
+        <div style={{ width: '100%', overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', background: '#fff' }}>
+          <div className="data-table" style={{ minWidth: '1150px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '130px 180px 220px 130px 120px 100px 140px minmax(130px, 1fr)',
+                padding: '12px 16px',
+                background: '#002147',
+                color: '#fff',
+                fontWeight: '600',
+                fontSize: '12px',
+                letterSpacing: '0.03em',
+                alignItems: 'center',
+              }}
+            >
+              <div>{tr('Mã học viên')}</div>
+              <div>{tr('Họ và tên')}</div>
+              <div>{tr('Email')}</div>
+              <div>{tr('Số điện thoại')}</div>
+              <div>{tr('Ngày sinh')}</div>
+              <div>{tr('Giới tính')}</div>
+              <div>{tr('Tổ chức')}</div>
+              <div style={{ textAlign: 'right' }}>{tr('Hành động')}</div>
+            </div>
 
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-              {tr('Đang tải danh sách hồ sơ học viên...')}
-            </div>
-          ) : filteredProfiles.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#64748b', fontStyle: 'italic' }}>
-              {searchTerm ? tr('Không tìm thấy hồ sơ phù hợp.') : tr('Chưa có hồ sơ học viên nào trong hệ thống.')}
-            </div>
-          ) : (
-            filteredProfiles.map((profile) => (
-              <div
-                key={profile.accountId}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1.1fr 1.3fr 1.4fr 1fr 1fr 0.8fr 1.1fr 0.9fr',
-                  padding: '12px 16px',
-                  borderBottom: '1px solid #f1f5f9',
-                  alignItems: 'center',
-                  fontSize: '13px',
-                }}
-              >
-                <div style={{ fontWeight: '700', color: '#c5a059' }}>{profile.userCode}</div>
-                <div style={{ fontWeight: '600', color: '#0f172a' }}>{profile.fullName}</div>
-                <div style={{ color: '#64748b' }}>{profile.email || 'N/A'}</div>
-                <div style={{ color: '#334155' }}>{profile.phone || 'N/A'}</div>
-                <div style={{ color: '#334155' }}>{formatDate(profile.dateOfBirth, lang)}</div>
-                <div style={{ color: '#64748b' }}>{tr(GENDER_LABEL[profile.gender]) || profile.gender || 'N/A'}</div>
-                <div style={{ color: '#334155', fontWeight: '500' }}>{profile.organization || 'N/A'}</div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenViewModal(profile)}
-                    style={{
-                      padding: '4px 10px',
-                      fontSize: '12px',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      background: '#fff',
-                      color: '#334155',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {tr('Xem')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditModal(profile)}
-                    style={{
-                      padding: '4px 10px',
-                      fontSize: '12px',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      background: '#fff',
-                      color: '#334155',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {tr('Sửa')}
-                  </button>
-                </div>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                {tr('Đang tải danh sách hồ sơ học viên...')}
               </div>
-            ))
-          )}
+            ) : filteredProfiles.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#64748b', fontStyle: 'italic' }}>
+                {searchTerm ? tr('Không tìm thấy hồ sơ phù hợp.') : tr('Chưa có hồ sơ học viên nào trong hệ thống.')}
+              </div>
+            ) : (
+              filteredProfiles.map((profile) => (
+                <div
+                  key={profile.accountId}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '130px 180px 220px 130px 120px 100px 140px minmax(130px, 1fr)',
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f1f5f9',
+                    alignItems: 'center',
+                    fontSize: '13px',
+                    background: '#fff',
+                  }}
+                >
+                  <div style={{ fontWeight: '700', color: '#c5a059', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.userCode}</div>
+                  <div style={{ fontWeight: '600', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.fullName}</div>
+                  <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={profile.email}>{profile.email || 'N/A'}</div>
+                  <div style={{ color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.phone || 'N/A'}</div>
+                  <div style={{ color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatDate(profile.dateOfBirth, lang)}</div>
+                  <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(GENDER_LABEL[profile.gender]) || profile.gender || 'N/A'}</div>
+                  <div style={{ color: '#334155', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.organization || 'N/A'}</div>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenViewModal(profile)}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#fff',
+                        color: '#334155',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {tr('Xem')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(profile)}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#fff',
+                        color: '#334155',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {tr('Sửa')}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </section>
 
-      {/* CREATE PROFILE WIZARD MODAL (Step 1: Account, Step 2: Profile) */}
-      {isCreateOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      {/* CREATE STUDENT MODAL (Single-Step) */}
+      {isCreateOpen && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '540px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
-            {/* Step indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              {['account', 'profile'].map((step) => (
-                <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '999px',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      background: createStep === step ? '#002147' : '#e2e8f0',
-                      color: createStep === step ? '#fff' : '#64748b',
-                    }}
-                  >
-                    {step === 'account' ? tr('Bước 1: Tạo Account') : tr('Bước 2: Tạo Profile')}
-                  </div>
-                  {step === 'account' && (
-                    <span style={{ color: '#cbd5e1' }}>→</span>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>
-              {createStep === 'account' ? tr('Tạo tài khoản học viên') : tr('Tạo hồ sơ học viên')}
-            </h2>
+            <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>{tr('Tạo tài khoản & hồ sơ học viên')}</h2>
             <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-              {createStep === 'account'
-                ? tr('Bước 1/2: Tạo tài khoản mới với vai trò Student (RoleId = 6).')
-                : tr('Bước 2/2: Nhập thông tin hồ sơ. Backend sẽ tự móc nối vào Account đã tạo ở Bước 1.')}
+              {tr('Nhập thông tin tài khoản và hồ sơ học viên (Vai trò: Student).')}
             </p>
 
             {formError && (
@@ -568,163 +486,91 @@ setSubmitting(true);
               </div>
             )}
 
-            {createStep === 'account' ? (
-              <form onSubmit={handleAccountSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleCreateStudentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Account Section */}
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>
+                {tr('1. Chọn Tài khoản học viên')}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>
+                  {tr('Chọn tài khoản (Student Account) *')}
+                </label>
+                <select
+                  required
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: '600', outline: 'none' }}
+                >
+                  <option value="">{tr('-- Chọn tài khoản --')}</option>
+                  {studentAccounts.map((acc) => {
+                    const accId = acc.accountId || acc.id;
+                    const hasProf = profiles.some((p) => String(p.accountId) === String(accId));
+                    return (
+                      <option key={accId} value={accId}>
+                        {acc.username} (ID: {accId}) {hasProf ? `[${tr('Đã có Profile')}]` : `[${tr('Chưa có Profile')}]`}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#64748b' }}>
+                  {tr('* Chọn tài khoản học viên để tiến hành tạo hoặc cập nhật hồ sơ.')}
+                </p>
+              </div>
+
+              {/* Profile Section */}
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginTop: '8px' }}>
+                {tr('2. Thông tin Hồ sơ')}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Họ và tên *')}</label>
+                <input
+                  type="text"
+                  required
+                  value={cFullName}
+                  onChange={(e) => setCFullName(e.target.value)}
+                  placeholder={tr('Ví dụ: Nguyễn Văn A')}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tên đăng nhập (Email / Username) *')}</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Số điện thoại')}</label>
                   <input
-                    type="email"
-                    required
-                    value={aUsername}
-                    onChange={(e) => setAUsername(e.target.value)}
-                    placeholder={tr('Ví dụ: student@domain.com')}
+                    type="text"
+                    value={cPhone}
+                    onChange={(e) => setCPhone(e.target.value)}
+                    placeholder="0901234567"
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                   />
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Mật khẩu *')}</label>
-                    <input
-                      type="password"
-                      required
-                      value={aPassword}
-                      onChange={(e) => setAPassword(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Vai trò (Role)')}</label>
-                    <input
-                      type="text"
-                      disabled
-                      value="Student (RoleId = 6)"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
-                    />
-                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#94a3b8' }}>
-                      {tr('* Academic chỉ được tạo tài khoản Student.')}
-                    </p>
-                  </div>
-                </div>
-
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Phòng ban (Department) *')}</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Giới tính')}</label>
                   <select
-                    required
-                    value={aDepartmentId}
-                    onChange={(e) => setADepartmentId(e.target.value)}
+                    value={cGender}
+                    onChange={(e) => setCGender(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                   >
-                    {getStudentDepartments().map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
+                    <option value="Male">{tr('Nam (Male)')}</option>
+                    <option value="Female">{tr('Nữ (Female)')}</option>
+                    <option value="Other">{tr('Khác (Other)')}</option>
                   </select>
                 </div>
+              </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateOpen(false)}
-                    style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
-                  >
-                    {tr('Hủy')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
-                  >
-                    {submitting ? tr('Đang tạo Account...') : tr('Tạo Account (Bước 1)')}
-                  </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Ngày sinh (phải trước năm 2007) *')}</label>
+                  <input
+                    type="date"
+                    required
+                    value={cDateOfBirth}
+                    onChange={(e) => setCDateOfBirth(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
                 </div>
-              </form>
-            ) : (
-              <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ padding: '10px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', fontSize: '13px', color: '#065f46' }}>
-                  {tr('✓ Tạo Account thành công')} — {tr('Account ID:')} <strong>{createdAccount?.accountId}</strong>
-                  {createdAccount?.username ? ` (${createdAccount.username})` : ''}
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Mã học viên')}</label>
-                    <div
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        background: '#f8fafc',
-                        color: '#002147',
-                        fontWeight: '600',
-                      }}
-                    >
-                      {cGeneratedUserCode || `USR-${createdAccount?.accountId || ''}`}
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Họ và tên *')}</label>
-                    <input
-                      type="text"
-                      required
-                      value={cFullName}
-                      onChange={(e) => setCFullName(e.target.value)}
-                      placeholder={tr('Ví dụ: Nguyễn Văn A')}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Email *')}</label>
-                    <input
-                      type="email"
-                      required
-                      value={cEmail}
-                      onChange={(e) => setCEmail(e.target.value)}
-                      placeholder="student@domain.com"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Số điện thoại')}</label>
-                    <input
-                      type="text"
-                      value={cPhone}
-                      onChange={(e) => setCPhone(e.target.value)}
-                      placeholder="0901234567"
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Ngày sinh')}</label>
-                    <input
-                      type="date"
-                      value={cDateOfBirth}
-                      onChange={(e) => setCDateOfBirth(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Giới tính')}</label>
-                    <select
-                      value={cGender}
-                      onChange={(e) => setCGender(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
-                    >
-                      <option value="Male">{tr('Nam (Male)')}</option>
-                      <option value="Female">{tr('Nữ (Female)')}</option>
-                      <option value="Other">{tr('Khác (Other)')}</option>
-                    </select>
-                  </div>
-                </div>
-
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tổ chức (khóa)')}</label>
                   <input
@@ -733,43 +579,34 @@ setSubmitting(true);
                     value="ETR Aviation"
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
                   />
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#94a3b8' }}>
-                    {tr('* Tổ chức không thể thay đổi.')}
-                  </p>
                 </div>
+              </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-                  <button
-                    type="button"
-                    onClick={() => { setCreateStep('account'); setFormError(''); }}
-                    style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
-                  >
-                    {tr('← Quay lại')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateOpen(false)}
-                    style={{ padding: '8px 16px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
-                  >
-                    {tr('Hủy')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
-                  >
-                    {submitting ? tr('Đang lưu hồ sơ...') : tr('Tạo hồ sơ (Bước 2)')}
-                  </button>
-                </div>
-              </form>
-            )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
+                >
+                  {tr('Hủy')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  {submitting ? tr('Đang tạo học viên...') : tr('Tạo học viên')}
+                </button>
+              </div>
+            </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* EDIT PROFILE MODAL */}
-      {isEditOpen && editingProfile && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      {isEditOpen && editingProfile && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '520px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>{tr('Chỉnh sửa hồ sơ học viên')}</h2>
             <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
@@ -871,12 +708,13 @@ setSubmitting(true);
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* VIEW PROFILE MODAL */}
-      {isViewOpen && viewingProfile && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      {isViewOpen && viewingProfile && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '520px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>{tr('Hồ sơ học viên')}</h2>
@@ -925,7 +763,8 @@ setSubmitting(true);
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useLanguage } from '../context/LanguageContext';
 
 const PublicHeader = () => {
   const navigate = useNavigate();
+  const { tr } = useLanguage();
 
   const handleGoToLogin = () => {
     navigate('/login');
@@ -24,18 +26,18 @@ const PublicHeader = () => {
       </div>
 
       <nav className="nav-links">
-        <NavLink to="/records" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>Records</NavLink>
-        <NavLink to="/competency" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>Competency</NavLink>
-        <NavLink to="/compliance" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>Compliance</NavLink>
-        <NavLink to="/analytics" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>Analytics</NavLink>
-        <NavLink to="/integrations" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>Integrations</NavLink>
-        <NavLink to="/regulatory-library" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>Library</NavLink>
+        <NavLink to="/records" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>{tr('Records')}</NavLink>
+        <NavLink to="/competency" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>{tr('Competency')}</NavLink>
+        <NavLink to="/compliance" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>{tr('Compliance')}</NavLink>
+        <NavLink to="/analytics" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>{tr('Analytics')}</NavLink>
+        <NavLink to="/integrations" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>{tr('Integrations')}</NavLink>
+        <NavLink to="/regulatory-library" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>{tr('Library')}</NavLink>
       </nav>
 
       <div className="nav-actions">
         <LanguageSwitcher dark />
         <button type="button" className="btn-sign-in" onClick={handleGoToLogin}>
-          Sign in
+          {tr('Sign in')}
         </button>
       </div>
     </header>

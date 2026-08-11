@@ -8,9 +8,9 @@ import "./instructor.scss";
 
 // Status constants enforced by the backend (RegularExpression "^(Present|Absent|Late)$")
 const ATTENDANCE_STATUSES = [
-  { value: "Present", short: "P", label: "Present (Có mặt)", color: "#22c55e" },
-  { value: "Absent", short: "A", label: "Absent (Vắng)", color: "#ef4444" },
-  { value: "Late", short: "L", label: "Late (Đi muộn)", color: "#3b82f6" }
+  { value: "Present", short: "P", label: "Có mặt", color: "#22c55e" },
+  { value: "Absent", short: "A", label: "Vắng", color: "#ef4444" },
+  { value: "Late", short: "L", label: "Đi muộn", color: "#3b82f6" }
 ];
 
 // Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login)

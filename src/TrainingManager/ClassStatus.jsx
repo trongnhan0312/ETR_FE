@@ -268,20 +268,20 @@ const ClassStatus = () => {
       case "IN PROGRESS":
         return (
           <div className="inline-flex flex-col justify-center items-center w-[72px] h-8 rounded-sm bg-[#2e7d32]/10 border border-[#2e7d32]/20 text-[10px] font-bold leading-none text-[#2e7d32] uppercase">
-            <span>IN</span>
-            <span className="mt-0.5">PROGRESS</span>
+            <span>{tr('IN')}</span>
+            <span className="mt-0.5">{tr('PROGRESS')}</span>
           </div>
         );
       case "SCHEDULED":
         return (
           <div className="inline-flex justify-center items-center px-2 py-1 rounded-sm bg-blue-100 text-[10px] font-bold text-blue-700 uppercase">
-            SCHEDULED
+            {tr('SCHEDULED')}
           </div>
         );
       case "DELAYED":
         return (
           <div className="inline-flex justify-center items-center px-2 py-1 rounded-sm bg-[#ffdad6] text-[10px] font-bold text-[#ba1a1a] uppercase">
-            DELAYED
+            {tr('DELAYED')}
           </div>
         );
       default:
@@ -336,7 +336,7 @@ const ClassStatus = () => {
     if (rate >= 90) {
       return (
         <div className="inline-flex justify-center items-center px-2 py-0.5 rounded-sm bg-[#2e7d32]/10 border border-[#2e7d32]/20 text-[10px] font-bold uppercase text-[#2e7d32]">
-          ĐẠT
+          {tr('ĐẠT')}
         </div>
       );
     }
@@ -344,8 +344,7 @@ const ClassStatus = () => {
       return (
         <div className="inline-flex justify-center items-center px-2 py-1 rounded-sm bg-[#ed6c02]/10 border border-[#ed6c02]/20 text-[10px] font-bold uppercase text-[#ed6c02] tracking-wider leading-none">
           <div className="flex flex-col items-center">
-            <span>THEO</span>
-            <span className="mt-0.5">DÕI</span>
+            <span>{tr('THEO DÕI')}</span>
           </div>
         </div>
       );
@@ -353,8 +352,7 @@ const ClassStatus = () => {
     return (
       <div className="inline-flex justify-center items-center px-2 py-1 rounded-sm bg-[#d32f2f]/10 border border-[#d32f2f]/20 text-[10px] font-bold uppercase text-[#d32f2f] tracking-wider leading-none">
         <div className="flex flex-col items-center">
-          <span>CẢNH</span>
-          <span className="mt-0.5">BÁO</span>
+          <span>{tr('CẢNH BÁO')}</span>
         </div>
       </div>
     );
@@ -403,7 +401,7 @@ const ClassStatus = () => {
                   onClick={() => setSelectedClassDetails(null)}
                   className="text-xs font-semibold uppercase text-[#495057] cursor-pointer hover:text-[#002147] transition-all"
                 >
-                  TRẠNG THÁI LỚP HỌC
+                  {tr('TRẠNG THÁI LỚP HỌC')}
                 </span>
                 <svg
                   width={5}
@@ -418,7 +416,7 @@ const ClassStatus = () => {
                   />
                 </svg>
                 <span className="text-xs font-semibold uppercase text-[#002147]">
-                  CHI TIẾT ĐIỂM DANH
+                  {tr('CHI TIẾT ĐIỂM DANH')}
                 </span>
               </div>
               <h2 className="text-3xl font-bold text-left text-[#002147] m-0">
@@ -439,7 +437,7 @@ const ClassStatus = () => {
                   fill="white"
                 />
               </svg>
-              <span>XUẤT BÁO CÁO</span>
+              <span>{tr('XUẤT BÁO CÁO')}</span>
             </button>
           </div>
 
@@ -450,7 +448,7 @@ const ClassStatus = () => {
               <div className="grid grid-cols-2 gap-y-6 gap-x-6">
                 <div>
                   <span className="text-[10px] font-semibold text-[#495057]/60 uppercase leading-none block tracking-wider">
-                    MÃ LỚP
+                    {tr('MÃ LỚP')}
                   </span>
                   <p className="text-lg font-bold text-[#002147] m-0 mt-1 leading-tight">
                     {selectedClassDetails.id}
@@ -458,7 +456,7 @@ const ClassStatus = () => {
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold text-[#495057]/60 uppercase leading-none block tracking-wider">
-                    KHÓA HỌC
+                    {tr('KHÓA HỌC')}
                   </span>
                   <p className="text-lg font-bold text-[#002147] m-0 mt-1 leading-tight">
                     {selectedClassDetails.name}
@@ -466,7 +464,7 @@ const ClassStatus = () => {
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold text-[#495057]/60 uppercase leading-none block tracking-wider">
-                    GIẢNG VIÊN
+                    {tr('GIẢNG VIÊN')}
                   </span>
                   <p className="text-lg font-bold text-[#002147] m-0 mt-1 leading-tight">
                     {selectedClassDetails.instructor}
@@ -474,7 +472,7 @@ const ClassStatus = () => {
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold text-[#495057]/60 uppercase leading-none block tracking-wider">
-                    THỜI GIAN
+                    {tr('THỜI GIAN')}
                   </span>
                   <p className="text-lg font-bold text-[#002147] m-0 mt-1 leading-tight">
                     {selectedClassDetails.startDate} -{" "}
@@ -502,9 +500,7 @@ const ClassStatus = () => {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] font-semibold text-[#495057]/60 uppercase leading-snug block tracking-wider">
-                  TỶ LỆ THAM DỰ
-                  <br />
-                  CHUNG
+                  {tr('TỶ LỆ THAM DỰ CHUNG')}
                 </span>
                 <p className="text-2xl font-bold text-[#002147] m-0 leading-none">
                   {avgAttendance}%
@@ -530,9 +526,7 @@ const ClassStatus = () => {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] font-semibold text-[#495057]/60 uppercase leading-snug block tracking-wider">
-                  SỐ BUỔI ĐÃ
-                  <br />
-                  HỌC
+                  {tr('SỐ BUỔI ĐÃ HỌC')}
                 </span>
                 <p className="text-2xl font-bold text-[#002147] m-0 leading-none">
                   {sessionsHeld}/24
@@ -558,9 +552,7 @@ const ClassStatus = () => {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] font-semibold text-[#495057]/60 uppercase leading-snug block tracking-wider">
-                  HỌC VIÊN
-                  <br />
-                  VẮNG NHIỀU
+                  {tr('HỌC VIÊN VẮNG NHIỀU')}
                 </span>
                 <p className="text-2xl font-bold text-[#d32f2f] m-0 leading-none">
                   {String(absentManyCount).padStart(2, "0")}
@@ -607,7 +599,7 @@ const ClassStatus = () => {
                       fill="#495057"
                     />
                   </svg>
-                  <span>BỘ LỌC</span>
+                  <span>{tr('BỘ LỌC')}</span>
                 </button>
                 <button
                   className="flex justify-start items-center gap-2 px-6 py-2 rounded-sm border border-[#dee2e6] bg-white cursor-pointer hover:bg-slate-50 transition-all font-semibold text-xs text-[#495057]"
@@ -622,7 +614,7 @@ const ClassStatus = () => {
                       fill="#495057"
                     />
                   </svg>
-                  <span>BUỔI HỌC (10-12)</span>
+                  <span>{tr('BUỔI HỌC (10-12)')}</span>
                 </button>
               </div>
             </div>
@@ -633,28 +625,28 @@ const ClassStatus = () => {
                 <thead>
                   <tr className="bg-[#002147] text-white">
                     <th className="px-6 py-5 text-[11px] font-semibold uppercase w-[8%]">
-                      STT
+                      {tr('STT')}
                     </th>
                     <th className="px-6 py-5 text-[11px] font-semibold uppercase w-[24%]">
-                      HỌC VIÊN
+                      {tr('HỌC VIÊN')}
                     </th>
                     <th className="px-6 py-5 text-[11px] font-semibold uppercase w-[15%]">
-                      ID
+                      {tr('ID')}
                     </th>
                     <th className="px-6 py-5 text-[11px] font-semibold uppercase w-[20%]">
-                      TỶ LỆ TỔNG
+                      {tr('TỶ LỆ TỔNG')}
                     </th>
                     <th className="px-4 py-5 text-[11px] font-semibold uppercase w-[10%] text-center">
-                      BUỔI 10
+                      {tr('BUỔI 10')}
                     </th>
                     <th className="px-4 py-5 text-[11px] font-semibold uppercase w-[10%] text-center">
-                      BUỔI 11
+                      {tr('BUỔI 11')}
                     </th>
                     <th className="px-4 py-5 text-[11px] font-semibold uppercase w-[10%] text-center">
-                      BUỔI 12
+                      {tr('BUỔI 12')}
                     </th>
                     <th className="px-6 py-5 text-[11px] font-semibold uppercase w-[13%] text-left">
-                      TRẠNG THÁI
+                      {tr('TRẠNG THÁI')}
                     </th>
                   </tr>
                 </thead>
@@ -1236,7 +1228,7 @@ const ClassStatus = () => {
                   <input
                     type="text"
                     required
-                    placeholder="E.g. BATCH-320-B"
+                    placeholder={tr('E.g. BATCH-320-B')}
                     value={newClassId}
                     onChange={(e) => setNewClassId(e.target.value)}
                     className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
@@ -1251,10 +1243,10 @@ const ClassStatus = () => {
                     onChange={(e) => setNewClassType(e.target.value)}
                     className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
                   >
-                    <option value="Type Rating">Type Rating</option>
-                    <option value="Conversion">Conversion</option>
-                    <option value="Workshop">Workshop</option>
-                    <option value="Certification">Certification</option>
+                    <option value="Type Rating">{tr('Type Rating')}</option>
+                    <option value="Conversion">{tr('Conversion')}</option>
+                    <option value="Workshop">{tr('Workshop')}</option>
+                    <option value="Certification">{tr('Certification')}</option>
                   </select>
                 </div>
               </div>
@@ -1283,7 +1275,7 @@ const ClassStatus = () => {
                 <input
                   type="text"
                   required
-                  placeholder="E.g. A320 Type Rating Class 03"
+                  placeholder={tr('E.g. A320 Type Rating Class 03')}
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
                   className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
@@ -1296,7 +1288,7 @@ const ClassStatus = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="E.g. Sim Phase: Final Check, Ground School..."
+                  placeholder={tr('E.g. Sim Phase: Final Check, Ground School...')}
                   value={newClassSub}
                   onChange={(e) => setNewClassSub(e.target.value)}
                   className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
@@ -1353,7 +1345,7 @@ const ClassStatus = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="E.g. SIM-04"
+                    placeholder={tr('E.g. SIM-04')}
                     value={newRoom}
                     onChange={(e) => setNewRoom(e.target.value)}
                     className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"

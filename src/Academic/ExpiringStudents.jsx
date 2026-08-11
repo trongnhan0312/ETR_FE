@@ -104,7 +104,7 @@ const ExpiringStudents = () => {
       {/* ── Header ── */}
       <section className="student-welcome" style={{ background: 'linear-gradient(135deg, #0a1f3d 0%, #1e3a5f 100%)' }}>
         <div className="student-welcome-left">
-          <p className="eyebrow">Academic Portal</p>
+          <p className="eyebrow">{tr('Academic Portal')}</p>
           <h1>{tr('Học viên sắp hết hạn chứng chỉ')}</h1>
           <p className="welcome-sub">
             {tr('Theo dõi và quản lý các học viên có chứng chỉ đào tạo sắp hết hạn hoặc đã hết hạn.')}

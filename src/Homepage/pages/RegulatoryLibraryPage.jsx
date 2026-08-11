@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { fetchPublicRegulatoryDocs } from '../../utils/api';
 
 const RegulatoryLibraryPage = () => {
+  const { tr } = useLanguage();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -9,7 +11,7 @@ const RegulatoryLibraryPage = () => {
   const [selectedDoc, setSelectedDoc] = useState(null);
 
   useEffect(() => {
-    document.title = "Regulatory Library & Aviation Standards | ETR Aviation";
+    document.title = `${tr('Regulatory Library & Aviation Standards')} | ETR Aviation`;
     let isMounted = true;
     fetchPublicRegulatoryDocs()
       .then(res => {
@@ -41,13 +43,13 @@ const RegulatoryLibraryPage = () => {
       <section className="page-hero">
         <div className="hero-content">
           <div className="trust-pill">
-            <span className="dot">•</span> PUBLIC AVIATION REGULATORY LIBRARY
+            <span className="dot">•</span> {tr('PUBLIC AVIATION REGULATORY LIBRARY')}
           </div>
           <h1 className="hero-title">
-            Reference framework for <span className="highlight-text-cyan">aviation training standards.</span>
+            {tr('Reference framework for')} <span className="highlight-text-cyan">{tr('aviation training standards.')}</span>
           </h1>
           <p className="hero-subtitle">
-            Explore sample reference guidelines, Part 145/147 training frameworks, EWIS practical assessment standards, and compliance benchmarks for electronic training records.
+            {tr('Explore sample reference guidelines, Part 145/147 training frameworks, EWIS practical assessment standards, and compliance benchmarks for electronic training records.')}
           </p>
         </div>
       </section>
@@ -58,7 +60,7 @@ const RegulatoryLibraryPage = () => {
           <input
             type="text"
             className="public-input"
-            placeholder="Search regulatory standards by title, keyword, or document ID..."
+            placeholder={tr('Search regulatory standards by title, keyword, or document ID...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -78,13 +80,13 @@ const RegulatoryLibraryPage = () => {
         </div>
 
         <div className="disclaimer-alert-box" style={{ marginBottom: '24px' }}>
-          <span>ℹ️ <strong>Note:</strong> These reference documents represent public-safe educational models and regulatory alignment guidelines used by ETR Aviation platform developers and training administrators.</span>
+          <span>ℹ️ <strong>{tr('Note:')}</strong> {tr('These reference documents represent public-safe educational models and regulatory alignment guidelines used by ETR Aviation platform developers and training administrators.')}</span>
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>Loading regulatory library...</div>
+          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>{tr('Loading regulatory library...')}</div>
         ) : filteredDocs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>No matching regulatory documents found.</div>
+          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>{tr('No matching regulatory documents found.')}</div>
         ) : (
           <div className="doc-library-grid">
             {filteredDocs.map((doc) => (
@@ -104,7 +106,7 @@ const RegulatoryLibraryPage = () => {
 
                 <div style={{ marginTop: '16px' }}>
                   <button type="button" className="btn-secondary-hero" style={{ padding: '8px 16px', fontSize: '0.85rem', width: '100%' }} onClick={() => setSelectedDoc(doc)}>
-                    View Reference Specifications &rarr;
+                    {tr('View Reference Specifications')} &rarr;
                   </button>
                 </div>
               </div>
@@ -124,16 +126,16 @@ const RegulatoryLibraryPage = () => {
 
             <div className="doc-modal-body">
               <div className="doc-modal-meta">
-                <span><strong>Category:</strong> {selectedDoc.category}</span>
-                <span><strong>Issuing Body:</strong> {selectedDoc.agency}</span>
-                <span><strong>Revision Date:</strong> {selectedDoc.revDate}</span>
+                <span><strong>{tr('Category:')}</strong> {selectedDoc.category}</span>
+                <span><strong>{tr('Issuing Body:')}</strong> {selectedDoc.agency}</span>
+                <span><strong>{tr('Revision Date:')}</strong> {selectedDoc.revDate}</span>
               </div>
 
-              <h4>Specification Overview</h4>
+              <h4>{tr('Specification Overview')}</h4>
               <p>{selectedDoc.summary}</p>
 
               <div className="code-block-preview" style={{ marginTop: '16px' }}>
-                <div className="code-header">SPECIFICATION STRUCTURE (SAMPLE JSON)</div>
+                <div className="code-header">{tr('SPECIFICATION STRUCTURE (SAMPLE JSON)')}</div>
                 <pre><code>{JSON.stringify({
                   docId: selectedDoc.id,
                   title: selectedDoc.title,
@@ -146,7 +148,7 @@ const RegulatoryLibraryPage = () => {
 
             <div className="modal-actions">
               <button type="button" className="btn-submit" onClick={() => setSelectedDoc(null)}>
-                Close Preview
+                {tr('Close Preview')}
               </button>
             </div>
           </div>

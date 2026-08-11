@@ -5,7 +5,7 @@ const ConfirmModal = ({
   isOpen,
   onClose,
   onConfirm,
-  title = "Xác nhận",
+  title = tr('Xác nhận'),
   message = "Bạn có chắc chắn muốn thực hiện thao tác này?",
   confirmText = "XÁC NHẬN",
   cancelText = "HỦY BỎ",
@@ -136,7 +136,7 @@ const ConfirmModal = ({
                 color: "#ffffff",
               }}
             >
-              {title}
+              {tr(title)}
             </h3>
             <p
               style={{
@@ -146,7 +146,7 @@ const ConfirmModal = ({
                 lineHeight: 1.5,
               }}
             >
-              {message}
+              {tr(message)}
             </p>
           </div>
         </div>
@@ -169,7 +169,7 @@ const ConfirmModal = ({
                   fontWeight: "500",
                 }}
               >
-                {bodyMessage}
+                {tr(bodyMessage)}
               </p>
             ) : null
           ) : (
@@ -240,7 +240,7 @@ const ConfirmModal = ({
               transition: "all 0.15s",
             }}
           >
-            {cancelText}
+            {tr(cancelText)}
           </button>
 
           <button
@@ -284,7 +284,7 @@ const ConfirmModal = ({
                 {tr('ĐANG XỬ LÝ...')}
               </span>
             ) : (
-              <span>{confirmText}</span>
+              <span>{tr(confirmText)}</span>
             )}
           </button>
         </div>

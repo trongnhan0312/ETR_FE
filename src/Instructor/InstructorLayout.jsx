@@ -99,7 +99,7 @@ const InstructorLayout = () => {
             </div>
             <div className="brand-text">
               <div className="brand-title">ETR</div>
-              <div className="brand-subtitle">Instructor Portal</div>
+              <div className="brand-subtitle">{tr('Instructor Portal')}</div>
             </div>
           </div>
 
@@ -239,7 +239,7 @@ const InstructorLayout = () => {
             <button
               className="notification-btn"
               type="button"
-              aria-label="Notifications"
+              aria-label={tr('Notifications')}
               onClick={async () => {
                 try {
                   // Notifications will be implemented in a future update

@@ -8,14 +8,17 @@ import { useLanguage } from '../context/LanguageContext';
 import ApprovalHistory from "../components/ApprovalHistory";
 
 // Dòng hiển thị 1 bước kiểm duyệt trong modal chi tiết ETR
-const StepStatusRow = ({ label, ok }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-    <span>{label}</span>
-    <span style={{ color: ok ? '#15803d' : '#d97706', fontWeight: 'bold' }}>
-      {ok ? '✓ ĐÃ XÁC THỰC' : '⌛ ĐANG CHỜ'}
-    </span>
-  </div>
-);
+const StepStatusRow = ({ label, ok }) => {
+  const { tr } = useLanguage();
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+      <span>{tr(label)}</span>
+      <span style={{ color: ok ? '#15803d' : '#d97706', fontWeight: 'bold' }}>
+        {ok ? tr('✓ ĐÃ XÁC THỰC') : tr('⌛ ĐANG CHỜ')}
+      </span>
+    </div>
+  );
+};
 
 const QARETRReviewQueue = () => {
   const { tr, trEn } = useLanguage();

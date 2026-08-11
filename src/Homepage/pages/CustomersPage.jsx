@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 const CustomersPage = () => {
   const navigate = useNavigate();
+  const { tr } = useLanguage();
 
   useEffect(() => {
-    document.title = "Target Organizations & Customers | ETR Aviation";
+    document.title = `${tr('Target Organizations & Customers')} | ETR Aviation`;
   }, []);
 
   const categories = [
@@ -47,17 +49,17 @@ const CustomersPage = () => {
       <section className="page-hero">
         <div className="hero-content">
           <div className="trust-pill">
-            <span className="dot">•</span> BUILT FOR AVIATION ORGANIZATIONS
+            <span className="dot">•</span> {tr('BUILT FOR AVIATION ORGANIZATIONS')}
           </div>
           <h1 className="hero-title">
-            Tailored solutions for every <span className="highlight-text-cyan">aviation training sector.</span>
+            {tr('Tailored solutions for every')} <span className="highlight-text-cyan">{tr('aviation training sector.')}</span>
           </h1>
           <p className="hero-subtitle">
-            From regional Part 145 repair stations to international flight academies, ETR provides scalable electronic training record infrastructure customized for your operational scope.
+            {tr('From regional Part 145 repair stations to international flight academies, ETR provides scalable electronic training record infrastructure customized for your operational scope.')}
           </p>
           <div className="hero-cta-group">
             <button type="button" className="btn-secondary-hero" onClick={() => navigate('/contact')}>
-              Request Organization Demo
+              {tr('Request Organization Demo')}
             </button>
           </div>
         </div>
@@ -66,21 +68,21 @@ const CustomersPage = () => {
       {/* CATEGORIES GRID */}
       <section className="page-section">
         <div className="section-head">
-          <span className="sub-tag">— ORGANIZATION CATEGORIES</span>
-          <h2 className="section-title">How different aviation entities utilize ETR.</h2>
+          <span className="sub-tag">{tr('— ORGANIZATION CATEGORIES')}</span>
+          <h2 className="section-title">{tr('How different aviation entities utilize ETR.')}</h2>
         </div>
 
         <div className="features-grid">
           {categories.map((cat, idx) => (
             <div key={idx} className="feature-card" style={{ display: 'flex', flexDirection: 'column' }}>
               <div className="card-icon-box">{cat.icon}</div>
-              <h3>{cat.title}</h3>
-              <p style={{ marginBottom: '16px' }}><strong>Use Case:</strong> {cat.useCase}</p>
+              <h3>{tr(cat.title)}</h3>
+              <p style={{ marginBottom: '16px' }}><strong>{tr('Use Case:')}</strong> {tr(cat.useCase)}</p>
               <div style={{ marginTop: 'auto' }}>
-                <h4 style={{ fontSize: '0.85rem', color: '#38bdf8', marginBottom: '8px' }}>Key Benefits:</h4>
+                <h4 style={{ fontSize: '0.85rem', color: '#38bdf8', marginBottom: '8px' }}>{tr('Key Benefits:')}</h4>
                 <ul style={{ paddingLeft: '16px', margin: 0, color: '#94a3b8', fontSize: '0.85rem', lineHeight: '1.6' }}>
                   {cat.benefits.map((b, i) => (
-                    <li key={i}>{b}</li>
+                    <li key={i}>{tr(b)}</li>
                   ))}
                 </ul>
               </div>
@@ -92,11 +94,11 @@ const CustomersPage = () => {
       {/* CTA */}
       <section className="bottom-cta-section">
         <div className="cta-container">
-          <h2 className="cta-title">Is your organization ready for digital ETR?</h2>
-          <p className="cta-desc">Speak with an aviation workflow consultant to map your existing training processes into ETR.</p>
+          <h2 className="cta-title">{tr('Is your organization ready for digital ETR?')}</h2>
+          <p className="cta-desc">{tr('Speak with an aviation workflow consultant to map your existing training processes into ETR.')}</p>
           <div className="hero-cta-group" style={{ justifyContent: 'center', marginTop: '24px' }}>
             <button type="button" className="btn-secondary-hero" onClick={() => navigate('/contact')}>
-              Schedule Consultation
+              {tr('Schedule Consultation')}
             </button>
           </div>
         </div>

@@ -344,7 +344,7 @@ const SubjectManagement = () => {
           <div className="modal-container" style={{ width: '560px' }}>
             <header className="modal-header">
               <h2>{tr('Tạo mới môn học')}</h2>
-              <button className="close-btn" type="button" onClick={() => { setIsCreateOpen(false); resetCreateForm(); }} aria-label="Đóng">&times;</button>
+              <button className="close-btn" type="button" onClick={() => { setIsCreateOpen(false); resetCreateForm(); }} aria-label={tr('Đóng')}>&times;</button>
             </header>
             <form onSubmit={handleCreateSubmit}>
               <div className="modal-body" style={{ padding: '24px' }}>
@@ -405,7 +405,7 @@ const SubjectManagement = () => {
           <div className="modal-container" style={{ width: '560px' }}>
             <header className="modal-header">
               <h2>{tr('Chỉnh sửa môn học')}</h2>
-              <button className="close-btn" type="button" onClick={() => { setIsEditOpen(false); setEditingSubject(null); resetEditForm(); }} aria-label="Đóng">&times;</button>
+              <button className="close-btn" type="button" onClick={() => { setIsEditOpen(false); setEditingSubject(null); resetEditForm(); }} aria-label={tr('Đóng')}>&times;</button>
             </header>
             <form onSubmit={handleEditSubmit}>
               <div className="modal-body" style={{ padding: '24px' }}>

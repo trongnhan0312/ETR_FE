@@ -30,34 +30,34 @@ const AuditLog = () => {
     <div className="page-shell">
       <section className="page-header-card">
         <div>
-          <p className="eyebrow">Administrator page 4 of 5</p>
-          <h1>Audit Log</h1>
+          <p className="eyebrow">{tr('Administrator page 4 of 5')}</p>
+          <h1>{tr('Audit Log')}</h1>
           <p className="page-description">
-            View audit entries, search by activity, and filter by user or date. Logs are read-only and cannot be edited or deleted.
+            {tr('View audit entries, search by activity, and filter by user or date. Logs are read-only and cannot be edited or deleted.')}
           </p>
         </div>
 
         <button className="ghost-btn" type="button">
-          Search Audit Logs
+          {tr('Search Audit Logs')}
         </button>
       </section>
 
       <section className="split-panel">
         <div className="info-card">
-          <p className="section-label">Functions</p>
+          <p className="section-label">{tr('Functions')}</p>
           <div className="pill-row">
-            <span className="tag-chip">View audit logs</span>
-            <span className="tag-chip">Search audit logs</span>
-            <span className="tag-chip">Filter by user</span>
-            <span className="tag-chip">Filter by date</span>
+            <span className="tag-chip">{tr('View audit logs')}</span>
+            <span className="tag-chip">{tr('Search audit logs')}</span>
+            <span className="tag-chip">{tr('Filter by user')}</span>
+            <span className="tag-chip">{tr('Filter by date')}</span>
           </div>
         </div>
 
         <div className="info-card warning-card">
-          <p className="section-label">Not allowed</p>
+          <p className="section-label">{tr('Not allowed')}</p>
           <div className="pill-row">
-            <span className="restricted-chip">Edit logs</span>
-            <span className="restricted-chip">Delete logs</span>
+            <span className="restricted-chip">{tr('Edit logs')}</span>
+            <span className="restricted-chip">{tr('Delete logs')}</span>
           </div>
         </div>
       </section>
@@ -65,17 +65,17 @@ const AuditLog = () => {
       <section className="table-section">
         <div className="section-header">
           <div>
-            <p className="section-label">Recent activity</p>
-            <h2>Immutable log trail</h2>
+            <p className="section-label">{tr('Recent activity')}</p>
+            <h2>{tr('Immutable log trail')}</h2>
           </div>
         </div>
 
         <div className="data-table user-table">
           <div className="table-header table-layout audit-layout">
-            <div>User</div>
-            <div>Action</div>
-            <div>Date</div>
-            <div>Status</div>
+            <div>{tr('User')}</div>
+            <div>{tr('Action')}</div>
+            <div>{tr('Date')}</div>
+            <div>{tr('Status')}</div>
           </div>
 
           {loading ? (

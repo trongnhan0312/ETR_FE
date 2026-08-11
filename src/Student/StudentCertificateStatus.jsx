@@ -140,7 +140,7 @@ const StudentCertificateStatus = () => {
       {/* ── Header ── */}
       <section className="student-welcome">
         <div className="student-welcome-left">
-          <p className="eyebrow">Student Portal</p>
+          <p className="eyebrow">{tr('Student Portal')}</p>
           <h1>{tr('Trạng thái chứng chỉ')}</h1>
           <p className="welcome-sub">
             {tr('Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo của bạn.')}

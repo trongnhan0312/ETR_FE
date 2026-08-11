@@ -110,7 +110,7 @@ const InstructorSchedule = () => {
                 className={`day-column${isToday ? ' today-column' : ''}`}
               >
                 <div className="day-header">
-                  <span>{dayData.day}</span>
+                  <span>{tr(dayData.day)}</span>
                   {dayData.sessions.length > 0 && <span className="dot-indicator" />}
                 </div>
 

@@ -468,7 +468,7 @@ const QAEvidenceVerification = () => {
               <button
                 type="button"
                 onClick={closeReview}
-                aria-label="Close"
+                aria-label={tr('Close')}
                 style={{
                   background: "rgba(255,255,255,0.08)",
                   border: "none",
@@ -574,7 +574,7 @@ const QAEvidenceVerification = () => {
                     <span>{reviewTarget.mimeType || "—"}</span>
                   </div>
                   <div className="qa-kv">
-                    <strong>Subject Result</strong>
+                    <strong>{tr('Subject Result')}</strong>
                     <span>#{reviewTarget.subjectResultId ?? "—"}</span>
                   </div>
                 </div>

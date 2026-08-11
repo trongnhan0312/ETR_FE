@@ -424,10 +424,10 @@ const EtrApproval = () => {
         {/* SUB TOPBAR / TABS — bỏ hàng "Digital Transcript Vault" theo yêu cầu */}
         <div className="tm-transcript-sub-topbar">
           <div className="sub-tabs">
-            <span className="sub-tab">Profile</span>
-            <span className="sub-tab">Activity</span>
-            <span className="sub-tab active">Documents</span>
-            <span className="sub-tab">Compliance</span>
+            <span className="sub-tab">{tr('Profile')}</span>
+            <span className="sub-tab">{tr('Activity')}</span>
+            <span className="sub-tab active">{tr('Documents')}</span>
+            <span className="sub-tab">{tr('Compliance')}</span>
           </div>
           <div className="topbar-actions">
             <button className="icon-btn" onClick={() => showAlert("NOTIFICATIONS INITIALIZED.")}>
@@ -450,7 +450,7 @@ const EtrApproval = () => {
         {/* HEADER INFORMATION */}
         <div className="tm-transcript-header">
           <div className="header-left">
-            <span className="record-label">EXECUTIVE PERSONNEL RECORD</span>
+            <span className="record-label">{tr('EXECUTIVE PERSONNEL RECORD')}</span>
             <div className="title-group">
               <h2>Learner Transcript: {viewingHistory.traineeName}</h2>
               <span className="id-badge">#{viewingHistory.traineeCode.replace("ID: ", "")}</span>
@@ -488,11 +488,11 @@ const EtrApproval = () => {
 
             <div className="profile-info-grid">
               <div className="info-item">
-                <span className="info-label">Employee ID</span>
+                <span className="info-label">{tr('Employee ID')}</span>
                 <span className="info-value">#{viewingHistory.traineeCode.replace("ID: ", "")}-EXEC</span>
               </div>
               <div className="info-item">
-                <span className="info-label">Attendance Rate</span>
+                <span className="info-label">{tr('Attendance Rate')}</span>
                 <span className="info-value">
                   {viewingHistory.avgScore != null
                     ? `${viewingHistory.avgScore}%`
@@ -500,14 +500,14 @@ const EtrApproval = () => {
                 </span>
               </div>
               <div className="info-item">
-                <span className="info-label">Status</span>
+                <span className="info-label">{tr('Status')}</span>
                 <div className="info-status">
                   <span className="dot" />
                   <span>{viewingHistory.status === "APPROVED" ? "Completed" : "Pending Approval"}</span>
                 </div>
               </div>
               <div className="info-item">
-                <span className="info-label">Class</span>
+                <span className="info-label">{tr('Class')}</span>
                 <span className="info-value">{viewingHistory.className}</span>
               </div>
             </div>
@@ -532,7 +532,7 @@ const EtrApproval = () => {
                   <p>{viewingHistory.subjectResults?.[0]?.status || tr("Chưa có kết quả môn học")}</p>
                 </div>
                 <div className="cert-footer">
-                  <span className="footer-label">Expiry Date</span>
+                  <span className="footer-label">{tr('Expiry Date')}</span>
                   <span className="footer-value">
                     {viewingHistory.expiryDate
                       ? new Date(viewingHistory.expiryDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase()
@@ -557,7 +557,7 @@ const EtrApproval = () => {
                   <p>{viewingHistory.subjectResults?.[1]?.status || tr("Chưa có kết quả môn học")}</p>
                 </div>
                 <div className="cert-footer">
-                  <span className="footer-label">Issued Date</span>
+                  <span className="footer-label">{tr('Issued Date')}</span>
                   <span className="footer-value">{viewingHistory.approvalDate || "—"}</span>
                 </div>
               </div>
@@ -579,7 +579,7 @@ const EtrApproval = () => {
                   <p>{viewingHistory.subjectResults?.[2]?.status || tr("Chưa có kết quả môn học")}</p>
                 </div>
                 <div className="cert-footer">
-                  <span className="footer-label">Record Status</span>
+                  <span className="footer-label">{tr('Record Status')}</span>
                   <span className="footer-value">{viewingHistory.status === "APPROVED" ? "Completed" : "Pending Approval"}</span>
                 </div>
               </div>
@@ -587,7 +587,7 @@ const EtrApproval = () => {
 
             {/* Training Timeline */}
             <div className="tm-timeline-container-card">
-              <h3 className="section-title">ETR Approval Timeline</h3>
+              <h3 className="section-title">{tr('ETR Approval Timeline')}</h3>
 
               <div className="tm-timeline-vertical">
                 {/* Timeline Item 1 */}
@@ -596,7 +596,7 @@ const EtrApproval = () => {
                   <div className="timeline-card">
                     <div className="card-info">
                       <span className="date">{viewingHistory.submissionDate || "—"}</span>
-                      <h4 className="title">ETR Submitted</h4>
+                      <h4 className="title">{tr('ETR Submitted')}</h4>
                       <p className="desc">{tr('Academic Staff gửi hồ sơ chờ QA thẩm định')}</p>
                     </div>
                     <div className="card-progress">
@@ -621,7 +621,7 @@ const EtrApproval = () => {
                   <div className="timeline-card">
                     <div className="card-info">
                       <span className="date">{viewingHistory.qaDate || "—"}</span>
-                      <h4 className="title">QA Verified</h4>
+                      <h4 className="title">{tr('QA Verified')}</h4>
                       <p className="desc">{tr('QA Staff xác thực hồ sơ và toàn bộ minh chứng')}</p>
                     </div>
                     <div className="card-progress">
@@ -646,7 +646,7 @@ const EtrApproval = () => {
                   <div className="timeline-card">
                     <div className="card-info">
                       <span className="date">{viewingHistory.approvalDate || "—"}</span>
-                      <h4 className="title">Training Manager Approved</h4>
+                      <h4 className="title">{tr('Training Manager Approved')}</h4>
                       <p className="desc">{tr('Phê duyệt cuối cùng — hồ sơ chuyển trạng thái Completed')}</p>
                     </div>
                     <div className="card-progress">
@@ -671,7 +671,7 @@ const EtrApproval = () => {
             <div className="tm-documents-section-card">
               <div className="section-header">
                 <div className="title-group">
-                  <h3>Verified Documents</h3>
+                  <h3>{tr('Verified Documents')}</h3>
                 </div>
                 <button className="filter-btn" onClick={() => showAlert("FILTERS APPLIED.")}>
                   <svg width={11} height={7} viewBox="0 0 11 7" fill="none" style={{ marginRight: "4px" }}>
@@ -787,7 +787,7 @@ const EtrApproval = () => {
       <div className="tm-dashboard-header">
         <div className="tm-header-title">
           <h1 style={{ fontSize: "32px", color: "#002147", fontWeight: 600 }}>
-            ETR Final Approval
+            {tr('ETR Final Approval')}
           </h1>
           <p
             style={{
@@ -797,9 +797,7 @@ const EtrApproval = () => {
               margin: "7px 0 0 0",
             }}
           >
-            Verification queue for QA-validated records awaiting final authority
-            signature. High-precision screening required for regulatory
-            compliance.
+            {tr('Verification queue for QA-validated records awaiting final authority signature. High-precision screening required for regulatory compliance.')}
           </p>
         </div>
 
@@ -808,19 +806,19 @@ const EtrApproval = () => {
             onClick={() => setActiveTab("PENDING")}
             className={`tab-btn${activeTab === "PENDING" ? " active" : ""}`}
           >
-            Pending Review ({etrs.filter((e) => e.status === "PENDING").length})
+            {tr('Pending Review')} ({etrs.filter((e) => e.status === "PENDING").length})
           </button>
           <button
             onClick={() => setActiveTab("APPROVED")}
             className={`tab-btn${activeTab === "APPROVED" ? " active" : ""}`}
           >
-            Approved ({etrs.filter((e) => e.status === "APPROVED").length})
+            {tr('Approved')} ({etrs.filter((e) => e.status === "APPROVED").length})
           </button>
           <button
             onClick={() => setActiveTab("RETURNED")}
             className={`tab-btn${activeTab === "RETURNED" ? " active" : ""}`}
           >
-            Returned ({etrs.filter((e) => e.status === "RETURNED").length})
+            {tr('Returned')} ({etrs.filter((e) => e.status === "RETURNED").length})
           </button>
         </div>
       </div>
@@ -837,7 +835,7 @@ const EtrApproval = () => {
           }}
         >
           <span className="tm-card-label" style={{ color: "#545f71" }}>
-            TOTAL PENDING
+            {tr('TOTAL PENDING')}
           </span>
           <p
             style={{
@@ -856,7 +854,7 @@ const EtrApproval = () => {
                 fill="#D4AF37"
               />
             </svg>
-            <span>+2 since 08:00 Zulu</span>
+            <span>{tr('+2 since 08:00 Zulu')}</span>
           </div>
         </div>
 
@@ -871,7 +869,7 @@ const EtrApproval = () => {
           }}
         >
           <span className="tm-card-label" style={{ color: "#545f71" }}>
-            AVG. PROCESSING TIME
+            {tr('AVG. PROCESSING TIME')}
           </span>
           <p
             style={{
@@ -896,11 +894,10 @@ const EtrApproval = () => {
               />
             </svg>
           </div>
-          <span className="tm-vault-label">SECURITY STATUS</span>
+          <span className="tm-vault-label">{tr('SECURITY STATUS')}</span>
           <h2 className="tm-vault-title">AeroVault™ Protocol Active</h2>
           <p className="tm-vault-desc">
-            Cryptographic seals are initialized and ready for deployment on
-            verified records.
+            {tr('Cryptographic seals are initialized and ready for deployment on verified records.')}
           </p>
         </div>
       </div>
@@ -924,7 +921,7 @@ const EtrApproval = () => {
               margin: 0,
             }}
           >
-            Operational Class Analytics
+            {tr('Operational Class Analytics')}
           </h3>
         </div>
 
@@ -939,7 +936,7 @@ const EtrApproval = () => {
             }}
           >
             <span className="tm-card-label" style={{ color: "#545f71" }}>
-              ACTIVE CLASSES
+              {tr('ACTIVE CLASSES')}
             </span>
             <p
               style={{
@@ -970,7 +967,7 @@ const EtrApproval = () => {
               <span
                 style={{ fontSize: "11px", color: "#545f71", fontWeight: 500 }}
               >
-                Live Sessions In Progress
+                {tr('Live Sessions In Progress')}
               </span>
             </div>
           </div>
@@ -985,7 +982,7 @@ const EtrApproval = () => {
             }}
           >
             <span className="tm-card-label" style={{ color: "#545f71" }}>
-              AVG. ATTENDANCE
+              {tr('AVG. ATTENDANCE')}
             </span>
             <p
               style={{
@@ -1026,7 +1023,7 @@ const EtrApproval = () => {
             }}
           >
             <span className="tm-card-label" style={{ color: "#545f71" }}>
-              NEAR COMPLETION
+              {tr('NEAR COMPLETION')}
             </span>
             <p
               style={{
@@ -1046,7 +1043,7 @@ const EtrApproval = () => {
                 marginTop: "auto",
               }}
             >
-              QA-verified ETRs ≥85% hoàn thành
+              {tr('QA-verified ETRs ≥85% hoàn thành')}
             </span>
           </div>
         </div>
@@ -1081,7 +1078,7 @@ const EtrApproval = () => {
             <div className="tm-search-box" style={{ width: "380px" }}>
               <input
                 type="text"
-                placeholder="Filter by Student Name, ID or ETR..."
+                placeholder={tr('Filter by Student Name, ID or ETR...')}
                 className="w-full bg-white border border-[#e1e4e8] pl-10 pr-6 py-2 text-sm rounded-lg text-gray-700"
                 style={{ width: "380px", borderRadius: "8px" }}
               />
@@ -1121,7 +1118,7 @@ const EtrApproval = () => {
                   color: "#002147",
                 }}
               >
-                FILTER
+                {tr('FILTER')}
               </span>
             </button>
             <button
@@ -1148,7 +1145,7 @@ const EtrApproval = () => {
                   color: "#002147",
                 }}
               >
-                EXPORT
+                {tr('EXPORT')}
               </span>
             </button>
           </div>
@@ -1156,7 +1153,7 @@ const EtrApproval = () => {
 
         {/* Navy Header Bar */}
         <div className="tm-table-header-blue">
-          <span>AWAITING VERIFICATION REGISTRY</span>
+          <span>{tr('AWAITING VERIFICATION REGISTRY')}</span>
         </div>
 
         {/* Table Structure */}
@@ -1164,12 +1161,12 @@ const EtrApproval = () => {
           <table className="tm-table">
             <thead>
               <tr style={{ backgroundColor: "#ffffff" }}>
-                <th style={{ padding: "23px 24px", width: "12%" }}>ETR ID</th>
+                <th style={{ padding: "23px 24px", width: "12%" }}>{tr('ETR ID')}</th>
                 <th style={{ padding: "23px 24px", width: "22%" }}>
-                  PERSONNEL DETAILS
+                  {tr('PERSONNEL DETAILS')}
                 </th>
                 <th style={{ padding: "23px 24px", width: "26%" }}>
-                  COURSE MODULE
+                  {tr('COURSE MODULE')}
                 </th>
                 <th
                   style={{
@@ -1178,7 +1175,7 @@ const EtrApproval = () => {
                     width: "12%",
                   }}
                 >
-                  STATUS
+                  {tr('STATUS')}
                 </th>
                 <th
                   style={{
@@ -1187,7 +1184,7 @@ const EtrApproval = () => {
                     width: "28%",
                   }}
                 >
-                  ACTIONS
+                  {tr('ACTIONS')}
                 </th>
               </tr>
             </thead>
@@ -1259,10 +1256,10 @@ const EtrApproval = () => {
                                 fill="#15803D"
                               />
                             </svg>
-                            <span>VERIFIED</span>
+                            <span>{tr('VERIFIED')}</span>
                           </div>
                         ) : etr.status === "APPROVED" ? (
-                          <span className="tm-status-tag active">APPROVED</span>
+                          <span className="tm-status-tag active">{tr('APPROVED')}</span>
                         ) : (
                           <span
                             className="tm-status-tag"
@@ -1272,7 +1269,7 @@ const EtrApproval = () => {
                               border: "1px solid #fee2e2",
                             }}
                           >
-                            RETURNED
+                            {tr('RETURNED')}
                           </span>
                         )}
                       </div>
@@ -1305,7 +1302,7 @@ const EtrApproval = () => {
                               fill="#002147"
                             />
                           </svg>
-                          <span>HISTORY</span>
+                          <span>{tr('HISTORY')}</span>
                         </button>
                         {activeTab === "PENDING" && (
                           <>
@@ -1316,7 +1313,7 @@ const EtrApproval = () => {
                               }}
                               className="tm-btn-approve-etr"
                             >
-                              APPROVE ETR
+                              {tr('APPROVE ETR')}
                             </button>
                           </>
                         )}
@@ -1330,7 +1327,7 @@ const EtrApproval = () => {
                               border: "1px solid rgba(180,83,9,0.35)",
                             }}
                           >
-                            REOPEN
+                            {tr('REOPEN')}
                           </button>
                         )}
                       </div>
@@ -1370,9 +1367,8 @@ const EtrApproval = () => {
         >
           <div>
             <span style={{ fontSize: "12px", color: "#545f71" }}>
-              Showing {filteredEtrs.length} of{" "}
-              {etrs.filter((e) => e.status === activeTab).length} pending
-              approvals in registry
+              {tr('Showing')} {filteredEtrs.length} {tr('of')}{" "}
+              {etrs.filter((e) => e.status === activeTab).length} {tr('pending approvals in registry')}
             </span>
           </div>
           <div className="tm-pagination">
@@ -1428,8 +1424,7 @@ const EtrApproval = () => {
             />
           </svg>
           <p style={{ textTransform: "uppercase", color: "#1a1c1e" }}>
-            AUTHORIZED ACCESS ONLY • AVIATION SECURITY PROTOCOL 12-B COMPLIANT •
-            SESSION LOGGED
+            {tr('AUTHORIZED ACCESS ONLY • AVIATION SECURITY PROTOCOL 12-B COMPLIANT • SESSION LOGGED')}
           </p>
         </div>
       </div>
@@ -1441,9 +1436,9 @@ const EtrApproval = () => {
             {/* Header */}
             <div className="modal-header">
               <div>
-                <h3>Inspect Training Record</h3>
+                <h3>{tr('Inspect Training Record')}</h3>
                 <p className="modal-subtitle">
-                  Record ID: {selectedEtr.id} • Status: {selectedEtr.status}
+                  {tr('Record ID:')} {selectedEtr.id} • {tr('Status:')} {selectedEtr.status}
                 </p>
               </div>
               <button
@@ -1478,7 +1473,7 @@ const EtrApproval = () => {
                     {selectedEtr.traineeName}
                   </h4>
                   <p style={{ fontSize: "11px", color: "#9ca3af", margin: 0 }}>
-                    Trainee Code: {selectedEtr.traineeCode}
+                    {tr('Trainee Code:')} {selectedEtr.traineeCode}
                   </p>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -1492,7 +1487,7 @@ const EtrApproval = () => {
                       display: "block",
                     }}
                   >
-                    Class name
+                    {tr('Class name')}
                   </span>
                   <span
                     style={{
@@ -1519,14 +1514,14 @@ const EtrApproval = () => {
                     marginBottom: "12px",
                   }}
                 >
-                  Syllabus assessment scores
+                  {tr('Syllabus assessment scores')}
                 </span>
                 <div className="tm-assessment-list">
                   {selectedEtr.assessments.map((a, idx) => (
                     <div key={idx} className="row">
                       <div className="title-group">
                         <span className="title">{a.name}</span>
-                        <span className="sub">Assessed on {a.date}</span>
+                        <span className="sub">{tr('Assessed on')} {a.date}</span>
                       </div>
                       <div className="score-group">
                         <div className="bar">
@@ -1540,7 +1535,7 @@ const EtrApproval = () => {
                     </div>
                   ))}
                   <div className="summary-row">
-                    <span className="label">Average Attendance Rate</span>
+                    <span className="label">{tr('Average Attendance Rate')}</span>
                     <span className="value">{selectedEtr.avgScore}%</span>
                   </div>
                 </div>
@@ -1568,25 +1563,25 @@ const EtrApproval = () => {
                       marginBottom: "2px",
                     }}
                   >
-                    QA Verification Log
+                    {tr('QA Verification Log')}
                   </span>
                   <span style={{ fontSize: "12px", color: "#4b5563" }}>
-                    Verified by{" "}
+                    {tr('Verified by')}{" "}
                     <span style={{ fontWeight: 600, color: "#002147" }}>
                       {selectedEtr.qaVerifier}
                     </span>{" "}
-                    on {selectedEtr.qaDate || selectedEtr.submissionDate}
+                    {tr('on')} {selectedEtr.qaDate || selectedEtr.submissionDate}
                   </span>
                 </div>
                 <div>
-                  <span className="tm-status-tag verified">QA STAMPED</span>
+                  <span className="tm-status-tag verified">{tr('QA STAMPED')}</span>
                 </div>
               </div>
 
               {/* Show Returned Feedback if Status is Returned */}
               {selectedEtr.status === "RETURNED" && (
                 <div className="tm-feedback-alert">
-                  <span className="label">Return Feedback reason</span>
+                  <span className="label">{tr('Return Feedback reason')}</span>
                   <p>
                     {selectedEtr.returnedBy} ({selectedEtr.returnDate}): "
                     {selectedEtr.returnReason}"
@@ -1598,13 +1593,13 @@ const EtrApproval = () => {
               {selectedEtr.status === "APPROVED" && (
                 <div className="tm-approved-alert">
                   <div>
-                    <span className="label">Approved Log</span>
+                    <span className="label">{tr('Approved Log')}</span>
                     <p>
-                      Approved by {selectedEtr.approvedBy} on{" "}
+                      {tr('Approved by')} {selectedEtr.approvedBy} {tr('on')}{" "}
                       {selectedEtr.approvalDate}
                     </p>
                   </div>
-                  <span className="stamp">ARCHIVED</span>
+                  <span className="stamp">{tr('ARCHIVED')}</span>
                 </div>
               )}
             </div>
@@ -1615,7 +1610,7 @@ const EtrApproval = () => {
                 onClick={() => setSelectedEtr(null)}
                 className="tm-btn-secondary"
               >
-                Close
+                {tr('Close')}
               </button>
               {selectedEtr.status === "PENDING" && (
                 <>
@@ -1623,7 +1618,7 @@ const EtrApproval = () => {
                     onClick={() => setShowActionModal("APPROVE")}
                     className="tm-btn-success"
                   >
-                    Sign off & Approve
+                    {tr('Sign off & Approve')}
                   </button>
                 </>
               )}
@@ -1638,7 +1633,7 @@ const EtrApproval = () => {
         <div className="tm-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 33, 71, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, backdropFilter: 'blur(4px)' }}>
           <div className="tm-modal-card max-w-md" style={{ margin: 'auto' }}>
             <div className="modal-header">
-              <h3>Sign Off & Approve ETR</h3>
+              <h3>{tr('Sign Off & Approve ETR')}</h3>
             </div>
 
             <div className="modal-body">
@@ -1657,11 +1652,11 @@ const EtrApproval = () => {
                     margin: 0,
                   }}
                 >
-                  You are signing off on ETR{" "}
+                  {tr('You are signing off on ETR')}{" "}
                   <span style={{ fontFamily: "monospace", fontWeight: 700 }}>
                     {selectedEtr.id}
                   </span>{" "}
-                  for{" "}
+                  {tr('for')}{" "}
                   <span style={{ fontWeight: 600 }}>
                     {selectedEtr.traineeName}
                   </span>
@@ -1677,9 +1672,7 @@ const EtrApproval = () => {
                     lineHeight: "1.4",
                   }}
                 >
-                  This action will stamp the training certificate, issue the
-                  final approval key, and update the audit log registry
-                  permanently.
+                  {tr('This action will stamp the training certificate, issue the final approval key, and update the audit log registry permanently.')}
                 </div>
               </div>
             </div>
@@ -1689,13 +1682,13 @@ const EtrApproval = () => {
                 onClick={() => setShowActionModal(null)}
                 className="tm-btn-secondary"
               >
-                Cancel
+                {tr('Cancel')}
               </button>
               <button
                 onClick={() => handleApprove(selectedEtr.etrId)}
                 className="tm-btn-success"
               >
-                Confirm Sign Off
+                {tr('Confirm Sign Off')}
               </button>
             </div>
           </div>
@@ -1711,8 +1704,8 @@ const EtrApproval = () => {
         title={`${tr('Mở lại (Reopen)')} ETR #${String(reopenTarget || "").padStart(4, "0")}`}
         message={tr('Việc mở lại hồ sơ sẽ được ghi nhận vào Audit Trail. Vui lòng nêu rõ lý do.')}
         placeholder={tr('Nhập lý do mở lại ETR...')}
-        confirmText="MỞ LẠI ETR"
-        cancelText="HỦY BỎ"
+        confirmText={tr('MỞ LẠI ETR')}
+        cancelText={tr('HỦY BỎ')}
         variant="gold"
       />
 

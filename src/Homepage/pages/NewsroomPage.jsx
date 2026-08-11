@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 import { fetchPublicNews } from '../../utils/api';
 
 const NewsroomPage = () => {
   const navigate = useNavigate();
+  const { tr } = useLanguage();
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   useEffect(() => {
-    document.title = "Newsroom & Press | ETR Aviation";
+    document.title = `${tr('Newsroom & Press')} | ETR Aviation`;
     let isMounted = true;
     fetchPublicNews()
       .then(res => {
@@ -37,13 +39,13 @@ const NewsroomPage = () => {
       <section className="page-hero">
         <div className="hero-content">
           <div className="trust-pill">
-            <span className="dot">•</span> ETR NEWSROOM & PRESS
+            <span className="dot">•</span> {tr('ETR NEWSROOM & PRESS')}
           </div>
           <h1 className="hero-title">
-            Latest announcements, regulatory updates, <span className="highlight-text-cyan">& insights.</span>
+            {tr('Latest announcements, regulatory updates,')} <span className="highlight-text-cyan">{tr('& insights.')}</span>
           </h1>
           <p className="hero-subtitle">
-            Stay informed on platform releases, CAAV/FAA regulatory alignments, and technical aviation training best practices.
+            {tr('Stay informed on platform releases, CAAV/FAA regulatory alignments, and technical aviation training best practices.')}
           </p>
         </div>
       </section>
@@ -64,9 +66,9 @@ const NewsroomPage = () => {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>Loading news articles...</div>
+          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>{tr('Loading news articles...')}</div>
         ) : filteredNews.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>No news items found for this category.</div>
+          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>{tr('No news items found for this category.')}</div>
         ) : (
           <div className="news-grid">
             {filteredNews.map((item) => (
@@ -80,8 +82,8 @@ const NewsroomPage = () => {
                 <p className="news-summary">{item.summary}</p>
 
                 <div className="news-footer">
-                  <span className="news-author">By {item.author}</span>
-                  <span className="read-more">Read Article &rarr;</span>
+                  <span className="news-author">{tr('By')} {item.author}</span>
+                  <span className="read-more">{tr('Read Article')} &rarr;</span>
                 </div>
               </div>
             ))}

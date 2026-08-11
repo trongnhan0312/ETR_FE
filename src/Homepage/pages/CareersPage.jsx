@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { fetchPublicCareersJobs, submitCareerApplication } from '../../utils/api';
 
 const CareersPage = () => {
+  const { tr } = useLanguage();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,7 +19,7 @@ const CareersPage = () => {
   const [submitFeedback, setSubmitFeedback] = useState(null);
 
   useEffect(() => {
-    document.title = "Careers & Open Positions | ETR Aviation";
+    document.title = `${tr('Careers & Open Positions')} | ETR Aviation`;
     let isMounted = true;
     fetchPublicCareersJobs()
       .then(res => {
@@ -52,7 +54,7 @@ const CareersPage = () => {
   const handleSubmitApplication = async (e) => {
     e.preventDefault();
     if (!fullName || !email) {
-      setSubmitFeedback({ type: 'error', text: 'Please fill in required fields (Name & Email).' });
+      setSubmitFeedback({ type: 'error', text: tr('Please fill in required fields (Name & Email).') });
       return;
     }
 
@@ -72,12 +74,12 @@ const CareersPage = () => {
     setSubmitting(false);
 
     if (res && res.success !== false) {
-      setSubmitFeedback({ type: 'success', text: res.message || 'Application submitted successfully!' });
+      setSubmitFeedback({ type: 'success', text: res.message || tr('Application submitted successfully!') });
       setTimeout(() => {
         handleCloseModal();
       }, 2500);
     } else {
-      setSubmitFeedback({ type: 'error', text: res?.message || 'Failed to submit application. Please try again.' });
+      setSubmitFeedback({ type: 'error', text: res?.message || tr('Failed to submit application. Please try again.') });
     }
   };
 
@@ -93,13 +95,13 @@ const CareersPage = () => {
       <section className="page-hero">
         <div className="hero-content">
           <div className="trust-pill">
-            <span className="dot">•</span> JOIN THE ETR TEAM
+            <span className="dot">•</span> {tr('JOIN THE ETR TEAM')}
           </div>
           <h1 className="hero-title">
-            Build the future of <span className="highlight-text">aviation safety & compliance.</span>
+            {tr('Build the future of')} <span className="highlight-text">{tr('aviation safety & compliance.')}</span>
           </h1>
           <p className="hero-subtitle">
-            We are looking for passionate aviation domain experts, cloud engineers, quality auditors, and customer success leaders to transform electronic training record technology.
+            {tr('We are looking for passionate aviation domain experts, cloud engineers, quality auditors, and customer success leaders to transform electronic training record technology.')}
           </p>
         </div>
       </section>
@@ -107,8 +109,8 @@ const CareersPage = () => {
       {/* JOB LISTING SECTION */}
       <section className="page-section">
         <div className="section-head">
-          <span className="sub-tag">— OPEN POSITIONS</span>
-          <h2 className="section-title">Explore current opportunities.</h2>
+          <span className="sub-tag">{tr('— OPEN POSITIONS')}</span>
+          <h2 className="section-title">{tr('Explore current opportunities.')}</h2>
         </div>
 
         {/* SEARCH BAR */}
@@ -116,16 +118,16 @@ const CareersPage = () => {
           <input
             type="text"
             className="public-input"
-            placeholder="Search by job title, department, or location..."
+            placeholder={tr('Search by job title, department, or location...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>Loading open positions...</div>
+          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>{tr('Loading open positions...')}</div>
         ) : filteredJobs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>No matching positions found.</div>
+          <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>{tr('No matching positions found.')}</div>
         ) : (
           <div className="job-listings-grid">
             {filteredJobs.map((job) => (
@@ -146,7 +148,7 @@ const CareersPage = () => {
                 <p className="job-desc">{job.description}</p>
 
                 <div className="job-reqs">
-                  <strong>Requirements:</strong>
+                  <strong>{tr('Requirements:')}</strong>
                   <ul>
                     {job.requirements?.map((req, i) => (
                       <li key={i}>{req}</li>
@@ -156,7 +158,7 @@ const CareersPage = () => {
 
                 <div style={{ marginTop: '20px' }}>
                   <button type="button" className="btn-secondary-hero" style={{ padding: '8px 16px', fontSize: '0.85rem' }} onClick={() => handleOpenApply(job)}>
-                    Apply Now &rarr;
+                    {tr('Apply Now')} &rarr;
                   </button>
                 </div>
               </div>
@@ -170,7 +172,7 @@ const CareersPage = () => {
         <div className="public-modal-backdrop" onClick={handleCloseModal}>
           <div className="public-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Apply for: {selectedJob.title}</h3>
+              <h3>{tr('Apply for:')} {selectedJob.title}</h3>
               <button type="button" className="close-btn" onClick={handleCloseModal}>✕</button>
             </div>
 
@@ -182,31 +184,31 @@ const CareersPage = () => {
 
             <form onSubmit={handleSubmitApplication} className="public-form">
               <div className="form-group">
-                <label>Full Name *</label>
+                <label>{tr('Full Name *')}</label>
                 <input
                   type="text"
                   className="public-input"
                   required
-                  placeholder="e.g. John Doe"
+                  placeholder={tr('e.g. John Doe')}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                 />
               </div>
 
               <div className="form-group">
-                <label>Email Address *</label>
+                <label>{tr('Email Address *')}</label>
                 <input
                   type="email"
                   className="public-input"
                   required
-                  placeholder="e.g. john.doe@airline.com"
+                  placeholder={tr('e.g. john.doe@airline.com')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
 
               <div className="form-group">
-                <label>Phone Number</label>
+                <label>{tr('Phone Number')}</label>
                 <input
                   type="tel"
                   className="public-input"
@@ -217,11 +219,11 @@ const CareersPage = () => {
               </div>
 
               <div className="form-group">
-                <label>Cover Note / Relevant Aviation Experience</label>
+                <label>{tr('Cover Note / Relevant Aviation Experience')}</label>
                 <textarea
                   className="public-textarea"
                   rows={4}
-                  placeholder="Briefly introduce your qualifications, licenses (FAA/EASA), or engineering background..."
+                  placeholder={tr('Briefly introduce your qualifications, licenses (FAA/EASA), or engineering background...')}
                   value={coverNote}
                   onChange={(e) => setCoverNote(e.target.value)}
                 ></textarea>
@@ -229,10 +231,10 @@ const CareersPage = () => {
 
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={handleCloseModal} disabled={submitting}>
-                  Cancel
+                  {tr('Cancel')}
                 </button>
                 <button type="submit" className="btn-submit" disabled={submitting}>
-                  {submitting ? 'Submitting...' : 'Submit Application'}
+                  {submitting ? tr('Submitting...') : tr('Submit Application')}
                 </button>
               </div>
             </form>
