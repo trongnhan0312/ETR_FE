@@ -65,11 +65,11 @@ const QARETRReturn = () => {
 
   const handleSendBack = async () => {
     if (!selectedEtrId) {
-      toast.error(tr("Chưa chọn ETR"), tr("Vui lòng chọn ETR để trả lại."));
+      toast.error(tr("Chưa chọn ETR"));
       return;
     }
     if (!returnReason.trim()) {
-      toast.error(tr("Thiếu lý do"), tr("Vui lòng nhập lý do trả lại."));
+      toast.error(tr("Thiếu lý do"));
       return;
     }
     setSending(true);
@@ -77,12 +77,12 @@ const QARETRReturn = () => {
       await api.post(`/Etr/${selectedEtrId}/return`, {
         comment: returnReason,
       });
-      toast.warning(tr("Đã trả lại ETR"), `ETR #${String(selectedEtrId).padStart(4, "0")} ${tr('đã được trả lại.')}`);
+      toast.warning(tr("Đã trả lại ETR"));
       setSelectedEtrId("");
       setReturnReason("");
       await loadEtrs();
     } catch (err) {
-      toast.error(tr("Trả lại thất bại"), err.message || tr("Lỗi không xác định"));
+      toast.error(tr("Trả lại thất bại"));
     } finally {
       setSending(false);
     }

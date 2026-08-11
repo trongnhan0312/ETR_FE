@@ -259,7 +259,7 @@ const handleEditRoleChange = (newRoleId) => {
       await loadUsers();
       setIsCreateOpen(false);
       // Toast thành công — nhất quán với các flow tạo khác (khóa học/lớp/phòng ban)
-      toast.success(tr("Tạo tài khoản thành công!"), trt('accountCreated', { username: trimmedUsername }));
+      toast.success(tr("Tạo tài khoản thành công!"));
     } catch (err) {
       console.error("Failed to create user:", err);
       setFormError(parseApiError(err, tr("Tạo tài khoản thất bại.")));
@@ -342,10 +342,7 @@ const handleEditRoleChange = (newRoleId) => {
           });
         } catch (err) {
           console.warn("Failed to update department:", err);
-          toast.error(
-            tr("Cập nhật phòng ban thất bại"),
-            parseApiError(err, tr("Không thể đổi phòng ban."))
-          );
+          toast.error(tr("Cập nhật phòng ban thất bại"));
         }
       }
 
@@ -371,14 +368,14 @@ const handleEditRoleChange = (newRoleId) => {
         const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
         const nextStatus = isInactive ? 'Active' : 'Inactive';
         await api.put(`/Accounts/${user.accountId}/status`, { status: nextStatus });
-        toast.success(tr("Cập nhật trạng thái"), trt('toggleAccount', { username: user.username, status: nextStatus }));
+        toast.success(tr("Cập nhật trạng thái"));
       } else if (type === 'delete') {
         await api.delete(`/Accounts/${user.accountId}`);
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-        toast.success(tr("Soft Delete"), trt('softDeletedAccount', { username: user.username }));
+        toast.success(tr("Soft Delete"));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
-        toast.success(tr("Kích hoạt thành công"), trt('activatedAccount', { username: user.username }));
+        toast.success(tr("Kích hoạt thành công"));
       }
       await loadUsers();
     } catch (err) {
@@ -388,12 +385,12 @@ const handleEditRoleChange = (newRoleId) => {
           await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
           await loadUsers();
         } catch (putErr) {
-          toast.error(tr("Soft Delete thất bại"), parseApiError(putErr));
+          toast.error(tr("Soft Delete thất bại"));
         }
       } else if (type === 'toggle') {
-        toast.error(tr("Cập nhật trạng thái thất bại"), parseApiError(err));
+        toast.error(tr("Cập nhật trạng thái thất bại"));
       } else {
-        toast.error(tr("Kích hoạt tài khoản thất bại"), parseApiError(err));
+        toast.error(tr("Kích hoạt tài khoản thất bại"));
       }
     } finally {
       setConfirmAction(null);

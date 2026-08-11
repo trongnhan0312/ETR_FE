@@ -1085,6 +1085,38 @@ export const VN_TO_EN = {
   'Xóa môn học': 'Remove Subject',
   'Hủy': 'Cancel',
   'Tạo khóa học': 'Create Course',
+  // ── Toast chuẩn 1 dòng (InstructorAssessmentStructure) ──
+  'Đã cập nhật': 'Updated',
+  'Đã tạo': 'Created',
+  'Đã xóa': 'Deleted',
+  'Không lưu được': 'Could not save',
+  'Không xóa được': 'Could not delete',
+  // ── Toast 1 dòng: EtrApproval ──
+  'Phê duyệt thành công': 'Approval successful',
+  'Phê duyệt thất bại': 'Approval failed',
+  'Không có thông báo mới': 'No new notifications',
+  'Chức năng đang hoàn thiện': 'Feature under development',
+  'Không có minh chứng để tải xuống': 'No evidence to download',
+  // ── Toast 1 dòng: misc ──
+  'Soft Delete': 'Soft Delete',
+  'Cập nhật mật khẩu thất bại': 'Password update failed',
+  // ── Class: phân công giảng viên theo Môn học (BE contract mới) ──
+  'PHÂN CÔNG GIẢNG VIÊN THEO MÔN HỌC': 'ASSIGN INSTRUCTORS PER SUBJECT',
+  'Phân công giảng viên theo môn học': 'Assign instructors per subject',
+  'Khóa học này chưa có môn học. Vui lòng cấu hình môn học cho khóa trước khi phân công giảng viên.': 'This course has no subjects yet. Please configure subjects for the course before assigning instructors.',
+  'Khóa học này chưa có môn học được cấu hình.': 'This course has no configured subjects.',
+  'Giảng viên được phân công theo từng Môn học (ClassSubjects) tại màn hình Khóa & Lớp học (Academic).': 'Instructors are assigned per Subject (ClassSubjects) in the Courses & Classes screen (Academic).',
+  // ── CourseSubject: Số buổi yêu cầu ──
+  'Số buổi yêu cầu': 'Required sessions',
+  // ── Subject: MinSessions / MaxSessions ──
+  'Số buổi tối thiểu (MinSessions) *': 'Minimum sessions (MinSessions) *',
+  'Số buổi tối đa (MaxSessions) *': 'Maximum sessions (MaxSessions) *',
+  'Số buổi tối thiểu phải >= 1 và không được lớn hơn số buổi tối đa.': 'Minimum sessions must be >= 1 and cannot exceed the maximum sessions.',
+  // ── Session: SessionDate nullable (TBA) ──
+  'Vui lòng chọn Ngày học trước khi lưu buổi học (buổi nháp hiển thị TBA cho đến khi có ngày).': 'Please select a Session Date before saving (draft sessions show TBA until a date is set).',
+  'Không thể tạo buổi học mới — hệ thống tự sinh buổi học khi tạo Lớp.': 'Cannot create new sessions — sessions are auto-generated when a Class is created.',
+  '(trống = TBA — bắt buộc chọn trước khi lưu)': '(empty = TBA — required before saving)',
+  'Buổi học chưa xếp lịch (TBA)': 'Unscheduled sessions (TBA)',
 };  // ── end VN_TO_EN ──
 
 // ── InstructorAssessments bổ sung ──
@@ -2858,6 +2890,7 @@ export const DICTIONARY = {
     profileLinkNote: 'Tài khoản: "{username}" (UserID: {id}) — hồ sơ sẽ được móc nối tự động vào account này.',
     classCodeExists: '❌ Mã lớp học "{code}" đã tồn tại trong hệ thống. Vui lòng nhập một Mã mới duy nhất.',
     showingStudents: 'Hiển thị 1 - {n} của 28 học viên',
+    ineligibleCount: 'CHƯA ĐỦ ĐK KÝ ({n})',
   },
   en: {
     deleteClass: 'Class #{id} ({code}) has been deleted.',
@@ -2877,6 +2910,7 @@ export const DICTIONARY = {
     profileLinkNote: 'Account: "{username}" (UserID: {id}) — the profile will be linked to this account automatically.',
     classCodeExists: '❌ Class code "{code}" already exists in the system. Please enter a unique new code.',
     showingStudents: 'Showing 1 - {n} of 28 students',
+    ineligibleCount: 'NOT ELIGIBLE FOR SIGN-OFF ({n})',
   },
 };
 

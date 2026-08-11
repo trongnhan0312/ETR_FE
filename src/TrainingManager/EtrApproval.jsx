@@ -292,12 +292,6 @@ const EtrApproval = () => {
   // Toast notifications (thay banner tm-alert-banner cũ)
   const toast = useToast();
 
-  const showAlert = (message, type = "success") => {
-    if (type === "error") toast.error(tr("Thất bại"), message);
-    else if (type === "warning") toast.warning(tr("Cảnh báo"), message);
-    else toast.success(tr("Thành công"), message);
-  };
-
   // TrainingManager/Admin phê duyệt qua ApprovalRequest process (route chính thức duy nhất
   // TrainingManager được phép — /Etr/{id}/complete bị class-level EtrController chặn 403).
   const handleApprove = async (etrId) => {
@@ -318,11 +312,9 @@ const EtrApproval = () => {
       await loadEtrsFromApi();
       setShowActionModal(null);
       setSelectedEtr(null);
-      showAlert(
-        `ETR ${etrId} APPROVED SUCCESSFULLY & SYNCED TO THE AVIATION REGISTRY.`,
-      );
+      toast.success(tr("Phê duyệt thành công"));
     } catch (err) {
-      showAlert(`APPROVAL FAILED: ${err.message}`, "error");
+      toast.error(tr("Phê duyệt thất bại"));
     }
   };
 
@@ -340,7 +332,7 @@ const EtrApproval = () => {
   // Tải xuống minh chứng có xác thực (GET /Evidences/{id}/download yêu cầu Bearer token)
   const handleDownloadEvidence = async (ev) => {
     if (!ev) {
-      showAlert(tr("Không có minh chứng để tải xuống."), "warning");
+      toast.warning(tr("Không có minh chứng để tải xuống"));
       return;
     }
     try {
@@ -357,12 +349,7 @@ const EtrApproval = () => {
       // Backend hiện chưa cấp quyền đọc/tải minh chứng cho role TrainingManager
       // (EvidencesController giới hạn Instructor,QA,Admin,Academic,Audit) → 403.
       // Báo rõ ràng để user biết đây là vấn đề phân quyền backend, không phải lỗi FE.
-      showAlert(
-        isForbiddenErr(err)
-          ? tr("Tài khoản TrainingManager chưa được backend cấp quyền tải minh chứng (GET /Evidences/{id}/download đang chặn role này). Vui lòng liên hệ Admin để mở quyền đọc/tải minh chứng.")
-          : `${tr('Tải xuống thất bại:')} ${err.message}`,
-        "error"
-      );
+      toast.error(tr("Tải xuống thất bại"));
     }
   };
 
@@ -375,19 +362,16 @@ const EtrApproval = () => {
   const handleConfirmReopen = async (reason) => {
     const etrId = reopenTarget;
     if (!reason || !reason.trim()) {
-      toast.error(tr("Cần nêu lý do"), tr("Cần nêu lý do để mở lại ETR."));
+      toast.error(tr("Cần nêu lý do"));
       setReopenTarget(null);
       return;
     }
     try {
       await api.post(`/Etr/${etrId}/reopen`, { comment: reason.trim() });
       await loadEtrsFromApi();
-      toast.warning(
-        tr("Đã mở lại ETR"),
-        `ETR ${etrId} ${tr('đã được mở khóa — audit trail đã được cập nhật.')}`,
-      );
+      toast.warning(tr("Đã mở lại ETR"));
     } catch (err) {
-      toast.error(tr("Mở lại ETR thất bại"), err.message);
+      toast.error(tr("Mở lại ETR thất bại"));
     } finally {
       setReopenTarget(null);
     }
@@ -430,17 +414,17 @@ const EtrApproval = () => {
             <span className="sub-tab">{tr('Compliance')}</span>
           </div>
           <div className="topbar-actions">
-            <button className="icon-btn" onClick={() => showAlert("NOTIFICATIONS INITIALIZED.")}>
+            <button className="icon-btn" onClick={() => toast.info(tr("Không có thông báo mới"))}>
               <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
                 <path d="M0 14.1667V12.5H1.66667V6.66667C1.66667 5.51389 2.01389 4.48958 2.70833 3.59375C3.40278 2.69792 4.30556 2.11111 5.41667 1.83333V1.25C5.41667 0.902778 5.53819 0.607639 5.78125 0.364583C6.02431 0.121528 6.31944 0 6.66667 0C7.01389 0 7.30903 0.121528 7.55208 0.364583C7.79514 0.607639 7.91667 0.902778 7.91667 1.25V1.83333C9.02778 2.11111 9.93056 2.69792 10.625 3.59375C11.3194 4.48958 11.6667 5.51389 11.6667 6.66667V12.5H13.3333V14.1667H0ZM6.66667 16.6667C6.20833 16.6667 5.81597 16.5035 5.48958 16.1771C5.16319 15.8507 5 15.4583 5 15H8.33333C8.33333 15.4583 8.17014 15.8507 7.84375 16.1771C7.51736 16.5035 7.125 16.6667 6.66667 16.6667ZM3.33333 12.5H10V6.66667C10 5.75 9.67361 4.96528 9.02083 4.3125C8.36806 3.65972 7.58333 3.33333 6.66667 3.33333C5.75 3.33333 4.96528 3.65972 4.3125 4.3125C3.65972 4.96528 3.33333 5.75 3.33333 6.66667V12.5Z" fill="#64748B" />
               </svg>
             </button>
-            <button className="icon-btn" onClick={() => showAlert("TRANSCRIPTION EXPORT LOGGED.")}>
+            <button className="icon-btn" onClick={() => toast.info(tr("Chức năng đang hoàn thiện"))}>
               <svg width={17} height={15} viewBox="0 0 17 15" fill="none">
                 <path d="M11.6667 4.16667V1.66667H5V4.16667H3.33333V0H13.3333V4.16667H11.6667ZM1.66667 5.83333C1.66667 5.83333 1.74653 5.83333 1.90625 5.83333C2.06597 5.83333 2.26389 5.83333 2.5 5.83333H14.1667C14.4028 5.83333 14.6007 5.83333 14.7604 5.83333C14.9201 5.83333 15 5.83333 15 5.83333H13.3333H3.33333H1.66667ZM13.3333 7.91667C13.5694 7.91667 13.7674 7.83681 13.9271 7.67708C14.0868 7.51736 14.1667 7.31944 14.1667 7.08333C14.1667 6.84722 14.0868 6.64931 13.9271 6.48958C13.7674 6.32986 13.5694 6.25 13.3333 6.25C13.0972 6.25 12.8993 6.32986 12.7396 6.48958C12.5799 6.64931 12.5 7.08333 12.5 7.08333C12.5 7.31944 12.5799 7.51736 12.7396 7.67708C12.8993 7.83681 13.0972 7.91667 13.3333 7.91667ZM11.6667 13.3333V10H5V13.3333H11.6667ZM13.3333 15H3.33333V11.6667H0V6.66667C0 5.95833 0.243056 5.36458 0.729167 4.88542C1.21528 4.40625 1.80556 4.16667 2.5 4.16667H14.1667C14.875 4.16667 15.4688 4.40625 15.9479 4.88542C16.4271 5.36458 16.6667 5.95833 16.6667 6.66667V11.6667H13.3333V15ZM15 10V6.66667C15 6.43056 14.9201 6.23264 14.7604 6.07292C14.6007 5.91319 14.4028 5.83333 14.1667 5.83333H2.5C2.26389 5.83333 2.06597 5.91319 1.90625 6.07292C1.74653 6.23264 1.66667 6.43056 1.66667 6.66667V10H3.33333V8.33333H13.3333V10H15Z" fill="#64748B" />
               </svg>
             </button>
-            <button className="grant-cert-btn" onClick={() => showAlert("CERTIFICATE RENEWAL SUCCESSFUL.")}>
+            <button className="grant-cert-btn" onClick={() => toast.info(tr("Chức năng đang hoàn thiện"))}>
               Grant Certification
             </button>
             <div className="user-avatar">{viewingHistory.initials}</div>
@@ -673,7 +657,7 @@ const EtrApproval = () => {
                 <div className="title-group">
                   <h3>{tr('Verified Documents')}</h3>
                 </div>
-                <button className="filter-btn" onClick={() => showAlert("FILTERS APPLIED.")}>
+                <button className="filter-btn" onClick={() => toast.info(tr("Chức năng đang hoàn thiện"))}>
                   <svg width={11} height={7} viewBox="0 0 11 7" fill="none" style={{ marginRight: "4px" }}>
                     <path d="M4.08333 7V5.83333H6.41667V7H4.08333ZM1.75 4.08333V2.91667H8.75V4.08333H1.75ZM0 1.16667V0H10.5V1.16667H0Z" fill="currentColor" />
                   </svg>

@@ -15,7 +15,7 @@ const QASearchExport = () => {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      toast.error(tr("Thiếu từ khóa"), tr("Vui lòng nhập từ khóa tìm kiếm."));
+      toast.error(tr("Thiếu từ khóa"));
       return;
     }
     setSearching(true);
@@ -51,13 +51,13 @@ const QASearchExport = () => {
         });
 
         setResults(enriched);
-        toast.success(tr("Tìm kiếm hoàn tất"), `${tr('Tìm thấy')} ${enriched.length} ${tr('kết quả.')}`);
+        toast.success(tr("Tìm kiếm hoàn tất"));
       } else {
         setResults([]);
-        toast.info(tr("Không có kết quả"), tr("Không tìm thấy kết quả nào."));
+        toast.info(tr("Không có kết quả"));
       }
     } catch (err) {
-      toast.error(tr("Tìm kiếm thất bại"), err.message || tr("Lỗi không xác định"));
+      toast.error(tr("Tìm kiếm thất bại"));
     } finally {
       setSearching(false);
     }
@@ -66,11 +66,11 @@ const QASearchExport = () => {
   // Export endpoint chỉ cho role Admin/Audit/Academic — QA không có quyền (backend trả 403),
   // nên thông báo rõ thay vì gọi API.
   const handleExportPackage = useCallback(() => {
-    toast.error(tr("Không có quyền xuất"), tr("Tài khoản QA không có quyền xuất Training Package (chỉ Admin/Audit/Academic)."));
+    toast.error(tr("Không có quyền xuất"));
   }, [toast, tr]);
 
   const handleExportAudit = useCallback(() => {
-    toast.error(tr("Không có quyền xuất"), tr("Tài khoản QA không có quyền xuất Audit Trail (chỉ Admin/Audit/Academic)."));
+    toast.error(tr("Không có quyền xuất"));
   }, [toast, tr]);
 
   return (

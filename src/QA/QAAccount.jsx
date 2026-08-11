@@ -34,11 +34,11 @@ const QAAccount = () => {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (!currentPwd || !newPwd || !confirmPwd) {
-      toast.error(tr("Thiếu thông tin"), tr("Vui lòng điền đầy đủ thông tin."));
+      toast.error(tr("Thiếu thông tin"));
       return;
     }
     if (newPwd !== confirmPwd) {
-      toast.error(tr("Mật khẩu không khớp"), tr("Mật khẩu mới không khớp."));
+      toast.error(tr("Mật khẩu không khớp"));
       return;
     }
     try {
@@ -46,12 +46,12 @@ const QAAccount = () => {
         oldPassword: currentPwd,
         newPassword: newPwd,
       });
-      toast.success(tr("Cập nhật mật khẩu thành công"), tr("Mật khẩu của bạn đã được cập nhật."));
+      toast.success(tr("Cập nhật mật khẩu thành công"));
       setCurrentPwd("");
       setNewPwd("");
       setConfirmPwd("");
     } catch (err) {
-      toast.error(tr("Đổi mật khẩu thất bại"), err.message || tr("Lỗi không xác định"));
+      toast.error(tr("Đổi mật khẩu thất bại"));
     }
   };
 

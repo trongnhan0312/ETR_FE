@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 
-const UpdateClassStatusModal = ({ targetClass, instructors = [], onSave, onCancel }) => {
+const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], onSave, onCancel }) => {
   const { tr } = useLanguage();
   const [classCode, setClassCode] = useState(targetClass.code || targetClass.classCode || '');
   const [className, setClassName] = useState(targetClass.name || targetClass.className || '');
@@ -15,9 +16,41 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], onSave, onCance
     return raw;
   });
 
-  const [instructorAccountId, setInstructorAccountId] = useState(
-    targetClass.instructorAccountId ? String(targetClass.instructorAccountId) : ''
-  );
+  // Giảng viên phân công theo Môn học (InstructorAssignments) — Class không còn InstructorAccountId cấp lớp
+  const existingAssignments = Array.isArray(targetClass.instructorAssignments)
+    ? targetClass.instructorAssignments
+    : [];
+  const [courseSubjects, setCourseSubjects] = useState([]);
+  const [instructorBySubject, setInstructorBySubject] = useState(() => {
+    const init = {};
+    existingAssignments.forEach((a) => {
+      if (a.subjectId != null) {
+        init[String(a.subjectId)] = a.instructorAccountId != null ? String(a.instructorAccountId) : '';
+      }
+    });
+    return init;
+  });
+
+  // Load danh sách Môn học của Khóa (để hiển thị dropdown gán giảng viên theo từng môn)
+  useEffect(() => {
+    if (!targetClass?.courseId) return;
+    api.get(`/Courses/${targetClass.courseId}`)
+      .then((cDetail) => {
+        if (cDetail && Array.isArray(cDetail.courseSubjects)) {
+          setCourseSubjects(cDetail.courseSubjects);
+        }
+      })
+      .catch(() => {});
+  }, [targetClass?.courseId]);
+
+  const subjectName = (subjectId) => {
+    const sub = subjects.find((s) => String(s.subjectId) === String(subjectId));
+    return sub ? `[${sub.subjectCode}] ${sub.subjectName}` : `Môn #${subjectId}`;
+  };
+
+  const setSubjectInstructor = (subjectId, accountId) => {
+    setInstructorBySubject((prev) => ({ ...prev, [subjectId]: accountId }));
+  };
 
   const [startDate, setStartDate] = useState(() => {
     if (!targetClass.startDate) return '';
@@ -49,6 +82,14 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], onSave, onCance
     setErrorMsg('');
     setSubmitting(true);
 
+    // Gán giảng viên theo Môn học (ClassSubjects)
+    const instructorAssignments = courseSubjects.map((cs) => ({
+      subjectId: cs.subjectId,
+      instructorAccountId: instructorBySubject[String(cs.subjectId)]
+        ? Number(instructorBySubject[String(cs.subjectId)])
+        : null
+    }));
+
     try {
       await onSave(targetClass.classId, {
         classId: targetClass.classId,
@@ -60,7 +101,7 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], onSave, onCance
         location: targetClass.location || '',
         capacity: targetClass.capacity || 30,
         status: status,
-        instructorAccountId: instructorAccountId ? Number(instructorAccountId) : null
+        instructorAssignments
       });
     } catch (err) {
       setErrorMsg(err?.message || tr('Cập nhật trạng thái lớp học thất bại. Vui lòng thử lại.'));
@@ -115,41 +156,19 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], onSave, onCance
                 {tr('Thông tin cơ bản lớp học')}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="form-group">
-                  <label htmlFor="update-class-code" style={{ fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>
-                    {tr('Mã lớp học *')}
-                  </label>
-                  <input
-                    id="update-class-code"
-                    type="text"
-                    className="premium-input"
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                    value={classCode}
-                    onChange={(e) => setClassCode(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="update-class-instructor" style={{ fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>
-                    {tr('Giảng viên giảng dạy')}
-                  </label>
-                  <select
-                    id="update-class-instructor"
-                    className="premium-input"
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                    value={instructorAccountId}
-                    onChange={(e) => setInstructorAccountId(e.target.value)}
-                  >
-                    <option value="">{tr('Chưa phân công')}</option>
-                    {instructors.map((ins) => (
-                      <option key={ins.accountId} value={ins.accountId}>
-                        {ins.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="form-group">
+                <label htmlFor="update-class-code" style={{ fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>
+                  {tr('Mã lớp học *')}
+                </label>
+                <input
+                  id="update-class-code"
+                  type="text"
+                  className="premium-input"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  value={classCode}
+                  onChange={(e) => setClassCode(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="form-group">
@@ -166,6 +185,39 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], onSave, onCance
                   required
                 />
               </div>
+            </div>
+
+            {/* Instructor assignment per subject */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e0e4e9', paddingBottom: '6px' }}>
+                {tr('Phân công giảng viên theo môn học')}
+              </div>
+              {courseSubjects.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
+                  {tr('Khóa học này chưa có môn học được cấu hình.')}
+                </div>
+              ) : (
+                courseSubjects.map((cs, idx) => (
+                  <div key={cs.subjectId} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a', flex: '1 1 auto' }}>
+                      <span style={{ color: '#c5a059', fontWeight: 800 }}>#{idx + 1}</span> {subjectName(cs.subjectId)}
+                    </span>
+                    <select
+                      className="premium-input"
+                      style={{ width: '240px', padding: '8px 12px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px', backgroundColor: '#fff' }}
+                      value={instructorBySubject[String(cs.subjectId)] || ''}
+                      onChange={(e) => setSubjectInstructor(String(cs.subjectId), e.target.value)}
+                    >
+                      <option value="">{tr('Chưa phân công')}</option>
+                      {instructors.map((ins) => (
+                        <option key={ins.accountId} value={ins.accountId}>
+                          {ins.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Status selection */}

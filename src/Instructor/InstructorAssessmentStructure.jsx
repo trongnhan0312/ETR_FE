@@ -494,13 +494,13 @@ const InstructorAssessmentStructure = () => {
           `/Assessments/${editingAssessment.assessmentId}`,
           { ...payload, assessmentId: editingAssessment.assessmentId },
         );
-        toast.success("Đã cập nhật", "Assessment đã được cập nhật thành công.");
+        toast.success("Đã cập nhật");
       } else {
         saved = await api.post("/Assessments", {
           ...payload,
           courseId: parseInt(selectedCourseId, 10),
         });
-        toast.success("Đã tạo", "Assessment đã được tạo thành công.");
+        toast.success("Đã tạo");
       }
       const newItem = saved || {
         ...payload,
@@ -517,10 +517,7 @@ const InstructorAssessmentStructure = () => {
       });
       setShowAssessmentModal(false);
     } catch (err) {
-      toast.error(
-        "Không lưu được",
-        err?.message || "Có lỗi xảy ra khi lưu Assessment.",
-      );
+      toast.error("Không lưu được");
     } finally {
       setSavingAssessment(false);
     }
@@ -572,14 +569,14 @@ const InstructorAssessmentStructure = () => {
             practicalChecklistId: editingChecklist.practicalChecklistId,
           },
         );
-        toast.success("Đã cập nhật", "Mục thực hành đã được cập nhật.");
+        toast.success("Đã cập nhật");
       } else {
         saved = await api.post("/PracticalChecklists", {
           ...payload,
           courseId: parseInt(selectedCourseId, 10),
           subjectId: parseInt(selectedSubjectId, 10),
         });
-        toast.success("Đã tạo", "Mục thực hành đã được tạo.");
+        toast.success("Đã tạo");
       }
       const newItem = saved || {
         ...payload,
@@ -600,10 +597,7 @@ const InstructorAssessmentStructure = () => {
       });
       setShowChecklistModal(false);
     } catch (err) {
-      toast.error(
-        "Không lưu được",
-        err?.message || "Có lỗi xảy ra khi lưu mục thực hành.",
-      );
+      toast.error("Không lưu được");
     } finally {
       setSavingChecklist(false);
     }
@@ -619,17 +613,17 @@ const InstructorAssessmentStructure = () => {
         setAssessments((prev) =>
           prev.filter((a) => a.assessmentId !== item.assessmentId),
         );
-        toast.success("Đã xóa", "Assessment đã được xóa.");
+        toast.success("Đã xóa");
       } else {
         await api.delete(`/PracticalChecklists/${item.practicalChecklistId}`);
         setChecklists((prev) =>
           prev.filter((c) => c.practicalChecklistId !== item.practicalChecklistId),
         );
-        toast.success("Đã xóa", "Mục thực hành đã được xóa.");
+        toast.success("Đã xóa");
       }
       setConfirmDelete(null);
     } catch (err) {
-      toast.error("Không xóa được", err?.message || "Có lỗi xảy ra khi xóa.");
+      toast.error("Không xóa được");
     } finally {
       setDeleting(false);
     }

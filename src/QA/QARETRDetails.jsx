@@ -97,17 +97,17 @@ const QARETRDetails = () => {
         await api.post(`/Etr/${selectedEtr.etrId}/verify`, {
           comment: reviewNotes,
         });
-        toast.success(tr("Xác thực thành công"), `${selectedEtr.id} ${tr('đã được xác thực.')}`);
+        toast.success(tr("Xác thực thành công"));
       } else {
         await api.post(`/Etr/${selectedEtr.etrId}/return`, {
           comment: reviewNotes,
         });
-        toast.warning(tr("Đã trả lại ETR"), `${selectedEtr.id} ${tr('đã trả lại để chỉnh sửa.')}`);
+        toast.warning(tr("Đã trả lại ETR"));
       }
       await loadData();
     } catch (err) {
       const actionLabel = action === "verify" ? tr("Xác thực thất bại") : tr("Trả lại thất bại");
-      toast.error(actionLabel, err.message || tr("Lỗi không xác định"));
+      toast.error(actionLabel);
     } finally {
       setVerifying(false);
       setReviewNotes("");
@@ -123,7 +123,7 @@ const QARETRDetails = () => {
   const handleReturnEtr = () => {
     if (!selectedEtr) return;
     if (!reviewNotes.trim()) {
-      toast.warning(tr("Thiếu lý do"), tr("Vui lòng nhập lý do trả lại."));
+      toast.warning(tr("Thiếu lý do"));
       return;
     }
     setConfirmAction("return");

@@ -243,7 +243,7 @@ const InstructorLayout = () => {
               onClick={async () => {
                 try {
                   // Notifications will be implemented in a future update
-                  toast.info(tr("Thông báo"), tr("Hiện tại không có thông báo mới."));
+                  toast.info(tr("Thông báo"));
                 } catch (e) {
                   console.error("Error fetching notifications:", e);
                 }

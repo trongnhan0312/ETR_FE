@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
 
 const InstructorAssessments = () => {
-  const { tr } = useLanguage();
+  const { tr, trt } = useLanguage();
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [assessmentsForClass, setAssessmentsForClass] = useState([]);
@@ -166,9 +166,10 @@ const InstructorAssessments = () => {
             displayOrder: detail?.displayOrder,
             sessionId: s.sessionId,
             sessionTitle: s.sessionTitle || `Buổi ${s.sessionId}`,
+            // SessionDate có thể null (buổi nháp chưa xếp lịch) → hiển thị TBA
             sessionDate: s.sessionDate
               ? new Date(s.sessionDate).toLocaleDateString("vi-VN")
-              : "",
+              : "TBA",
           };
         });
         setAssessmentsForClass(entries);
@@ -696,10 +697,7 @@ const InstructorAssessments = () => {
       if (changedScores.length === 0) {
         setIsEditingScores(false);
         setSaving(false);
-        toast.warning(
-          tr("Không có thay đổi!"),
-          tr("Các bản ghi đã được công bố hoặc không có thay đổi."),
-        );
+        toast.warning(tr("Không có thay đổi!"));
         return;
       }
 
@@ -862,20 +860,14 @@ const InstructorAssessments = () => {
           `[DIAG] ❌ Tổng kết: ${failedSaves.length}/${saveRequests.length} request thất bại`,
           { failedDetails, failedBodies: failedSaves.map((f) => f.request.body) },
         );
-        toast.error(
-          tr("Lưu điểm: có học viên bị lỗi!"),
-          `${tr("Thành công ")}${saveRequests.length - failedSaves.length}/${saveRequests.length} · ${tr("Thất bại: ")}${failedDetails.join(" | ")}`,
-        );
+        toast.error(tr("Lưu điểm: có học viên bị lỗi!"));
       } else {
         setIsEditingScores(false);
-        toast.success(
-          tr("Lưu điểm thành công!"),
-          tr("Đã cập nhật bảng điểm đánh giá."),
-        );
+        toast.success(tr("Lưu điểm thành công!"));
       }
     } catch (err) {
       console.error("Lỗi khi lưu bảng điểm:", err);
-      toast.error(tr("Lưu điểm thất bại!"), err.message);
+      toast.error(tr("Lưu điểm thất bại!"));
     } finally {
       setSaving(false);
     }
@@ -937,7 +929,7 @@ const InstructorAssessments = () => {
       const subjectResultIds = [...new Set(studentScores.map(s => s.subjectResultId).filter(Boolean))];
       
       if (subjectResultIds.length === 0) {
-        toast.warning(tr("Không có môn học để ký!"), tr("Vui lòng nhập điểm trước khi ký xác nhận."));
+        toast.warning(tr("Không có môn học để ký!"));
         setConfirmSignoffOpen(false);
         return;
       }
@@ -950,16 +942,13 @@ const InstructorAssessments = () => {
 
       if (ineligible.length > 0) {
         const names = ineligible.map((e) => e.name).join(", ");
-        toast.warning(
-          tr("Chưa đủ điều kiện ký xác nhận!"),
-          `${tr('Học viên chưa thỏa mãn đầy đủ 4 điều kiện (điểm danh ≥ 80%, điểm lý thuyết ≥ điểm đạt, thực hành bắt buộc đạt, minh chứng đã xác thực): ')}${names}`,
-        );
+        toast.warning(tr("Chưa đủ điều kiện ký xác nhận!"));
         setConfirmSignoffOpen(false);
         return;
       }
 
       if (eligibleIds.length === 0) {
-        toast.warning(tr("Chưa đủ điều kiện ký xác nhận!"), tr("Không có học viên nào thỏa mãn đầy đủ các điều kiện hoàn thành."));
+        toast.warning(tr("Chưa đủ điều kiện ký xác nhận!"));
         setConfirmSignoffOpen(false);
         return;
       }
@@ -974,13 +963,13 @@ const InstructorAssessments = () => {
       );
 
       setConfirmSignoffOpen(false);
-      toast.success(tr("Ký xác nhận thành công!"), `${tr('Đã ký ')}${eligibleIds.length} ${tr('môn học.')}`);
+      toast.success(tr("Ký xác nhận thành công!"));
       if (selectedAssessment) {
         loadAssessmentScores(selectedAssessment, selectedAssessmentType);
       }
     } catch (err) {
       console.error("Lỗi khi ký xác nhận:", err);
-      toast.error(tr("Ký xác nhận thất bại!"), err.message);
+      toast.error(tr("Ký xác nhận thất bại!"));
     } finally {
       setSigningOff(false);
     }
@@ -1227,23 +1216,17 @@ const InstructorAssessments = () => {
           `[DIAG] ❌ Tổng kết chốt điểm: ${failedSaves.length} request thất bại`,
           { failedDetails },
         );
-        toast.error(
-          tr("Chốt điểm: có học viên bị lỗi!"),
-          `${tr("Thất bại: ")}${failedDetails.join(" | ")}`,
-        );
+        toast.error(tr("Chốt điểm: có học viên bị lỗi!"));
       } else {
         setIsEditingScores(false);
-        toast.success(
-          tr("Chốt điểm thành công!"),
-          tr("Bảng điểm đã được khóa."),
-        );
+        toast.success(tr("Chốt điểm thành công!"));
       }
       if (selectedAssessment) {
         loadAssessmentScores(selectedAssessment, selectedAssessmentType);
       }
     } catch (err) {
       console.error("Lỗi khi chốt điểm:", err);
-      toast.error(tr("Chốt điểm thất bại!"), err.message);
+      toast.error(tr("Chốt điểm thất bại!"));
     } finally {
       setPublishing(false);
     }
@@ -1292,7 +1275,7 @@ const InstructorAssessments = () => {
                {selectedAssessment.sessionTitle}
                {selectedAssessment.sessionDate
                  ? ` (${selectedAssessment.sessionDate})`
-                 : ""}{" "}
+                 : " (TBA)"}{" "}
                · {tr('Lớp: ')}{" "}
                {selectedClass ? selectedClass.code : "N/A"}
              </p>
@@ -1380,7 +1363,7 @@ const InstructorAssessments = () => {
                 {allPublished
                   ? tr("ĐÃ KÝ")
                   : eligibilityStats.ineligibleCount > 0
-                    ? tr(`CHƯA ĐỦ ĐK KÝ (${eligibilityStats.ineligibleCount})`)
+                    ? trt('ineligibleCount', { n: eligibilityStats.ineligibleCount })
                     : tr("KÝ XÁC NHẬN")}
               </span>
             </button>
@@ -2206,7 +2189,7 @@ const InstructorAssessments = () => {
                           {tr('Buổi: ')}{assessment.sessionTitle}
                           {assessment.sessionDate
                             ? ` (${assessment.sessionDate})`
-                            : ""}{" "}
+                            : " (TBA)"}{" "}
                           · {getAssessmentTypeLabel(assessment.assessmentType)}
                           {assessment.assessmentId
                             ? ` · ${tr('Trọng số')}: ${assessment.weight}% · ${tr('Điểm đạt')}: ${assessment.passingScore}`
@@ -2272,7 +2255,7 @@ const InstructorAssessments = () => {
                 {selectedAssessment.sessionTitle}
                 {selectedAssessment.sessionDate
                   ? ` (${selectedAssessment.sessionDate})`
-                  : ""}{" "}
+                  : " (TBA)"}{" "}
                 · {tr('Lớp: ')}{" "}
                 {selectedClass ? selectedClass.code : "N/A"}
               </p>

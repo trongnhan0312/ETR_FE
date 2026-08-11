@@ -97,7 +97,8 @@ const InstructorAttendance = () => {
         // Map session attendance counts
         const mapped = await Promise.all(filtered.map(async (s, idx) => {
           const rawDate = s.sessionDate;
-          let dateStr = "N/A";
+          // SessionDate có thể null (buổi nháp chưa xếp lịch) → hiển thị TBA
+          let dateStr = "TBA";
           if (rawDate) {
             const d = new Date(rawDate);
             dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
@@ -221,15 +222,12 @@ const InstructorAttendance = () => {
         })
       );
       
-      toast.success(
-        tr("Lưu điểm danh thành công!"),
-        tr("Đã cập nhật thông tin điểm danh."),
-      );
+      toast.success(tr("Lưu điểm danh thành công!"));
       // Reload records to fetch new IDs
       loadAttendance(selectedSession);
     } catch (err) {
       console.error("Lỗi khi lưu điểm danh:", err);
-      toast.error(tr("Lưu điểm danh thất bại!"), err.message);
+      toast.error(tr("Lưu điểm danh thất bại!"));
     } finally {
       setSaving(false);
     }
@@ -265,16 +263,13 @@ const InstructorAttendance = () => {
       await api.post(`/attendance/sessions/${selectedSession.sessionId}/confirm`);
       setConfirmPublishOpen(false);
       setIsConfirmed(true);
-      toast.success(
-        tr("Chốt điểm danh thành công!"),
-        tr("Bảng điểm danh đã được khóa."),
-      );
+      toast.success(tr("Chốt điểm danh thành công!"));
       
       // Update local sessions state
       setSessions(prev => prev.map(s => s.sessionId === selectedSession.sessionId ? { ...s, isConfirmed: true, attendance: tr("Đã chốt") } : s));
     } catch (err) {
       console.error("Lỗi khi chốt điểm danh:", err);
-      toast.error(tr("Chốt điểm danh thất bại!"), err.message);
+      toast.error(tr("Chốt điểm danh thất bại!"));
     } finally {
       setPublishing(false);
     }

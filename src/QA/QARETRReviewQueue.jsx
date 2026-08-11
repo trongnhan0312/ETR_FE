@@ -224,11 +224,11 @@ const QARETRReviewQueue = () => {
     setVerifying(true);
     try {
       await api.post(`/Etr/${confirmVerifyId}/verify`, {});
-      toast.success(tr("Xác thực thành công"), `ETR #${String(confirmVerifyId).padStart(4, "0")} ${tr('đã được xác thực.')}`);
+      toast.success(tr("Xác thực thành công"));
       setSelectedEtr(null);
       await loadEtrs();
     } catch (err) {
-      toast.error(tr("Xác thực ETR thất bại"), err.message || tr("Lỗi không xác định"));
+      toast.error(tr("Xác thực ETR thất bại"));
     } finally {
       setVerifying(false);
       setConfirmVerifyId(null);
@@ -238,18 +238,18 @@ const QARETRReviewQueue = () => {
   const confirmReturn = async (reason) => {
     if (!returnTarget) return;
     if (!reason || !reason.trim()) {
-      toast.error(tr("Cần nêu lý do"), tr("Vui lòng nhập lý do trả lại ETR."));
+      toast.error(tr("Cần nêu lý do"));
       setReturnTarget(null);
       return;
     }
     setVerifying(true);
     try {
       await api.post(`/Etr/${returnTarget}/return`, { comment: reason.trim() });
-      toast.warning(tr("Đã trả lại ETR"), `ETR #${String(returnTarget).padStart(4, "0")} ${tr('đã trả lại để chỉnh sửa.')}`);
+      toast.warning(tr("Đã trả lại ETR"));
       setSelectedEtr(null);
       await loadEtrs();
     } catch (err) {
-      toast.error(tr("Trả lại ETR thất bại"), err.message || tr("Lỗi không xác định"));
+      toast.error(tr("Trả lại ETR thất bại"));
     } finally {
       setVerifying(false);
       setReturnTarget(null);

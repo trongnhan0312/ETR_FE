@@ -388,17 +388,7 @@ const getStudentDepartments = () => {
           });
         } catch (deptErr) {
           console.warn("Failed to update department:", deptErr);
-          const deptDenied =
-            /403|Forbidden|không có quyền|unauthorized|not authorized|404|not found/i.test(
-              deptErr?.message || ""
-            );
-          toast.warning(
-            tr("Đổi phòng ban thất bại"),
-            deptDenied
-              ? tr("Hồ sơ học viên đã được lưu, nhưng tài khoản của bạn chưa được backend cho phép đổi phòng ban (chỉ Admin). Vui lòng liên hệ Admin.")
-              : tr("Hồ sơ học viên đã được lưu, nhưng đổi phòng ban thất bại: ") +
-                  (deptErr.message || tr("lỗi không xác định"))
-          );
+          toast.warning(tr("Đổi phòng ban thất bại"));
         }
       }
 
@@ -423,10 +413,10 @@ const getStudentDepartments = () => {
       if (type === 'disable') {
         await api.delete(`/Accounts/${user.accountId}`);
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-        toast.success(tr("Vô hiệu hóa thành công"), trt('studentDisabled', { username: user.username }));
+        toast.success(tr("Vô hiệu hóa thành công"));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
-        toast.success(tr("Kích hoạt thành công"), trt('studentActivated', { username: user.username }));
+        toast.success(tr("Kích hoạt thành công"));
       }
       await loadLearners();
     } catch (err) {
@@ -436,10 +426,10 @@ const getStudentDepartments = () => {
           await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
           await loadLearners();
         } catch (putErr) {
-          toast.error(tr("Vô hiệu hóa tài khoản thất bại"), parseApiError(putErr));
+          toast.error(tr("Vô hiệu hóa tài khoản thất bại"));
         }
       } else {
-        toast.error(tr("Kích hoạt tài khoản thất bại"), parseApiError(err));
+        toast.error(tr("Kích hoạt tài khoản thất bại"));
       }
     } finally {
       setConfirmAction(null);

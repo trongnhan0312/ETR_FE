@@ -21,6 +21,8 @@ const SubjectManagement = () => {
   const [cSubjectName, setCSubjectName] = useState('');
   const [cSubjectType, setCSubjectType] = useState('Theory');
   const [cDefaultHours, setCDefaultHours] = useState(20);
+  const [cMinSessions, setCMinSessions] = useState(1);
+  const [cMaxSessions, setCMaxSessions] = useState(20);
   const [cAssessmentMethod, setCAssessmentMethod] = useState('Written Exam');
   const [cDescription, setCDescription] = useState('');
   const [cStatus, setCStatus] = useState('Active');
@@ -29,6 +31,8 @@ const SubjectManagement = () => {
   const [eSubjectName, setESubjectName] = useState('');
   const [eSubjectType, setESubjectType] = useState('Theory');
   const [eDefaultHours, setEDefaultHours] = useState(20);
+  const [eMinSessions, setEMinSessions] = useState(1);
+  const [eMaxSessions, setEMaxSessions] = useState(20);
   const [eAssessmentMethod, setEAssessmentMethod] = useState('Written Exam');
   const [eDescription, setEDescription] = useState('');
   const [eStatus, setEStatus] = useState('Active');
@@ -71,6 +75,8 @@ const SubjectManagement = () => {
     setCSubjectName('');
     setCSubjectType('Theory');
     setCDefaultHours(20);
+    setCMinSessions(1);
+    setCMaxSessions(20);
     setCAssessmentMethod('Written Exam');
     setCDescription('');
     setCStatus('Active');
@@ -82,6 +88,8 @@ const SubjectManagement = () => {
     setESubjectName('');
     setESubjectType('Theory');
     setEDefaultHours(20);
+    setEMinSessions(1);
+    setEMaxSessions(20);
     setEAssessmentMethod('Written Exam');
     setEDescription('');
     setEStatus('Active');
@@ -99,6 +107,8 @@ const SubjectManagement = () => {
     setESubjectName(subject.subjectName || '');
     setESubjectType(subject.subjectType || 'Theory');
     setEDefaultHours(subject.defaultHours ?? 20);
+    setEMinSessions(subject.minSessions ?? 1);
+    setEMaxSessions(subject.maxSessions ?? 20);
     setEAssessmentMethod(subject.assessmentMethod || 'Written Exam');
     setEDescription(subject.description || '');
     setEStatus(subject.status || 'Active');
@@ -114,11 +124,18 @@ const SubjectManagement = () => {
     }
     setSubmitting(true);
     try {
+      // MinSessions/MaxSessions bắt buộc theo CreateSubjectRequest mới của BE
+      if (Number(cMinSessions) < 1 || Number(cMaxSessions) < 1 || Number(cMinSessions) > Number(cMaxSessions)) {
+        setFormError(tr('Số buổi tối thiểu phải >= 1 và không được lớn hơn số buổi tối đa.'));
+        return;
+      }
       await api.post('/Subjects', {
         subjectCode: cSubjectCode.trim(),
         subjectName: cSubjectName.trim(),
         subjectType: cSubjectType,
         defaultHours: Number(cDefaultHours),
+        minSessions: Number(cMinSessions),
+        maxSessions: Number(cMaxSessions),
         assessmentMethod: cAssessmentMethod,
         description: cDescription.trim() || null,
         status: cStatus,
@@ -129,7 +146,7 @@ const SubjectManagement = () => {
       toast.success(tr('Tạo môn học thành công!'));
     } catch (err) {
       console.error('Failed to create subject:', err);
-      setFormError(tr('Tạo môn học thất bại.'));
+      toast.error(tr('Tạo môn học thất bại.'));
     } finally {
       setSubmitting(false);
     }
@@ -144,11 +161,17 @@ const SubjectManagement = () => {
     }
     setSubmitting(true);
     try {
+      if (Number(eMinSessions) < 1 || Number(eMaxSessions) < 1 || Number(eMinSessions) > Number(eMaxSessions)) {
+        setFormError(tr('Số buổi tối thiểu phải >= 1 và không được lớn hơn số buổi tối đa.'));
+        return;
+      }
       await api.put(`/Subjects/${editingSubject.subjectId}`, {
         subjectCode: eSubjectCode.trim(),
         subjectName: eSubjectName.trim(),
         subjectType: eSubjectType,
         defaultHours: Number(eDefaultHours),
+        minSessions: Number(eMinSessions),
+        maxSessions: Number(eMaxSessions),
         assessmentMethod: eAssessmentMethod,
         description: eDescription.trim() || null,
         status: eStatus,
@@ -160,7 +183,7 @@ const SubjectManagement = () => {
       toast.success(tr('Cập nhật môn học thành công!'));
     } catch (err) {
       console.error('Failed to update subject:', err);
-      setFormError(tr('Cập nhật môn học thất bại.'));
+      toast.error(tr('Cập nhật môn học thất bại.'));
     } finally {
       setSubmitting(false);
     }
@@ -373,6 +396,16 @@ const SubjectManagement = () => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
                   <div className="form-group">
+                    <label htmlFor="subj-min-sessions">{tr('Số buổi tối thiểu (MinSessions) *')}</label>
+                    <input id="subj-min-sessions" type="number" min="1" value={cMinSessions} onChange={(e) => setCMinSessions(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="subj-max-sessions">{tr('Số buổi tối đa (MaxSessions) *')}</label>
+                    <input id="subj-max-sessions" type="number" min="1" value={cMaxSessions} onChange={(e) => setCMaxSessions(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
+                  <div className="form-group">
                     <label htmlFor="subj-assess">{tr('Phương pháp đánh giá')}</label>
                     <select id="subj-assess" value={cAssessmentMethod} onChange={(e) => setCAssessmentMethod(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}>
                       {ASSESSMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
@@ -430,6 +463,16 @@ const SubjectManagement = () => {
                   <div className="form-group">
                     <label htmlFor="esubj-hours">{tr('Số giờ mặc định')}</label>
                     <input id="esubj-hours" type="number" min="1" max="200" value={eDefaultHours} onChange={(e) => setEDefaultHours(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
+                  <div className="form-group">
+                    <label htmlFor="esubj-min-sessions">{tr('Số buổi tối thiểu (MinSessions) *')}</label>
+                    <input id="esubj-min-sessions" type="number" min="1" value={eMinSessions} onChange={(e) => setEMinSessions(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="esubj-max-sessions">{tr('Số buổi tối đa (MaxSessions) *')}</label>
+                    <input id="esubj-max-sessions" type="number" min="1" value={eMaxSessions} onChange={(e) => setEMaxSessions(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }} />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>

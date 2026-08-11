@@ -12,7 +12,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 const CourseClassManagement = () => {
   const toast = useToast();
-  const { tr, trt } = useLanguage();
+  const { tr } = useLanguage();
   const [courses, setCourses] = useState([]);
   const [allCoursesRaw, setAllCoursesRaw] = useState([]);
   const [allClassesRaw, setAllClassesRaw] = useState([]);
@@ -82,7 +82,7 @@ const CourseClassManagement = () => {
         );
 
         // Merge courses + classes into display format
-        const mergedCourses = mergeCourseData(coursesArr, classesArr, sessionsArr, statsData, accountsArr, profilesArr);
+        const mergedCourses = mergeCourseData(coursesArr, classesArr, sessionsArr, statsData, accountsArr, profilesArr, subjectsArr);
         setCourses(mergedCourses);
 
         // Auto-expand first course
@@ -98,7 +98,25 @@ const CourseClassManagement = () => {
     loadData();
   }, []);
 
-  const mergeCourseData = (coursesArr, classesArr, sessionsArr, statsData, accountsArr = [], profilesArr = []) => {
+  // Hiển thị Giảng viên theo Môn học (InstructorAssignments) — Class không còn InstructorAccountId cấp lớp.
+  const resolveClassInstructors = (cls, accountsArr = [], profilesArr = [], subjectsList = []) => {
+    const assignments = Array.isArray(cls.instructorAssignments) ? cls.instructorAssignments : [];
+    if (assignments.length === 0) return tr('Đang cập nhật');
+    return assignments
+      .map((a) => {
+        let insName = tr('Chưa phân công');
+        if (a.instructorAccountId) {
+          const acc = accountsArr.find((x) => String(x.accountId) === String(a.instructorAccountId));
+          const prof = profilesArr.find((p) => String(p.accountId) === String(a.instructorAccountId));
+          insName = prof?.fullName || acc?.fullName || acc?.username || `GV #${a.instructorAccountId}`;
+        }
+        const sub = subjectsList.find((s) => String(s.subjectId) === String(a.subjectId));
+        return `${insName}${sub ? ` (${sub.subjectCode})` : ''}`;
+      })
+      .join(', ');
+  };
+
+  const mergeCourseData = (coursesArr, classesArr, sessionsArr, statsData, accountsArr = [], profilesArr = [], subjectsList = []) => {
     return coursesArr.map((course) => {
       const courseClasses = classesArr.filter((c) => String(c.courseId) === String(course.courseId));
       const sessionCount = sessionsArr.filter((s) => 
@@ -118,12 +136,7 @@ const CourseClassManagement = () => {
           return st === 'InProgress' || st === 'Planned' || st === 'Active' || st === 'Upcoming' || st === 'Đang diễn ra' || st === 'Sắp diễn ra';
         }).length,
         classes: courseClasses.map((cls) => {
-          let insName = tr('Đang cập nhật');
-          if (cls.instructorAccountId) {
-            const acc = accountsArr.find((a) => String(a.accountId) === String(cls.instructorAccountId));
-            const prof = profilesArr.find((p) => String(p.accountId) === String(cls.instructorAccountId));
-            insName = prof?.fullName || acc?.username || `GV #${cls.instructorAccountId}`;
-          }
+          const insName = resolveClassInstructors(cls, accountsArr, profilesArr, subjectsList);
           return {
             classId: cls.classId,
             courseId: cls.courseId,
@@ -133,7 +146,7 @@ const CourseClassManagement = () => {
             className: cls.className,
             location: cls.location || '',
             capacity: cls.capacity || 30,
-            instructorAccountId: cls.instructorAccountId || null,
+            instructorAssignments: Array.isArray(cls.instructorAssignments) ? cls.instructorAssignments : [],
             startDateRaw: cls.startDate,
             endDateRaw: cls.endDate,
             startDate: cls.startDate ? new Date(cls.startDate).toLocaleDateString('vi-VN') : '',
@@ -166,7 +179,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
 
       setAllCoursesRaw(coursesArr);
       setAllClassesRaw(classesArr);
-      const merged = mergeCourseData(coursesArr, classesArr, sessionsArr, {}, accountsArr, profilesArr);
+      const merged = mergeCourseData(coursesArr, classesArr, sessionsArr, {}, accountsArr, profilesArr, allSubjects);
       setCourses(merged);
       return merged;
     } catch (error) {
@@ -192,6 +205,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
                 subjectId: Number(id),
                 sequenceNo: idx + 1,
                 requiredHours: newCourse.duration || 0,
+                requiredSessions: 1,
                 isMandatory: true,
                 passingScore: 5
               }))
@@ -209,10 +223,10 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
       });
       await refreshData();
       setIsCreatingCourse(false);
-      toast.success(tr("Tạo khóa học thành công!"), tr("Khóa học mới đã được thêm vào hệ thống cùng môn học đã cấu hình."));
+      toast.success(tr("Tạo khóa học thành công!"));
     } catch (error) {
       console.error("Error creating course:", error);
-      toast.error(tr("Tạo khóa học thất bại"), parseApiError(error));
+      toast.error(tr("Tạo khóa học thất bại"));
     }
   };
 
@@ -226,6 +240,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
                 subjectId: Number(id),
                 sequenceNo: idx + 1,
                 requiredHours: updateData.durationHours || 0,
+                requiredSessions: 1,
                 isMandatory: true,
                 passingScore: 5
               }))
@@ -244,10 +259,10 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
       });
       await refreshData();
       setEditingCourseTarget(null);
-      toast.success(tr("Cập nhật khóa học thành công!"), tr("Thông tin khóa học và cấu hình môn học đã được lưu."));
+      toast.success(tr("Cập nhật khóa học thành công!"));
     } catch (error) {
       console.error("Error updating course:", error);
-      toast.error(tr("Cập nhật khóa học thất bại"), parseApiError(error));
+      toast.error(tr("Cập nhật khóa học thất bại"));
       throw new Error(parseApiError(error));
     }
   };
@@ -259,11 +274,11 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
     try {
       await api.delete(`/Courses/${deletingCourseTarget.courseId}`);
       await refreshData();
-      toast.success(tr("Xóa khóa học thành công!"), trt('deleteCourse', { id: deletingCourseTarget.courseId, code: deletingCourseTarget.code }));
+      toast.success(tr("Xóa khóa học thành công!"));
       setDeletingCourseTarget(null);
     } catch (error) {
       console.error("Error deleting course:", error);
-      toast.error(tr("Xóa khóa học thất bại"), parseApiError(error));
+      toast.error(tr("Xóa khóa học thất bại"));
     } finally {
       setDeletingSubmitting(false);
     }
@@ -277,26 +292,26 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
     try {
       const parsedCourseId = Number(parentCourseId);
       if (!parsedCourseId || isNaN(parsedCourseId)) {
-        toast.error(tr("Tạo lớp học thất bại"), tr("Vui lòng chọn một Khóa học hợp lệ."));
+        toast.error(tr("Tạo lớp học thất bại"));
         return;
       }
 
       // Chặn từ phía FE trước khi gọi API: khóa học phải tồn tại trong danh sách thật (tránh FK violation)
       if (allCoursesRaw.length > 0 && !allCoursesRaw.some((c) => Number(c.courseId) === parsedCourseId)) {
-        toast.error(tr("Tạo lớp học thất bại"), tr("Khóa học được chọn không tồn tại trong hệ thống. Vui lòng chọn lại Khóa học."));
+        toast.error(tr("Tạo lớp học thất bại"));
         return;
       }
 
       const cleanCode = (newClass.code?.trim() || '').slice(0, 20);
       if (!cleanCode) {
-        toast.error(tr("Tạo lớp học thất bại"), tr("Mã lớp học không được để trống."));
+        toast.error(tr("Tạo lớp học thất bại"));
         return;
       }
 
       // Chặn trùng Mã lớp ngay tại FE (khớp với unique index IX_Classes_ClassCode của CSDL)
       const codeUpper = cleanCode.toUpperCase();
       if (allClassesRaw.some((c) => String(c.classCode || '').trim().toUpperCase() === codeUpper)) {
-        toast.error(tr("Tạo lớp học thất bại"), trt('classCodeExists', { code: cleanCode }));
+        toast.error(tr("Tạo lớp học thất bại"));
         return;
       }
 
@@ -312,11 +327,14 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
         if (!isNaN(d.getTime())) endIso = d.toISOString();
       }
 
-      // Chỉ gửi InstructorAccountId nếu giảng viên có trong danh sách thật (tránh FK + Business Rule phía BE)
-      const rawInstructorId = newClass.instructorAccountId ? Number(newClass.instructorAccountId) : null;
-      const instructorAccountId = rawInstructorId != null && instructorsList.some((i) => Number(i.accountId) === rawInstructorId)
-        ? rawInstructorId
-        : null;
+      // Giảng viên phân công theo Môn học (ClassSubjects) — chỉ giữ những giảng viên hợp lệ (có trong danh sách thật)
+      const instructorAssignments = (Array.isArray(newClass.instructorAssignments) ? newClass.instructorAssignments : [])
+        .map((a) => ({
+          subjectId: Number(a.subjectId),
+          instructorAccountId: a.instructorAccountId != null && instructorsList.some((i) => Number(i.accountId) === Number(a.instructorAccountId))
+            ? Number(a.instructorAccountId)
+            : null
+        }));
 
       const mappedStatus = (newClass.status === 'Đang diễn ra' || newClass.status === 'Active')
         ? 'InProgress'
@@ -333,7 +351,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
         location: newClass.location || tr('Phòng Sim A320'),
         capacity: 30,
         status: mappedStatus,
-        instructorAccountId
+        instructorAssignments
       });
 
       const latestCourses = await refreshData();
@@ -346,10 +364,10 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
       if (targetCourse) {
         setExpandedCourses((prev) => ({ ...prev, [targetCourse.code]: true }));
       }
-      toast.success(tr("Tạo lớp học thành công!"), tr("Lớp học mới đã được tạo và sẵn sàng cho ghi danh."));
+      toast.success(tr("Tạo lớp học thành công!"));
     } catch (error) {
       console.error("Error creating class:", error);
-      toast.error(tr("Tạo lớp học thất bại"), parseApiError(error));
+      toast.error(tr("Tạo lớp học thất bại"));
     } finally {
       setClassSubmitting(false);
     }
@@ -358,13 +376,21 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
   // Handler for Updating Class (PUT /api/Classes/{id})
   const handleSaveUpdateClass = async (classId, updatePayload) => {
     try {
-      await api.put(`/Classes/${classId}`, updatePayload);
+      // Giảng viên theo Môn học: chỉ giữ những giảng viên hợp lệ
+      const safeAssignments = (Array.isArray(updatePayload.instructorAssignments) ? updatePayload.instructorAssignments : [])
+        .map((a) => ({
+          subjectId: Number(a.subjectId),
+          instructorAccountId: a.instructorAccountId != null && instructorsList.some((i) => Number(i.accountId) === Number(a.instructorAccountId))
+            ? Number(a.instructorAccountId)
+            : null
+        }));
+      await api.put(`/Classes/${classId}`, { ...updatePayload, instructorAssignments: safeAssignments });
       await refreshData();
       setEditingClassTarget(null);
-      toast.success(tr("Cập nhật lớp học thành công!"), tr("Trạng thái và thông tin lớp học đã được lưu."));
+      toast.success(tr("Cập nhật lớp học thành công!"));
     } catch (error) {
       console.error("Error updating class status:", error);
-      toast.error(tr("Cập nhật lớp học thất bại"), parseApiError(error));
+      toast.error(tr("Cập nhật lớp học thất bại"));
       throw new Error(parseApiError(error));
     }
   };
@@ -376,11 +402,11 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
     try {
       await api.delete(`/Classes/${deletingClassTarget.classId}`);
       await refreshData();
-      toast.success(tr("Xóa lớp học thành công!"), trt('deleteClass', { id: deletingClassTarget.classId, code: deletingClassTarget.code }));
+      toast.success(tr("Xóa lớp học thành công!"));
       setDeletingClassTarget(null);
     } catch (error) {
       console.error("Error deleting class:", error);
-      toast.error(tr("Xóa lớp học thất bại"), parseApiError(error));
+      toast.error(tr("Xóa lớp học thất bại"));
     } finally {
       setDeletingSubmitting(false);
     }
@@ -396,10 +422,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
       await refreshData();
       setIsEnrollingStudent(false);
       setEnrollClassId(null);
-      toast.success(
-        tr("Ghi danh học viên thành công!"),
-        tr("Hệ thống ETR đã tự động kích hoạt tạo hồ sơ ETR_Course_Record (In Progress).")
-      );
+      toast.success(tr("Ghi danh học viên thành công!"));
     } catch (error) {
       console.error("Error creating enrollment:", error);
       throw error;
@@ -442,11 +465,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
     return allClassesRaw
       .filter((cls) => !validCourseIds.has(String(cls.courseId)))
       .map((cls) => {
-        let insName = tr('Đang cập nhật');
-        if (cls.instructorAccountId) {
-          const acc = instructorsList.find((i) => String(i.accountId) === String(cls.instructorAccountId));
-          insName = acc?.fullName || `GV #${cls.instructorAccountId}`;
-        }
+        const insName = resolveClassInstructors(cls, instructorsList, [], allSubjects);
         return {
           classId: cls.classId,
           courseId: cls.courseId,
@@ -456,7 +475,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
           className: cls.className,
           location: cls.location || '',
           capacity: cls.capacity || 30,
-          instructorAccountId: cls.instructorAccountId || null,
+          instructorAssignments: Array.isArray(cls.instructorAssignments) ? cls.instructorAssignments : [],
           startDateRaw: cls.startDate,
           endDateRaw: cls.endDate,
           startDate: cls.startDate ? new Date(cls.startDate).toLocaleDateString('vi-VN') : '',
@@ -467,7 +486,8 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
           isOrphan: true
         };
       });
-  }, [allClassesRaw, allCoursesRaw, instructorsList, tr]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allClassesRaw, allCoursesRaw, instructorsList, tr, allSubjects]);
 
   // Statistics calculation
   const totalClasses = courses.reduce((sum, course) => sum + course.classes.length, 0);
@@ -1099,6 +1119,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
           courses={allCoursesRaw}
           initialCourseId={creatingClassCourseId}
           instructors={instructorsList}
+          subjects={allSubjects}
           onSave={handleSaveClass}
           onCancel={() => {
             setIsCreatingClass(false);
@@ -1112,6 +1133,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
         <UpdateClassStatusModal
           targetClass={editingClassTarget}
           instructors={instructorsList}
+          subjects={allSubjects}
           onSave={handleSaveUpdateClass}
           onCancel={() => setEditingClassTarget(null)}
         />

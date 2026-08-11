@@ -74,7 +74,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
       setAssignedClasses(assignedClasses.filter((c) => c.code !== classCode));
     } catch (error) {
       console.error("Error removing enrollment:", error);
-      toast.error(tr("Xóa ghi danh thất bại"), error.message || tr("Lỗi không xác định"));
+      toast.error(tr("Xóa ghi danh thất bại"));
     }
   };
 
@@ -86,7 +86,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
     );
 
     if (availableClasses.length === 0) {
-      toast.warning(tr("Không còn lớp khả dụng"), tr("Học viên đã được ghi danh vào tất cả các lớp hiện có."));
+      toast.warning(tr("Không còn lớp khả dụng"));
       return;
     }
 
@@ -109,7 +109,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
       setAssignedClasses([...assignedClasses, newAssignment]);
     } catch (error) {
       console.error("Error adding enrollment:", error);
-      toast.error(tr("Ghi danh thất bại"), error.message || tr("Lỗi không xác định"));
+      toast.error(tr("Ghi danh thất bại"));
     }
   };
 
