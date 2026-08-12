@@ -336,7 +336,7 @@ const EtrApproval = () => {
       return;
     }
     try {
-      const blob = await api.downloadFile(`/Evidences/${ev.evidenceFileId}/download`);
+      const blob = await api.downloadFile(`/Evidences/${ev.evidenceFileId}/download`, { suppressAuthRedirect: true });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

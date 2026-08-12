@@ -133,7 +133,7 @@ const QAEvidenceVerification = () => {
     if (!row) return;
     setPreviewLoading(true);
     try {
-      const blob = await api.downloadFile(`/Evidences/${row.id}/download`);
+      const blob = await api.downloadFile(`/Evidences/${row.id}/download`, { suppressAuthRedirect: true });
       const url = window.URL.createObjectURL(blob);
       setPreviewUrl((prev) => {
         if (prev) window.URL.revokeObjectURL(prev);
@@ -214,7 +214,7 @@ const QAEvidenceVerification = () => {
   // Tải file minh chứng về máy (GET /Evidences/{id}/download)
   const handleDownload = async (row) => {
     try {
-      const blob = await api.downloadFile(`/Evidences/${row.id}/download`);
+      const blob = await api.downloadFile(`/Evidences/${row.id}/download`, { suppressAuthRedirect: true });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

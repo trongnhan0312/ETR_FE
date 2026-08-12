@@ -491,7 +491,7 @@ const EtrManagement = () => {
 
   const handleDownloadFile = async (fileId, fileName) => {
     try {
-      const blob = await api.downloadFile(`/Evidences/${fileId}/download`);
+      const blob = await api.downloadFile(`/Evidences/${fileId}/download`, { suppressAuthRedirect: true });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

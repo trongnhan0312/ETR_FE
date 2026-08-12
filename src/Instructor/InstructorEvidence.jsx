@@ -418,7 +418,7 @@ const InstructorEvidence = () => {
   // Tải xuống có xác thực (endpoint /Evidences/{id}/download yêu cầu Bearer token)
   const handleDownloadEvidence = async (id, name) => {
     try {
-      const blob = await api.downloadFile(`/Evidences/${id}/download`);
+      const blob = await api.downloadFile(`/Evidences/${id}/download`, { suppressAuthRedirect: true });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

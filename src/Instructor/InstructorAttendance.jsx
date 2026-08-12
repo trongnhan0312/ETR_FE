@@ -313,8 +313,11 @@ const InstructorAttendance = () => {
   const handleDownloadTemplate = async () => {
     setImportError("");
     try {
+      // suppressAuthRedirect: nếu tải file gặp lỗi (token hết hạn/401) thì chỉ hiện
+      // thông báo lỗi trong modal — KHÔNG đá user về trang login mất phiên làm việc.
       const blob = await api.downloadFile(
         `/import/attendance/template?sessionId=${selectedSession.sessionId}`,
+        { suppressAuthRedirect: true },
       );
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -928,23 +931,68 @@ const InstructorAttendance = () => {
                   </button>
 
                   {/* Bước 2: Chọn file + validate */}
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "10px",
-                      alignItems: "center",
-                    }}
-                  >
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={(e) => {
-                        setImportFile(e.target.files?.[0] || null);
-                        setImportResult(null);
-                        setImportError("");
-                      }}
-                      style={{ flex: 1, fontSize: "12px" }}
-                    />
+                  <div className="file-picker">
+                    <label
+                      className={`file-picker-trigger${importFile ? " has-file" : ""}`}
+                    >
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={(e) => {
+                          setImportFile(e.target.files?.[0] || null);
+                          setImportResult(null);
+                          setImportError("");
+                        }}
+                      />
+                      <span className="file-picker-icon">
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                          <polyline points="13 2 13 9 20 9" />
+                        </svg>
+                      </span>
+                      <span className="file-picker-info">
+                        <span
+                          className="file-picker-title"
+                          title={importFile ? importFile.name : ""}
+                        >
+                          {importFile
+                            ? importFile.name
+                            : tr("Chọn file Excel (.xlsx / .xls)")}
+                        </span>
+                        <span className="file-picker-sub">
+                          {importFile
+                            ? `${(importFile.size / 1024).toFixed(1)} KB · ${tr(
+                                "Bấm để chọn file khác",
+                              )}`
+                            : tr("Chọn tệp để kiểm tra và nhập dữ liệu")}
+                        </span>
+                      </span>
+                    </label>
+
+                    {importFile && (
+                      <button
+                        type="button"
+                        className="file-picker-clear"
+                        onClick={() => {
+                          setImportFile(null);
+                          setImportResult(null);
+                          setImportError("");
+                        }}
+                        title={tr("Bỏ chọn tệp")}
+                      >
+                        ×
+                      </button>
+                    )}
+
                     <button
                       onClick={handleValidateImport}
                       type="button"

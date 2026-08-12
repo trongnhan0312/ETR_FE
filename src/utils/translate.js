@@ -72,6 +72,7 @@ export const VN_TO_EN = {
   'Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.': 'Password reset request has been sent to your email. Please check your inbox.',
   'Vui lòng nhập email.': 'Please enter your email.',
   'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.': 'Cannot connect to the server. Please check your network connection.',
+  'Phản hồi từ máy chủ không hợp lệ. Vui lòng thử lại sau.': 'Invalid response from the server. Please try again later.',
 
   // ── Khóa học & Lớp học / Courses & Classes ──
   'Khóa & Lớp học': 'Courses & Classes',
@@ -885,6 +886,10 @@ export const VN_TO_EN = {
   'Trạng thái điểm danh': 'Attendance Status',
   'Có mặt': 'Present',
   'Vắng': 'Absent',
+  'Chọn file Excel (.xlsx / .xls)': 'Choose Excel file (.xlsx / .xls)',
+  'Bấm để chọn file khác': 'Click to choose another file',
+  'Chọn tệp để kiểm tra và nhập dữ liệu': 'Pick a file to validate and import',
+  'Bỏ chọn tệp': 'Remove file',
   'Import điểm danh Excel': 'Import Attendance from Excel',
   'Tải template, điền trạng thái (Present/Absent) cho từng học viên, sau đó kiểm tra và nhập dữ liệu.': 'Download the template, fill in the status (Present/Absent) for each student, then validate and import the data.',
   'Import hoàn tất nhưng có dòng bị bỏ qua.': 'Import completed but some rows were skipped.',
@@ -2468,6 +2473,9 @@ export const EN_TO_VN = {
   'Explore Analytics Features': 'Khám phá tính năng phân tích',
   'PUBLIC PERFORMANCE OVERVIEW': 'TỔNG QUAN HIỆU SUẤT CÔNG KHAI',
   'Loading public analytics preview...': 'Đang tải bản xem trước phân tích công khai...',
+  'Không có dữ liệu thống kê công khai từ API.': 'No public analytics data available from the API.',
+  'Không gửi được đơn. Vui lòng thử lại sau.': 'Unable to submit the application. Please try again later.',
+  'Không gửi được tin nhắn. Vui lòng thử lại sau.': 'Unable to send the message. Please try again later.',
   'ACTIVE CERTIFICATES': 'CHỨNG CHỈ ĐANG HIỆU LỰC',
   'Zero critical findings': 'Không có phát hiện nghiêm trọng',
   'AVG. SIGNOFF TIME': 'TB. THỜI GIAN KÝ DUYỆT',
