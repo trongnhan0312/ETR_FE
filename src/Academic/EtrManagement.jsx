@@ -1869,8 +1869,8 @@ const EtrManagement = () => {
                             padding: "0 8px",
                           }}
                         >
-                          <span>Camera: INSPECTION UNIT A3</span>
-                          <span>ISO 200 • 1/120s • f/4.0</span>
+                          <span>{tr('Camera: INSPECTION UNIT A3')}</span>
+                          <span>{tr('ISO 200 • 1/120s • f/4.0')}</span>
                         </div>
                       </div>
                     )}
@@ -1944,11 +1944,11 @@ const EtrManagement = () => {
                           }}
                         >
                           <div>
-                            <strong>ISSUER:</strong> Dr. Elena Sterling / QA
+                            <strong>{tr('ISSUER:')}</strong> Dr. Elena Sterling / QA
                             Officer
                           </div>
                           <div>
-                            <strong>TIMESTAMP:</strong> {previewFile.date} @
+                            <strong>{tr('TIMESTAMP:')}</strong> {previewFile.date} @
                             14:20:05 GMT+7
                           </div>
                           <div
@@ -1958,11 +1958,11 @@ const EtrManagement = () => {
                               whiteSpace: "nowrap",
                             }}
                           >
-                            <strong>HASH:</strong>{" "}
+                            <strong>{tr('HASH:')}</strong>{" "}
                             SHA256:7f9b8c3a1e5d7f8a9c2b0d3e5f6a7b8c9d0e1f
                           </div>
                           <div>
-                            <strong>KEY STATUS:</strong> VALIDATED & ACTIVE
+                            <strong>{tr('KEY STATUS:')}</strong> VALIDATED & ACTIVE
                           </div>
                         </div>
 

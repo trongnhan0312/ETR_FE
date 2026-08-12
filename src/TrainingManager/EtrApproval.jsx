@@ -879,7 +879,7 @@ const EtrApproval = () => {
             </svg>
           </div>
           <span className="tm-vault-label">{tr('SECURITY STATUS')}</span>
-          <h2 className="tm-vault-title">AeroVault™ Protocol Active</h2>
+          <h2 className="tm-vault-title">{tr('AeroVault™ Protocol Active')}</h2>
           <p className="tm-vault-desc">
             {tr('Cryptographic seals are initialized and ready for deployment on verified records.')}
           </p>

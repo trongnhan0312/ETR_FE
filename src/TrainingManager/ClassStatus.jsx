@@ -218,7 +218,7 @@ const ClassStatus = () => {
     return studentsData[classId] || [];
   };
 
-  // Cycling student attendance states: P (Present) -> A (Absent) -> L (Late)
+  // Cycling student attendance states: P (Present) -> A (Absent) -> P (BE chỉ hỗ trợ Present/Absent)
   const handleAttendanceClick = (studentId, sessionKey) => {
     if (!selectedClassDetails) return;
     const classId = selectedClassDetails.id;
@@ -227,10 +227,7 @@ const ClassStatus = () => {
     const updatedStudents = currentStudents.map((student) => {
       if (student.id === studentId) {
         const current = student[sessionKey];
-        let next = "P";
-        if (current === "P") next = "A";
-        else if (current === "A") next = "L";
-        else next = "P";
+        const next = current === "P" ? "A" : "P";
 
         const updated = { ...student, [sessionKey]: next };
 
@@ -243,7 +240,6 @@ const ClassStatus = () => {
         let currentPresents = 0;
         [updated.s10, updated.s11, updated.s12].forEach((s) => {
           if (s === "P") currentPresents += 1.0;
-          if (s === "L") currentPresents += 0.8;
         });
 
         updated.rate = Math.min(
@@ -318,13 +314,6 @@ const ClassStatus = () => {
             fill="currentColor"
           />
         </svg>
-      );
-    }
-    if (sessionStatus === "L") {
-      return (
-        <div className="w-5 h-5 rounded-full bg-[#ed6c02]/10 border border-[#ed6c02]/30 flex justify-center items-center text-[10px] font-bold text-[#ed6c02]">
-          L
-        </div>
       );
     }
     return null;
@@ -820,14 +809,6 @@ const ClassStatus = () => {
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <div className="w-5 h-5 rounded-full bg-[#ed6c02]/10 border border-[#ed6c02]/30 flex justify-center items-center text-[10px] font-semibold text-[#ed6c02]">
-                L
-              </div>
-              <span className="text-xs font-semibold text-[#495057]">
-                {tr('Đi muộn (Late)')}
-              </span>
-            </div>
           </div>
         </div>
       </div>

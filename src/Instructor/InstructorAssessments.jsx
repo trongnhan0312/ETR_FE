@@ -1272,7 +1272,7 @@ const InstructorAssessments = () => {
                  ? `Assessment: ${selectedAssessment.componentName}`
                  : selectedAssessment.componentName}{" "}
                · {tr('Buổi: ')}{" "}
-               {selectedAssessment.sessionTitle}
+               {tr(selectedAssessment.sessionTitle)}
                {selectedAssessment.sessionDate
                  ? ` (${selectedAssessment.sessionDate})`
                  : " (TBA)"}{" "}
@@ -2186,7 +2186,7 @@ const InstructorAssessments = () => {
                           {assessment.componentName}
                         </h4>
                         <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
-                          {tr('Buổi: ')}{assessment.sessionTitle}
+                          {tr('Buổi: ')}{tr(assessment.sessionTitle)}
                           {assessment.sessionDate
                             ? ` (${assessment.sessionDate})`
                             : " (TBA)"}{" "}
@@ -2252,7 +2252,7 @@ const InstructorAssessments = () => {
               <p className="header-description">
                 {getAssessmentTypeLabel(selectedAssessmentType)} · Assessment:{" "}
                 {selectedAssessment.componentName} · {tr('Buổi: ')}{" "}
-                {selectedAssessment.sessionTitle}
+                {tr(selectedAssessment.sessionTitle)}
                 {selectedAssessment.sessionDate
                   ? ` (${selectedAssessment.sessionDate})`
                   : " (TBA)"}{" "}

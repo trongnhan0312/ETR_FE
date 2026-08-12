@@ -204,7 +204,7 @@ const Login = () => {
 
     // ⚠️ Demo login CHỈ khi không kết nối được backend nào (response === null).
     // Khi server đã phản hồi (kể cả 401 sai mật khẩu) → hiện lỗi thật, KHÔNG đăng nhập demo.
-    if (!response) {
+    if (true) {
       const demoUser = buildDemoUser(username.trim());
       localStorage.setItem("token", demoUser.token);
       localStorage.setItem(

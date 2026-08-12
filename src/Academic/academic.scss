@@ -306,6 +306,8 @@
 
 // Topbar Styles
 .academic-topbar {
+  position: relative;
+  z-index: 1000;
   min-height: 68px;
   background: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid #dfe6f1;

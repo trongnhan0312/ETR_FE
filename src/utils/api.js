@@ -1,4 +1,5 @@
 import { translateVn } from "./translate";
+import { addActivity } from "./activityLog";
 
 // --- API Base URL ---
 // Theo yêu cầu: FE CHỈ gọi API đã deploy (Azure) — KHÔNG còn gọi API local,
@@ -354,6 +355,10 @@ async function fetchWithFallback(endpoint, fetchOptions, method, options) {
     if (shouldUseDemoFallback(endpoint, { ok: false, status: 0 }, method)) {
       return getDemoData(endpoint);
     }
+    // Ghi lịch sử thao tác THẤT BẠI (lỗi mạng) — chỉ request GHI
+    if (method !== "GET") {
+      addActivity({ type: "error", method, endpoint, status: 0, message: "Network error / timeout" });
+    }
     const errMsg = `Cannot reach API server for ${endpoint}`;
     console.error(`[API ${method}] ${errMsg}`);
     throw new Error(errMsg);
@@ -447,7 +452,16 @@ const handleResponse = async (response, method, endpoint, options = {}, requestB
       "\n[DIAG] Request body gửi lên:",
       requestBody,
     );
+    // Ghi lịch sử thao tác THẤT BẠI — chỉ request GHI
+    if (method !== "GET") {
+      addActivity({ type: "error", method, endpoint, status: response.status, message: err.slice(0, 150) });
+    }
     throw new Error(err || `Request failed with status ${response.status}`);
+  }
+
+  // Ghi lịch sử thao tác THÀNH CÔNG — chỉ request GHI (GET = đọc dữ liệu, không ghi log)
+  if (method !== "GET") {
+    addActivity({ type: "success", method, endpoint, status: response.status, message: "" });
   }
 
   if (response.status === 204) {
