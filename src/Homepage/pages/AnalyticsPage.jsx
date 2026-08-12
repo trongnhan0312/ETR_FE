@@ -61,6 +61,10 @@ const AnalyticsPage = () => {
 
             {loading ? (
               <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>{tr('Loading public analytics preview...')}</div>
+            ) : !data ? (
+              <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
+                {tr('Không có dữ liệu thống kê công khai từ API.')}
+              </div>
             ) : (
               <div className="analytics-kpi-grid">
                 <div className="kpi-mini-card">
@@ -137,7 +141,7 @@ const AnalyticsPage = () => {
           </div>
         </div>
 
-        {/* FLEET READINESS DEMO TABLE */}
+        {/* FLEET READINESS TABLE — dữ liệu từ API (trống nếu không có) */}
         <div className="demo-data-section">
           <h3 style={{ color: '#ffffff', fontSize: '1.25rem', marginBottom: '16px', fontWeight: '700' }}>{tr('Fleet Training Readiness Metrics')}</h3>
           <div className="public-table-responsive">

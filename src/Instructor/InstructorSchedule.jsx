@@ -140,7 +140,7 @@ const InstructorSchedule = () => {
                           {session.time}
                         </span>
                         <span className="session-title">
-                          {session.name}
+                          {tr(session.name)}
                         </span>
                         <span className="session-code">
                           {session.code}
@@ -180,7 +180,7 @@ const InstructorSchedule = () => {
             {tbaSessions.map((session, sIdx) => (
               <div key={sIdx} className="session-schedule-card" style={{ borderLeft: '4px solid #c5a059' }}>
                 <span className="session-time" style={{ color: '#c5a059', fontWeight: 800 }}>TBA</span>
-                <span className="session-title">{session.name}</span>
+                <span className="session-title">{tr(session.name)}</span>
                 <span className="session-code">{session.code}</span>
                 <div className="session-location">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

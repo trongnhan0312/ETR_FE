@@ -453,3 +453,117 @@
     transform: rotate(360deg);
   }
 }
+
+// ── Custom file picker (nút chọn tệp Excel) ────────────────────────────────
+.file-picker {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+
+  .file-picker-trigger {
+    position: relative;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-height: 46px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1.5px dashed #cbd5e1;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    overflow: hidden;
+
+    &:hover {
+      border-color: #c5a059;
+      background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+    }
+
+    &.has-file {
+      border-style: solid;
+      border-color: #bbf7d0;
+      background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+    }
+
+    .file-picker-icon {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #c5a059;
+      background: rgba(197, 160, 89, 0.1);
+      transition: transform 0.18s ease;
+    }
+
+    &:hover .file-picker-icon {
+      transform: translateY(-1px);
+    }
+
+    .file-picker-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+
+      .file-picker-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #002147;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+
+      .file-picker-sub {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(0, 33, 71, 0.45);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    // Input file gốc ẩn đi, click vào trigger sẽ mở hộp thoại chọn tệp
+    input[type='file'] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+  }
+
+  .file-picker-clear {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    align-self: center;
+
+    &:hover {
+      background: #fee2e2;
+      border-color: #f87171;
+      transform: scale(1.05);
+    }
+  }
+}

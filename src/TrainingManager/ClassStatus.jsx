@@ -218,7 +218,7 @@ const ClassStatus = () => {
     return studentsData[classId] || [];
   };
 
-  // Cycling student attendance states: P (Present) -> A (Absent)
+  // Cycling student attendance states: P (Present) -> A (Absent) -> P (BE chỉ hỗ trợ Present/Absent)
   const handleAttendanceClick = (studentId, sessionKey) => {
     if (!selectedClassDetails) return;
     const classId = selectedClassDetails.id;
@@ -227,9 +227,7 @@ const ClassStatus = () => {
     const updatedStudents = currentStudents.map((student) => {
       if (student.id === studentId) {
         const current = student[sessionKey];
-        let next = "P";
-        if (current === "P") next = "A";
-        else next = "P";
+        const next = current === "P" ? "A" : "P";
 
         const updated = { ...student, [sessionKey]: next };
 

@@ -63,9 +63,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
                 code: '',
                 name: `Học viên #${a.enrollmentId || a.accountId}`,
                 status: a.status === 'Present' ? 'Có mặt' :
-                        a.status === 'Excused' ? 'Vắng có phép' :
-                        a.status === 'Absent' ? 'Vắng không phép' :
-                        a.status === 'Tardy' ? 'Đi muộn' : 'Chưa điểm danh'
+                        a.status === 'Absent' ? 'Vắng không phép' : 'Chưa điểm danh'
               }))
             };
           });
@@ -317,8 +315,8 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: '700',
-                            backgroundColor: student.status === 'Có mặt' ? '#dcfce7' : student.status === 'Vắng có phép' ? '#fef3c7' : student.status === 'Đi muộn' ? '#dbeafe' : '#fee2e2',
-                            color: student.status === 'Có mặt' ? '#15803d' : student.status === 'Vắng có phép' ? '#d97706' : student.status === 'Đi muộn' ? '#2563eb' : '#b91c1c'
+                            backgroundColor: student.status === 'Có mặt' ? '#dcfce7' : '#fee2e2',
+                            color: student.status === 'Có mặt' ? '#15803d' : '#b91c1c'
                           }}>
                             {student.status.toUpperCase()}
                           </span>

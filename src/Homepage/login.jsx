@@ -49,64 +49,6 @@ const VALIDATION_RULES = {
   },
 };
 
-const DEMO_ROLE_BY_USERNAME = {
-  admin: "Admin",
-  instructor: "Instructor",
-  qa: "QA",
-  qualityassurance: "QA",
-  academic: "Academic",
-  academicstaff: "Academic",
-  trainingmanager: "TrainingManager",
-  manager: "TrainingManager",
-  student: "Student",
-  learner: "Student",
-  auditor: "Auditor",
-  audit: "Auditor",
-};
-
-const buildDemoUser = (username = "") => {
-  const normalized = (username || "").trim().toLowerCase();
-  const role =
-    DEMO_ROLE_BY_USERNAME[normalized] ||
-    (normalized.includes("admin")
-      ? "Admin"
-      : normalized.includes("qa")
-        ? "QA"
-        : normalized.includes("academic")
-          ? "Academic"
-          : normalized.includes("training") || normalized.includes("manager")
-            ? "TrainingManager"
-            : normalized.includes("student") || normalized.includes("learner")
-              ? "Student"
-              : normalized.includes("audit") || normalized.includes("auditor")
-                ? "Auditor"
-                : "Instructor");
-
-  const fullName =
-    role === "Admin"
-      ? "Demo Admin"
-      : role === "QA"
-        ? "Demo QA Officer"
-        : role === "Academic"
-          ? "Demo Academic Staff"
-          : role === "TrainingManager"
-            ? "Demo Training Manager"
-            : role === "Student"
-              ? "Demo Student"
-              : role === "Auditor"
-                ? "Demo Auditor"
-                : "Demo Instructor";
-
-  return {
-    token: "demo-token",
-    accountId: 1,
-    userId: 1,
-    username: username.trim() || "demo.instructor",
-    fullName,
-    role,
-  };
-};
-
 const Login = () => {
   const navigate = useNavigate();
   const { tr } = useLanguage();
@@ -202,48 +144,14 @@ const Login = () => {
       }),
     });
 
-    // ⚠️ Demo login CHỈ khi không kết nối được backend nào (response === null).
-    // Khi server đã phản hồi (kể cả 401 sai mật khẩu) → hiện lỗi thật, KHÔNG đăng nhập demo.
+    // Không kết nối được backend → báo lỗi rõ ràng.
+    // KHÔNG có demo login — 100% dữ liệu/tài khoản phải từ API thật.
     if (!response) {
-      const demoUser = buildDemoUser(username.trim());
-      localStorage.setItem("token", demoUser.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          accountId: demoUser.accountId,
-          userId: demoUser.userId,
-          username: demoUser.username,
-          fullName: demoUser.fullName,
-          roleName: demoUser.role,
-        }),
+      setError(
+        tr(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.",
+        ),
       );
-
-      if (rememberMe) {
-        localStorage.setItem("rememberMe", "true");
-        localStorage.setItem("rememberedUsername", demoUser.username);
-      } else {
-        localStorage.removeItem("rememberMe");
-        localStorage.removeItem("rememberedUsername");
-      }
-
-      const roleLower = (demoUser.role || "").toLowerCase();
-      if (roleLower === "admin") {
-        navigate("/admin");
-      } else if (roleLower === "instructor") {
-        navigate("/instructor");
-      } else if (roleLower === "qa" || roleLower === "qualityassurance") {
-        navigate("/qa");
-      } else if (roleLower === "academic" || roleLower === "academicstaff") {
-        navigate("/academic");
-      } else if (roleLower === "trainingmanager") {
-        navigate("/trainingmanager");
-      } else if (roleLower === "student" || roleLower === "learner") {
-        navigate("/student");
-      } else if (roleLower === "auditor" || roleLower === "audit") {
-        navigate("/auditor");
-      } else {
-        navigate("/admin");
-      }
       setLoading(false);
       return;
     }
@@ -270,6 +178,18 @@ const Login = () => {
     try {
       const data = await response.json();
       console.log("Dữ liệu API trả về:", data);
+
+      // Phòng thủ: server trả 200 nhưng thiếu token (body lạ) → không lưu undefined,
+      // hiện lỗi thay vì điều hướng sang trang chính với phiên hỏng.
+      if (!data || typeof data !== "object" || !data.token) {
+        setError(
+          tr(
+            "Phản hồi từ máy chủ không hợp lệ. Vui lòng thử lại sau.",
+          ),
+        );
+        return;
+      }
+
       localStorage.setItem("token", data.token);
       localStorage.setItem(
         "user",

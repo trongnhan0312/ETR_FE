@@ -357,7 +357,7 @@ const TrainingManagerDashboard = () => {
             </svg>
             <p>
               {tr('All data transmissions are encrypted via')}{' '}
-              <span className="font-semibold text-white">TLS 1.3 Corporate Gateways</span> {tr('and audited in real-time.')}
+              <span className="font-semibold text-white">{tr('TLS 1.3 Corporate Gateways')}</span> {tr('and audited in real-time.')}
             </p>
           </div>
         </div>

@@ -336,7 +336,7 @@ const EtrApproval = () => {
       return;
     }
     try {
-      const blob = await api.downloadFile(`/Evidences/${ev.evidenceFileId}/download`);
+      const blob = await api.downloadFile(`/Evidences/${ev.evidenceFileId}/download`, { suppressAuthRedirect: true });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -879,7 +879,7 @@ const EtrApproval = () => {
             </svg>
           </div>
           <span className="tm-vault-label">{tr('SECURITY STATUS')}</span>
-          <h2 className="tm-vault-title">AeroVault™ Protocol Active</h2>
+          <h2 className="tm-vault-title">{tr('AeroVault™ Protocol Active')}</h2>
           <p className="tm-vault-desc">
             {tr('Cryptographic seals are initialized and ready for deployment on verified records.')}
           </p>
