@@ -83,6 +83,46 @@ globalThis.fetch = async (url, options) => {
       pendingAudit: 5,
       auditPackagesExported: 28,
     },
+    '/api/Dashboard/my-dashboard': {
+      Role: 'Admin',
+      GeneratedAt: '2026-08-13T00:00:00Z',
+      Overview: {
+        TotalEtrs: 142,
+        CompletedCount: 121,
+        CompletionRatePercent: 85.2,
+        PendingApprovalCount: 5,
+        RejectedCount: 3,
+        ReturnedForCorrectionCount: 7,
+        MissingEvidenceCount: 9,
+      },
+      StatusFunnel: {
+        Draft: 6,
+        InProgress: 18,
+        Submitted: 5,
+        Verified: 4,
+        Completed: 121,
+        ReturnedForCorrection: 7,
+        Cancelled: 2,
+      },
+      ActionItems: {
+        PendingApprovalEtrIds: [101, 102, 103, 104, 105],
+        RejectedEtrIds: [201, 202, 203],
+        ReturnedForCorrectionEtrIds: [301, 302],
+        MissingEvidenceEtrIds: [401, 402],
+      },
+      MyClasses: [
+        { ClassId: 1, ClassCode: 'CL-01', ClassName: 'Lớp A', StudentCount: 12 },
+        { ClassId: 2, ClassCode: 'CL-02', ClassName: 'Lớp B', StudentCount: 8 },
+      ],
+      LowAttendanceStudents: [
+        { AccountId: 6, UserCode: 'HV001', FullName: 'Jane Student', ClassId: 1, ClassCode: 'CL-01', SubjectId: 1, SubjectCode: 'SUB01', AttendanceRate: 62.5, ThresholdPercent: 80 },
+      ],
+      PendingVerificationEtrIds: [101, 102, 103, 104, 105],
+      MyEtrs: [
+        { ETRCourseRecordId: 1, Status: 'InProgress', PercentComplete: 40, ExpiryDate: null },
+        { ETRCourseRecordId: 2, Status: 'Completed', PercentComplete: 100, ExpiryDate: '2029-08-13' },
+      ],
+    },
     '/api/Reports/summary': {
       summaryTitle: 'Regulatory Compliance Audit Summary',
       totalAudited: 142,

@@ -7,6 +7,7 @@ import {
   fetchAuditLogs,
   fetchExportJobs,
 } from './auditorApi';
+import { fetchMyDashboard } from '../utils/dashboardApi';
 
 const AuditorDashboard = () => {
   const navigate = useNavigate();
@@ -26,14 +27,26 @@ const AuditorDashboard = () => {
     const loadDashboardData = async () => {
       setLoading(true);
       try {
-        const [statsData, etrsData, logsData, exportJobs] = await Promise.all([
+        const [statsData, etrsData, logsData, exportJobs, dashboard] = await Promise.all([
           fetchDashboardStats(),
           fetchEtrList(),
           fetchAuditLogs(),
           fetchExportJobs(),
+          fetchMyDashboard(),
         ]);
 
-        if (statsData) setStats(statsData);
+        const ov = dashboard?.overview ?? null;
+        const lockedCount = Array.isArray(etrsData)
+          ? etrsData.filter((e) => e.isLocked).length
+          : 0;
+        setStats({
+          totalLockedRecords: lockedCount || statsData?.totalLockedRecords || '...',
+          complianceRate: ov ? ov.completionRatePercent : (statsData?.complianceRate ?? '...'),
+          pendingAudit: ov ? ov.pendingApprovalCount : (statsData?.pendingAudit ?? '...'),
+          auditPackagesExported: Array.isArray(exportJobs)
+            ? exportJobs.length
+            : (statsData?.auditPackagesExported ?? '...'),
+        });
         if (Array.isArray(etrsData)) setRecentETRs(etrsData.slice(0, 3));
         if (Array.isArray(logsData)) setRecentLogs(logsData.slice(0, 3));
         if (Array.isArray(exportJobs)) setRecentExports(exportJobs.slice(0, 2));

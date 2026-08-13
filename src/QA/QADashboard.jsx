@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { fetchMyDashboard } from "../utils/dashboardApi";
 import { useLanguage } from '../context/LanguageContext';
 import {
   buildSrToAccountMap,
@@ -21,11 +22,12 @@ const QADashboard = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [evidences, etrs, audit, profiles] = await Promise.all([
+        const [evidences, etrs, audit, profiles, dashboard] = await Promise.all([
           api.get("/Evidences").catch(() => []),
           api.get("/Etr").catch(() => []),
           api.get("/Audit?page=1&pageSize=50").catch(() => []),
           api.get("/UserProfiles/learners").catch(() => []),
+          fetchMyDashboard(),
         ]);
 
         const evfs = Array.isArray(evidences) ? evidences : [];
@@ -44,9 +46,11 @@ const QADashboard = () => {
         const pendingEvidence = evfs.filter(
           (e) => e.verificationStatus !== "Verified"
         ).length;
-        const pendingEtrs = etrsArr.filter(
-          (e) => e.status === "Submitted"
-        ).length;
+        const pendingEtrs =
+          dashboard?.pendingVerificationEtrIds?.length ??
+          etrsArr.filter(
+            (e) => e.status === "Submitted"
+          ).length;
         const rejectedEvfs = evfs.filter(
           (e) => e.verificationStatus === "Rejected"
         ).length;

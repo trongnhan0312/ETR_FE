@@ -24,6 +24,7 @@ import DepartmentManagement from './ADMIN/DepartmentManagement';
 import AuditLog from './ADMIN/AuditLog';
 import SystemConfiguration from './ADMIN/SystemConfiguration';
 import AcademicLayout from './Academic/AcademicLayout';
+import AcademicDashboard from './Academic/AcademicDashboard';
 import LearnerManagement from './Academic/LearnerManagement';
 import StudentProfiles from './Academic/StudentProfiles';
 import CourseClassManagement from './Academic/CourseClassManagement';
@@ -31,6 +32,7 @@ import EtrManagement from './Academic/EtrManagement';
 import ExpiringStudents from './Academic/ExpiringStudents';
 import SubjectManagement from './Academic/SubjectManagement';
 import InstructorLayout from './Instructor/InstructorLayout';
+import InstructorDashboard from './Instructor/InstructorDashboard';
 import InstructorClasses from './Instructor/InstructorClasses';
 import InstructorSchedule from './Instructor/InstructorSchedule';
 import InstructorAttendance from './Instructor/InstructorAttendance';
@@ -180,10 +182,7 @@ function App() {
 					}
 				>
 					<Route path="/academic" element={<AcademicLayout />}>
-						<Route
-							index
-							element={<Navigate to="/academic/learners" replace />}
-						/>
+						<Route index element={<AcademicDashboard />} />
 						<Route path="learners" element={<LearnerManagement />} />
 						<Route path="profiles" element={<StudentProfiles />} />
 						<Route path="courses" element={<CourseClassManagement />} />
@@ -196,10 +195,7 @@ function App() {
 				{/* Protected Instructor Routes */}
 				<Route element={<ProtectedRoute allowedRoles={['Instructor']} />}>
 					<Route path="/instructor" element={<InstructorLayout />}>
-						<Route
-							index
-							element={<Navigate to="/instructor/classes" replace />}
-						/>
+						<Route index element={<InstructorDashboard />} />
 						<Route path="classes" element={<InstructorClasses />} />
 						<Route path="attendance" element={<InstructorAttendance />} />
 						<Route path="assessments" element={<InstructorAssessments />} />

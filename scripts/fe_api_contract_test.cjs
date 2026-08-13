@@ -338,6 +338,54 @@ async function runWrites(ref) {
   ok('WRITE cleanup', 'removed temp entities');
 }
 
+// ======================================================== MY-DASHBOARD
+// Every FE role now reads GET /Dashboard/my-dashboard (role-aware payload).
+// Verify: 200 for all roles, the right fields populated per role, and that
+// /Dashboard/stats + /action-items remain role-locked (so only my-dashboard
+// is the correct source for Instructor/QA/Student dashboards).
+function pick2(obj, ...keys) {
+  if (!obj || typeof obj !== 'object') return undefined;
+  for (const k of keys) if (obj[k] !== undefined && obj[k] !== null) return obj[k];
+  return undefined;
+}
+const LIST_FIELDS = ['myClasses', 'lowAttendanceStudents', 'myEtrs', 'pendingVerificationEtrIds'];
+
+async function runMyDashboardProbes() {
+  const roleField = [
+    ['admin', ['overview', 'statusFunnel', 'actionItems']],
+    ['manager', ['overview', 'statusFunnel', 'actionItems']],
+    ['academic', ['overview', 'statusFunnel', 'actionItems']],
+    ['audit', ['overview', 'statusFunnel', 'actionItems']],
+    ['instructor', ['myClasses', 'lowAttendanceStudents']],
+    ['qa', ['pendingVerificationEtrIds', 'actionItems']],
+    ['student', ['myEtrs']],
+  ];
+  for (const [role, fields] of roleField) {
+    const r = await getRead('/Dashboard/my-dashboard', role);
+    if (!expect('READ GET /Dashboard/my-dashboard (' + role + ')', r, [200], 'role dashboard')) continue;
+    const j = r.json || {};
+    for (const f of fields) {
+      const val = pick2(j, f, f[0].toUpperCase() + f.slice(1));
+      const good = LIST_FIELDS.includes(f) ? Array.isArray(val) : val !== undefined && val !== null;
+      if (good) ok(`my-dashboard.${f} (${role})`, 'populated');
+      else fail(`MISS my-dashboard.${f} (${role})`, 'expected populated, got ' + JSON.stringify(val));
+    }
+  }
+
+  // stats / action-items RBAC: allowed = Admin/TM/Academic/Audit; locked = Instructor/QA/Student
+  for (const ep of ['/Dashboard/stats', '/Dashboard/action-items']) {
+    for (const role of ['admin', 'manager', 'academic', 'audit']) {
+      const r = await getRead(ep, role);
+      expect(`RBAC GET ${ep} (${role})`, r, [200], 'allowed');
+    }
+    for (const role of ['instructor', 'qa', 'student']) {
+      const r = await getRead(ep, role);
+      if (r.status === 403) ok(`RBAC GET ${ep} (${role})`, '403 as expected (role-locked)');
+      else warn(`RBAC GET ${ep} (${role})`, 'expected 403, got ' + r.status + ' ' + r.text.slice(0, 120));
+    }
+  }
+}
+
 async function main() {
   console.log('══════════════ FE ↔ BE API CONTRACT TEST ══════════════');
   console.log('Base:', BASE, '| Mode:', READ_ONLY ? 'READ-ONLY (GET only)' : 'FULL (writes + cleanup)');
@@ -369,6 +417,7 @@ async function main() {
   ref.student = (ref.accounts || []).find((a) => String(a.roleId) === '6') || first(ref.accounts);
 
   await runReads(ref);
+  await runMyDashboardProbes();
   if (!READ_ONLY) await runWrites(ref);
 
   writeReport();

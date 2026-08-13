@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { fetchMyDashboard } from '../utils/dashboardApi';
 import { useLanguage } from '../context/LanguageContext';
 
 const readOnlyItems = ['Learners', 'Courses', 'Classes', 'ETRs'];
@@ -25,22 +26,27 @@ const Dashboard = () => {
     { label: 'Total ETRs', value: '...' },
     { label: 'Pending Reviews', value: '...' },
   ]);
+  const [funnel, setFunnel] = useState(null);
+  const [actionItems, setActionItems] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [accounts, profiles, courses, classes, etrs] = await Promise.all([
+        const [accounts, profiles, courses, classes, dashboard] = await Promise.all([
           api.get("/Accounts").catch(() => []),
           api.get("/UserProfiles/learners").catch(() => []),
           api.get("/Courses").catch(() => []),
           api.get("/Classes").catch(() => []),
-          api.get("/Etr").catch(() => []),
+          fetchMyDashboard(),
         ]);
         const accs = Array.isArray(accounts) ? accounts : [];
         const profs = Array.isArray(profiles) ? profiles : [];
-        const etrsArr = Array.isArray(etrs) ? etrs : [];
-        const pendingCount = etrsArr.filter((e) => e.status === "Submitted" || e.status === "Draft").length;
+        const totalEtrs = dashboard?.overview?.totalEtrs ?? 0;
+        const pendingCount =
+          dashboard?.actionItems?.pendingApprovalEtrIds?.length ??
+          dashboard?.overview?.pendingApprovalCount ??
+          0;
 
         // Only count accounts/profiles with Student role (roleId 6 or role 'Student')
         const studentAccounts = accs.filter((acc) => {
@@ -62,9 +68,11 @@ const Dashboard = () => {
           { label: 'Total Learners', value: String(learnerCount) },
           { label: 'Total Courses', value: String(Array.isArray(courses) ? courses.length : 0) },
           { label: 'Total Classes', value: String(Array.isArray(classes) ? classes.length : 0) },
-          { label: 'Total ETRs', value: String(etrsArr.length) },
+          { label: 'Total ETRs', value: String(totalEtrs) },
           { label: 'Pending Reviews', value: String(pendingCount) },
         ]);
+        setFunnel(dashboard?.funnel ?? null);
+        setActionItems(dashboard?.actionItems ?? null);
       } catch (err) {
         console.error("Error loading admin dashboard:", err);
       } finally {
@@ -125,6 +133,49 @@ const Dashboard = () => {
           </div>
         </div>
       </section>
+
+      {funnel && (
+        <section className="info-card" style={{ marginTop: 24 }}>
+          <p className="section-label">{tr('ETR pipeline')}</p>
+          <h2>{tr('Status funnel')}</h2>
+          <div className="pill-row">
+            {[
+              ['Draft', funnel.draft, 'tag-chip'],
+              ['In Progress', funnel.inProgress, 'tag-chip'],
+              ['Submitted', funnel.submitted, 'restricted-chip'],
+              ['Verified', funnel.verified, 'restricted-chip'],
+              ['Completed', funnel.completed, 'tag-chip'],
+              ['Returned', funnel.returnedForCorrection, 'restricted-chip'],
+              ['Cancelled', funnel.cancelled, 'tag-chip'],
+            ].map(([label, value, cls]) => (
+              <span key={label} className={cls}>
+                {tr(label)} · {value}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {actionItems && (
+        <section className="info-card" style={{ marginTop: 24 }}>
+          <p className="section-label">{tr('Chase up')}</p>
+          <h2>{tr('ETR action items')}</h2>
+          <div className="pill-row">
+            <span className="restricted-chip">
+              {tr('Pending approval')} · {actionItems.pendingApprovalEtrIds.length}
+            </span>
+            <span className="restricted-chip">
+              {tr('Rejected')} · {actionItems.rejectedEtrIds.length}
+            </span>
+            <span className="restricted-chip">
+              {tr('Returned')} · {actionItems.returnedForCorrectionEtrIds.length}
+            </span>
+            <span className="restricted-chip">
+              {tr('Missing evidence')} · {actionItems.missingEvidenceEtrIds.length}
+            </span>
+          </div>
+        </section>
+      )}
     </div>
   );
 };

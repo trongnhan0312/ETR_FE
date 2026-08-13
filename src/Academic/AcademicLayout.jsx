@@ -7,6 +7,21 @@ import "./academic.scss";
 
 const navigationItems = [
   {
+    label: "BẢNG ĐIỀU KHIỂN",
+    to: "/academic",
+    icon: (
+      <svg
+        width="20"
+        height="18"
+        viewBox="0 0 20 18"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path d="M0 0H8V8H0V0ZM0 10H8V18H0V10ZM10 0H20V6H10V0ZM10 8H20V18H10V8ZM12 2V4H18V2H12ZM12 10V16H18V10H12Z" />
+      </svg>
+    ),
+  },
+  {
     label: "HỌC VIÊN",
     to: "/academic/learners",
     icon: (
@@ -96,7 +111,9 @@ const navigationItems = [
 const AcademicLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isHomePage = location.pathname === "/academic/learners";
+  const isHomePage =
+    location.pathname === "/academic" ||
+    location.pathname === "/academic/learners";
   const [expandedMenu, setExpandedMenu] = useState("");
   const { tr } = useLanguage();
 

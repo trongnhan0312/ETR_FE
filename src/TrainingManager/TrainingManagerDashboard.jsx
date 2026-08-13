@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { api } from '../utils/api';
+import { fetchMyDashboard } from '../utils/dashboardApi';
 import { useLanguage } from '../context/LanguageContext';
 import './training-manager.scss';
+
+const MIN_BAR_PX = 8;
+const MONTH_BAR_CAP = 220;
 
 const TrainingManagerDashboard = () => {
   const { tr } = useLanguage();
@@ -12,84 +15,37 @@ const TrainingManagerDashboard = () => {
   const [etrVolume, setEtrVolume] = useState(null);
   const [complianceScore, setComplianceScore] = useState('...');
   const [certificationsDue, setCertificationsDue] = useState('...');
-  const [avgScore, setAvgScore] = useState('...');
-  // B1/B3 (giới hạn backend): TM bị 403 ở GET /Etr và GET /Enrollments → hiển thị cảnh báo,
-  // không hiển thị số 0 gây hiểu nhầm.
-  const [dataRestricted, setDataRestricted] = useState(false);
+  const [avgScore] = useState('...');
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        let restricted = false;
-        const isForbiddenErr = (err) =>
-          /403|Forbidden|không có quyền|unauthorized|not authorized/i.test(
-            err?.message || "",
-          );
-        const [enrollments, etrs, statsData] = await Promise.all([
-          api.get("/Enrollments").catch((err) => {
-            if (isForbiddenErr(err)) restricted = true;
-            return [];
-          }),
-          api.get("/Etr").catch((err) => {
-            if (isForbiddenErr(err)) restricted = true;
-            return [];
-          }),
-          api.get("/Dashboard/stats").catch(() => null),
-        ]);
-        setDataRestricted(restricted);
+        const dashboard = await fetchMyDashboard();
+        if (!dashboard?.overview) return;
+        const o = dashboard.overview;
 
-        // Process Dashboard stats
-        if (statsData && typeof statsData === 'object') {
-          setComplianceScore(
-            statsData.complianceRate ?? statsData.ComplianceRate ??
-            statsData.completionRatePercent ?? statsData.CompletionRatePercent ?? '...'
-          );
-          setCertificationsDue(
-            statsData.pendingApprovalCount ?? statsData.PendingApprovalCount ??
-            statsData.pendingAudit ?? statsData.PendingAudit ?? '...'
-          );
-          setAvgScore(
-            statsData.avgScore ?? statsData.AvgScore ??
-            statsData.averageScore ?? statsData.AverageScore ?? '...'
+        setTotalTrainees(String(o.totalEtrs));
+        setApprovedCount(String(o.completedCount));
+        setPendingEtrs(String(o.pendingApprovalCount));
+        setComplianceScore(String(o.completionRatePercent));
+        setCertificationsDue(String(o.pendingApprovalCount));
+
+        // Monthly ETR volume chart derived from the real status-funnel counts.
+        const f = dashboard.funnel;
+        if (f) {
+          const buckets = [
+            f.draft, f.inProgress, f.submitted, f.verified, f.completed, f.returnedForCorrection,
+          ];
+          const max = Math.max(...buckets, 1);
+          setEtrVolume(
+            ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN'].map((month, i) => ({
+              month,
+              volume: buckets[i] ?? 0,
+              height: `${Math.max(MIN_BAR_PX, Math.round(((buckets[i] ?? 0) / max) * MONTH_BAR_CAP))}px`,
+              active: i === 2,
+            })),
           );
         }
-
-        // Summary metrics come from /Dashboard/stats (processed above)
-
-        const enrArr = Array.isArray(enrollments) ? enrollments : [];
-        const etrArr = Array.isArray(etrs) ? etrs : [];
-        const pendingCount = etrArr.filter(e => e.status === 'Submitted' || e.status === 'Draft').length;
-        const completedCount = etrArr.filter(e => e.status === 'Completed').length;
-
-        if (restricted) {
-          // Backend chặn đọc /Etr & /Enrollments (403) → giữ giá trị chưa biết thay vì 0 gây hiểu nhầm
-          setTotalTrainees('...');
-          setPendingEtrs('...');
-          setApprovedCount('...');
-        } else {
-          setTotalTrainees(String(enrArr.length));
-          setPendingEtrs(String(pendingCount));
-          setApprovedCount(String(completedCount));
-        }
-
-        // Monthly volume from etr timestamps (approximation)
-        const now = new Date();
-        const monthlyData = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN'].map((month, i) => {
-          const monthCount = etrArr.filter(e => {
-            if (!e.submittedAt && !e.createdAt) return false;
-            const d = new Date(e.submittedAt || e.createdAt);
-            return d.getMonth() === i && d.getFullYear() === now.getFullYear();
-          }).length;
-          // Không dữ liệu ETR (403) → trả về 0 thay vì cột giả 10 ETR
-          const vol = etrArr.length > 0 ? Math.max(monthCount, 10) : 0;
-          return {
-            month,
-            volume: vol,
-            height: `${vol}px`,
-            active: i === now.getMonth(),
-          };
-        });
-        setEtrVolume(monthlyData);
       } catch (err) {
         console.error('Error loading TM dashboard:', err);
       }
@@ -98,12 +54,12 @@ const TrainingManagerDashboard = () => {
   }, []);
 
   const monthlyVolume = etrVolume || [
-    { month: 'JAN', volume: 0, height: '50px', active: false },
-    { month: 'FEB', volume: 0, height: '50px', active: false },
-    { month: 'MAR', volume: 0, height: '50px', active: true },
-    { month: 'APR', volume: 0, height: '50px', active: false },
-    { month: 'MAY', volume: 0, height: '50px', active: false },
-    { month: 'JUN', volume: 0, height: '50px', active: false },
+    { month: 'JAN', volume: 0, height: '8px', active: false },
+    { month: 'FEB', volume: 0, height: '8px', active: false },
+    { month: 'MAR', volume: 0, height: '8px', active: true },
+    { month: 'APR', volume: 0, height: '8px', active: false },
+    { month: 'MAY', volume: 0, height: '8px', active: false },
+    { month: 'JUN', volume: 0, height: '8px', active: false },
   ];
 
   // Calculate approval rate from real data
@@ -115,18 +71,6 @@ const TrainingManagerDashboard = () => {
   return (
     <div className="tm-dashboard-container">
       {/* PAGE HEADER */}
-      {dataRestricted && (
-        <div className="tm-alert-banner warning" style={{ marginBottom: "12px" }}>
-          <div className="alert-left">
-            <span className="alert-dot" />
-            <p>
-              {tr('Một số dữ liệu (danh sách ETR / Enrollment) hiện bị backend giới hạn quyền đọc với tài khoản Training Manager (trả 403) — các chỉ số tương ứng đang hiển thị giá trị mặc định. Thống kê Dashboard & Report vẫn hoạt động bình thường.')}
-            </p>
-          </div>
-          <button onClick={() => setDataRestricted(false)} className="close-alert-btn">✕</button>
-        </div>
-      )}
-
       <div className="tm-dashboard-header">
         <div className="tm-header-title">
           <h1>{tr('Analytics Dashboard')}</h1>

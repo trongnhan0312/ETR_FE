@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import { fetchMyDashboard } from '../utils/dashboardApi';
 import { useLanguage } from '../context/LanguageContext';
 
 const VALIDITY_LABELS = {
@@ -51,13 +52,14 @@ const StudentDashboard = () => {
   const [etrs, setEtrs] = useState([]);
   const [profile, setProfile] = useState(null);
   const [certStatus, setCertStatus] = useState([]);
+  const [myEtrs, setMyEtrs] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const [etrData, profileData, certData] = await Promise.all([
+        const [etrData, profileData, certData, dashboard] = await Promise.all([
           api.get('/Etr/my-etr', { suppressAuthRedirect: true }).catch(() => []),
           api.get('/auth/me', { suppressAuthRedirect: true }).catch(() => null),
           // Get accountId from localStorage for certificate status
@@ -71,9 +73,11 @@ const StudentDashboard = () => {
               return [];
             } catch { return []; }
           })(),
+          fetchMyDashboard({ suppressAuthRedirect: true }),
         ]);
         if (Array.isArray(etrData)) setEtrs(etrData);
         if (profileData) setProfile(profileData);
+        if (dashboard?.myEtrs?.length) setMyEtrs(dashboard.myEtrs);
         if (Array.isArray(certData)) {
           setCertStatus(
             certData.map((c) => ({
@@ -119,11 +123,20 @@ const StudentDashboard = () => {
 
   const mapped = etrs.map(mapEtr);
 
+  const statusBucket = (s) => {
+    const st = String(s || '').toLowerCase().replace(/[\s_-]/g, '');
+    if (st === 'inprogress' || st === 'draft') return 'progress';
+    if (st === 'submitted' || st === 'verified' || st === 'returnedforcorrection') return 'pending';
+    if (st === 'completed') return 'completed';
+    return 'other';
+  };
+
+  const metricSource = myEtrs && myEtrs.length ? myEtrs : mapped;
   const metrics = [
-    { label: tr('Tổng số hồ sơ'), value: mapped.length, cls: '' },
-    { label: tr('Đang đào tạo'), value: mapped.filter(e => e.status === 'In Progress' || e.status === 'Draft').length, cls: 'blue' },
-    { label: tr('Chờ xử lý'), value: mapped.filter(e => e.status === 'Submitted' || e.status === 'Verified').length, cls: 'amber' },
-    { label: tr('Đã hoàn thành'), value: mapped.filter(e => e.status === 'Completed').length, cls: 'green' },
+    { label: tr('Tổng số hồ sơ'), value: metricSource.length, cls: '' },
+    { label: tr('Đang đào tạo'), value: metricSource.filter(e => statusBucket(e.status) === 'progress').length, cls: 'blue' },
+    { label: tr('Chờ xử lý'), value: metricSource.filter(e => statusBucket(e.status) === 'pending').length, cls: 'amber' },
+    { label: tr('Đã hoàn thành'), value: metricSource.filter(e => statusBucket(e.status) === 'completed').length, cls: 'green' },
   ];
 
   const Badge = ({ status }) => (

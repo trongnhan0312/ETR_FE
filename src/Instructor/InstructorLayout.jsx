@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
+  FaTachometerAlt,
   FaChalkboardTeacher,
   FaCalendarCheck,
   FaClipboardList,
@@ -14,6 +15,11 @@ import { useToast } from "../components/Toast";
 import "./instructor.scss";
 
 const navigationItems = [
+  {
+    label: "BẢNG ĐIỀU KHIỂN",
+    to: "/instructor",
+    icon: <FaTachometerAlt size={18} />,
+  },
   {
     label: "LỚP CỦA TÔI",
     to: "/instructor/classes",
@@ -51,7 +57,9 @@ const InstructorLayout = () => {
   const { tr } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const isHomePage = location.pathname === "/instructor/classes";
+  const isHomePage =
+    location.pathname === "/instructor" ||
+    location.pathname === "/instructor/classes";
 
   // Try to retrieve user information from localStorage
   let user = { fullName: "Giảng viên", roleName: "Instructor" };
