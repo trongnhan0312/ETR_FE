@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { api, parseApiError } from "../utils/api";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
+import ExcelPreviewTable from "../components/ExcelPreviewTable";
+import { parseExcelPreview } from "../utils/excelPreview";
 import { useLanguage } from "../context/LanguageContext";
 import "./instructor.scss";
 
@@ -25,8 +27,10 @@ const getCurrentInstructorName = () => {
 const InstructorAttendance = () => {
   const { tr } = useLanguage();
   const [classesData, setClassesData] = useState([]);
+  const [subjectsList, setSubjectsList] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [sessions, setSessions] = useState([]);
+  const [subjectFilter, setSubjectFilter] = useState(""); // "" = tất cả môn
   const [selectedSession, setSelectedSession] = useState(null);
 
   // Student list and attendance records
@@ -53,6 +57,7 @@ const InstructorAttendance = () => {
   const [importCommitting, setImportCommitting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [importError, setImportError] = useState("");
+  const [excelPreview, setExcelPreview] = useState(null); // { headers, rows } để xem trước dữ liệu
   const toast = useToast();
 
   // Load all assigned classes on mount
@@ -60,9 +65,10 @@ const InstructorAttendance = () => {
     const fetchClasses = async () => {
       setLoading(true);
       try {
-        const [apiClasses, apiCourses] = await Promise.all([
+        const [apiClasses, apiCourses, apiSubjects] = await Promise.all([
           api.get("/classes").catch(() => []),
           api.get("/courses").catch(() => []),
+          api.get("/subjects").catch(() => []),
         ]);
 
         const mapped = apiClasses.map((cls, idx) => {
@@ -81,6 +87,7 @@ const InstructorAttendance = () => {
           };
         });
         setClassesData(mapped);
+        setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         if (mapped.length > 0) {
           setSelectedClassId(mapped[0].classId);
         }
@@ -99,9 +106,16 @@ const InstructorAttendance = () => {
     const fetchSessions = async () => {
       try {
         const apiSessions = await api.get("/sessions").catch(() => []);
-        const filtered = apiSessions.filter(
-          (s) => s.classId === parseInt(selectedClassId),
-        );
+        const filtered = apiSessions
+          .filter((s) => s.classId === parseInt(selectedClassId))
+          // Gom buổi theo môn (subjectId) rồi theo thứ tự tạo — vì mỗi môn sinh ra
+          // bộ buổi cùng tên ("Session 1", "Session 2"...), nếu không gom sẽ thấy
+          // danh sách lặp lại giống hệt nhau giữa các môn.
+          .sort(
+            (a, b) =>
+              (a.subjectId ?? 0) - (b.subjectId ?? 0) ||
+              (a.sessionId ?? 0) - (b.sessionId ?? 0),
+          );
 
         // Map session attendance counts
         const mapped = await Promise.all(
@@ -116,6 +130,7 @@ const InstructorAttendance = () => {
 
             return {
               sessionId: s.sessionId,
+              subjectId: s.subjectId ?? null,
               stt: String(idx + 1).padStart(2, "0"),
               date: dateStr,
               name: s.sessionTitle || tr("Buổi học"),
@@ -408,6 +423,36 @@ const InstructorAttendance = () => {
   const selectedClass = useMemo(() => {
     return classesData.find((c) => c.classId === parseInt(selectedClassId));
   }, [classesData, selectedClassId]);
+
+  // Lấy tên môn học từ subjectId của buổi — để phân biệt các buổi trùng tên
+  // (mỗi môn trong lớp sinh ra bộ buổi "Session 1", "Session 2"... giống nhau).
+  const getSubjectName = (subjectId) => {
+    const sub = subjectsList.find((s) => s.subjectId === subjectId);
+    return sub ? sub.subjectName || sub.subjectCode || "" : "";
+  };
+
+  // Môn có buổi học trong lớp đang chọn — dùng cho bộ lọc môn
+  const classSubjects = useMemo(() => {
+    const ids = [
+      ...new Set(
+        sessions
+          .map((s) => s.subjectId)
+          .filter((id) => id != null),
+      ),
+    ];
+    return ids
+      .map((id) => ({
+        subjectId: id,
+        subjectName: getSubjectName(id) || tr("Môn học"),
+      }))
+      .sort((a, b) => a.subjectId - b.subjectId);
+  }, [sessions, subjectsList]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Buổi hiển thị theo bộ lọc môn (trống = tất cả)
+  const visibleSessions = useMemo(() => {
+    if (!subjectFilter) return sessions;
+    return sessions.filter((s) => String(s.subjectId) === subjectFilter);
+  }, [sessions, subjectFilter]);
 
   // Attendance Sheet View
   if (selectedSession) {
@@ -938,10 +983,22 @@ const InstructorAttendance = () => {
                       <input
                         type="file"
                         accept=".xlsx,.xls"
-                        onChange={(e) => {
-                          setImportFile(e.target.files?.[0] || null);
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0] || null;
+                          setImportFile(file);
                           setImportResult(null);
                           setImportError("");
+                          if (file) {
+                            try {
+                              const preview = await parseExcelPreview(file);
+                              setExcelPreview(preview);
+                            } catch (err) {
+                              console.error("Lỗi đọc file Excel:", err);
+                              setExcelPreview(null);
+                            }
+                          } else {
+                            setExcelPreview(null);
+                          }
                         }}
                       />
                       <span className="file-picker-icon">
@@ -986,6 +1043,7 @@ const InstructorAttendance = () => {
                           setImportFile(null);
                           setImportResult(null);
                           setImportError("");
+                          setExcelPreview(null);
                         }}
                         title={tr("Bỏ chọn tệp")}
                       >
@@ -1014,6 +1072,15 @@ const InstructorAttendance = () => {
                         : tr("Kiểm tra file")}
                     </button>
                   </div>
+
+                  {/* Xem trước dữ liệu trong file Excel */}
+                  {excelPreview && (
+                    <ExcelPreviewTable
+                      headers={excelPreview.headers}
+                      rows={excelPreview.rows}
+                      tr={tr}
+                    />
+                  )}
 
                   {importError && (
                     <div
@@ -1245,11 +1312,48 @@ const InstructorAttendance = () => {
             cursor: "pointer",
           }}
           value={selectedClassId}
-          onChange={(e) => setSelectedClassId(e.target.value)}
+          onChange={(e) => {
+            setSelectedClassId(e.target.value);
+            setSubjectFilter("");
+          }}
         >
           {classesData.map((c) => (
             <option key={c.classId} value={c.classId}>
               {c.name} ({c.code})
+            </option>
+          ))}
+        </select>
+
+        <label
+          style={{
+            fontSize: "11px",
+            fontWeight: "700",
+            color: "rgba(0,33,71,0.5)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            marginLeft: "8px",
+          }}
+        >
+          {tr("Chọn môn:")}
+        </label>
+        <select
+          style={{
+            padding: "8px 12px",
+            borderRadius: "8px",
+            border: "1px solid #d9e1ec",
+            fontSize: "12px",
+            fontWeight: "700",
+            color: "#002147",
+            outline: "none",
+            cursor: "pointer",
+          }}
+          value={subjectFilter}
+          onChange={(e) => setSubjectFilter(e.target.value)}
+        >
+          <option value="">{tr("Tất cả môn học")}</option>
+          {classSubjects.map((sub) => (
+            <option key={sub.subjectId} value={String(sub.subjectId)}>
+              {sub.subjectName}
             </option>
           ))}
         </select>
@@ -1284,7 +1388,7 @@ const InstructorAttendance = () => {
         </div>
 
         <div className="table-body">
-          {sessions.length === 0 ? (
+          {visibleSessions.length === 0 ? (
             <div
               style={{
                 padding: "24px",
@@ -1296,7 +1400,7 @@ const InstructorAttendance = () => {
               {tr("Không tìm thấy buổi học nào cho lớp học hiện tại.")}
             </div>
           ) : (
-            sessions.map((session) => (
+            visibleSessions.map((session) => (
               <div
                 key={session.sessionId}
                 className="table-row"
@@ -1335,6 +1439,20 @@ const InstructorAttendance = () => {
                   }}
                 >
                   {tr(session.name)}
+                  {session.subjectId != null &&
+                    getSubjectName(session.subjectId) && (
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: "11px",
+                          fontWeight: "600",
+                          color: "rgba(0,33,71,0.5)",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {getSubjectName(session.subjectId)}
+                      </span>
+                    )}
                 </span>
                 <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
                   {session.room}
