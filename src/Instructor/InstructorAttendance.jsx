@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
+import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
@@ -21,6 +22,15 @@ const getCurrentInstructorName = () => {
     return user.fullName || user.displayName || user.name || "";
   } catch {
     return "";
+  }
+};
+
+const getCurrentAccountId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.accountId ?? user.userId ?? null;
+  } catch {
+    return null;
   }
 };
 
@@ -84,6 +94,11 @@ const InstructorAttendance = () => {
             time: cls.time || "08:00 - 11:30",
             studentsCount: "0/0",
             status: cls.status || tr("Đang diễn ra"),
+            // Giữ nguyên danh sách phân công giảng viên theo môn của lớp (từ BE) —
+            // dùng để chỉ hiển thị buổi của môn mình được phân công.
+            assignments: Array.isArray(cls.instructorAssignments)
+              ? cls.instructorAssignments
+              : [],
           };
         });
         setClassesData(mapped);
@@ -106,8 +121,29 @@ const InstructorAttendance = () => {
     const fetchSessions = async () => {
       try {
         const apiSessions = await api.get("/sessions").catch(() => []);
+
+        // "Sân nhà ai nấy đá": 1 lớp có thể có nhiều môn, mỗi môn do 1 giảng viên phụ trách
+        // (ClassSubject.InstructorAccountId). Chỉ hiển thị buổi của các môn mà giảng viên hiện
+        // tại được phân công — nếu không, giảng viên sẽ thấy buổi của môn khác và bị BE từ chối
+        // 403 ở bước commit import ("không được phân công giảng dạy môn này trong lớp").
+        const currentAccountId = getCurrentAccountId();
+        const selectedClassInfo = classesData.find(
+          (c) => c.classId === parseInt(selectedClassId),
+        );
+        const mySubjectIds = new Set(
+          (selectedClassInfo?.assignments || [])
+            .filter(
+              (a) =>
+                a.instructorAccountId != null &&
+                currentAccountId != null &&
+                String(a.instructorAccountId) === String(currentAccountId),
+            )
+            .map((a) => a.subjectId),
+        );
+
         const filtered = apiSessions
           .filter((s) => s.classId === parseInt(selectedClassId))
+          .filter((s) => mySubjectIds.has(s.subjectId))
           // Gom buổi theo môn (subjectId) rồi theo thứ tự tạo — vì mỗi môn sinh ra
           // bộ buổi cùng tên ("Session 1", "Session 2"...), nếu không gom sẽ thấy
           // danh sách lặp lại giống hệt nhau giữa các môn.
@@ -147,7 +183,7 @@ const InstructorAttendance = () => {
       }
     };
     fetchSessions();
-  }, [selectedClassId]);
+  }, [selectedClassId, classesData]);
 
   // Load students and attendance records when a session is selected
   const loadAttendance = async (session) => {
@@ -220,8 +256,10 @@ const InstructorAttendance = () => {
         };
       });
       setSessionAttendance(mappedAttendance);
+      return mappedAttendance;
     } catch (err) {
       console.error("Lỗi khi tải bảng điểm danh:", err);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -321,6 +359,17 @@ const InstructorAttendance = () => {
     }
   };
 
+  const selectedClass = useMemo(() => {
+    return classesData.find((c) => c.classId === parseInt(selectedClassId));
+  }, [classesData, selectedClassId]);
+
+  // Lấy tên môn học từ subjectId của buổi — để phân biệt các buổi trùng tên
+  // (mỗi môn trong lớp sinh ra bộ buổi "Session 1", "Session 2"... giống nhau).
+  const getSubjectName = (subjectId) => {
+    const sub = subjectsList.find((s) => s.subjectId === subjectId);
+    return sub ? sub.subjectName || sub.subjectCode || "" : "";
+  };
+
   // ── Import Excel (Bulk Import) — khớp ImportController BE ────────────────
   // GET  /import/attendance/template?sessionId=  → file xlsx (pre-fill học viên)
   // POST /import/attendance/validate?sessionId=  → ImportValidationResult { totalRows, validRows, errorRows, canCommit, errors[] }
@@ -328,23 +377,61 @@ const InstructorAttendance = () => {
   const handleDownloadTemplate = async () => {
     setImportError("");
     try {
-      // suppressAuthRedirect: nếu tải file gặp lỗi (token hết hạn/401) thì chỉ hiện
-      // thông báo lỗi trong modal — KHÔNG đá user về trang login mất phiên làm việc.
-      const blob = await api.downloadFile(
-        `/import/attendance/template?sessionId=${selectedSession.sessionId}`,
-        { suppressAuthRedirect: true },
-      );
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `attendance_session_${selectedSession.sessionId}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      // Tạo template NGAY TRÊN FE từ danh sách học viên đang hiển thị trên màn hình,
+      // đúng cấu trúc BE đọc được: cột A = EnrollmentId (số), cột D = Trạng thái,
+      // cột E = Ghi chú, dữ liệu bắt đầu từ dòng 4.
+      //
+      // Vì sao không dùng template BE: `GenerateAttendanceTemplateAsync` chỉ lấy enrollment
+      // có Status == "Active", trong khi dữ liệu ghi danh thực tế có thể dùng trạng thái
+      // khác ("Enrolled", "Withdrawn"...) → template tải về TRỐNG danh sách học viên →
+      // file không có EnrollmentId → BE đọc 0 dòng → import báo "thành công" nhưng
+      // không ghi gì (trạng thái/note không đổi theo file).
+      if (!Array.isArray(students) || students.length === 0) {
+        setImportError(
+          tr("Lớp chưa có học viên nào để tạo template điểm danh. Hãy kiểm tra ghi danh của lớp."),
+        );
+        return;
+      }
+
+      const aoa = [];
+      // Dòng 1: tiêu đề
+      aoa.push([
+        `BẢNG ĐIỂM DANH - ${selectedSession.name} - ${selectedClass ? selectedClass.code : ""}`,
+        "",
+        "",
+        "",
+        "",
+      ]);
+      // Dòng 2: metadata (BE không đọc, chỉ để tham chiếu)
+      aoa.push([
+        `SessionId: ${selectedSession.sessionId}`,
+        `ClassId: ${parseInt(selectedClassId, 10)}`,
+        `SubjectId: ${selectedSession.subjectId ?? ""}`,
+        `Ngày: ${selectedSession.date}`,
+        `Môn: ${selectedSession.subjectId != null ? getSubjectName(selectedSession.subjectId) : ""}`,
+      ]);
+      // Dòng 3: tiêu đề cột
+      aoa.push([
+        "EnrollmentId",
+        "Họ và tên",
+        "Mã học viên",
+        "Trạng thái (Present/Absent)*",
+        "Ghi chú",
+      ]);
+      // Dòng 4+: danh sách học viên (pre-fill, user chỉ điền cột D/E)
+      students.forEach((s) => {
+        aoa.push([s.enrollmentId, s.name, s.code, "", ""]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [{ wch: 14 }, { wch: 28 }, { wch: 14 }, { wch: 26 }, { wch: 20 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Điểm danh");
+      XLSX.writeFile(wb, `attendance_session_${selectedSession.sessionId}.xlsx`);
+
       toast.success(tr("Tải template thành công!"));
     } catch (err) {
-      console.error("Lỗi tải template:", err);
+      console.error("Lỗi tạo template:", err);
       setImportError(parseApiError(err, "Tải template thất bại."));
     }
   };
@@ -373,6 +460,56 @@ const InstructorAttendance = () => {
     }
   };
 
+  // Trộn dữ liệu từ file đã upload (preview) vào mảng bảng điểm danh hiện tại — map theo
+  // EnrollmentId; trạng thái/ghi chú trong file LUÔN THẮNG, các field khác (attendanceRecordId...)
+  // giữ nguyên. Dùng để đảm bảo bảng phản ánh ĐÚNG file sau khi import, kể cả khi dữ liệu
+  // tải lại từ server bị cũ/cache hoặc lỗi âm thầm (loadAttendance có .catch(() => [])).
+  const mergeFileInto = (current, preview) => {
+    if (
+      !Array.isArray(current) ||
+      !preview ||
+      !Array.isArray(preview.headers) ||
+      !Array.isArray(preview.rows)
+    ) {
+      return current;
+    }
+
+    const colEnrollment = preview.headers.findIndex((h) =>
+      /enrollmentid|enrollment/i.test(String(h)),
+    );
+    const colStatus = preview.headers.findIndex((h) =>
+      /trạng thái|status/i.test(String(h)),
+    );
+    const colRemarks = preview.headers.findIndex((h) =>
+      /ghi chú|remark/i.test(String(h)),
+    );
+    if (colEnrollment < 0 || colStatus < 0) return current;
+
+    const fileMap = new Map();
+    preview.rows.forEach((row) => {
+      const enrollmentId = parseInt(row[colEnrollment], 10);
+      if (Number.isNaN(enrollmentId)) return;
+      const rawStatus = String(row[colStatus] ?? "").trim();
+      const remarks =
+        colRemarks >= 0 ? String(row[colRemarks] ?? "").trim() : "";
+      fileMap.set(enrollmentId, { rawStatus, remarks });
+    });
+    if (fileMap.size === 0) return current;
+
+    return current.map((s) => {
+      const entry = fileMap.get(s.enrollmentId);
+      if (!entry) return s;
+      const isValidStatus = ATTENDANCE_STATUSES.some(
+        (st) => st.value.toLowerCase() === entry.rawStatus.toLowerCase(),
+      );
+      return {
+        ...s,
+        status: isValidStatus ? entry.rawStatus : s.status,
+        remarks: entry.remarks || "",
+      };
+    });
+  };
+
   const handleCommitImport = async () => {
     setImportError("");
     if (!importFile) return;
@@ -392,12 +529,32 @@ const InstructorAttendance = () => {
         !Array.isArray(result.errors) ||
         result.errors.length === 0
       ) {
-        toast.success(tr("Import điểm danh thành công!"));
         setImportModalOpen(false);
-        // Reload records để hiển thị dữ liệu vừa import
-        loadAttendance(selectedSession);
+        // Phòng trường hợp BE không đọc được DÒNG nào (file sai cấu trúc template,
+        // thiếu/đổi cột EnrollmentId...) — import báo "thành công" nhưng KHÔNG ghi gì,
+        // nên bảng không hề thay đổi theo file. Báo rõ để user biết thay vì im lặng.
+        if (typeof result?.imported === "number" && result.imported === 0) {
+          toast.warning(
+            tr(
+              "File không có dòng dữ liệu hợp lệ nào được import. Vui lòng dùng lại template tải từ hệ thống.",
+            ),
+          );
+          setImportResult(result);
+          return;
+        }
+        toast.success(tr("Import điểm danh thành công!"));
+        // 1) Áp NGAY dữ liệu file cho bảng (hiển thị tức thì)
+        setSessionAttendance((prev) => mergeFileInto(prev, excelPreview));
+        // 2) Tải lại từ server để lấy attendanceRecordId mới, rồi ÉP dữ liệu file lên
+        //    trên — phòng trường hợp server trả dữ liệu cũ/cache → bảng vẫn đúng theo file
+        const refreshed = await loadAttendance(selectedSession);
+        if (Array.isArray(refreshed)) {
+          setSessionAttendance(mergeFileInto(refreshed, excelPreview));
+        }
       } else {
         toast.warning(tr("Import hoàn tất nhưng có dòng bị bỏ qua."));
+        // Vẫn tải lại để các dòng mới được import hiển thị lên bảng
+        loadAttendance(selectedSession);
       }
     } catch (err) {
       console.error("Lỗi commit import:", err);
@@ -418,17 +575,6 @@ const InstructorAttendance = () => {
     } finally {
       setImportCommitting(false);
     }
-  };
-
-  const selectedClass = useMemo(() => {
-    return classesData.find((c) => c.classId === parseInt(selectedClassId));
-  }, [classesData, selectedClassId]);
-
-  // Lấy tên môn học từ subjectId của buổi — để phân biệt các buổi trùng tên
-  // (mỗi môn trong lớp sinh ra bộ buổi "Session 1", "Session 2"... giống nhau).
-  const getSubjectName = (subjectId) => {
-    const sub = subjectsList.find((s) => s.subjectId === subjectId);
-    return sub ? sub.subjectName || sub.subjectCode || "" : "";
   };
 
   // Môn có buổi học trong lớp đang chọn — dùng cho bộ lọc môn
@@ -671,8 +817,15 @@ const InstructorAttendance = () => {
                   </div>
                 </div>
 
-                {/* Remarks Button */}
-                <div style={{ display: "flex", justifyContent: "center" }}>
+                {/* Remarks Button + nội dung note hiển thị trực tiếp */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
                   <button
                     onClick={() => {
                       setRemarkModalStudent(student);
@@ -706,6 +859,22 @@ const InstructorAttendance = () => {
                       {student.remarks ? tr("Xem Note") : tr("Thêm Note")}
                     </span>
                   </button>
+                  {student.remarks && (
+                    <div
+                      title={student.remarks}
+                      style={{
+                        fontSize: "10px",
+                        color: "#d97706",
+                        maxWidth: "130px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        textAlign: "center",
+                      }}
+                    >
+                      {student.remarks}
+                    </div>
+                  )}
                 </div>
 
                 {/* Lock Status */}

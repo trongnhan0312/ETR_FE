@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
+import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
@@ -552,8 +553,10 @@ const InstructorAssessments = () => {
           ...s.eligibility,
         })),
       );
+      return scoresData;
     } catch (err) {
       console.error("Lỗi khi tải bảng điểm:", err);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -1292,23 +1295,70 @@ const InstructorAssessments = () => {
       return;
     }
     try {
-      // suppressAuthRedirect: nếu tải file gặp lỗi (token hết hạn/401) thì chỉ hiện
-      // thông báo lỗi trong modal — KHÔNG đá user về trang login mất phiên làm việc.
-      const blob = await api.downloadFile(
-        `/import/assessment/template?assessmentId=${selectedAssessment.assessmentId}`,
-        { suppressAuthRedirect: true },
-      );
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `assessment_${selectedAssessment.assessmentId}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      // Tạo template NGAY TRÊN FE từ danh sách học viên đang hiển thị, đúng cấu trúc
+      // BE đọc được: cột A = AccountId, D = SubjectResultId, E = Điểm, F = Ghi chú,
+      // dữ liệu bắt đầu từ dòng 4.
+      //
+      // Vì sao không dùng template BE: `GenerateAssessmentTemplateAsync` chỉ lấy enrollment
+      // có Status == "Active" — dữ liệu ghi danh thực tế có thể dùng trạng thái khác
+      // ("Enrolled"...) → template tải về TRỐNG → file thiếu AccountId/SubjectResultId →
+      // BE đọc 0 dòng → import báo "thành công" nhưng không ghi gì.
+      if (!Array.isArray(studentScores) || studentScores.length === 0) {
+        setImportError(
+          tr("Chưa có học viên nào để tạo template điểm. Hãy kiểm tra ghi danh của lớp."),
+        );
+        return;
+      }
+
+      const aoa = [];
+      // Dòng 1: tiêu đề
+      aoa.push([
+        `BẢNG NHẬP ĐIỂM - ${selectedAssessment.componentName} (${getAssessmentTypeLabel(selectedAssessment.assessmentType)})`,
+        "",
+        "",
+        "",
+        "",
+        "",
+      ]);
+      // Dòng 2: metadata (BE không đọc, chỉ để tham chiếu)
+      aoa.push([
+        `AssessmentId: ${selectedAssessment.assessmentId}`,
+        `CourseId: ${selectedAssessment.courseId ?? ""}`,
+        `PassingScore: ${selectedAssessment.passingScore ?? ""}`,
+        `Weight: ${selectedAssessment.weight ?? ""}`,
+        `Type: ${selectedAssessment.assessmentType ?? ""}`,
+        "",
+      ]);
+      // Dòng 3: tiêu đề cột
+      aoa.push([
+        "AccountId",
+        "Họ và tên",
+        "Mã học viên",
+        "SubjectResultId",
+        `Điểm (0-100)*${selectedAssessment.passingScore ? ` [Đạt: ≥${selectedAssessment.passingScore}]` : ""}`,
+        "Ghi chú",
+      ]);
+      // Dòng 4+: danh sách học viên (pre-fill, user chỉ điền cột E/F)
+      studentScores.forEach((s) => {
+        aoa.push([s.accountId, s.name, s.code, s.subjectResultId, "", ""]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [
+        { wch: 12 },
+        { wch: 26 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 24 },
+        { wch: 24 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Nhập điểm");
+      XLSX.writeFile(wb, `assessment_${selectedAssessment.assessmentId}.xlsx`);
+
       toast.success(tr("Tải template thành công!"));
     } catch (err) {
-      console.error("Lỗi tải template:", err);
+      console.error("Lỗi tạo template:", err);
       setImportError(parseApiError(err, "Tải template thất bại."));
     }
   };
@@ -1338,6 +1388,55 @@ const InstructorAssessments = () => {
     }
   };
 
+  // Ép điểm/ghi chú từ file đã upload (preview) vào bảng điểm hiện tại — map theo
+  // AccountId (cột A). Import assessment ghi vào AssessmentResult nên áp vào
+  // assessmentScore/assessmentComment; các field khác giữ nguyên.
+  const mergeScoresFromFile = (current, preview) => {
+    if (
+      !Array.isArray(current) ||
+      !preview ||
+      !Array.isArray(preview.headers) ||
+      !Array.isArray(preview.rows)
+    ) {
+      return current;
+    }
+
+    const colAccount = preview.headers.findIndex((h) =>
+      /accountid|account/i.test(String(h)),
+    );
+    const colScore = preview.headers.findIndex((h) =>
+      /điểm|score/i.test(String(h)),
+    );
+    const colRemark = preview.headers.findIndex((h) =>
+      /ghi chú|remark/i.test(String(h)),
+    );
+    if (colAccount < 0 || colScore < 0) return current;
+
+    const fileMap = new Map();
+    preview.rows.forEach((row) => {
+      const accountId = parseInt(row[colAccount], 10);
+      if (Number.isNaN(accountId)) return;
+      const rawScore = String(row[colScore] ?? "").trim();
+      const remark = colRemark >= 0 ? String(row[colRemark] ?? "").trim() : "";
+      fileMap.set(accountId, { rawScore, remark });
+    });
+    if (fileMap.size === 0) return current;
+
+    return current.map((s) => {
+      const entry = fileMap.get(s.accountId);
+      if (!entry) return s;
+      const parsed = parseFloat(entry.rawScore);
+      const score = Number.isFinite(parsed)
+        ? Math.min(100, Math.max(0, parsed))
+        : s.assessmentScore;
+      return {
+        ...s,
+        assessmentScore: score,
+        assessmentComment: entry.remark || "",
+      };
+    });
+  };
+
   const handleCommitImport = async () => {
     setImportError("");
     if (!importFile || !selectedAssessment?.assessmentId) return;
@@ -1357,12 +1456,35 @@ const InstructorAssessments = () => {
         !Array.isArray(result.errors) ||
         result.errors.length === 0
       ) {
-        toast.success(tr("Import điểm thành công!"));
         setImportModalOpen(false);
-        // Reload bảng điểm để hiển thị dữ liệu vừa import
-        loadAssessmentScores(selectedAssessment, selectedAssessmentType);
+        // Phòng trường hợp BE không đọc được DÒNG nào (file sai cấu trúc template,
+        // thiếu/đổi cột AccountId/SubjectResultId...) — import báo "thành công" nhưng
+        // KHÔNG ghi gì. Báo rõ thay vì im lặng.
+        if (typeof result?.imported === "number" && result.imported === 0) {
+          toast.warning(
+            tr(
+              "File không có dòng dữ liệu hợp lệ nào được import. Vui lòng dùng lại template tải từ hệ thống.",
+            ),
+          );
+          setImportResult(result);
+          return;
+        }
+        toast.success(tr("Import điểm thành công!"));
+        // 1) Áp NGAY dữ liệu file cho bảng (hiển thị tức thì)
+        setStudentScores((prev) => mergeScoresFromFile(prev, excelPreview));
+        // 2) Tải lại từ server rồi ÉP dữ liệu file lên trên — phòng server trả dữ
+        //    liệu cũ/cache → bảng vẫn đúng theo file
+        const refreshed = await loadAssessmentScores(
+          selectedAssessment,
+          selectedAssessmentType,
+        );
+        if (Array.isArray(refreshed)) {
+          setStudentScores(mergeScoresFromFile(refreshed, excelPreview));
+        }
       } else {
         toast.warning(tr("Import hoàn tất nhưng có dòng bị bỏ qua."));
+        // Vẫn tải lại để các dòng mới được import hiển thị lên bảng
+        loadAssessmentScores(selectedAssessment, selectedAssessmentType);
       }
     } catch (err) {
       console.error("Lỗi commit import:", err);
