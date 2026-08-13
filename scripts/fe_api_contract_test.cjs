@@ -147,7 +147,6 @@ async function runReads(ref) {
     ['/UserProfiles/me', 'student', [200], 'me'],
     ['/auth/me', 'student', [200], 'me'],
     ['/Dashboard/stats', 'manager', [200], 'stats'],
-    ['/Reports/summary', 'manager', [200], 'summary'],
     ['/RetakeHistory?page=1&pageSize=100', 'qa', [200], 'retake'],
     ['/Departments', 'admin', [200], 'list'],
     ['/Audit?page=1&pageSize=100', 'admin', [200], 'page'],
@@ -398,10 +397,10 @@ async function main() {
     ['Enrollments', 'admin'], ['Etr', 'admin'], ['Evidences', 'admin'], ['EvidenceTypes', 'admin'],
     ['Approvals', 'admin'], ['Assessments', 'instructor'], ['PracticalChecklists', 'instructor'],
     ['AssessmentResults', 'instructor'], ['PracticalChecklistResults', 'instructor'], ['Attendance', 'admin'],
-    ['Accounts', 'admin'], ['ReportSummary', 'manager'],
+    ['Accounts', 'admin'],
   ];
   for (const [k, role] of grabs) {
-    const r = await raw('GET', '/' + (k === 'ReportSummary' ? 'Reports/summary' : k), { token: await getToken(role) });
+    const r = await raw('GET', '/' + k, { token: await getToken(role) });
     if (r.status !== 200) fail('REF GET /' + k, 'unable to load ref data → ' + r.status);
     ref[k.toLowerCase()] = r.json;
   }

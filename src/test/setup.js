@@ -123,11 +123,6 @@ globalThis.fetch = async (url, options) => {
         { ETRCourseRecordId: 2, Status: 'Completed', PercentComplete: 100, ExpiryDate: '2029-08-13' },
       ],
     },
-    '/api/Reports/summary': {
-      summaryTitle: 'Regulatory Compliance Audit Summary',
-      totalAudited: 142,
-      complianceRate: 99.4,
-    }
   }
 
   // Handle specific endpoints with IDs

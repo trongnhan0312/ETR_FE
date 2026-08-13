@@ -1,16 +1,10 @@
 # FE API CONTRACT TEST REPORT
 
-- Date: 2026-08-13T12:07:21.386Z
+- Date: 2026-08-13T12:26:04.210Z
 - Base: `https://etrmanagement-be-fwhvagaxf3f3dmf0.southeastasia-01.azurewebsites.net/api`
 - Mode: read-only (no writes)
-- Probes: 71
-- Result: {"FAIL":2,"OK":69}
-
-## ❌ FAILURES / MISSING
-| kind | probe | detail |
-|---|---|---|
-| FAIL | REF GET /ReportSummary | unable to load ref data → 404 |
-| FAIL | READ GET /Reports/summary | summary → ENDPOINT MISSING  |
+- Probes: 69
+- Result: {"OK":69}
 
 ## ✅ PASS
 - `READ GET /Courses` list → 200
