@@ -1,14 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
-import { api } from "../utils/api";
+import { createPortal } from "react-dom";
+import { api, parseApiError } from "../utils/api";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
+import ExcelPreviewTable from "../components/ExcelPreviewTable";
+import { parseExcelPreview } from "../utils/excelPreview";
 import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
 
 const InstructorAssessments = () => {
   const { tr, trt } = useLanguage();
   const [classesData, setClassesData] = useState([]);
+  const [subjectsList, setSubjectsList] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState(""); // "" = tất cả môn
   const [assessmentsForClass, setAssessmentsForClass] = useState([]);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
 
@@ -24,6 +29,15 @@ const InstructorAssessments = () => {
   // Confirm publish modal state
   const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
+
+  // Import Excel modal (Bulk Import điểm — khớp ImportController BE)
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importValidating, setImportValidating] = useState(false);
+  const [importCommitting, setImportCommitting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [importError, setImportError] = useState("");
+  const [excelPreview, setExcelPreview] = useState(null); // { headers, rows } để xem trước dữ liệu
 
   // SubjectSignoff state
   const [signingOff, setSigningOff] = useState(false);
@@ -66,13 +80,15 @@ const InstructorAssessments = () => {
     const fetchClasses = async () => {
       setLoading(true);
       try {
-        const [apiClasses, apiCourses, apiAssessments] = await Promise.all([
-          api.get("/classes").catch(() => []),
-          api.get("/courses").catch(() => []),
-          api
-            .get("/Assessments")
-            .catch(() => api.get("/assessments").catch(() => [])),
-        ]);
+        const [apiClasses, apiCourses, apiAssessments, apiSubjects] =
+          await Promise.all([
+            api.get("/classes").catch(() => []),
+            api.get("/courses").catch(() => []),
+            api
+              .get("/Assessments")
+              .catch(() => api.get("/assessments").catch(() => [])),
+            api.get("/subjects").catch(() => []),
+          ]);
 
         const mapped = apiClasses.map((cls, idx) => {
           const course = apiCourses.find((c) => c.courseId === cls.courseId);
@@ -91,6 +107,7 @@ const InstructorAssessments = () => {
           };
         });
         setClassesData(mapped);
+        setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
         if (mapped.length > 0) {
           setSelectedClassId(mapped[0].classId);
@@ -896,6 +913,38 @@ const InstructorAssessments = () => {
     return classesData.find((c) => c.classId === parseInt(selectedClassId));
   }, [classesData, selectedClassId]);
 
+  // Lấy tên môn học từ subjectId của buổi — để phân biệt các buổi trùng tên
+  // (mỗi môn trong lớp sinh ra bộ buổi "Session 1", "Session 2"... giống nhau).
+  const getSubjectName = (subjectId) => {
+    const sub = subjectsList.find((s) => s.subjectId === subjectId);
+    return sub ? sub.subjectName || sub.subjectCode || "" : "";
+  };
+
+  // Môn có assessment trong lớp đang chọn — dùng cho bộ lọc môn
+  const classSubjects = useMemo(() => {
+    const ids = [
+      ...new Set(
+        assessmentsForClass
+          .map((a) => a.subjectId)
+          .filter((id) => id != null),
+      ),
+    ];
+    return ids
+      .map((id) => ({
+        subjectId: id,
+        subjectName: getSubjectName(id) || tr("Môn học"),
+      }))
+      .sort((a, b) => a.subjectId - b.subjectId);
+  }, [assessmentsForClass, subjectsList]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Assessment hiển thị theo bộ lọc môn (trống = tất cả)
+  const visibleAssessments = useMemo(() => {
+    if (!subjectFilter) return assessmentsForClass;
+    return assessmentsForClass.filter(
+      (a) => String(a.subjectId) === subjectFilter,
+    );
+  }, [assessmentsForClass, subjectFilter]);
+
   // Check if all scores are published (for lock button state)
   const allPublished = useMemo(() => {
     const displayScores = isEditingScores ? editingScores : studentScores;
@@ -1232,6 +1281,110 @@ const InstructorAssessments = () => {
     }
   };
 
+  // ── Import Excel (Bulk Import điểm — khớp ImportController BE) ─────────
+  // GET  /import/assessment/template?assessmentId=  → file xlsx (pre-fill học viên)
+  // POST /import/assessment/validate?assessmentId=  → ImportValidationResult { totalRows, validRows, errorRows, canCommit, errors[] }
+  // POST /import/assessment/commit?assessmentId=    → ImportCommitResult { imported, skipped, errors[] }
+  const handleDownloadTemplate = async () => {
+    setImportError("");
+    if (!selectedAssessment?.assessmentId) {
+      setImportError(tr("Assessment này không có mã đánh giá để tải template."));
+      return;
+    }
+    try {
+      // suppressAuthRedirect: nếu tải file gặp lỗi (token hết hạn/401) thì chỉ hiện
+      // thông báo lỗi trong modal — KHÔNG đá user về trang login mất phiên làm việc.
+      const blob = await api.downloadFile(
+        `/import/assessment/template?assessmentId=${selectedAssessment.assessmentId}`,
+        { suppressAuthRedirect: true },
+      );
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `assessment_${selectedAssessment.assessmentId}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success(tr("Tải template thành công!"));
+    } catch (err) {
+      console.error("Lỗi tải template:", err);
+      setImportError(parseApiError(err, "Tải template thất bại."));
+    }
+  };
+
+  const handleValidateImport = async () => {
+    setImportError("");
+    if (!importFile) {
+      setImportError(tr("Vui lòng chọn file Excel trước khi kiểm tra."));
+      return;
+    }
+    if (!selectedAssessment?.assessmentId) return;
+    setImportValidating(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", importFile);
+      const result = await api.postFormData(
+        `/import/assessment/validate?assessmentId=${selectedAssessment.assessmentId}`,
+        fd,
+      );
+      setImportResult(result);
+    } catch (err) {
+      console.error("Lỗi validate import:", err);
+      setImportResult(null);
+      setImportError(parseApiError(err, "Kiểm tra file thất bại."));
+    } finally {
+      setImportValidating(false);
+    }
+  };
+
+  const handleCommitImport = async () => {
+    setImportError("");
+    if (!importFile || !selectedAssessment?.assessmentId) return;
+    setImportCommitting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", importFile);
+      const result = await api.postFormData(
+        `/import/assessment/commit?assessmentId=${selectedAssessment.assessmentId}`,
+        fd,
+      );
+      setImportResult(result);
+      // BE trả 200 kèm errors khi import một phần (imported > 0 nhưng có dòng bị bỏ qua) —
+      // giữ modal mở để hiển thị chi tiết dòng bị bỏ qua, chỉ đóng khi import sạch hoàn toàn.
+      if (
+        !result ||
+        !Array.isArray(result.errors) ||
+        result.errors.length === 0
+      ) {
+        toast.success(tr("Import điểm thành công!"));
+        setImportModalOpen(false);
+        // Reload bảng điểm để hiển thị dữ liệu vừa import
+        loadAssessmentScores(selectedAssessment, selectedAssessmentType);
+      } else {
+        toast.warning(tr("Import hoàn tất nhưng có dòng bị bỏ qua."));
+      }
+    } catch (err) {
+      console.error("Lỗi commit import:", err);
+      // BE trả 400 kèm ImportCommitResult JSON khi có lỗi (errors > 0 và imported == 0)
+      const raw = typeof err === "string" ? err : (err && err.message) || "";
+      let detail = "";
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.errors)) {
+          detail = parsed.errors
+            .map((e) => `- ${tr("Dòng")} ${e.row} (${e.column}): ${e.message}`)
+            .join("\n");
+        }
+      } catch {
+        /* không phải JSON — dùng fallback chung */
+      }
+      setImportError(detail || parseApiError(err, "Import thất bại."));
+    } finally {
+      setImportCommitting(false);
+    }
+  };
+
   // Grading Spreadsheet View
   if (selectedAssessment) {
     const displayScores = isEditingScores ? editingScores : studentScores;
@@ -1404,6 +1557,27 @@ const InstructorAssessments = () => {
               <span>
                 {allPublished ? tr("ĐÃ KHÓA ĐIỂM") : tr("CHỐT ĐIỂM")}
               </span>
+            </button>
+
+            {/* Nhập dữ liệu Excel (Bulk Import điểm — khớp ImportController BE) */}
+            <button
+              onClick={() => {
+                setImportModalOpen(true);
+                setImportFile(null);
+                setImportResult(null);
+                setImportError("");
+              }}
+              className="create-btn"
+              type="button"
+              disabled={allPublished || !selectedAssessment?.assessmentId}
+              style={{
+                background:
+                  "linear-gradient(159.93deg, #0369a1 -27.55%, #075985 127.55%)",
+                opacity: allPublished || !selectedAssessment?.assessmentId ? 0.6 : 1,
+                cursor: allPublished || !selectedAssessment?.assessmentId ? "not-allowed" : "pointer",
+              }}
+            >
+              <span>{tr("NHẬP DỮ LIỆU EXCEL")}</span>
             </button>
           </div>
         </section>
@@ -2036,6 +2210,359 @@ const InstructorAssessments = () => {
         {/* Toast notifications */}
         <toast.ToastContainer />
 
+        {/* Import Excel Modal (Bulk Import điểm — khớp ImportController BE) */}
+        {importModalOpen &&
+          createPortal(
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: "100vw",
+                height: "100vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "rgba(0,33,71,0.75)",
+                zIndex: 999999,
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              <div
+                className="dashboard-panel"
+                style={{
+                  width: "600px",
+                  borderRadius: "16px",
+                  boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)",
+                  margin: "auto",
+                }}
+              >
+                <div className="panel-header">
+                  <h2>
+                    {tr("Import điểm Excel")} — {selectedAssessment.componentName}
+                  </h2>
+                  <div
+                    className="panel-action"
+                    onClick={() => setImportModalOpen(false)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {tr("Đóng")}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "14px",
+                    marginTop: "12px",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "rgba(0,33,71,0.6)",
+                      margin: 0,
+                    }}
+                  >
+                    {tr(
+                      "Tải template, điền điểm số (0-100) cho từng học viên, sau đó kiểm tra và nhập dữ liệu.",
+                    )}
+                  </p>
+
+                  {/* Bước 1: Tải template */}
+                  <button
+                    onClick={handleDownloadTemplate}
+                    type="button"
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      background: "#f8fafc",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      color: "#002147",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    ⬇ {tr("Tải template Excel (đã pre-fill học viên)")}
+                  </button>
+
+                  {/* Bước 2: Chọn file + validate */}
+                  <div className="file-picker">
+                    <label
+                      className={`file-picker-trigger${importFile ? " has-file" : ""}`}
+                    >
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0] || null;
+                          setImportFile(file);
+                          setImportResult(null);
+                          setImportError("");
+                          if (file) {
+                            try {
+                              const preview = await parseExcelPreview(file);
+                              setExcelPreview(preview);
+                            } catch (err) {
+                              console.error("Lỗi đọc file Excel:", err);
+                              setExcelPreview(null);
+                            }
+                          } else {
+                            setExcelPreview(null);
+                          }
+                        }}
+                      />
+                      <span className="file-picker-icon">
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                          <polyline points="13 2 13 9 20 9" />
+                        </svg>
+                      </span>
+                      <span className="file-picker-info">
+                        <span
+                          className="file-picker-title"
+                          title={importFile ? importFile.name : ""}
+                        >
+                          {importFile
+                            ? importFile.name
+                            : tr("Chọn file Excel (.xlsx / .xls)")}
+                        </span>
+                        <span className="file-picker-sub">
+                          {importFile
+                            ? `${(importFile.size / 1024).toFixed(1)} KB · ${tr(
+                                "Bấm để chọn file khác",
+                              )}`
+                            : tr("Chọn tệp để kiểm tra và nhập dữ liệu")}
+                        </span>
+                      </span>
+                    </label>
+
+                    {importFile && (
+                      <button
+                        type="button"
+                        className="file-picker-clear"
+                        onClick={() => {
+                          setImportFile(null);
+                          setImportResult(null);
+                          setImportError("");
+                          setExcelPreview(null);
+                        }}
+                        title={tr("Bỏ chọn tệp")}
+                      >
+                        ×
+                      </button>
+                    )}
+
+                    <button
+                      onClick={handleValidateImport}
+                      type="button"
+                      disabled={importValidating || importCommitting}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        border: "none",
+                        background: "#c5a059",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {importValidating
+                        ? tr("Đang kiểm tra...")
+                        : tr("Kiểm tra file")}
+                    </button>
+                  </div>
+
+                  {/* Xem trước dữ liệu trong file Excel */}
+                  {excelPreview && (
+                    <ExcelPreviewTable
+                      headers={excelPreview.headers}
+                      rows={excelPreview.rows}
+                      tr={tr}
+                    />
+                  )}
+
+                  {importError && (
+                    <div
+                      style={{
+                        padding: "10px 14px",
+                        background: "#fef2f2",
+                        border: "1px solid #fca5a5",
+                        borderRadius: "8px",
+                        color: "#b91c1c",
+                        fontSize: "12px",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {importError}
+                    </div>
+                  )}
+
+                  {/* Kết quả validate (dry-run) */}
+                  {importResult &&
+                    typeof importResult.totalRows === "number" && (
+                      <div
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "10px",
+                          padding: "12px",
+                          background: "#f8fafc",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              color: "#334155",
+                              padding: "6px 10px",
+                              background: "#fff",
+                              borderRadius: "6px",
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            {tr("Tổng dòng")}: {importResult.totalRows}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              color: "#15803d",
+                              padding: "6px 10px",
+                              background: "#f0fdf4",
+                              borderRadius: "6px",
+                              border: "1px solid #bbf7d0",
+                            }}
+                          >
+                            {tr("Hợp lệ")}: {importResult.validRows}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              color: "#b91c1c",
+                              padding: "6px 10px",
+                              background: "#fef2f2",
+                              borderRadius: "6px",
+                              border: "1px solid #fecaca",
+                            }}
+                          >
+                            {tr("Lỗi")}: {importResult.errorRows}
+                          </span>
+                        </div>
+                        {Array.isArray(importResult.errors) &&
+                          importResult.errors.length > 0 && (
+                            <div
+                              style={{
+                                marginTop: "10px",
+                                maxHeight: "160px",
+                                overflow: "auto",
+                              }}
+                            >
+                              {importResult.errors.map((e, i) => (
+                                <div
+                                  key={i}
+                                  style={{
+                                    fontSize: "11px",
+                                    padding: "4px 8px",
+                                    background: "#fff",
+                                    borderRadius: "6px",
+                                    marginBottom: "4px",
+                                    color: "#b91c1c",
+                                  }}
+                                >
+                                  {tr("Dòng")} {e.row} · {e.column}: {e.message}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        {importResult.canCommit && (
+                          <button
+                            onClick={handleCommitImport}
+                            type="button"
+                            disabled={importCommitting}
+                            style={{
+                              marginTop: "12px",
+                              width: "100%",
+                              padding: "10px",
+                              borderRadius: "8px",
+                              border: "none",
+                              background: "#16a34a",
+                              color: "#fff",
+                              cursor: "pointer",
+                              fontSize: "12px",
+                              fontWeight: "700",
+                            }}
+                          >
+                            {importCommitting
+                              ? tr("Đang nhập dữ liệu...")
+                              : tr("✅ Nhập dữ liệu (Commit)")}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                  {/* Kết quả commit */}
+                  {importResult &&
+                    typeof importResult.imported === "number" && (
+                      <div
+                        style={{
+                          border: "1px solid #bbf7d0",
+                          borderRadius: "10px",
+                          padding: "12px",
+                          background: "#f0fdf4",
+                          fontSize: "12px",
+                          color: "#166534",
+                          fontWeight: "600",
+                        }}
+                      >
+                        {tr("Đã nhập")}: {importResult.imported} ·{" "}
+                        {tr("Bỏ qua")}: {importResult.skipped}
+                        {Array.isArray(importResult.errors) &&
+                          importResult.errors.length > 0 && (
+                            <div style={{ marginTop: "8px" }}>
+                              {importResult.errors.map((e, i) => (
+                                <div
+                                  key={i}
+                                  style={{ fontSize: "11px", color: "#b91c1c" }}
+                                >
+                                  {tr("Dòng")} {e.row} · {e.column}: {e.message}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                      </div>
+                    )}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
+
         {/* Confirm signoff modal */}
         <ConfirmModal
           isOpen={confirmSignoffOpen}
@@ -2113,11 +2640,48 @@ const InstructorAssessments = () => {
             cursor: "pointer",
           }}
           value={selectedClassId}
-          onChange={(e) => setSelectedClassId(e.target.value)}
+          onChange={(e) => {
+            setSelectedClassId(e.target.value);
+            setSubjectFilter("");
+          }}
         >
           {classesData.map((c) => (
             <option key={c.classId} value={c.classId}>
               {c.name} ({c.code})
+            </option>
+          ))}
+        </select>
+
+        <label
+          style={{
+            fontSize: "11px",
+            fontWeight: "700",
+            color: "rgba(0,33,71,0.5)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            marginLeft: "8px",
+          }}
+        >
+          {tr("Chọn môn:")}
+        </label>
+        <select
+          style={{
+            padding: "8px 12px",
+            borderRadius: "8px",
+            border: "1px solid #d9e1ec",
+            fontSize: "12px",
+            fontWeight: "700",
+            color: "#002147",
+            outline: "none",
+            cursor: "pointer",
+          }}
+          value={subjectFilter}
+          onChange={(e) => setSubjectFilter(e.target.value)}
+        >
+          <option value="">{tr("Tất cả môn học")}</option>
+          {classSubjects.map((sub) => (
+            <option key={sub.subjectId} value={String(sub.subjectId)}>
+              {sub.subjectName}
             </option>
           ))}
         </select>
@@ -2160,7 +2724,7 @@ const InstructorAssessments = () => {
                   gap: "12px",
                 }}
               >
-                {assessmentsForClass
+                {visibleAssessments
                   .slice()
                   .sort(
                     (a, b) =>
@@ -2185,6 +2749,20 @@ const InstructorAssessments = () => {
                         <h4 style={{ margin: "0 0 6px", color: "#002147" }}>
                           {assessment.componentName}
                         </h4>
+                        {getSubjectName(assessment.subjectId) && (
+                          <p
+                            style={{
+                              margin: "0 0 6px",
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              color: "#b8860b",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
+                            }}
+                          >
+                            {getSubjectName(assessment.subjectId)}
+                          </p>
+                        )}
                         <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
                           {tr('Buổi: ')}{tr(assessment.sessionTitle)}
                           {assessment.sessionDate
