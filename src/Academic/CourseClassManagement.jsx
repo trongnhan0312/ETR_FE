@@ -399,7 +399,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
       toast.success(tr("Cập nhật lớp học thành công!"));
     } catch (error) {
       console.error("Error updating class status:", error);
-      toast.error(tr("Cập nhật lớp học thất bại"));
+      toast.error(parseApiError(error, tr("Cập nhật lớp học thất bại")));
       throw new Error(parseApiError(error));
     }
   };

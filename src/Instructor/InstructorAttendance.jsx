@@ -73,6 +73,11 @@ const InstructorAttendance = () => {
   const [excelPreview, setExcelPreview] = useState(null); // { headers, rows } để xem trước dữ liệu
   const toast = useToast();
 
+  // File Excel đang được stage trong modal import (đã upload, chưa bỏ đi) → khóa sửa tay
+  // (chọn P/A, ghi Note) trên bảng điểm danh để tránh chỉnh tay mâu thuẫn với dữ liệu file.
+  // Chỉ mở khóa lại khi bỏ file đi (nút × trong modal) — theo yêu cầu sản phẩm.
+  const fileStaged = importFile !== null;
+
   // Load all assigned classes on mount
   useEffect(() => {
     const fetchClasses = async () => {
@@ -269,7 +274,7 @@ const InstructorAttendance = () => {
   };
 
   const handleToggleStatus = (code, status) => {
-    if (isConfirmed) return; // Buổi đã chốt
+    if (isConfirmed || fileStaged) return; // Buổi đã chốt / đang có file import
     setSessionAttendance((prev) =>
       prev.map((s) => (s.code === code ? { ...s, status } : s)),
     );
@@ -403,7 +408,7 @@ const InstructorAttendance = () => {
   // ── Import Excel (Bulk Import) — khớp ImportController BE ────────────────
   // GET  /import/attendance/template?sessionId=  → file xlsx (pre-fill học viên)
   // POST /import/attendance/validate?sessionId=  → ImportValidationResult { totalRows, validRows, errorRows, canCommit, errors[] }
-  // POST /import/attendance/commit?sessionId=    → ImportCommitResult { imported, skipped, errors[] }
+  // POST /import/attendance/commit?sessionId=    → ImportCommitResult { imported, skipped, updated, errors[] }
   const handleDownloadTemplate = async () => {
     setImportError("");
     try {
@@ -598,7 +603,34 @@ const InstructorAttendance = () => {
         // Phòng trường hợp BE không đọc được DÒNG nào (file sai cấu trúc template,
         // thiếu/đổi cột EnrollmentId...) — import báo "thành công" nhưng KHÔNG ghi gì,
         // nên bảng không hề thay đổi theo file. Báo rõ để user biết thay vì im lặng.
-        if (typeof result?.imported === "number" && result.imported === 0) {
+        // (Chú ý: BE mới re-import file điểm danh = UPSERT — nếu file chỉ CẬP NHẬT bản
+        // ghi đã có thì imported == 0 nhưng updated > 0 → VẪN là thành công. Nếu BE
+        // chưa trả `updated`, dựa vào dữ liệu file đã parse client-side để phân biệt.)
+        const updatedCount =
+          typeof result?.updated === "number" ? result.updated : null;
+        const fileHasDataRows = (() => {
+          if (
+            !excelPreview ||
+            !Array.isArray(excelPreview.headers) ||
+            !Array.isArray(excelPreview.rows)
+          )
+            return false;
+          const colEnrollment = excelPreview.headers.findIndex((h) =>
+            /enrollmentid|enrollment/i.test(String(h)),
+          );
+          if (colEnrollment < 0) return false;
+          return excelPreview.rows.some((r) => {
+            const v = r?.[colEnrollment];
+            return (
+              v !== "" && v != null && !Number.isNaN(parseInt(String(v), 10))
+            );
+          });
+        })();
+        const nothingImported =
+          typeof result?.imported === "number" &&
+          result.imported === 0 &&
+          (updatedCount === null ? !fileHasDataRows : updatedCount === 0);
+        if (nothingImported) {
           toast.warning(
             tr(
               "File không có dòng dữ liệu hợp lệ nào được import. Vui lòng dùng lại template tải từ hệ thống.",
@@ -738,7 +770,9 @@ const InstructorAttendance = () => {
             <button
               onClick={() => {
                 setImportModalOpen(true);
-                setImportFile(null);
+                // GIỮ file đã upload (không reset importFile) để nút "Gỡ file" còn hiển thị
+                // khi mở lại modal — sau khi import thành công bảng đang khóa P/A + Note,
+                // user phải gỡ file (nút Gỡ file) mới mở khóa được.
                 setImportResult(null);
                 setImportError("");
               }}
@@ -907,9 +941,10 @@ const InstructorAttendance = () => {
                           handleToggleStatus(student.code, st.value)
                         }
                         className={`status-${st.value.toLowerCase()}${student.status === st.value ? " active" : ""}`}
-                        disabled={isConfirmed}
+                        disabled={isConfirmed || fileStaged}
                         style={{
-                          cursor: isConfirmed ? "not-allowed" : "pointer",
+                          cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
+                          opacity: fileStaged ? 0.5 : 1,
                         }}
                       >
                         {st.short}
@@ -932,6 +967,7 @@ const InstructorAttendance = () => {
                       setRemarkModalStudent(student);
                       setRemarkText(student.remarks || "");
                     }}
+                    disabled={isConfirmed || fileStaged}
                     style={{
                       padding: "5px 12px",
                       borderRadius: "6px",
@@ -940,7 +976,8 @@ const InstructorAttendance = () => {
                       border: "1px solid #dfe6f1",
                       backgroundColor: student.remarks ? "#fffbeb" : "#f8fafc",
                       color: student.remarks ? "#d97706" : "#64748b",
-                      cursor: "pointer",
+                      cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
+                      opacity: fileStaged ? 0.5 : 1,
                       display: "inline-flex",
                       alignItems: "center",
                       gap: "4px",
@@ -1099,7 +1136,7 @@ const InstructorAttendance = () => {
                   <textarea
                     value={remarkText}
                     onChange={(e) => setRemarkText(e.target.value)}
-                    disabled={isConfirmed}
+                    disabled={isConfirmed || fileStaged}
                     placeholder={tr("Nhập ghi chú nhận xét về học viên...")}
                     style={{
                       width: "100%",
@@ -1137,7 +1174,7 @@ const InstructorAttendance = () => {
                     </button>
                     <button
                       onClick={() => {
-                        if (!isConfirmed) {
+                        if (!isConfirmed && !fileStaged) {
                           setSessionAttendance((prev) =>
                             prev.map((s) =>
                               s.code === remarkModalStudent.code
@@ -1504,6 +1541,12 @@ const InstructorAttendance = () => {
                       >
                         {tr("Đã nhập")}: {importResult.imported} ·{" "}
                         {tr("Bỏ qua")}: {importResult.skipped}
+                        {typeof importResult.updated === "number" &&
+                          importResult.updated > 0 && (
+                            <>
+                              {" "}· {tr("Đã cập nhật")}: {importResult.updated}
+                            </>
+                          )}
                         {Array.isArray(importResult.errors) &&
                           importResult.errors.length > 0 && (
                             <div style={{ marginTop: "8px" }}>

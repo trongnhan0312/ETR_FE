@@ -89,6 +89,10 @@ const InstructorAssessments = () => {
   // Toast notifications
   const toast = useToast();
 
+  // File Excel đang được stage trong modal import (đã upload, chưa bỏ đi) → khóa sửa
+  // điểm + nhận xét (giống hệt màn Điểm danh). Chỉ mở khóa khi bỏ file đi (nút ×).
+  const fileStaged = importFile !== null;
+
   // Nhãn trạng thái lớp hiển thị trong dropdown chọn lớp (giống hệt InstructorAttendance)
   const getClassStatusLabel = (status) => {
     const st = String(status || "").toLowerCase();
@@ -728,6 +732,7 @@ const InstructorAssessments = () => {
   };
 
   const handleScoreChange = (enrollmentId, value, field = "assessment") => {
+    if (fileStaged) return; // Đang có file import → khóa sửa điểm
     const scoreVal =
       value === "" ? "" : Math.min(100, Math.max(0, parseFloat(value) || 0));
     setEditingScores((prev) =>
@@ -743,6 +748,7 @@ const InstructorAssessments = () => {
   };
 
   const handleCommentChange = (enrollmentId, value, field = "assessment") => {
+    if (fileStaged) return; // Đang có file import → khóa sửa nhận xét
     setEditingScores((prev) =>
       prev.map((s) => {
         if (s.enrollmentId !== enrollmentId || s.isPublished) {
@@ -1826,7 +1832,8 @@ const InstructorAssessments = () => {
             <button
               onClick={() => {
                 setImportModalOpen(true);
-                setImportFile(null);
+                // GIỮ file đã upload (không reset importFile) để nút "Gỡ file" còn hiển thị
+                // khi mở lại modal — người dùng có thể gỡ file cũ để chọn file khác.
                 setImportResult(null);
                 setImportError("");
               }}
@@ -2150,7 +2157,7 @@ const InstructorAssessments = () => {
                               min="0"
                               max="100"
                               value={student.assessmentScore}
-                              disabled={student.isPublished}
+                              disabled={student.isPublished || fileStaged}
                               onChange={(e) =>
                                 handleScoreChange(
                                   student.enrollmentId,
@@ -2164,6 +2171,7 @@ const InstructorAssessments = () => {
                                 border: "1px solid #d9e1ec",
                                 borderRadius: "8px",
                                 textAlign: "center",
+                                opacity: fileStaged ? 0.55 : 1,
                                 fontSize: "13px",
                                 fontWeight: "700",
                                 color: student.isPublished
@@ -2204,7 +2212,7 @@ const InstructorAssessments = () => {
                               min="0"
                               max="100"
                               value={student.practicalScore}
-                              disabled={student.isPublished}
+                              disabled={student.isPublished || fileStaged}
                               onChange={(e) =>
                                 handleScoreChange(
                                   student.enrollmentId,
@@ -2218,6 +2226,7 @@ const InstructorAssessments = () => {
                                 border: "1px solid #d9e1ec",
                                 borderRadius: "8px",
                                 textAlign: "center",
+                                opacity: fileStaged ? 0.55 : 1,
                                 fontSize: "13px",
                                 fontWeight: "700",
                                 color: student.isPublished
@@ -2304,7 +2313,7 @@ const InstructorAssessments = () => {
                           <input
                             type="text"
                             value={student.assessmentComment}
-                            disabled={student.isPublished}
+                            disabled={student.isPublished || fileStaged}
                             onChange={(e) =>
                               handleCommentChange(
                                 student.enrollmentId,
@@ -2323,6 +2332,7 @@ const InstructorAssessments = () => {
                               border: "1px solid #d9e1ec",
                               borderRadius: "8px",
                               fontSize: "12px",
+                              opacity: fileStaged ? 0.55 : 1,
                               color: student.isPublished
                                 ? "#94a3b8"
                                 : "#17314f",
@@ -2341,7 +2351,7 @@ const InstructorAssessments = () => {
                           <input
                             type="text"
                             value={student.practicalComment}
-                            disabled={student.isPublished}
+                            disabled={student.isPublished || fileStaged}
                             onChange={(e) =>
                               handleCommentChange(
                                 student.enrollmentId,
@@ -2360,6 +2370,7 @@ const InstructorAssessments = () => {
                               border: "1px solid #d9e1ec",
                               borderRadius: "8px",
                               fontSize: "12px",
+                              opacity: fileStaged ? 0.55 : 1,
                               color: student.isPublished
                                 ? "#94a3b8"
                                 : "#17314f",
@@ -2838,6 +2849,12 @@ const InstructorAssessments = () => {
                       >
                         {tr("Đã nhập")}: {importResult.imported} ·{" "}
                         {tr("Bỏ qua")}: {importResult.skipped}
+                        {typeof importResult.updated === "number" &&
+                          importResult.updated > 0 && (
+                            <>
+                              {" "}· {tr("Đã cập nhật")}: {importResult.updated}
+                            </>
+                          )}
                         {Array.isArray(importResult.errors) &&
                           importResult.errors.length > 0 && (
                             <div style={{ marginTop: "8px" }}>

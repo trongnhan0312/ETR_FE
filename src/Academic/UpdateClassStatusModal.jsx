@@ -248,6 +248,9 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
               {status === 'Completed' && (
                 <div style={{ fontSize: '12px', color: '#dc2626', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '6px', borderLeft: '4px solid #ef4444' }}>
                   {tr('⚠️ Khi chuyển sang')} <strong>{tr('Completed (Đã kết thúc)')}</strong>{tr(', nút ➕ Ghi danh của lớp học này sẽ tự động chuyển thành')} <code>{tr('⛔ Đã kết thúc')}</code> {tr('để khóa ghi danh học viên mới theo quy định tuân thủ ETR.')}
+                  <div style={{ marginTop: '8px' }}>
+                    {tr('📌 Lưu ý: hệ thống sẽ từ chối nếu lớp vẫn còn buổi học chưa được confirm. Hãy confirm toàn bộ buổi học trước khi hoàn thành lớp.')}
+                  </div>
                 </div>
               )}
             </div>
