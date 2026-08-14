@@ -15,7 +15,6 @@ const TrainingManagerDashboard = () => {
   const [etrVolume, setEtrVolume] = useState(null);
   const [complianceScore, setComplianceScore] = useState('...');
   const [certificationsDue, setCertificationsDue] = useState('...');
-  const [avgScore] = useState('...');
 
   useEffect(() => {
     const loadData = async () => {
@@ -104,7 +103,6 @@ const TrainingManagerDashboard = () => {
           </div>
           <div className="tm-card-value-row">
             <span className="tm-card-value">{totalTrainees}</span>
-            <span className="tm-badge success">+12%</span>
           </div>
           <div className="tm-progress-bar">
             <div className="tm-progress-fill bg-[#c5a022]" style={{ width: '70%' }} />
@@ -220,213 +218,15 @@ const TrainingManagerDashboard = () => {
           </div>
         </div>
 
-        {/* PASS/FAIL RATE */}
-        <div className="tm-chart-card">
-          <div className="tm-chart-header">
-            <h3>{tr('PASS/FAIL RATE')}</h3>
-          </div>
-
-          {/* Donut Chart Simulation */}
-          <div className="tm-donut-container">
-            <div className="tm-donut-chart">
-              <div className="donut-center">
-                <span className="donut-value">92%</span>
-                <span className="donut-label">{tr('PASS RATE')}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Legend Table */}
-          <div className="tm-legend-list">
-            <div className="tm-legend-row">
-              <div className="legend-left">
-                <span className="legend-color-dot" style={{ backgroundColor: '#002147' }} />
-                <span className="legend-text">{tr('Passing Candidates')}</span>
-              </div>
-              <span className="legend-value">1,363</span>
-            </div>
-            <div className="tm-legend-row">
-              <div className="legend-left">
-                <span className="legend-color-dot" style={{ backgroundColor: '#b00020' }} />
-                <span className="legend-text">{tr('Failed/Retake')}</span>
-              </div>
-              <span className="legend-value error">119</span>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* LOWER SECTION: SYSTEM HEALTH & QUICK STATS */}
+      {/* QUICK STATS (API-backed only) */}
       <div className="tm-bottom-grid">
-        {/* SYSTEM HEALTH MONITORING */}
-        <div className="tm-health-card">
-          <div className="bg-circle-1" />
-          <div className="bg-circle-2" />
-
-          <div>
-            <h3>{tr('SYSTEM HEALTH MONITORING')}</h3>
-          </div>
-
-          <div className="health-metrics">
-            {/* ETR Sync */}
-            <div className="health-row">
-              <div className="health-info">
-                <span className="label">{tr('ETR SYNCHRONIZATION')}</span>
-                <span className="status-active">{tr('ACTIVE')}</span>
-              </div>
-              <div className="health-bar">
-                <div className="health-bar-fill bg-[#c5a022]" style={{ width: '85%' }} />
-              </div>
-            </div>
-
-            {/* Cloud Latency */}
-            <div className="health-row">
-              <div className="health-info">
-                <span className="label">{tr('CLOUD UPLINK LATENCY')}</span>
-                <span className="text-white">12ms</span>
-              </div>
-              <div className="health-bar">
-                <div className="health-bar-fill bg-white/40" style={{ width: '35%' }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Secure Audit Subtext */}
-          <div className="security-info">
-            <svg width={16} height={20} viewBox="0 0 16 20" fill="none">
-              <path
-                d="M8 20C5.68333 19.4167 3.77083 18.0875 2.2625 16.0125C0.754167 13.9375 0 11.6333 0 9.1V3L8 0L16 3V9.1C16 11.6333 15.2458 13.9375 13.7375 16.0125C12.2292 18.0875 10.3167 19.4167 8 20ZM8 17.9C9.61667 17.4 10.9667 16.4125 12.05 14.9375C13.1333 13.4625 13.7667 11.8167 13.95 10H8V2.125L2 4.375V9.1C2 9.28333 2 9.43333 2 9.55C2 9.66667 2.01667 9.81667 2.05 10H8V17.9Z"
-                fill="currentColor"
-              />
-            </svg>
-            <p>
-              {tr('All data transmissions are encrypted via')}{' '}
-              <span className="font-semibold text-white">{tr('TLS 1.3 Corporate Gateways')}</span> {tr('and audited in real-time.')}
-            </p>
-          </div>
-        </div>
-
-        {/* QUICK STATS CARDS */}
         <div className="tm-stats-panel">
           <div className="tm-quick-stats">
-            {/* Active Simulators */}
-            <div className="tm-stat-box">
-              <span className="stat-label">{tr('ACTIVE SIMULATORS')}</span>
-              <div className="stat-value-container">
-                <span className="stat-value">18</span>
-                <span className="stat-sub">/ 20</span>
-              </div>
-            </div>
-
-            {/* Avg Score */}
-            <div className="tm-stat-box tm-border-navy">
-              <span className="stat-label">{tr('AVG ASSESSMENT SCORE')}</span>
-              <span className="stat-value">{avgScore !== '...' ? avgScore : '88.4'}</span>
-            </div>
-
-            {/* Certifications Due */}
             <div className="tm-stat-box tm-border-red">
               <span className="stat-label">{tr('CERTIFICATIONS DUE')}</span>
-              <span className="stat-value error">{certificationsDue !== '...' ? certificationsDue : '32'}</span>
-            </div>
-
-            {/* Instructor Load */}
-            <div className="tm-stat-box">
-              <span className="stat-label">{tr('INSTRUCTOR LOAD STATE')}</span>
-              <div className="stat-flex-row">
-                <span className="stat-value">{tr('High')}</span>
-                <svg width={19} height={16} viewBox="0 0 19 16" fill="none">
-                  <path
-                    d="M0 15.8333L9.16667 0L18.3333 15.8333H0ZM2.875 14.1667H15.4583L9.16667 3.33333L2.875 14.1667ZM9.16667 13.3333C9.40278 13.3333 9.60069 13.2535 9.76042 13.0938C9.92014 12.934 10 12.7361 10 12.5C10 12.2639 9.92014 12.066 9.76042 11.9062C9.60069 11.7465 9.40278 11.6667 9.16667 11.6667C8.93056 11.6667 8.73264 11.7465 8.57292 11.9062C8.41319 12.066 8.33333 12.2639 8.33333 12.5C8.33333 12.7361 8.41319 12.934 8.57292 13.0938C8.73264 13.2535 8.93056 13.3333 9.16667 13.3333ZM8.33333 10.8333H10V6.66667H8.33333V10.8333Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* BOTTOM AREA: CLASS MONITORING & INSTRUCTOR ALLOCATION */}
-      <div className="tm-live-card">
-        {/* Section Header */}
-        <div className="live-header">
-          <h3>{tr('THEO DÕI TRẠNG THÁI LỚP HỌC')}</h3>
-          <span className="live-badge">{tr('CẬP NHẬT TRỰC TIẾP')}</span>
-        </div>
-
-        <div className="tm-live-grid">
-          {/* Ongoing Courses */}
-          <div className="tm-live-section">
-            <span className="section-title font-black">{tr('KHÓA HỌC ĐANG DIỄN RA')}</span>
-
-            <div className="tm-live-course-list">
-              {/* Course 1 */}
-              <div className="tm-live-course-row">
-                <div className="course-info">
-                  <span>A320 Type Rating - Batch 42</span>
-                  <span>65%</span>
-                </div>
-                <div className="course-progress-bar">
-                  <div className="course-progress-fill gold" style={{ width: '65%' }} />
-                </div>
-              </div>
-
-              {/* Course 2 */}
-              <div className="tm-live-course-row">
-                <div className="course-info">
-                  <span>Emergency Procedures Refresher</span>
-                  <span>88%</span>
-                </div>
-                <div className="course-progress-bar">
-                  <div className="course-progress-fill navy" style={{ width: '88%' }} />
-                </div>
-              </div>
-
-              {/* Course 3 */}
-              <div className="tm-live-course-row">
-                <div className="course-info">
-                  <span>CRM Advanced Workshop</span>
-                  <span>30%</span>
-                </div>
-                <div className="course-progress-bar">
-                  <div className="course-progress-fill gold" style={{ width: '30%' }} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Instructor Allocation */}
-          <div className="tm-live-section">
-            <span className="section-title font-black">{tr('PHÂN BỔ TẢI TRỌNG GIẢNG VIÊN')}</span>
-
-            <div className="tm-instructor-list">
-              {/* Instructor 1 */}
-              <div className="tm-instructor-row">
-                <div className="instructor-left">
-                  <div className="instructor-avatar navy">CH</div>
-                  <span className="instructor-name">Capt. Henderson</span>
-                </div>
-                <span className="load-badge danger">{tr('QUÁ TẢI')}</span>
-              </div>
-
-              {/* Instructor 2 */}
-              <div className="tm-instructor-row">
-                <div className="instructor-left">
-                  <div className="instructor-avatar gold">MS</div>
-                  <span className="instructor-name">F.O. Miller</span>
-                </div>
-                <span className="load-badge success">{tr('ỔN ĐỊNH')}</span>
-              </div>
-
-              {/* Instructor 3 */}
-              <div className="tm-instructor-row">
-                <div className="instructor-left">
-                  <div className="instructor-avatar muted">AL</div>
-                  <span className="instructor-name">Capt. Lopez</span>
-                </div>
-                <span className="load-badge success">{tr('ỔN ĐỊNH')}</span>
-              </div>
+              <span className="stat-value error">{certificationsDue}</span>
             </div>
           </div>
         </div>
