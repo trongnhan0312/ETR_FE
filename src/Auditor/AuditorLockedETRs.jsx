@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchEtrList } from './auditorApi';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const AuditorLockedETRs = () => {
   const navigate = useNavigate();
@@ -37,6 +39,11 @@ const AuditorLockedETRs = () => {
 
     if (activeCategory === 'All') return matchesSearch;
     return matchesSearch && etr.learnerDepartment?.toLowerCase().includes(activeCategory.toLowerCase());
+  });
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredEtrs, {
+    pageSize: 10,
+    resetKey: `${searchQuery}|${activeCategory}`,
   });
 
   return (
@@ -105,7 +112,7 @@ const AuditorLockedETRs = () => {
             ) : filteredEtrs.length === 0 ? (
               <div className="empty-table-state">{trEn('No locked ETR records found matching your search criteria.')}</div>
             ) : (
-              filteredEtrs.map((etr) => (
+              pageItems.map((etr) => (
                 <div key={etr.id} className="table-row auditor-table-grid">
                   <div className="col-id">{etr.id}</div>
                   <div className="col-name">{etr.learnerName}</div>
@@ -125,13 +132,13 @@ const AuditorLockedETRs = () => {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                     <button
                       className="auditor-btn-sm"
-                      onClick={() => navigate(`/auditor/details?id=${etr.id}`)}
+                      onClick={() => navigate(`/auditor/details?id=${etr.etrCourseRecordId}`)}
                     >
                       {trEn('View Details')}
                     </button>
                     <button
                       className="auditor-btn-sm"
-                      onClick={() => navigate(`/auditor/approval-history?id=${etr.id}`)}
+                      onClick={() => navigate(`/auditor/approval-history?id=${etr.etrCourseRecordId}`)}
                     >
                       {trEn('Approval History')}
                     </button>
@@ -150,16 +157,13 @@ const AuditorLockedETRs = () => {
 
         {/* Table Footer */}
         <div className="table-footer">
-          <div className="footer-info">{trEn('Showing')} {filteredEtrs.length} {trEn('of')} {allEtrs.length} {trEn('locked records')}</div>
-          <div className="pagination">
-            <button className="page-arrow" disabled>
-              ‹
-            </button>
-            <button className="page-num active">1</button>
-            <button className="page-arrow" disabled>
-              ›
-            </button>
-          </div>
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onChange={setPage}
+            total={total}
+            pageSize={10}
+          />
         </div>
       </section>
     </div>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const RolePermissionManagement = () => {
   const { tr } = useLanguage();
@@ -71,6 +73,11 @@ const RolePermissionManagement = () => {
       role.toLowerCase().includes(term) ||
       getDeptName(acct.departmentId || acct.DepartmentId).toLowerCase().includes(term)
     );
+  });
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredAccounts, {
+    pageSize: 10,
+    resetKey: `${selectedRole}|${searchTerm}`,
   });
 
   return (
@@ -183,7 +190,7 @@ const RolePermissionManagement = () => {
               <div className="student-table-cell student-table-cell--header">{tr('Phòng ban')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Trạng thái')}</div>
               <div className="student-table-cell student-table-cell--header student-table-cell--end">{tr('Account ID')}</div>
-              {filteredAccounts.map((acct, idx) => (
+              {pageItems.map((acct, idx) => (
                 <div className="student-table-row" key={acct.accountId || acct.AccountId || idx}>
                   <div className="student-table-cell student-table-cell--index">{idx + 1}</div>
                   <div className="student-table-cell student-table-cell--strong">{acct.username || acct.Username || '--'}</div>
@@ -202,6 +209,14 @@ const RolePermissionManagement = () => {
             </div>
           </div>
         )}
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
     </div>
   );

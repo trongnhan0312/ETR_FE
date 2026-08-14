@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const SubjectManagement = () => {
   const { tr } = useLanguage();
@@ -68,6 +70,11 @@ const SubjectManagement = () => {
       (s.description || '').toLowerCase().includes(q);
     const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
     return matchesSearch && matchesStatus;
+  });
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredSubjects, {
+    pageSize: 10,
+    resetKey: `${searchTerm}|${statusFilter}`,
   });
 
   const resetCreateForm = () => {
@@ -285,7 +292,7 @@ const SubjectManagement = () => {
               {searchTerm ? tr('Không tìm thấy môn học phù hợp.') : tr('Chưa có môn học nào trong hệ thống.')}
             </div>
           ) : (
-            filteredSubjects.map((s) => (
+            pageItems.map((s) => (
               <div
                 key={s.subjectId}
                 style={{
@@ -357,7 +364,13 @@ const SubjectManagement = () => {
         </div>
 
         <div className="table-footer">
-          <div className="footer-info">{tr('Hiển thị')} {filteredSubjects.length} {tr('trên tổng số')} {subjects.length} {tr('môn học')}</div>
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onChange={setPage}
+            total={total}
+            pageSize={10}
+          />
         </div>
       </section>
 

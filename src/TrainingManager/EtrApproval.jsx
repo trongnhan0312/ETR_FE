@@ -5,6 +5,8 @@ import { api } from "../utils/api";
 import PromptModal from "../components/PromptModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 import "./training-manager.scss";
 
 const EtrApproval = () => {
@@ -15,7 +17,6 @@ const EtrApproval = () => {
   const [viewingHistory, setViewingHistory] = useState(null);
   const [showActionModal, setShowActionModal] = useState(null); // 'APPROVE'
   const [reopenTarget, setReopenTarget] = useState(null); // ETR id cần mở lại (PromptModal)
-  const [currentPage, setCurrentPage] = useState(1);
 
   const [approvalRequests, setApprovalRequests] = useState([]);
   // Fallback chỉ kích hoạt khi TM thật sự bị 403 ở GET /Etr (danh sách dựng từ /Approvals)
@@ -400,6 +401,11 @@ const EtrApproval = () => {
     const matchesStatus = item.status === activeTab;
 
     return matchesSearch && matchesStatus;
+  });
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredEtrs, {
+    pageSize: 10,
+    resetKey: `${activeTab}|${searchQuery}`,
   });
 
   if (viewingHistory) {
@@ -1126,8 +1132,8 @@ const EtrApproval = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredEtrs.length > 0 ? (
-                filteredEtrs.map((etr) => (
+              {pageItems.length > 0 ? (
+                pageItems.map((etr) => (
                   <tr key={etr.id} style={{ borderTop: "1px solid #e1e4e8" }}>
                     <td style={{ padding: "20px 24px" }}>
                       <span
@@ -1303,52 +1309,13 @@ const EtrApproval = () => {
           }}
         >
           <div>
-            <span style={{ fontSize: "12px", color: "#545f71" }}>
-              {tr('Showing')} {filteredEtrs.length} {tr('of')}{" "}
-              {etrs.filter((e) => e.status === activeTab).length} {tr('pending approvals in registry')}
-            </span>
-          </div>
-          <div className="tm-pagination">
-            <button className="page-btn disabled" disabled>
-              <svg width={7} height={10} viewBox="0 0 7 10" fill="none">
-                <path
-                  d="M5 10L0 5L5 0L6.16667 1.16667L2.33333 5L6.16667 8.83333L5 10Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setCurrentPage(1)}
-              className={`page-btn${currentPage === 1 ? " active" : ""}`}
-            >
-              1
-            </button>
-            <button
-              onClick={() => setCurrentPage(2)}
-              className={`page-btn${currentPage === 2 ? " active" : ""}`}
-            >
-              2
-            </button>
-            <button
-              onClick={() => setCurrentPage(3)}
-              className={`page-btn${currentPage === 3 ? " active" : ""}`}
-            >
-              3
-            </button>
-            <button className="page-btn" onClick={() => setCurrentPage(2)}>
-              <svg
-                width={7}
-                height={10}
-                viewBox="0 0 7 10"
-                fill="none"
-                style={{ transform: "rotate(180deg)" }}
-              >
-                <path
-                  d="M5 10L0 5L5 0L6.16667 1.16667L2.33333 5L6.16667 8.83333L5 10Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              onChange={setPage}
+              total={total}
+              pageSize={10}
+            />
           </div>
         </div>
 
@@ -1646,8 +1613,6 @@ const EtrApproval = () => {
         variant="gold"
       />
 
-      {/* Toast notifications */}
-      <toast.ToastContainer />
     </div>
   );
 };

@@ -98,11 +98,20 @@ export const fetchAuditLogById = async (id) => {
   return data ? normalizeAuditLog(data, lookup) : null;
 };
 
-/** GET /api/Audit/search?query= (Tìm kiếm nhật ký; filterModule lọc theo entityName) */
+/**
+ * GET /api/Audit/search?query= (Tìm kiếm nhật ký; filterModule lọc theo entityName)
+ *
+ * LƯU Ý (bug đã sửa): BE deploy yêu cầu `query` BẮT BUỘC — gọi `/Audit/search?query=`
+ * (rỗng) sẽ trả 400 "The query field is required." → trang audit-logs trống toàn bộ.
+ * → Khi KHÔNG có từ khóa, dùng `/Audit?page=&pageSize=` (list thường, trả toàn bộ log);
+ *   chỉ gọi `/Audit/search` khi người dùng thực sự nhập chữ.
+ */
 export const searchAuditLogs = async (query = "", filterModule = "All", page = 1, pageSize = 50) => {
   const lookup = await loadLookup();
   const q = String(query || "").trim();
-  const endpoint = `/Audit/search?query=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`;
+  const endpoint = q
+    ? `/Audit/search?query=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`
+    : `/Audit?page=${page}&pageSize=${pageSize}`;
   let logs = extractList(await api.get(endpoint)).map((log) => normalizeAuditLog(log, lookup));
   if (filterModule && filterModule !== "All") {
     logs = logs.filter((log) =>
@@ -172,18 +181,37 @@ const normalizeExportJob = (raw) => ({
   etrCourseRecordId: raw.etrCourseRecordId || null,
 });
 
+// Trích số thật từ mọi định dạng id người dùng có thể truyền: số thuần (891),
+// chuỗi "ETR-2026-0891", hoặc id hiển thị "#ETR-0891". Trả về null nếu không có số nào.
+const extractNumericId = (value) => {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  return digits ? Number(digits) : null;
+};
+
+// Đồng bộ id ETR từ payload ở MỌI kiểu viết (ETRCourseRecordId / etrCourseRecordId / etrId)
+// — trước đây chỉ nhận 2 key đầu nên payload { etrId } bị bỏ qua và export luôn rơi vào
+// fallback "ETR Completed đầu tiên", khiến file export ra là hồ sơ SAI học viên (và thiếu
+// mốc thời gian validation của đúng hồ sơ đang xem).
+const resolveRequestedEtrId = (body) => {
+  const direct = body?.ETRCourseRecordId ?? body?.etrCourseRecordId;
+  if (direct != null && direct !== "") return extractNumericId(direct);
+  return extractNumericId(body?.etrId);
+};
+
 /** POST /api/Exports/pdf */
 export const exportPdf = async (payload = {}) => {
   let body = { ...payload };
-  if (!body.ETRCourseRecordId && !body.etrCourseRecordId) {
+  const requestedId = resolveRequestedEtrId(body);
+  if (requestedId == null) {
+    // Fallback chỉ khi payload KHÔNG nói rõ export hồ sơ nào — tự chọn ETR Completed đầu tiên.
     const etrs = await api.get("/Etr").catch(() => []);
     const firstCompleted = extractList(etrs).find(
       (etr) => String(etr.status || "").toLowerCase() === "completed",
     );
     const fallback = extractList(etrs)[0];
-    if (firstCompleted || fallback) {
-      body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);
-    }
+    body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);
+  } else {
+    body.ETRCourseRecordId = requestedId;
   }
   const res = await api.post("/Exports/pdf", body);
   const pkg = normalizeExportJob(res);
@@ -194,15 +222,16 @@ export const exportPdf = async (payload = {}) => {
 /** POST /api/Exports/training-package (cần ETRCourseRecordId; tự chọn ETR Completed đầu tiên nếu thiếu) */
 export const exportTrainingPackage = async (payload = {}) => {
   let body = { ...payload };
-  if (!body.ETRCourseRecordId && !body.etrCourseRecordId) {
+  const requestedId = resolveRequestedEtrId(body);
+  if (requestedId == null) {
     const etrs = await api.get("/Etr").catch(() => []);
     const firstCompleted = extractList(etrs).find(
       (etr) => String(etr.status || "").toLowerCase() === "completed",
     );
     const fallback = extractList(etrs)[0];
-    if (firstCompleted || fallback) {
-      body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);
-    }
+    body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);
+  } else {
+    body.ETRCourseRecordId = requestedId;
   }
   const res = await api.post("/Exports/training-package", body);
   const pkg = normalizeExportJob(res);
@@ -282,6 +311,7 @@ export const fetchReportsSummary = async () => {
 function normalizeAuditLog(raw, lookup) {
   return {
     id: raw.auditLogId ?? raw.AuditLogId ?? "—",
+    etrCourseRecordId: raw.etrRecordId ?? raw.ETRRecordId ?? null,
     timestamp: fmtDate(raw.createdAt ?? raw.CreatedAt),
     accountId: raw.accountId ?? raw.AccountId ?? null,
     user: raw.accountId
@@ -397,8 +427,18 @@ function normalizeEtr(raw, lookup) {
     courseName: course?.courseName || "—",
     classId: cls ? `#${cls.classCode || cls.classId}` : "—",
     className: cls?.className || "—",
+    // Mốc thời gian validation của hồ sơ (hiển thị trên màn chi tiết + đối chiếu với file export)
+    submittedAt: fmtDate(raw.submittedAt),
+    verifiedAt: fmtDate(raw.verifiedAt),
+    completedAt: fmtDate(raw.completedAt),
     completionDate: fmtDate(raw.completedAt),
     lockedDate: fmtDate(raw.verifiedAt),
+    // Raw ISO (chưa format) — dùng cho biểu đồ xu hướng theo tháng trên Dashboard
+    submittedAtRaw: raw.submittedAt ?? null,
+    verifiedAtRaw: raw.verifiedAt ?? null,
+    completedAtRaw: raw.completedAt ?? null,
+    returnedAtRaw: raw.updatedAt ?? null,
+    statusRaw: raw.status || null,
     approvedBy: resolvedApprovedBy,
     qaVerifiedBy: resolvedQaVerifiedBy,
     academicStaff: "—",

@@ -1,10 +1,22 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchApprovals, fetchEtrList } from './auditorApi';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
+
+// Trích số thật từ id — chấp nhận "891", "ETR-2026-0891", "#ETR-0891".
+const toNumericId = (value) => {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  return digits ? Number(digits) : null;
+};
 
 const AuditorApprovalHistory = () => {
   const { trEn } = useLanguage();
-  const [selectedEtrId, setSelectedEtrId] = useState('ETR-2026-0891');
+  const [searchParams] = useSearchParams();
+  // Đọc id từ URL (?id=...) — trước đây trang bỏ qua tham số này nên luôn mặc định
+  // 'ETR-2026-0891' (id giả) và timeline luôn rỗng.
+  const [selectedEtrId, setSelectedEtrId] = useState(toNumericId(searchParams.get('id')));
   const [etrList, setEtrList] = useState([]);
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,8 +32,9 @@ const AuditorApprovalHistory = () => {
 
         if (Array.isArray(etrs) && etrs.length > 0) {
           setEtrList(etrs);
-          if (!selectedEtrId && etrs[0]?.id) {
-            setSelectedEtrId(etrs[0].id);
+          // Chưa chọn (mở trang trực tiếp) → mặc định hồ sơ đầu tiên THẬT
+          if (!selectedEtrId) {
+            setSelectedEtrId(etrs[0]?.etrCourseRecordId ?? null);
           }
         }
         setTimeline(approvals);
@@ -34,6 +47,11 @@ const AuditorApprovalHistory = () => {
 
     loadData();
   }, [selectedEtrId]);
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(timeline, {
+    pageSize: 10,
+    resetKey: selectedEtrId,
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -54,11 +72,11 @@ const AuditorApprovalHistory = () => {
           <select
             className="search-input"
             style={{ width: '100%', background: '#ffffff' }}
-            value={selectedEtrId}
-            onChange={(e) => setSelectedEtrId(e.target.value)}
+            value={selectedEtrId ?? ''}
+            onChange={(e) => setSelectedEtrId(Number(e.target.value) || null)}
           >
             {etrList.map((item) => (
-              <option key={item.id} value={item.id}>
+              <option key={item.etrCourseRecordId} value={item.etrCourseRecordId}>
                 {item.id} - {item.learnerName} ({item.courseId})
               </option>
             ))}
@@ -113,7 +131,7 @@ const AuditorApprovalHistory = () => {
           <div className="empty-table-state">{trEn('Loading approval history...')}</div>
         ) : (
           <div className="approval-timeline">
-            {timeline.map((step) => (
+            {pageItems.map((step) => (
               <div key={step.stage || step.stepNumber} className="timeline-item">
                 <div className="timeline-dot">{step.stage || step.stepNumber}</div>
                 <div className="timeline-header">
@@ -133,6 +151,14 @@ const AuditorApprovalHistory = () => {
             ))}
           </div>
         )}
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
     </div>
   );

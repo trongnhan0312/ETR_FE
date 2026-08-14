@@ -1,14 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { fetchEtrById, fetchApprovals, fetchAuditLogs, exportPdf } from './auditorApi';
+import { fetchEtrById, fetchApprovals, fetchAuditLogs, fetchEtrList, exportPdf } from './auditorApi';
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
+
+// Trích số thật từ id — chấp nhận mọi định dạng: số thuần (891), "ETR-2026-0891", "#ETR-0891".
+const toNumericId = (value) => {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  return digits ? Number(digits) : null;
+};
 
 const AuditorETRDetails = () => {
   const { tr, trEn } = useLanguage();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const etrId = searchParams.get('id') || 'ETR-2026-0891';
+  // Lưu id dạng số (không đụng tới display "#ETR-xxxx") — nếu URL không có id hợp lệ,
+  // loadData sẽ tự chọn ETR đầu tiên thật từ danh sách thay vì id giả cứng.
+  const requestedEtrId = toNumericId(searchParams.get('id'));
 
   const [etr, setEtr] = useState(null);
   const [approvals, setApprovals] = useState([]);
@@ -17,6 +27,13 @@ const AuditorETRDetails = () => {
   const [exporting, setExporting] = useState(false);
 
   const [activeTab, setActiveTab] = useState('learner');
+
+  // Phân trang từng tab bảng (điểm danh / môn học / minh chứng / audit) — tối đa 5 nút trang
+  const attendancePager = usePagination(etr?.attendanceList ?? [], { pageSize: 10, resetKey: activeTab });
+  const subjectsPager = usePagination(etr?.subjects ?? [], { pageSize: 10, resetKey: activeTab });
+  const evidencePager = usePagination(etr?.evidences ?? [], { pageSize: 10, resetKey: activeTab });
+  const approvalsPager = usePagination(approvals, { pageSize: 10, resetKey: activeTab });
+  const auditPager = usePagination(auditLogs, { pageSize: 10, resetKey: activeTab });
 
   const tabs = [
     { key: 'learner', label: 'Learner Information' },
@@ -31,15 +48,34 @@ const AuditorETRDetails = () => {
     const loadData = async () => {
       setLoading(true);
       try {
+        // Không có id trong URL → mở hồ sơ ETR đầu tiên thật (thay vì id giả 'ETR-2026-0891'
+        // không tồn tại trong DB khiến trang treo "Loading..." vĩnh viễn).
+        let targetId = requestedEtrId;
+        if (!targetId) {
+          const etrs = await fetchEtrList();
+          const first = Array.isArray(etrs) ? etrs.find((e) => e.etrCourseRecordId) : null;
+          targetId = first?.etrCourseRecordId ?? null;
+          if (targetId == null) {
+            setLoading(false);
+            return;
+          }
+        }
+
         const [etrData, approvalsData, logsData] = await Promise.all([
-          fetchEtrById(etrId),
-          fetchApprovals(etrId),
+          fetchEtrById(targetId),
+          fetchApprovals(targetId),
           fetchAuditLogs(),
         ]);
 
         if (etrData) setEtr(etrData);
         if (Array.isArray(approvalsData)) setApprovals(approvalsData);
-        if (Array.isArray(logsData)) setAuditLogs(logsData);
+        // Chỉ hiển thị nhật ký của ĐÚNG hồ sơ này (BE trả về toàn bộ log hệ thống)
+        if (Array.isArray(logsData)) {
+          const filtered = logsData.filter(
+            (log) => log.etrCourseRecordId != null && log.etrCourseRecordId === etrData?.etrCourseRecordId,
+          );
+          setAuditLogs(filtered);
+        }
       } catch (err) {
         console.error('Error fetching ETR details:', err);
       } finally {
@@ -48,7 +84,7 @@ const AuditorETRDetails = () => {
     };
 
     loadData();
-  }, [etrId]);
+  }, [requestedEtrId]);
 
   // Toast notifications
   const toast = useToast();
@@ -56,7 +92,9 @@ const AuditorETRDetails = () => {
   const handleExportPdf = async () => {
     setExporting(true);
     try {
-      await exportPdf({ etrId, name: `${etrId}_Compliance_Dossier.pdf` });
+      // Truyền ĐÚNG id hồ sơ đang xem — trước đây exportPdf bỏ qua payload và luôn
+      // xuất "ETR Completed đầu tiên" nên file nhận được là hồ sơ của học viên khác.
+      await exportPdf({ etrCourseRecordId: etr.etrCourseRecordId, name: `${etr.id}_Compliance_Dossier.pdf` });
       toast.success(tr("Xuất PDF thành công"));
       navigate('/auditor/export-packages');
     } catch (err) {
@@ -67,10 +105,25 @@ const AuditorETRDetails = () => {
     }
   };
 
-  if (loading || !etr) {
+  if (loading) {
     return (
       <div className="table-card" style={{ padding: '40px', textAlign: 'center' }}>
-        <p style={{ color: '#002147', fontWeight: '600' }}>{trEn('Loading ETR compliance record')} {etrId}...</p>
+        <p style={{ color: '#002147', fontWeight: '600' }}>{trEn('Loading ETR compliance record')}...</p>
+      </div>
+    );
+  }
+
+  if (!etr) {
+    return (
+      <div className="table-card" style={{ padding: '40px', textAlign: 'center' }}>
+        <p style={{ color: '#002147', fontWeight: '600' }}>{trEn('No matching ETR record found. Please pick one from the list.')}</p>
+        <button
+          className="auditor-btn-sm"
+          style={{ marginTop: '12px' }}
+          onClick={() => navigate('/auditor/etrs')}
+        >
+          {trEn('Back to Locked ETR Records')}
+        </button>
       </div>
     );
   }
@@ -152,6 +205,18 @@ const AuditorETRDetails = () => {
               <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Class ID')}</div>
               <div style={{ fontSize: '15px', fontWeight: '600', color: '#002147', marginTop: '4px' }}>{etr.classId}</div>
             </div>
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #dfe6f1' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Submitted At')}</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: '#002147', marginTop: '4px' }}>{etr.submittedAt}</div>
+            </div>
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #dfe6f1' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Verified At')}</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: '#002147', marginTop: '4px' }}>{etr.verifiedAt}</div>
+            </div>
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #dfe6f1' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Completed At')}</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: '#c5a059', marginTop: '4px' }}>{etr.completedAt}</div>
+            </div>
           </div>
         </section>
       )}
@@ -172,7 +237,7 @@ const AuditorETRDetails = () => {
               <div>{trEn('Status')}</div>
             </div>
             <div className="table-body">
-              {etr.attendanceList?.map((att) => (
+              {attendancePager.pageItems.map((att) => (
                 <div key={att.session} className="table-row" style={{ display: 'grid', gridTemplateColumns: '80px 140px 1.8fr 120px 120px', padding: '14px 24px', gap: '12px' }}>
                   <div style={{ fontWeight: '700', color: '#c5a059' }}>{trEn('Session')} {att.session}</div>
                   <div>{att.date}</div>
@@ -184,6 +249,9 @@ const AuditorETRDetails = () => {
                 </div>
               ))}
             </div>
+          </div>
+          <div className="table-footer">
+            <Pagination page={attendancePager.page} pageCount={attendancePager.pageCount} onChange={attendancePager.setPage} total={attendancePager.total} pageSize={10} />
           </div>
         </section>
       )}
@@ -205,7 +273,7 @@ const AuditorETRDetails = () => {
               <div>{trEn('Instructor')}</div>
             </div>
             <div className="table-body">
-              {etr.subjects?.map((sub) => (
+              {subjectsPager.pageItems.map((sub) => (
                 <div key={sub.code} className="table-row" style={{ display: 'grid', gridTemplateColumns: '120px 2fr 100px 100px 120px 1.5fr', padding: '14px 24px', gap: '12px' }}>
                   <div style={{ fontWeight: '700', color: '#c5a059' }}>{sub.code}</div>
                   <div style={{ fontWeight: '600', color: '#002147' }}>{sub.name}</div>
@@ -218,6 +286,9 @@ const AuditorETRDetails = () => {
                 </div>
               ))}
             </div>
+          </div>
+          <div className="table-footer">
+            <Pagination page={subjectsPager.page} pageCount={subjectsPager.pageCount} onChange={subjectsPager.setPage} total={subjectsPager.total} pageSize={10} />
           </div>
         </section>
       )}
@@ -238,17 +309,20 @@ const AuditorETRDetails = () => {
               <div style={{ textAlign: 'right' }}>{trEn('SHA-256 Hash')}</div>
             </div>
             <div className="table-body">
-              {etr.evidences?.map((evd) => (
+              {evidencePager.pageItems.map((evd) => (
                 <div key={evd.id} className="table-row" style={{ display: 'grid', gridTemplateColumns: '130px 2fr 100px 150px 1.5fr 150px', padding: '14px 24px', gap: '12px' }}>
                   <div style={{ fontWeight: '700', color: '#c5a059' }}>{evd.id}</div>
                   <div style={{ fontWeight: '600', color: '#002147' }}>{evd.name}</div>
                   <div>{evd.size}</div>
                   <div>{evd.uploadedAt}</div>
-                  <div>{evd.uploadedByAccountId ? `#${evd.uploadedByAccountId}` : '—'}</div>
+                  <div>{evd.uploadedBy || '—'}</div>
                   <div style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '10px', color: '#16a34a' }}>{trEn('VERIFIED MATCH')}</div>
                 </div>
               ))}
             </div>
+          </div>
+          <div className="table-footer">
+            <Pagination page={evidencePager.page} pageCount={evidencePager.pageCount} onChange={evidencePager.setPage} total={evidencePager.total} pageSize={10} />
           </div>
         </section>
       )}
@@ -258,7 +332,7 @@ const AuditorETRDetails = () => {
         <section className="table-card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#002147', marginTop: 0, marginBottom: '20px' }}>{trEn('Approval Workflow Timeline')}</h2>
           <div className="approval-timeline">
-            {approvals.map((item) => (
+            {approvalsPager.pageItems.map((item) => (
               <div key={item.stage || item.stepNumber} className="timeline-item">
                 <div className="timeline-dot">{item.stage || item.stepNumber}</div>
                 <div className="timeline-header">
@@ -271,6 +345,7 @@ const AuditorETRDetails = () => {
               </div>
             ))}
           </div>
+          <Pagination page={approvalsPager.page} pageCount={approvalsPager.pageCount} onChange={approvalsPager.setPage} total={approvalsPager.total} pageSize={10} />
         </section>
       )}
 
@@ -290,7 +365,7 @@ const AuditorETRDetails = () => {
               <div>{trEn('Result')}</div>
             </div>
             <div className="table-body">
-              {auditLogs.map((log) => (
+              {auditPager.pageItems.map((log) => (
                 <div key={log.id} className="table-row" style={{ display: 'grid', gridTemplateColumns: '160px 1.5fr 120px 150px 2fr 110px', padding: '14px 24px', gap: '12px' }}>
                   <div>{log.timestamp}</div>
                   <div style={{ fontWeight: '600', color: '#002147' }}>{log.user}</div>
@@ -303,6 +378,9 @@ const AuditorETRDetails = () => {
                 </div>
               ))}
             </div>
+          </div>
+          <div className="table-footer">
+            <Pagination page={auditPager.page} pageCount={auditPager.pageCount} onChange={auditPager.setPage} total={auditPager.total} pageSize={10} />
           </div>
         </section>
       )}

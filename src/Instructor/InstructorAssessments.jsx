@@ -4,10 +4,39 @@ import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
+import PromptModal from "../components/PromptModal";
 import ExcelPreviewTable from "../components/ExcelPreviewTable";
 import { parseExcelPreview } from "../utils/excelPreview";
+import { protectExcelTemplate } from "../utils/excelTemplateProtect";
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
+
+// Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login) —
+// giống hệt InstructorAttendance, dùng để lọc "môn mình được phân công" (Sân nhà ai nấy đá).
+const getCurrentAccountId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.accountId ?? user.userId ?? null;
+  } catch {
+    return null;
+  }
+};
+
+// Lớp ĐÃ KẾT THÚC / BỊ HỦY → ETR học viên thường đã Completed/Locked → BE chặn mọi thay đổi
+// điểm (ImmutabilityValidator: "Cannot modify ... because the related ETRCourseRecord is
+// Completed or Locked"). Giống hệt InstructorAttendance.
+const isLockedStatus = (status) => {
+  const st = String(status || "").toLowerCase();
+  return (
+    st === "completed" ||
+    st === "đã kết thúc" ||
+    st === "cancelled" ||
+    st === "đã hủy" ||
+    st === "closed"
+  );
+};
 
 const InstructorAssessments = () => {
   const { tr, trt } = useLanguage();
@@ -17,6 +46,10 @@ const InstructorAssessments = () => {
   const [subjectFilter, setSubjectFilter] = useState(""); // "" = tất cả môn
   const [assessmentsForClass, setAssessmentsForClass] = useState([]);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
+  // Trạng thái phân công giảng viên theo môn của lớp đang chọn — để hiển thị đúng thông báo
+  // khi giảng viên không được phân công môn nào (thay vì nhầm tưởng "chưa có Assessment").
+  const [classHasAssignments, setClassHasAssignments] = useState(false);
+  const [myAssignedSubjectCount, setMyAssignedSubjectCount] = useState(0);
 
   // Grading sheets state
   const [selectedAssessmentType, setSelectedAssessmentType] =
@@ -45,11 +78,29 @@ const InstructorAssessments = () => {
   const [confirmSignoffOpen, setConfirmSignoffOpen] = useState(false);
   const [eligibilityList, setEligibilityList] = useState([]); // per-student 4-rule signoff eligibility
 
+  // Yêu cầu mở khóa SubjectResult đã ký/chốt — POST /api/SubjectSignoff/{subjectResultId}/unlock-request
+  // (BE tạo Amendment Request, Training Manager duyệt qua /api/Amendments/{id}/approve)
+  const [unlockTarget, setUnlockTarget] = useState(null); // student đang xin mở khóa
+  const [unlockSubmitting, setUnlockSubmitting] = useState(false);
+
   // PassingScore threshold used for subject signoff theory check
   const SIGNOFF_ATTENDANCE_THRESHOLD = 80;
 
   // Toast notifications
   const toast = useToast();
+
+  // File Excel đang được stage trong modal import (đã upload, chưa bỏ đi) → khóa sửa
+  // điểm + nhận xét (giống hệt màn Điểm danh). Chỉ mở khóa khi bỏ file đi (nút ×).
+  const fileStaged = importFile !== null;
+
+  // Nhãn trạng thái lớp hiển thị trong dropdown chọn lớp (giống hệt InstructorAttendance)
+  const getClassStatusLabel = (status) => {
+    const st = String(status || "").toLowerCase();
+    if (st === "completed" || st === "đã kết thúc") return tr("Đã kết thúc");
+    if (st === "cancelled" || st === "đã hủy") return tr("Đã hủy");
+    if (st === "scheduled" || st === "planned") return tr("Chưa bắt đầu");
+    return tr("Đang diễn ra");
+  };
 
   // Remarks note modal state
   const [assessmentsList, setAssessmentsList] = useState([]);
@@ -105,6 +156,11 @@ const InstructorAssessments = () => {
             status: cls.status || tr("Đang diễn ra"),
             subjectId: cls.subjectId || 1,
             courseId: course ? course.courseId : (cls.courseId ?? null),
+            // Giữ nguyên danh sách phân công giảng viên theo môn của lớp (từ BE) —
+            // dùng để chỉ hiển thị assessment của môn mình được phân công (như Attendance).
+            assignments: Array.isArray(cls.instructorAssignments)
+              ? cls.instructorAssignments
+              : [],
           };
         });
         setClassesData(mapped);
@@ -132,9 +188,34 @@ const InstructorAssessments = () => {
       try {
         const classId = parseInt(selectedClassId);
         const apiSessions = await api.get("/sessions").catch(() => []);
-        const classSessions = (Array.isArray(apiSessions) ? apiSessions : []).filter(
-          (s) => Number(s.classId) === classId,
+
+        // "Sân nhà ai nấy đá" — logic GIỐNG HỆT InstructorAttendance: 1 lớp có thể có nhiều môn,
+        // mỗi môn do 1 giảng viên phụ trách (ClassSubject.InstructorAccountId). Chỉ hiển thị
+        // buổi/assessment của các môn mà giảng viên hiện tại được phân công — nếu không giảng
+        // viên sẽ thấy buổi của môn khác và bị BE từ chối 403 ở bước lưu điểm ("không được
+        // phân công giảng dạy môn này trong lớp").
+        const currentAccountId = getCurrentAccountId();
+        const selectedClassInfo = classesData.find(
+          (c) => c.classId === classId,
         );
+        const mySubjectIds = new Set(
+          (selectedClassInfo?.assignments || [])
+            .filter(
+              (a) =>
+                a.instructorAccountId != null &&
+                currentAccountId != null &&
+                String(a.instructorAccountId) === String(currentAccountId),
+            )
+            .map((a) => a.subjectId),
+        );
+        const classHasAssignments =
+          (selectedClassInfo?.assignments || []).length > 0;
+
+        const classSessions = (Array.isArray(apiSessions) ? apiSessions : [])
+          .filter((s) => Number(s.classId) === classId)
+          .filter((s) => mySubjectIds.has(s.subjectId));
+        setClassHasAssignments(classHasAssignments);
+        setMyAssignedSubjectCount(mySubjectIds.size);
 
         // Assessments/Checklists signed to sessions of this class — MỖI (buổi, đánh giá) là 1 dòng riêng.
         // Tự động nhận diện Assessment Type từ buổi đã tạo: có bài kiểm tra (assessmentId) và/hoặc bảng
@@ -197,7 +278,7 @@ const InstructorAssessments = () => {
       }
     };
     fetchAssessmentsForClass();
-  }, [selectedClassId, assessmentsList]);
+  }, [selectedClassId, assessmentsList, classesData]);
 
   // Load students of selected class
   const loadStudents = async () => {
@@ -651,6 +732,7 @@ const InstructorAssessments = () => {
   };
 
   const handleScoreChange = (enrollmentId, value, field = "assessment") => {
+    if (fileStaged) return; // Đang có file import → khóa sửa điểm
     const scoreVal =
       value === "" ? "" : Math.min(100, Math.max(0, parseFloat(value) || 0));
     setEditingScores((prev) =>
@@ -666,6 +748,7 @@ const InstructorAssessments = () => {
   };
 
   const handleCommentChange = (enrollmentId, value, field = "assessment") => {
+    if (fileStaged) return; // Đang có file import → khóa sửa nhận xét
     setEditingScores((prev) =>
       prev.map((s) => {
         if (s.enrollmentId !== enrollmentId || s.isPublished) {
@@ -1027,6 +1110,34 @@ const InstructorAssessments = () => {
     }
   };
 
+  // Xin mở khóa SubjectResult đã chốt để sửa điểm — khớp SubjectSignoffController BE:
+  // POST /api/SubjectSignoff/{subjectResultId}/unlock-request { reason } → tạo Amendment
+  // Request chờ Training Manager duyệt. Chỉ Instructor/Admin mới được gọi (method-level Authorize).
+  const handleRequestUnlock = async (reason) => {
+    if (!unlockTarget || unlockSubmitting) return;
+    if (!reason || !reason.trim()) {
+      toast.error(tr("Vui lòng nhập lý do mở khóa."));
+      return;
+    }
+    setUnlockSubmitting(true);
+    try {
+      await api.post(
+        `/SubjectSignoff/${unlockTarget.subjectResultId}/unlock-request`,
+        { reason: reason.trim() },
+      );
+      toast.success(tr("Đã gửi yêu cầu mở khóa cho Training Manager!"));
+      setUnlockTarget(null);
+      if (selectedAssessment) {
+        loadAssessmentScores(selectedAssessment, selectedAssessmentType);
+      }
+    } catch (err) {
+      console.error("Lỗi gửi yêu cầu mở khóa:", err);
+      toast.error(tr("Gửi yêu cầu mở khóa thất bại!"));
+    } finally {
+      setUnlockSubmitting(false);
+    }
+  };
+
   const handlePublishScores = async () => {
     if (allPublished) return;
 
@@ -1354,7 +1465,38 @@ const InstructorAssessments = () => {
       ];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Nhập điểm");
-      XLSX.writeFile(wb, `assessment_${selectedAssessment.assessmentId}.xlsx`);
+
+      // ── Bảo vệ template: chỉ cho phép sửa cột E (Điểm) và F (Ghi chú) ──
+      // Các cột A/B/C/D (AccountId, Họ và tên, Mã học viên, SubjectResultId) + 3 dòng
+      // tiêu đề giữ locked mặc định → bật bảo vệ sheet là toàn bộ phần còn lại bị khóa.
+      // Giống hệt template Điểm danh (dùng chung protectExcelTemplate) — điểm là số
+      // nên không cần dropdown như cột Trạng thái của attendance.
+      const firstDataRow = 4;
+      const lastDataRow = 3 + studentScores.length;
+      const outB64 = protectExcelTemplate(
+        XLSX.write(wb, { type: "base64", bookType: "xlsx" }),
+        {
+          firstDataRow,
+          lastDataRow,
+          unlockColumns: ["E", "F"],
+        },
+      );
+
+      // Tải file xlsx (đã bảo vệ) xuống
+      const bin = atob(outB64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `assessment_${selectedAssessment.assessmentId}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast.success(tr("Tải template thành công!"));
     } catch (err) {
@@ -1510,6 +1652,11 @@ const InstructorAssessments = () => {
   // Grading Spreadsheet View
   if (selectedAssessment) {
     const displayScores = isEditingScores ? editingScores : studentScores;
+
+    const scorePager = usePagination(displayScores, {
+      pageSize: 10,
+      resetKey: selectedAssessment?.sessionId,
+    });
 
     // Hình thức đánh giá buổi này THỰC SỰ có: lý thuyết (assessmentId) và/hoặc
     // thực hành (practicalChecklistId) — dùng để khoá dropdown chỉ cho nhập bài tồn tại.
@@ -1685,7 +1832,8 @@ const InstructorAssessments = () => {
             <button
               onClick={() => {
                 setImportModalOpen(true);
-                setImportFile(null);
+                // GIỮ file đã upload (không reset importFile) để nút "Gỡ file" còn hiển thị
+                // khi mở lại modal — người dùng có thể gỡ file cũ để chọn file khác.
                 setImportResult(null);
                 setImportError("");
               }}
@@ -1900,7 +2048,7 @@ const InstructorAssessments = () => {
                 {tr('Đang tải bảng điểm...')}
               </div>
             ) : (
-              displayScores.map((student, idx) => (
+              scorePager.pageItems.map((student, idx) => (
                 <div
                   key={student.enrollmentId ?? student.code}
                   className="table-row"
@@ -2009,7 +2157,7 @@ const InstructorAssessments = () => {
                               min="0"
                               max="100"
                               value={student.assessmentScore}
-                              disabled={student.isPublished}
+                              disabled={student.isPublished || fileStaged}
                               onChange={(e) =>
                                 handleScoreChange(
                                   student.enrollmentId,
@@ -2023,6 +2171,7 @@ const InstructorAssessments = () => {
                                 border: "1px solid #d9e1ec",
                                 borderRadius: "8px",
                                 textAlign: "center",
+                                opacity: fileStaged ? 0.55 : 1,
                                 fontSize: "13px",
                                 fontWeight: "700",
                                 color: student.isPublished
@@ -2063,7 +2212,7 @@ const InstructorAssessments = () => {
                               min="0"
                               max="100"
                               value={student.practicalScore}
-                              disabled={student.isPublished}
+                              disabled={student.isPublished || fileStaged}
                               onChange={(e) =>
                                 handleScoreChange(
                                   student.enrollmentId,
@@ -2077,6 +2226,7 @@ const InstructorAssessments = () => {
                                 border: "1px solid #d9e1ec",
                                 borderRadius: "8px",
                                 textAlign: "center",
+                                opacity: fileStaged ? 0.55 : 1,
                                 fontSize: "13px",
                                 fontWeight: "700",
                                 color: student.isPublished
@@ -2163,7 +2313,7 @@ const InstructorAssessments = () => {
                           <input
                             type="text"
                             value={student.assessmentComment}
-                            disabled={student.isPublished}
+                            disabled={student.isPublished || fileStaged}
                             onChange={(e) =>
                               handleCommentChange(
                                 student.enrollmentId,
@@ -2182,6 +2332,7 @@ const InstructorAssessments = () => {
                               border: "1px solid #d9e1ec",
                               borderRadius: "8px",
                               fontSize: "12px",
+                              opacity: fileStaged ? 0.55 : 1,
                               color: student.isPublished
                                 ? "#94a3b8"
                                 : "#17314f",
@@ -2200,7 +2351,7 @@ const InstructorAssessments = () => {
                           <input
                             type="text"
                             value={student.practicalComment}
-                            disabled={student.isPublished}
+                            disabled={student.isPublished || fileStaged}
                             onChange={(e) =>
                               handleCommentChange(
                                 student.enrollmentId,
@@ -2219,6 +2370,7 @@ const InstructorAssessments = () => {
                               border: "1px solid #d9e1ec",
                               borderRadius: "8px",
                               fontSize: "12px",
+                              opacity: fileStaged ? 0.55 : 1,
                               color: student.isPublished
                                 ? "#94a3b8"
                                 : "#17314f",
@@ -2282,7 +2434,7 @@ const InstructorAssessments = () => {
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: "4px",
+                          gap: "6px",
                           fontSize: "11px",
                           fontWeight: "700",
                           color: "#be123c",
@@ -2307,6 +2459,29 @@ const InstructorAssessments = () => {
                           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
                         {tr('Khóa')}
+                        {student.subjectResultId && (
+                          <button
+                            type="button"
+                            title={tr(
+                              "Xin mở khóa để sửa điểm — Training Manager sẽ duyệt qua Yêu cầu mở khóa",
+                            )}
+                            onClick={() => setUnlockTarget(student)}
+                            style={{
+                              marginLeft: "4px",
+                              padding: "3px 7px",
+                              borderRadius: "6px",
+                              border: "1px solid #fecaca",
+                              background: "#fff5f5",
+                              color: "#be123c",
+                              fontSize: "10px",
+                              fontWeight: "700",
+                              cursor: "pointer",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            🔓 {tr("Mở khóa")}
+                          </button>
+                        )}
                       </span>
                     ) : (
                       <span
@@ -2326,6 +2501,16 @@ const InstructorAssessments = () => {
                 </div>
               ))
             )}
+          </div>
+
+          <div className="table-footer">
+            <Pagination
+              page={scorePager.page}
+              pageCount={scorePager.pageCount}
+              onChange={scorePager.setPage}
+              total={scorePager.total}
+              pageSize={10}
+            />
           </div>
         </section>
 
@@ -2664,6 +2849,12 @@ const InstructorAssessments = () => {
                       >
                         {tr("Đã nhập")}: {importResult.imported} ·{" "}
                         {tr("Bỏ qua")}: {importResult.skipped}
+                        {typeof importResult.updated === "number" &&
+                          importResult.updated > 0 && (
+                            <>
+                              {" "}· {tr("Đã cập nhật")}: {importResult.updated}
+                            </>
+                          )}
                         {Array.isArray(importResult.errors) &&
                           importResult.errors.length > 0 && (
                             <div style={{ marginTop: "8px" }}>
@@ -2709,6 +2900,21 @@ const InstructorAssessments = () => {
           cancelText={tr("HỦY BỎ")}
           confirmVariant="danger"
           loading={publishing}
+        />
+
+        {/* Modal xin mở khóa điểm đã chốt (POST /api/SubjectSignoff/{id}/unlock-request) */}
+        <PromptModal
+          isOpen={!!unlockTarget}
+          onClose={() => setUnlockTarget(null)}
+          onConfirm={handleRequestUnlock}
+          title={`${tr("Xin mở khóa để sửa điểm")} — ${unlockTarget?.name || ""} (SR #${unlockTarget?.subjectResultId ?? ""})`}
+          message={tr(
+            "Điểm đã chốt không sửa trực tiếp được. Gửi yêu cầu mở khóa cho Training Manager — khi được duyệt, SubjectResult về Pending để bạn chỉnh sửa và ký lại.",
+          )}
+          placeholder={tr("Nhập lý do mở khóa...")}
+          confirmText={tr("GỬI YÊU CẦU")}
+          cancelText={tr("HỦY BỎ")}
+          variant="gold"
         />
       </div>
     );
@@ -2769,7 +2975,8 @@ const InstructorAssessments = () => {
         >
           {classesData.map((c) => (
             <option key={c.classId} value={c.classId}>
-              {c.name} ({c.code})
+              {isLockedStatus(c.status) ? "🔒 " : ""}
+              {c.name} ({c.code}) — {getClassStatusLabel(c.status)}
             </option>
           ))}
         </select>
@@ -2835,9 +3042,35 @@ const InstructorAssessments = () => {
                 {tr('Đang tải danh sách Assessment...')}
               </div>
             ) : assessmentsForClass.length === 0 ? (
-              <div style={{ color: "rgba(0,33,71,0.5)", fontStyle: "italic" }}>
-                {tr('Chưa có Assessment nào được tạo cho môn học này.')}
-              </div>
+              classHasAssignments && myAssignedSubjectCount === 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                    padding: "12px 18px",
+                    background: "#fffbeb",
+                    border: "1px solid #fde68a",
+                    borderLeft: "4px solid #f59e0b",
+                    borderRadius: "10px",
+                    fontSize: "12px",
+                    color: "#92400e",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <span style={{ fontSize: "16px", lineHeight: 1 }}>⚠️</span>
+                  <div>
+                    <strong>{tr("Bạn chưa được phân công giảng dạy môn nào trong lớp này.")}</strong>{" "}
+                    {tr(
+                      "Lớp đã phân công giảng viên theo môn học nhưng không có môn nào thuộc về tài khoản của bạn. Hãy liên hệ Academic để được phân công đúng môn.",
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ color: "rgba(0,33,71,0.5)", fontStyle: "italic" }}>
+                  {tr('Chưa có Assessment nào được tạo cho môn học này.')}
+                </div>
+              )
             ) : (
               <div
                 style={{

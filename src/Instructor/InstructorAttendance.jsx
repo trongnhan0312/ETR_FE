@@ -6,6 +6,9 @@ import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import ExcelPreviewTable from "../components/ExcelPreviewTable";
 import { parseExcelPreview } from "../utils/excelPreview";
+import { protectExcelTemplate } from "../utils/excelTemplateProtect";
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 import { useLanguage } from "../context/LanguageContext";
 import "./instructor.scss";
 
@@ -69,6 +72,11 @@ const InstructorAttendance = () => {
   const [importError, setImportError] = useState("");
   const [excelPreview, setExcelPreview] = useState(null); // { headers, rows } để xem trước dữ liệu
   const toast = useToast();
+
+  // File Excel đang được stage trong modal import (đã upload, chưa bỏ đi) → khóa sửa tay
+  // (chọn P/A, ghi Note) trên bảng điểm danh để tránh chỉnh tay mâu thuẫn với dữ liệu file.
+  // Chỉ mở khóa lại khi bỏ file đi (nút × trong modal) — theo yêu cầu sản phẩm.
+  const fileStaged = importFile !== null;
 
   // Load all assigned classes on mount
   useEffect(() => {
@@ -266,7 +274,7 @@ const InstructorAttendance = () => {
   };
 
   const handleToggleStatus = (code, status) => {
-    if (isConfirmed) return; // Locked
+    if (isConfirmed || fileStaged) return; // Buổi đã chốt / đang có file import
     setSessionAttendance((prev) =>
       prev.map((s) => (s.code === code ? { ...s, status } : s)),
     );
@@ -363,6 +371,33 @@ const InstructorAttendance = () => {
     return classesData.find((c) => c.classId === parseInt(selectedClassId));
   }, [classesData, selectedClassId]);
 
+  // Lớp ĐÃ KẾT THÚC / BỊ HỦY → ETR học viên thường đã Completed/Locked → BE chặn mọi thay đổi
+  // điểm danh (ImmutabilityValidator: "Cannot modify ... because the related ETRCourseRecord
+  // is Completed or Locked"). Hiển thị cảnh báo, KHÔNG khóa cứng nút — vì sau khi dữ liệu/trạng
+  // thái được sửa (lớp mở lại / ETR mở khóa) luồng import phải chạy được ngay.
+  // Lớp đã kết thúc/hủy → ETR học viên thường đã Completed/Locked → BE chặn ghi điểm danh
+  const isLockedStatus = (status) => {
+    const st = String(status || "").toLowerCase();
+    return (
+      st === "completed" ||
+      st === "đã kết thúc" ||
+      st === "cancelled" ||
+      st === "đã hủy" ||
+      st === "closed"
+    );
+  };
+
+  const isClassClosed = isLockedStatus(selectedClass?.status);
+
+  // Nhãn trạng thái lớp hiển thị trong dropdown chọn lớp
+  const getClassStatusLabel = (status) => {
+    const st = String(status || "").toLowerCase();
+    if (st === "completed" || st === "đã kết thúc") return tr("Đã kết thúc");
+    if (st === "cancelled" || st === "đã hủy") return tr("Đã hủy");
+    if (st === "scheduled" || st === "planned") return tr("Chưa bắt đầu");
+    return tr("Đang diễn ra");
+  };
+
   // Lấy tên môn học từ subjectId của buổi — để phân biệt các buổi trùng tên
   // (mỗi môn trong lớp sinh ra bộ buổi "Session 1", "Session 2"... giống nhau).
   const getSubjectName = (subjectId) => {
@@ -373,7 +408,7 @@ const InstructorAttendance = () => {
   // ── Import Excel (Bulk Import) — khớp ImportController BE ────────────────
   // GET  /import/attendance/template?sessionId=  → file xlsx (pre-fill học viên)
   // POST /import/attendance/validate?sessionId=  → ImportValidationResult { totalRows, validRows, errorRows, canCommit, errors[] }
-  // POST /import/attendance/commit?sessionId=    → ImportCommitResult { imported, skipped, errors[] }
+  // POST /import/attendance/commit?sessionId=    → ImportCommitResult { imported, skipped, updated, errors[] }
   const handleDownloadTemplate = async () => {
     setImportError("");
     try {
@@ -427,7 +462,42 @@ const InstructorAttendance = () => {
       ws["!cols"] = [{ wch: 14 }, { wch: 28 }, { wch: 14 }, { wch: 26 }, { wch: 20 }];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Điểm danh");
-      XLSX.writeFile(wb, `attendance_session_${selectedSession.sessionId}.xlsx`);
+
+      // ── Bảo vệ template: chỉ cho phép sửa cột D (Trạng thái) và E (Ghi chú) ──
+      // Các cột A/B/C (EnrollmentId, Họ và tên, Mã học viên) + 3 dòng tiêu đề giữ
+      // locked mặc định → bật bảo vệ sheet là toàn bộ phần còn lại bị khóa.
+      // Cột D thành dropdown Present/Absent ("tích chọn") — SheetJS community
+      // không ghi được checkbox thật và checkbox Excel lưu TRUE/FALSE chứ không
+      // lưu text "Present"/"Absent" (BE import đọc text) nên dùng data-validation.
+      // Vì SheetJS 0.18.5 không ghi được protect/validation → tự chèn XML qua CFB.
+      const firstDataRow = 4;
+      const lastDataRow = 3 + students.length;
+      const outB64 = protectExcelTemplate(
+        XLSX.write(wb, { type: "base64", bookType: "xlsx" }),
+        {
+          firstDataRow,
+          lastDataRow,
+          // Chỉ cột D (Trạng thái) + E (Ghi chú) được sửa; cột D có dropdown Present/Absent
+          unlockColumns: ["D", "E"],
+          dropdowns: [{ col: "D", values: ["Present", "Absent"] }],
+        },
+      );
+
+      // Tải file xlsx (đã bảo vệ) xuống
+      const bin = atob(outB64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `attendance_session_${selectedSession.sessionId}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast.success(tr("Tải template thành công!"));
     } catch (err) {
@@ -533,7 +603,34 @@ const InstructorAttendance = () => {
         // Phòng trường hợp BE không đọc được DÒNG nào (file sai cấu trúc template,
         // thiếu/đổi cột EnrollmentId...) — import báo "thành công" nhưng KHÔNG ghi gì,
         // nên bảng không hề thay đổi theo file. Báo rõ để user biết thay vì im lặng.
-        if (typeof result?.imported === "number" && result.imported === 0) {
+        // (Chú ý: BE mới re-import file điểm danh = UPSERT — nếu file chỉ CẬP NHẬT bản
+        // ghi đã có thì imported == 0 nhưng updated > 0 → VẪN là thành công. Nếu BE
+        // chưa trả `updated`, dựa vào dữ liệu file đã parse client-side để phân biệt.)
+        const updatedCount =
+          typeof result?.updated === "number" ? result.updated : null;
+        const fileHasDataRows = (() => {
+          if (
+            !excelPreview ||
+            !Array.isArray(excelPreview.headers) ||
+            !Array.isArray(excelPreview.rows)
+          )
+            return false;
+          const colEnrollment = excelPreview.headers.findIndex((h) =>
+            /enrollmentid|enrollment/i.test(String(h)),
+          );
+          if (colEnrollment < 0) return false;
+          return excelPreview.rows.some((r) => {
+            const v = r?.[colEnrollment];
+            return (
+              v !== "" && v != null && !Number.isNaN(parseInt(String(v), 10))
+            );
+          });
+        })();
+        const nothingImported =
+          typeof result?.imported === "number" &&
+          result.imported === 0 &&
+          (updatedCount === null ? !fileHasDataRows : updatedCount === 0);
+        if (nothingImported) {
           toast.warning(
             tr(
               "File không có dòng dữ liệu hợp lệ nào được import. Vui lòng dùng lại template tải từ hệ thống.",
@@ -600,6 +697,15 @@ const InstructorAttendance = () => {
     return sessions.filter((s) => String(s.subjectId) === subjectFilter);
   }, [sessions, subjectFilter]);
 
+  const sessionPager = usePagination(visibleSessions, {
+    pageSize: 10,
+    resetKey: subjectFilter,
+  });
+
+  const attendanceSheetPager = usePagination(sessionAttendance, {
+    pageSize: 10,
+  });
+
   // Attendance Sheet View
   if (selectedSession) {
     return (
@@ -621,6 +727,33 @@ const InstructorAttendance = () => {
           <span className="breadcrumb-item active">{tr(selectedSession.name)}</span>
         </nav>
 
+        {/* Cảnh báo: lớp đã kết thúc/hủy — BE chặn ghi điểm danh (ETR học viên đã khóa) */}
+        {isClassClosed && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "10px",
+              padding: "12px 18px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderLeft: "4px solid #ef4444",
+              borderRadius: "10px",
+              fontSize: "12px",
+              color: "#991b1b",
+              lineHeight: 1.5,
+            }}
+          >
+            <span style={{ fontSize: "16px", lineHeight: 1 }}>⚠️</span>
+            <div>
+              <strong>{tr("Lớp học đã kết thúc / bị hủy")}.</strong>{" "}
+              {tr(
+                "Nếu hồ sơ ETR của học viên đã hoàn tất và bị khóa, hệ thống sẽ từ chối khi lưu / chốt / import điểm danh cho các buổi của lớp này. Hãy kiểm tra trạng thái lớp và ETR của học viên.",
+              )}
+            </div>
+          </div>
+        )}
+
         <section className="content-header">
           <div className="header-left">
             <h1>
@@ -637,7 +770,9 @@ const InstructorAttendance = () => {
             <button
               onClick={() => {
                 setImportModalOpen(true);
-                setImportFile(null);
+                // GIỮ file đã upload (không reset importFile) để nút "Gỡ file" còn hiển thị
+                // khi mở lại modal — sau khi import thành công bảng đang khóa P/A + Note,
+                // user phải gỡ file (nút Gỡ file) mới mở khóa được.
                 setImportResult(null);
                 setImportError("");
               }}
@@ -752,7 +887,7 @@ const InstructorAttendance = () => {
           </div>
 
           <div className="table-body">
-            {sessionAttendance.map((student, idx) => (
+            {attendanceSheetPager.pageItems.map((student, idx) => (
               <div
                 key={student.code}
                 className="table-row"
@@ -806,9 +941,10 @@ const InstructorAttendance = () => {
                           handleToggleStatus(student.code, st.value)
                         }
                         className={`status-${st.value.toLowerCase()}${student.status === st.value ? " active" : ""}`}
-                        disabled={isConfirmed}
+                        disabled={isConfirmed || fileStaged}
                         style={{
-                          cursor: isConfirmed ? "not-allowed" : "pointer",
+                          cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
+                          opacity: fileStaged ? 0.5 : 1,
                         }}
                       >
                         {st.short}
@@ -831,6 +967,7 @@ const InstructorAttendance = () => {
                       setRemarkModalStudent(student);
                       setRemarkText(student.remarks || "");
                     }}
+                    disabled={isConfirmed || fileStaged}
                     style={{
                       padding: "5px 12px",
                       borderRadius: "6px",
@@ -839,7 +976,8 @@ const InstructorAttendance = () => {
                       border: "1px solid #dfe6f1",
                       backgroundColor: student.remarks ? "#fffbeb" : "#f8fafc",
                       color: student.remarks ? "#d97706" : "#64748b",
-                      cursor: "pointer",
+                      cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
+                      opacity: fileStaged ? 0.5 : 1,
                       display: "inline-flex",
                       alignItems: "center",
                       gap: "4px",
@@ -934,6 +1072,16 @@ const InstructorAttendance = () => {
               </div>
             ))}
           </div>
+
+          <div className="table-footer">
+            <Pagination
+              page={attendanceSheetPager.page}
+              pageCount={attendanceSheetPager.pageCount}
+              onChange={attendanceSheetPager.setPage}
+              total={attendanceSheetPager.total}
+              pageSize={10}
+            />
+          </div>
         </section>
 
         {/* Remarks Custom Modal Overlay */}
@@ -988,7 +1136,7 @@ const InstructorAttendance = () => {
                   <textarea
                     value={remarkText}
                     onChange={(e) => setRemarkText(e.target.value)}
-                    disabled={isConfirmed}
+                    disabled={isConfirmed || fileStaged}
                     placeholder={tr("Nhập ghi chú nhận xét về học viên...")}
                     style={{
                       width: "100%",
@@ -1026,7 +1174,7 @@ const InstructorAttendance = () => {
                     </button>
                     <button
                       onClick={() => {
-                        if (!isConfirmed) {
+                        if (!isConfirmed && !fileStaged) {
                           setSessionAttendance((prev) =>
                             prev.map((s) =>
                               s.code === remarkModalStudent.code
@@ -1393,6 +1541,12 @@ const InstructorAttendance = () => {
                       >
                         {tr("Đã nhập")}: {importResult.imported} ·{" "}
                         {tr("Bỏ qua")}: {importResult.skipped}
+                        {typeof importResult.updated === "number" &&
+                          importResult.updated > 0 && (
+                            <>
+                              {" "}· {tr("Đã cập nhật")}: {importResult.updated}
+                            </>
+                          )}
                         {Array.isArray(importResult.errors) &&
                           importResult.errors.length > 0 && (
                             <div style={{ marginTop: "8px" }}>
@@ -1488,7 +1642,8 @@ const InstructorAttendance = () => {
         >
           {classesData.map((c) => (
             <option key={c.classId} value={c.classId}>
-              {c.name} ({c.code})
+              {isLockedStatus(c.status) ? "🔒 " : ""}
+              {c.name} ({c.code}) — {getClassStatusLabel(c.status)}
             </option>
           ))}
         </select>
@@ -1569,7 +1724,7 @@ const InstructorAttendance = () => {
               {tr("Không tìm thấy buổi học nào cho lớp học hiện tại.")}
             </div>
           ) : (
-            visibleSessions.map((session) => (
+            sessionPager.pageItems.map((session) => (
               <div
                 key={session.sessionId}
                 className="table-row"
@@ -1668,6 +1823,16 @@ const InstructorAttendance = () => {
               </div>
             ))
           )}
+        </div>
+
+        <div className="table-footer">
+          <Pagination
+            page={sessionPager.page}
+            pageCount={sessionPager.pageCount}
+            onChange={sessionPager.setPage}
+            total={sessionPager.total}
+            pageSize={10}
+          />
         </div>
       </section>
     </div>

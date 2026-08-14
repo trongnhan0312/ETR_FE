@@ -4,6 +4,8 @@ import { useOutletContext } from "react-router-dom";
 import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 import "./training-manager.scss";
 
 const ClassStatus = () => {
@@ -92,7 +94,8 @@ const ClassStatus = () => {
       const profArr = Array.isArray(profileData) ? profileData : [];
       setRawClasses(clsArr);
 
-      const mapped = clsArr.slice(0, 10).map((cls) => {
+      // Toàn bộ lớp (không slice) — phân trang xử lý hiển thị tối đa 10 dòng/trang
+      const mapped = clsArr.map((cls) => {
         const classEnrollments = enrArr.filter((e) => e.classId === cls.classId);
         const instructors = profArr.filter((p) =>
           classEnrollments.some((e) => e.accountId === p.accountId)
@@ -142,6 +145,11 @@ const ClassStatus = () => {
     const matchesStatus = statusFilter === "ALL" || cls.status === statusFilter;
 
     return matchesSearch && matchesStatus;
+  });
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredClasses, {
+    pageSize: 10,
+    resetKey: `${searchQuery}|${statusFilter}`,
   });
 
   // Dynamic card counts for main dashboard
@@ -356,6 +364,11 @@ const ClassStatus = () => {
         s.name.toLowerCase().includes(attendanceSearchQuery.toLowerCase()) ||
         s.code.toLowerCase().includes(attendanceSearchQuery.toLowerCase()),
     );
+
+    const studentPager = usePagination(filteredStudents, {
+      pageSize: 10,
+      resetKey: `${classId}|${attendanceSearchQuery}`,
+    });
 
     // Calculate metrics dynamically
     const avgAttendance =
@@ -638,8 +651,8 @@ const ClassStatus = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#dee2e6]">
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((student, index) => {
+                  {studentPager.pageItems.length > 0 ? (
+                    studentPager.pageItems.map((student, index) => {
                       const idParts = student.code.split("-");
                       const isUrgent = student.rate < 80;
 
@@ -746,36 +759,13 @@ const ClassStatus = () => {
 
             {/* Table Pagination */}
             <div className="flex justify-between items-center w-full p-6 border-t border-[#dee2e6] bg-white">
-              <span className="text-xs font-medium text-[#495057]">
-                {trt('showingStudents', { n: filteredStudents.length })}
-              </span>
-              <div className="flex justify-start items-start gap-1">
-                <div className="flex justify-center items-center w-9 h-9 rounded-sm border border-[#dee2e6] cursor-pointer hover:bg-slate-50">
-                  <svg width={6} height={9} viewBox="0 0 6 9" fill="none">
-                    <path
-                      d="M4.5 9L0 4.5L4.5 0L5.55 1.05L2.1 4.5L5.55 7.95L4.5 9Z"
-                      fill="#1A1C1E"
-                    />
-                  </svg>
-                </div>
-                <div className="flex justify-center items-center w-9 h-9 rounded-sm bg-[#002147] text-white font-semibold text-xs cursor-pointer">
-                  1
-                </div>
-                <div className="flex justify-center items-center w-9 h-9 rounded-sm border border-[#dee2e6] text-[#1a1c1e] font-semibold text-xs cursor-pointer hover:bg-slate-50">
-                  2
-                </div>
-                <div className="flex justify-center items-center w-9 h-9 rounded-sm border border-[#dee2e6] text-[#1a1c1e] font-semibold text-xs cursor-pointer hover:bg-slate-50">
-                  3
-                </div>
-                <div className="flex justify-center items-center w-9 h-9 rounded-sm border border-[#dee2e6] cursor-pointer hover:bg-slate-50">
-                  <svg width={6} height={9} viewBox="0 0 6 9" fill="none">
-                    <path
-                      d="M3.45 4.5L0 1.05L1.05 0L5.55 4.5L1.05 9L0 7.95L3.45 4.5Z"
-                      fill="#1A1C1E"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Pagination
+                page={studentPager.page}
+                pageCount={studentPager.pageCount}
+                onChange={studentPager.setPage}
+                total={studentPager.total}
+                pageSize={10}
+              />
             </div>
           </div>
 
@@ -1041,8 +1031,8 @@ const ClassStatus = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#c4c6cf]/20">
-                {filteredClasses.length > 0 ? (
-                  filteredClasses.map((cls) => {
+                {pageItems.length > 0 ? (
+                  pageItems.map((cls) => {
                     const isDelayed = cls.status === "DELAYED";
                     const idParts = cls.id.split("-");
                     return (
@@ -1138,38 +1128,13 @@ const ClassStatus = () => {
 
           {/* Table Pagination Bar */}
           <div className="flex justify-between items-center w-full p-6 border-t border-r-0 border-b-0 border-l-0 border-[#c4c6cf]/30 bg-white">
-            <div>
-              <span className="text-xs font-semibold text-[#43474e]">
-                {tr('Hiển thị ')}{filteredClasses.length}{tr(' trên ')}{classes.length}{tr(' lớp học')}
-              </span>
-            </div>
-            <div className="flex justify-start items-start gap-2">
-              <div className="flex justify-start items-center px-3 py-[7px] rounded-sm border border-[#c4c6cf] cursor-pointer hover:bg-slate-50 transition-all">
-                <svg width={6} height={9} viewBox="0 0 6 9" fill="none">
-                  <path
-                    d="M4.5 9L0 4.5L4.5 0L5.55 1.05L2.1 4.5L5.55 7.95L4.5 9Z"
-                    fill="#191C1E"
-                  />
-                </svg>
-              </div>
-              <div className="flex flex-col justify-center items-center px-3 py-1 rounded-sm bg-[#012248] border border-[#c4c6cf] cursor-pointer">
-                <p className="text-base text-center text-white m-0">1</p>
-              </div>
-              <div className="flex flex-col justify-center items-center px-3 py-1 rounded-sm border border-[#c4c6cf] cursor-pointer hover:bg-slate-50 transition-all">
-                <p className="text-base text-center text-[#191c1e] m-0">2</p>
-              </div>
-              <div className="flex flex-col justify-center items-center px-3 py-1 rounded-sm border border-[#c4c6cf] cursor-pointer hover:bg-slate-50 transition-all">
-                <p className="text-base text-center text-[#191c1e] m-0">3</p>
-              </div>
-              <div className="flex justify-start items-center px-3 py-[7px] rounded-sm border border-[#c4c6cf] cursor-pointer hover:bg-slate-50 transition-all">
-                <svg width={6} height={9} viewBox="0 0 6 9" fill="none">
-                  <path
-                    d="M3.45 4.5L0 1.05L1.05 0L5.55 4.5L1.05 9L0 7.95L3.45 4.5Z"
-                    fill="#191C1E"
-                  />
-                </svg>
-              </div>
-            </div>
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              onChange={setPage}
+              total={total}
+              pageSize={10}
+            />
           </div>
         </div>
       </div>

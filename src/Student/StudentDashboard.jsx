@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ApexChart from '../components/ApexChart';
 import { api } from '../utils/api';
 import { fetchMyDashboard } from '../utils/dashboardApi';
 import { useLanguage } from '../context/LanguageContext';
+import '../dashboard.scss';
 
 const VALIDITY_LABELS = {
   Valid: 'Còn hiệu lực',
@@ -46,6 +48,14 @@ const mapEtr = (e) => ({
   date: e.CompletedAt ?? e.completedAt ?? e.VerifiedAt ?? e.verifiedAt ?? e.SubmittedAt ?? e.submittedAt ?? null,
 });
 
+const statusBucket = (s) => {
+  const st = String(s || '').toLowerCase().replace(/[\s_-]/g, '');
+  if (st === 'inprogress' || st === 'draft') return 'progress';
+  if (st === 'submitted' || st === 'verified' || st === 'returnedforcorrection') return 'pending';
+  if (st === 'completed') return 'completed';
+  return 'other';
+};
+
 const StudentDashboard = () => {
   const { tr } = useLanguage();
   const navigate = useNavigate();
@@ -62,7 +72,6 @@ const StudentDashboard = () => {
         const [etrData, profileData, certData, dashboard] = await Promise.all([
           api.get('/Etr/my-etr', { suppressAuthRedirect: true }).catch(() => []),
           api.get('/auth/me', { suppressAuthRedirect: true }).catch(() => null),
-          // Get accountId from localStorage for certificate status
           (async () => {
             try {
               const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -123,14 +132,6 @@ const StudentDashboard = () => {
 
   const mapped = etrs.map(mapEtr);
 
-  const statusBucket = (s) => {
-    const st = String(s || '').toLowerCase().replace(/[\s_-]/g, '');
-    if (st === 'inprogress' || st === 'draft') return 'progress';
-    if (st === 'submitted' || st === 'verified' || st === 'returnedforcorrection') return 'pending';
-    if (st === 'completed') return 'completed';
-    return 'other';
-  };
-
   const metricSource = myEtrs && myEtrs.length ? myEtrs : mapped;
   const metrics = [
     { label: tr('Tổng số hồ sơ'), value: metricSource.length, cls: '' },
@@ -138,6 +139,34 @@ const StudentDashboard = () => {
     { label: tr('Chờ xử lý'), value: metricSource.filter(e => statusBucket(e.status) === 'pending').length, cls: 'amber' },
     { label: tr('Đã hoàn thành'), value: metricSource.filter(e => statusBucket(e.status) === 'completed').length, cls: 'green' },
   ];
+
+  // Donut: phân bố trạng thái hồ sơ của chính học viên (dữ liệu thật từ /Etr/my-etr)
+  const statusDonut = useMemo(() => {
+    const progress = metricSource.filter(e => statusBucket(e.status) === 'progress').length;
+    const pending = metricSource.filter(e => statusBucket(e.status) === 'pending').length;
+    const completed = metricSource.filter(e => statusBucket(e.status) === 'completed').length;
+    return {
+      chart: { type: 'donut', fontFamily: 'inherit' },
+      labels: [tr('Đang đào tạo'), tr('Chờ xử lý'), tr('Đã hoàn thành')],
+      series: [progress, pending, completed],
+      colors: ['#0a2c55', '#d97706', '#16a34a'],
+      legend: { position: 'bottom', fontSize: '12px', fontFamily: 'inherit', labels: { colors: 'rgba(0,33,71,0.75)' } },
+      dataLabels: { enabled: false },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '68%',
+            labels: {
+              show: true,
+              total: { show: true, label: tr('Hồ sơ ETR'), fontSize: '12px', color: 'rgba(0,33,71,0.5)', formatter: () => String(metricSource.length) },
+            },
+          },
+        },
+      },
+      tooltip: { y: { formatter: (v) => `${v} ${tr('hồ sơ')}` } },
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myEtrs, mapped.length]);
 
   const Badge = ({ status }) => (
     <span className={`student-badge student-badge--${STATUS_MAP[status] || 'draft'}`}>
@@ -173,6 +202,17 @@ const StudentDashboard = () => {
           </article>
         ))}
       </section>
+
+      {/* ── Status donut (dữ liệu thật) ── */}
+      {!loading && metricSource.length > 0 && (
+        <section style={{ marginBottom: 24 }}>
+          <div className="freedash-dist-card">
+            <h3 className="freedash-dist-title">{tr('Phân bố hồ sơ theo trạng thái')}</h3>
+            <p className="freedash-dist-sub">{tr('Dữ liệu từ GET /api/Etr/my-etr.')}</p>
+            <ApexChart options={statusDonut} height={280} />
+          </div>
+        </section>
+      )}
 
       {/* ── Recent ETRs ── */}
       <section className="student-table-section">
@@ -225,57 +265,55 @@ const StudentDashboard = () => {
         )}
       </section>
 
-      {/* ── Quick Actions ── */}
-      <section className="student-actions">            {/* ── Certificate Status Summary ── */}
-            {certStatus.length > 0 && (
-              <section className="student-table-section" style={{ marginBottom: 24 }}>
-                <div className="student-table-header">
-                  <div className="student-table-header-left">
-                    <p className="student-section-label">{tr('Chứng chỉ đào tạo')}</p>
-                    <h2>{tr('Trạng thái hiệu lực')}</h2>
-                  </div>
-                  <button className="action-btn" type="button" onClick={() => navigate('/student/certificates')}>
-                    {tr('Xem tất cả')}
-                  </button>
+      {/* ── Certificate Status Summary ── */}
+      {certStatus.length > 0 && (
+        <section className="student-table-section" style={{ marginBottom: 24 }}>
+          <div className="student-table-header">
+            <div className="student-table-header-left">
+              <p className="student-section-label">{tr('Chứng chỉ đào tạo')}</p>
+              <h2>{tr('Trạng thái hiệu lực')}</h2>
+            </div>
+            <button className="action-btn" type="button" onClick={() => navigate('/student/certificates')}>
+              {tr('Xem tất cả')}
+            </button>
+          </div>
+          <div className="student-cert-mini-list">
+            {certStatus.slice(0, 4).map((cert, idx) => (
+              <div key={idx} className="student-cert-mini-item">
+                <div className="student-cert-mini-info">
+                  <span className="student-cert-mini-course">
+                    {cert.CourseName || `${tr('Khóa học #')}${cert.CourseId}`}
+                  </span>
+                  <span className="student-cert-mini-date">
+                    {cert.ExpiryDate ? `${tr('Hết hạn: ')}${formatDate(cert.ExpiryDate)}` : tr('Vĩnh viễn')}
+                  </span>
                 </div>
-                <div className="student-cert-mini-list">
-                  {certStatus.slice(0, 4).map((cert, idx) => (
-                    <div key={idx} className="student-cert-mini-item">
-                      <div className="student-cert-mini-info">
-                        <span className="student-cert-mini-course">
-                          {cert.CourseName || `${tr('Khóa học #')}${cert.CourseId}`}
-                        </span>
-                        <span className="student-cert-mini-date">
-                          {cert.ExpiryDate ? `${tr('Hết hạn: ')}${formatDate(cert.ExpiryDate)}` : tr('Vĩnh viễn')}
-                        </span>
-                      </div>
-                      <span className={`student-cert-mini-badge student-cert-mini-badge--${(cert.ValidityStatus || '').toLowerCase()}`}>
-                        {tr(VALIDITY_LABELS[cert.ValidityStatus]) || cert.ValidityStatus}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+                <span className={`student-cert-mini-badge student-cert-mini-badge--${(cert.ValidityStatus || '').toLowerCase()}`}>
+                  {tr(VALIDITY_LABELS[cert.ValidityStatus]) || cert.ValidityStatus}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
-            {/* ── Quick Actions ── */}
-            <section className="student-actions">
-              <article className="student-action-card" onClick={() => navigate('/student/etr')}>
-                <p className="action-eyebrow">{tr('Hồ sơ ETR')}</p>
-                <h3>{tr('Xem chi tiết hồ sơ')}</h3>
-                <p className="action-desc">{tr('Xem toàn bộ hồ sơ đào tạo, điểm danh, điểm số và minh chứng của bạn.')}</p>
-              </article>
-              <article className="student-action-card" onClick={() => navigate('/student/certificates')}>
-                <p className="action-eyebrow">{tr('Chứng chỉ')}</p>
-                <h3>{tr('Trạng thái chứng chỉ')}</h3>
-                <p className="action-desc">{tr('Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo và kiểm tra ngày hết hạn.')}</p>
-              </article>
-              <article className="student-action-card" onClick={() => navigate('/student/profile')}>
-                <p className="action-eyebrow">{tr('Tài khoản')}</p>
-                <h3>{tr('Quản lý hồ sơ cá nhân')}</h3>
-                <p className="action-desc">{tr('Xem thông tin cá nhân và thay đổi mật khẩu đăng nhập.')}</p>
-              </article>
-            </section>
+      {/* ── Quick Actions ── */}
+      <section className="student-actions">
+        <article className="student-action-card" onClick={() => navigate('/student/etr')}>
+          <p className="action-eyebrow">{tr('Hồ sơ ETR')}</p>
+          <h3>{tr('Xem chi tiết hồ sơ')}</h3>
+          <p className="action-desc">{tr('Xem toàn bộ hồ sơ đào tạo, điểm danh, điểm số và minh chứng của bạn.')}</p>
+        </article>
+        <article className="student-action-card" onClick={() => navigate('/student/certificates')}>
+          <p className="action-eyebrow">{tr('Chứng chỉ')}</p>
+          <h3>{tr('Trạng thái chứng chỉ')}</h3>
+          <p className="action-desc">{tr('Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo và kiểm tra ngày hết hạn.')}</p>
+        </article>
+        <article className="student-action-card" onClick={() => navigate('/student/profile')}>
+          <p className="action-eyebrow">{tr('Tài khoản')}</p>
+          <h3>{tr('Quản lý hồ sơ cá nhân')}</h3>
+          <p className="action-desc">{tr('Xem thông tin cá nhân và thay đổi mật khẩu đăng nhập.')}</p>
+        </article>
       </section>
     </div>
   );

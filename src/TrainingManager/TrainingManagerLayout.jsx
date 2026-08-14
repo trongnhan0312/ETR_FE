@@ -22,6 +22,7 @@ const navigationItems = [
   { label: 'ETR FINAL APPROVAL', to: '/trainingmanager/etr-approval', icon: iconDocument },
   { label: 'TRẠNG THÁI LỚP HỌC', to: '/trainingmanager/classes', icon: iconClass },
   { label: 'CHỨNG CHỈ HẾT HẠN', to: '/trainingmanager/expiring-students', icon: iconDocument },
+  { label: 'YÊU CẦU MỞ KHÓA', to: '/trainingmanager/amendments', icon: iconDocument },
 ];
 
 const TrainingManagerLayout = () => {

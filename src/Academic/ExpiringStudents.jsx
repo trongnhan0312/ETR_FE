@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const STATUS_CONFIG = {
   ExpiringSoon: {
@@ -92,6 +94,11 @@ const ExpiringStudents = () => {
 
     if (statusFilter === 'ALL') return matchesSearch;
     return matchesSearch && s.ValidityStatus === statusFilter;
+  });
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredStudents, {
+    pageSize: 10,
+    resetKey: `${selectedCourseId}|${daysThreshold}|${searchTerm}|${statusFilter}`,
   });
 
   const stats = {
@@ -272,7 +279,7 @@ const ExpiringStudents = () => {
               <div className="student-table-cell student-table-cell--header">{tr('Còn lại')}</div>
               <div className="student-table-cell student-table-cell--header student-table-cell--end">{tr('Trạng thái')}</div>
 
-              {filteredStudents.map((s, idx) => {
+              {pageItems.map((s, idx) => {
                 const config = STATUS_CONFIG[s.ValidityStatus] || STATUS_CONFIG.ExpiringSoon;
                 return (
                   <div className="student-table-row" key={s.ETRCourseRecordId || idx}>
@@ -303,6 +310,14 @@ const ExpiringStudents = () => {
             </div>
           </div>
         )}
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
     </div>
   );

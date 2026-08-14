@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
 import ConfirmModal from "../components/ConfirmModal";
@@ -571,6 +573,16 @@ const EtrManagement = () => {
 
     if (statusFilter === "ALL") return matchesSearch;
     return matchesSearch && rec.status === statusFilter;
+  });
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredRecords, {
+    pageSize: 10,
+    resetKey: `${searchTerm}|${statusFilter}`,
+  });
+
+  const auditPager = usePagination(auditTrail, {
+    pageSize: 10,
+    resetKey: selectedRecord?.id,
   });
 
   // Evidence Specific Counts and Filters
@@ -2523,7 +2535,7 @@ const EtrManagement = () => {
             </div>
 
             <div className="table-body" style={{ minWidth: "1000px" }}>
-              {filteredRecords.map((record) => {
+              {pageItems.map((record) => {
                 const isSelected = selectedRecord?.id === record.id;
                 return (
                   <div
@@ -2702,6 +2714,16 @@ const EtrManagement = () => {
               })}
             </div>
           </div>
+
+          <div className="table-footer">
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              onChange={setPage}
+              total={total}
+              pageSize={10}
+            />
+          </div>
         </section>
 
         {/* Bottom Section: Audit Trail table */}
@@ -2750,7 +2772,7 @@ const EtrManagement = () => {
             </div>
 
             <div className="table-body" style={{ minWidth: "800px" }}>
-              {auditTrail.map((log, idx) => (
+              {auditPager.pageItems.map((log, idx) => (
                 <div key={idx} className="table-row audit-table-grid">
                   <div style={{ fontSize: "12px", color: "#64748b" }}>
                     {log.time}
@@ -2788,6 +2810,16 @@ const EtrManagement = () => {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="table-footer">
+            <Pagination
+              page={auditPager.page}
+              pageCount={auditPager.pageCount}
+              onChange={auditPager.setPage}
+              total={auditPager.total}
+              pageSize={10}
+            />
           </div>
         </section>
 
