@@ -6,12 +6,21 @@ import {
   exportDashboard,
   downloadExportFile,
   fetchExportJobs,
+  fetchEtrList,
 } from './auditorApi';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const AuditorExportPackages = () => {
   const { trEn } = useLanguage();
   const [exportHistory, setExportHistory] = useState([]);
   const [loadingType, setLoadingType] = useState(null);
+  // Chọn ĐÚNG hồ sơ ETR cần xuất — trước đây export luôn lấy "ETR Completed đầu tiên"
+  // nên file nhận được không phải hồ sơ mình muốn (và thiếu mốc thời gian validation
+  // của đúng hồ sơ đó).
+  const [etrOptions, setEtrOptions] = useState([]);
+  const [selectedEtrId, setSelectedEtrId] = useState('');
+  const [etrSearch, setEtrSearch] = useState('');
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -25,10 +34,51 @@ const AuditorExportPackages = () => {
     loadHistory();
   }, []);
 
+  useEffect(() => {
+    const loadEtrs = async () => {
+      try {
+        const etrs = await fetchEtrList();
+        if (Array.isArray(etrs)) setEtrOptions(etrs);
+      } catch (err) {
+        console.error('Error loading ETR list for export:', err);
+      }
+    };
+    loadEtrs();
+  }, []);
+
+  // id số thuần cho API; '' = chưa chọn → fallback ETR Completed đầu tiên
+  const exportTarget = selectedEtrId ? { etrCourseRecordId: Number(selectedEtrId) } : {};
+
+  // Lọc danh sách ETR theo từ khóa (ID / học viên / khóa học / trạng thái)
+  const etrQuery = etrSearch.trim().toLowerCase();
+  const filteredEtrOptions = etrQuery
+    ? etrOptions.filter((etr) =>
+        [etr.id, etr.learnerName, etr.courseName, etr.className, etr.status, String(etr.etrCourseRecordId ?? '')]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(etrQuery)),
+      )
+    : etrOptions;
+
+  // Hồ sơ đang chọn để hiển thị trạng thái rõ ràng
+  const selectedEtr =
+    etrOptions.find((e) => String(e.etrCourseRecordId) === String(selectedEtrId)) || null;
+
+  // Màu badge theo trạng thái ETR — dễ nhìn khi chọn hồ sơ để xuất
+  const statusTone = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s.includes('completed') || s.includes('approved')) return { cls: 'dash-badge-compliant', color: '#16a34a' };
+    if (s.includes('locked') || s.includes('compliant')) return { cls: 'dash-badge-locked', color: '#0a2c55' };
+    if (s.includes('inprogress') || s.includes('draft') || s.includes('planned')) return { cls: 'dash-badge-warn', color: '#0891b2' };
+    if (s.includes('submitted') || s.includes('verified') || s.includes('underreview') || s.includes('pending')) return { cls: 'dash-badge-warn', color: '#d97706' };
+    if (s.includes('returned') || s.includes('rejected') || s.includes('cancelled')) return { cls: 'dash-badge-danger', color: '#dc2626' };
+    return { cls: '', color: '#475569' };
+  };
+  const selectedTone = statusTone(selectedEtr?.status);
+
   const handleExportPDF = async () => {
     setLoadingType('pdf');
     try {
-      const newPkg = await exportPdf({ name: 'Single_ETR_Compliance_Summary.pdf' });
+      const newPkg = await exportPdf({ ...exportTarget, name: 'Single_ETR_Compliance_Summary.pdf' });
       setExportHistory((prev) => [newPkg, ...prev]);
     } catch (err) {
       console.error('Export PDF failed:', err);
@@ -41,6 +91,7 @@ const AuditorExportPackages = () => {
     setLoadingType('zip');
     try {
       const newPkg = await exportTrainingPackage({
+        ...exportTarget,
         packageType: 'Full Evidence ZIP',
         name: 'Complete_Evidence_Archive.zip',
       });
@@ -56,6 +107,7 @@ const AuditorExportPackages = () => {
     setLoadingType('regulatory');
     try {
       const newPkg = await exportTrainingPackage({
+        ...exportTarget,
         packageType: 'Regulatory Package',
         name: 'CAA_EASA_Regulatory_Package.zip',
       });
@@ -86,6 +138,10 @@ const AuditorExportPackages = () => {
     await downloadExportFile(pkg.id, pkg.name);
   };
 
+  const { page, setPage, pageCount, pageItems, total } = usePagination(exportHistory, {
+    pageSize: 10,
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
@@ -97,6 +153,120 @@ const AuditorExportPackages = () => {
             {trEn('Generate cryptographically signed compliance export packages, PDF transcripts, and complete evidence archives for CAA / EASA inspections.')}
           </p>
         </div>
+      </section>
+
+      {/* ETR Selector — chọn hồ sơ cần xuất (file sẽ mang đủ mốc thời gian validation của hồ sơ này) */}
+      <section className="table-card" style={{ padding: '20px 24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 360px' }}>
+            <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+              {trEn('Select ETR Record to Export')}
+            </label>
+            <input
+              type="text"
+              className="search-input"
+              style={{ width: '100%', marginBottom: '10px' }}
+              placeholder={trEn('Search by ID, learner, course or status...')}
+              value={etrSearch}
+              onChange={(e) => setEtrSearch(e.target.value)}
+            />
+            <select
+              className="search-input"
+              style={{ width: '100%', background: '#ffffff' }}
+              value={selectedEtrId}
+              onChange={(e) => setSelectedEtrId(e.target.value)}
+            >
+              <option value="">
+                {trEn('— Auto (first Completed ETR) —')}
+              </option>
+              {filteredEtrOptions.map((etr) => {
+                const tone = statusTone(etr.status);
+                return (
+                  <option
+                    key={etr.etrCourseRecordId}
+                    value={etr.etrCourseRecordId}
+                    style={{ color: tone.color, fontWeight: 600 }}
+                  >
+                    {etr.id} - {etr.learnerName} ({etr.courseName}) - {etr.status}
+                  </option>
+                );
+              })}
+            </select>
+            {/* Chú thích màu theo trạng thái */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '12px',
+                marginTop: '8px',
+                fontSize: '11px',
+                color: 'rgba(0,33,71,0.6)',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ fontWeight: 700, color: 'rgba(0,33,71,0.45)', textTransform: 'uppercase' }}>{trEn('Status colors')}:</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />{trEn('Completed / Approved')}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#0a2c55', display: 'inline-block' }} />{trEn('Locked & Compliant')}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#0891b2', display: 'inline-block' }} />{trEn('In Progress / Draft')}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />{trEn('Submitted / Verified / Pending')}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />{trEn('Returned / Rejected')}</span>
+            </div>
+            {filteredEtrOptions.length === 0 && (
+              <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '6px' }}>
+                {trEn('No records match your search.')}
+              </div>
+            )}
+            <div style={{ fontSize: '11px', color: 'rgba(0,33,71,0.55)', marginTop: '6px' }}>
+              {selectedEtrId
+                ? trEn('This export will include the full validation timeline (Submitted / Verified / Completed) of the selected record.')
+                : trEn('No record chosen — the export falls back to the first Completed ETR. Pick one above to export a specific dossier.')
+              }
+            </div>
+          </div>
+        </div>
+
+        {/* Trạng thái hồ sơ đang chọn — hiển thị rõ ràng để dễ kiểm tra trước khi xuất */}
+        {selectedEtr && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '14px',
+              marginTop: '16px',
+              padding: '16px 18px',
+              borderRadius: '14px',
+              border: '1px solid #dfe6f1',
+              background: '#f8fafc',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('ETR Record')}</div>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{selectedEtr.id}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Learner')}</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: '#002147', marginTop: '4px' }}>{selectedEtr.learnerName}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Course / Class')}</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: '#002147', marginTop: '4px' }}>
+                {selectedEtr.courseName}
+                {selectedEtr.className && selectedEtr.className !== '—' ? ` — ${selectedEtr.className}` : ''}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Status')}</div>
+              <div style={{ marginTop: '6px' }}>
+                <span
+                  className={`dash-badge ${selectedTone.cls}`}
+                  style={{ color: selectedTone.color, borderColor: 'currentColor', opacity: 0.9 }}
+                >
+                  {selectedEtr.status}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Cards Section */}
@@ -211,6 +381,7 @@ const AuditorExportPackages = () => {
             <div>{trEn('Package ID')}</div>
             <div>{trEn('Package Name')}</div>
             <div>{trEn('Type')}</div>
+            <div>{trEn('ETR Record')}</div>
             <div>{trEn('Generated Date')}</div>
             <div>{trEn('Generated By')}</div>
             <div>{trEn('File Size')}</div>
@@ -219,11 +390,12 @@ const AuditorExportPackages = () => {
           </div>
 
           <div className="table-body">
-            {exportHistory.map((pkg) => (
+            {pageItems.map((pkg) => (
               <div key={pkg.id} className="table-row auditor-export-grid">
                 <div className="col-id">{pkg.id}</div>
                 <div className="col-name">{pkg.name}</div>
                 <div style={{ fontWeight: '600', color: '#002147' }}>{pkg.type}</div>
+                <div>{pkg.etrCourseRecordId ? `#ETR-${String(pkg.etrCourseRecordId).padStart(4, '0')}` : '—'}</div>
                 <div style={{ fontSize: '12px', color: 'rgba(0,33,71,0.6)' }}>{pkg.generatedDate}</div>
                 <div>{pkg.generatedBy}</div>
                 <div>{pkg.size}</div>
@@ -241,6 +413,16 @@ const AuditorExportPackages = () => {
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="table-footer">
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onChange={setPage}
+            total={total}
+            pageSize={10}
+          />
         </div>
       </section>
     </div>

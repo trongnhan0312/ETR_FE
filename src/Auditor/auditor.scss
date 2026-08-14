@@ -12,7 +12,7 @@
 
 .auditor-logs-grid {
   display: grid;
-  grid-template-columns: 160px 1.6fr 120px 1.6fr 1fr 1fr 120px;
+  grid-template-columns: 150px 1.4fr 130px 1fr 0.8fr 0.8fr 1.6fr;
   align-items: center;
   gap: 12px;
   padding: 16px 24px;
@@ -20,11 +20,14 @@
 
 .auditor-export-grid {
   display: grid;
-  grid-template-columns: 140px 2fr 130px 160px 120px 110px 120px 120px;
+  grid-template-columns: 120px 1.8fr 120px 110px 150px 110px 100px 110px 90px;
   align-items: center;
   gap: 12px;
   padding: 16px 24px;
 }
+
+// KPI cards + biểu đồ kiểu FreeDash — dùng chung cho mọi role (xem ../dashboard.scss)
+@import '../dashboard.scss';
 
 // Read-only Lock Badge
 .badge-locked {
