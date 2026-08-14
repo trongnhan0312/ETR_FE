@@ -1,12 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 import CreateCourse from './CreateCourse';
 import CreateClass from './CreateClass';
 import ClassAttendanceHistory from './ClassAttendanceHistory';
 import EnrollStudentModal from './EnrollStudentModal';
 import UpdateClassStatusModal from './UpdateClassStatusModal';
 import UpdateCourseModal from './UpdateCourseModal';
+import { createPortal } from 'react-dom';
 import ConfirmModal from '../components/ConfirmModal';
 import { api, parseApiError } from '../utils/api';
+import { downloadExportFile } from '../Auditor/auditorApi';
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 
@@ -28,6 +32,11 @@ const CourseClassManagement = () => {
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isCreatingClass, setIsCreatingClass] = useState(false);
   const [isEnrollingStudent, setIsEnrollingStudent] = useState(false);
+
+  // Xuất báo cáo lớp học — POST /api/Exports/attendance|assessment|class-summary { classId }
+  const [exportClassTarget, setExportClassTarget] = useState(null); // class object đang mở modal
+  const [exportingType, setExportingType] = useState(null); // 'attendance' | 'assessment' | 'class-summary'
+  const [exportError, setExportError] = useState('');
   const [enrollClassId, setEnrollClassId] = useState(null);
 
   // Edit & Delete targets
@@ -429,6 +438,47 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
     }
   };
 
+  // Xuất báo cáo lớp học — khớp ExportsController BE:
+  // POST /api/Exports/attendance|assessment|class-summary { classId } → ExportJobResponse
+  // → poll GET /api/Exports/{exportJobId} đến khi Completed → GET /api/Exports/download/{id}
+  const EXPORT_TYPES = [
+    { type: 'attendance', label: tr('Báo cáo điểm danh') },
+    { type: 'assessment', label: tr('Báo cáo đánh giá') },
+    { type: 'class-summary', label: tr('Tổng hợp lớp học') },
+  ];
+
+  const handleExportReport = async (classId, type) => {
+    setExportingType(type);
+    setExportError('');
+    try {
+      const job = await api.post(`/Exports/${type}`, { classId });
+      const jobId = job?.exportJobId ?? job?.ExportJobId;
+      if (!jobId) {
+        throw new Error(tr('BE không trả về ExportJobId.'));
+      }
+      // Poll trạng thái job (tối đa ~15s)
+      let status = job?.status || '';
+      for (let i = 0; i < 30; i++) {
+        if (String(status).toLowerCase() === 'completed') break;
+        await new Promise((r) => setTimeout(r, 500));
+        const detail = await api.get(`/Exports/${jobId}`).catch(() => null);
+        status = detail?.status ?? status;
+      }
+      if (String(status).toLowerCase() !== 'completed') {
+        throw new Error(tr('File xuất chưa hoàn thành. Vui lòng thử lại sau.'));
+      }
+      const fileName = job?.fileName || `${type}_class_${classId}.zip`;
+      await downloadExportFile(jobId, fileName);
+      toast.success(tr("Xuất báo cáo thành công!"));
+      setExportClassTarget(null);
+    } catch (err) {
+      console.error("Error exporting report:", err);
+      setExportError(parseApiError(err, tr("Xuất báo cáo thất bại.")));
+    } finally {
+      setExportingType(null);
+    }
+  };
+
   // Filter & Search Logic
   const filteredCourses = courses.map((course) => {
     const matchesCourseSearch =
@@ -457,6 +507,16 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
       shouldShow: matchesSearch
     };
   }).filter((course) => course.shouldShow);
+
+  // Phân trang: khóa học (nhóm có thể mở rộng) + lớp mồ côi — tối đa 5 nút trang.
+  const { page: coursePage, setPage: setCoursePage, pageCount: coursePageCount, pageItems: pagedCourses, total: courseTotal } = usePagination(filteredCourses, {
+    pageSize: 10,
+    resetKey: `${searchTerm}|${statusFilter}`,
+  });
+
+  const { page: orphanPage, setPage: setOrphanPage, pageCount: orphanPageCount, pageItems: pagedOrphans, total: orphanTotal } = usePagination(orphanClasses, {
+    pageSize: 10,
+  });
 
   // Lớp "mồ côi": có CourseId không khớp bất kỳ khóa học nào đang tồn tại (khóa học đã bị xóa
   // hoặc lớp được tạo với CourseId không hợp lệ) — Academic cần thấy để xử lý (sửa/xóa/ghi danh).
@@ -649,7 +709,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
                   {tr('Không tìm thấy khóa học hoặc lớp học nào phù hợp.')}
                 </div>
               ) : (
-                filteredCourses.map((course) => {
+                pagedCourses.map((course) => {
                   const isExpanded = !!expandedCourses[course.code];
                   return (
                     <div key={course.code} className="course-group">
@@ -906,6 +966,31 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
                                   >
                                     {tr('🗑️ Xóa Lớp')}
                                   </button>
+
+                                  {/* Button: XUẤT BÁO CÁO LỚP (POST /api/Exports/attendance|assessment|class-summary) */}
+                                  <button
+                                    type="button"
+                                    title={tr('Xuất báo cáo điểm danh / đánh giá / tổng hợp lớp')}
+                                    style={{
+                                      backgroundColor: '#f8fafc',
+                                      color: '#475569',
+                                      border: '1px solid #e2e8f0',
+                                      fontSize: '11px',
+                                      fontWeight: 600,
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      flexShrink: 0
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExportClassTarget(cls);
+                                      setExportError('');
+                                    }}
+                                  >
+                                    📤 {tr('Xuất báo cáo')}
+                                  </button>
                                 </div>
                               </div>
                             ))
@@ -917,6 +1002,16 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
                 })
               )}
             </div>
+          </div>
+
+          <div className="table-footer">
+            <Pagination
+              page={coursePage}
+              pageCount={coursePageCount}
+              onChange={setCoursePage}
+              total={courseTotal}
+              pageSize={10}
+            />
           </div>
         </section>
       )}
@@ -959,7 +1054,7 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
             </div>
 
             <div className="table-body">
-              {orphanClasses.map((cls) => {
+              {pagedOrphans.map((cls) => {
                 const isClassClosed = cls.status === 'Đã kết thúc' || cls.status === 'Completed' || cls.status === 'Đã hủy' || cls.status === 'Cancelled';
                 return (
                   <div
@@ -1076,6 +1171,16 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
               })}
             </div>
           </div>
+
+          <div className="table-footer">
+            <Pagination
+              page={orphanPage}
+              pageCount={orphanPageCount}
+              onChange={setOrphanPage}
+              total={orphanTotal}
+              pageSize={10}
+            />
+          </div>
         </section>
       )}
 
@@ -1167,6 +1272,104 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
           }}
         />
       )}
+
+      {/* Modal: XUẤT BÁO CÁO LỚP HỌC (POST /api/Exports/...) */}
+      {exportClassTarget &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: '100vw',
+              height: '100vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0, 33, 71, 0.75)',
+              zIndex: 999999,
+              backdropFilter: 'blur(4px)',
+            }}
+            onClick={() => setExportClassTarget(null)}
+          >
+            <div
+              className="dashboard-panel"
+              style={{
+                width: '520px',
+                borderRadius: '16px',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+                margin: 'auto',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="panel-header">
+                <h2>
+                  {tr('Xuất báo cáo lớp')} — {exportClassTarget.name || exportClassTarget.code}
+                </h2>
+                <div
+                  className="panel-action"
+                  onClick={() => setExportClassTarget(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {tr('Đóng')}
+                </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  marginTop: '12px',
+                }}
+              >
+                <p style={{ fontSize: '12px', color: 'rgba(0,33,71,0.6)', margin: 0 }}>
+                  {tr('Chọn loại báo cáo — hệ thống sẽ sinh file và tải về máy.')}
+                </p>
+                {EXPORT_TYPES.map((t) => (
+                  <button
+                    key={t.type}
+                    type="button"
+                    disabled={exportingType !== null}
+                    onClick={() => handleExportReport(exportClassTarget.classId, t.type)}
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      background: '#f8fafc',
+                      cursor: exportingType !== null ? 'not-allowed' : 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#002147',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span>📄 {t.label}</span>
+                    {exportingType === t.type && <span>{tr('Đang xuất...')}</span>}
+                  </button>
+                ))}
+                {exportError && (
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      background: '#fef2f2',
+                      border: '1px solid #fca5a5',
+                      borderRadius: '8px',
+                      color: '#b91c1c',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {exportError}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {/* Toast notifications */}
       <toast.ToastContainer />

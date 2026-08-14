@@ -11,7 +11,6 @@ import {
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import NotificationsDropdown from "../components/NotificationsDropdown";
 import { useLanguage } from "../context/LanguageContext";
-import { useToast } from "../components/Toast";
 import "./instructor.scss";
 
 const navigationItems = [
@@ -53,7 +52,6 @@ const navigationItems = [
 ];
 
 const InstructorLayout = () => {
-  const toast = useToast();
   const { tr } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -259,8 +257,6 @@ const InstructorLayout = () => {
         </main>
       </div>
 
-      {/* Toast notifications */}
-      <toast.ToastContainer />
     </div>
   );
 };

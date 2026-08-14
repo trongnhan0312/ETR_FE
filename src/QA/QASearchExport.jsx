@@ -2,6 +2,8 @@ import { useState, useCallback } from "react";
 import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 
 const QASearchExport = () => {
   const { tr, trEn } = useLanguage();
@@ -9,6 +11,13 @@ const QASearchExport = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [results, setResults] = useState(null);
   const [searching, setSearching] = useState(false);
+  const [searchNonce, setSearchNonce] = useState(0);
+
+  const resultsArr = Array.isArray(results) ? results : [];
+  const { page, setPage, pageCount, pageItems, total } = usePagination(resultsArr, {
+    pageSize: 10,
+    resetKey: searchNonce,
+  });
 
   // Toast notifications (thay banner tm-alert-banner cũ)
   const toast = useToast();
@@ -51,9 +60,11 @@ const QASearchExport = () => {
         });
 
         setResults(enriched);
+        setSearchNonce((n) => n + 1);
         toast.success(tr("Tìm kiếm hoàn tất"));
       } else {
         setResults([]);
+        setSearchNonce((n) => n + 1);
         toast.info(tr("Không có kết quả"));
       }
     } catch (err) {
@@ -120,13 +131,14 @@ const QASearchExport = () => {
         <div className="qa-divider" />
 
         {results !== null && (
+          <>
           <div className="qa-list">
             {results.length === 0 ? (
               <div style={{ padding: "16px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>
                 {tr('Không tìm thấy bản ghi nào.')}
               </div>
             ) : (
-              results.slice(0, 20).map((r, idx) => (
+              pageItems.map((r, idx) => (
                 <div key={idx} className="qa-list-item">
                   <div>
                     <p className="qa-list-title">
@@ -142,6 +154,15 @@ const QASearchExport = () => {
               ))
             )}
           </div>
+
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onChange={setPage}
+            total={total}
+            pageSize={10}
+          />
+          </>
         )}
 
         <div className="qa-divider" />

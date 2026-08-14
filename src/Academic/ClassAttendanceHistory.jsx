@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const ClassAttendanceHistory = ({ activeClass, onBack }) => {
   const { tr } = useLanguage();
@@ -83,6 +85,11 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.instructor.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredSessions, {
+    pageSize: 10,
+    resetKey: searchTerm,
+  });
 
   // Calculate overall attendance rate
   const totalStudents = sessions.reduce((sum, s) => {
@@ -231,7 +238,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
               {filteredSessions.length === 0 ? (
                 <div className="empty-table-state">{tr('Không tìm thấy buổi học nào.')}</div>
               ) : (
-                filteredSessions.map((session) => (
+                pageItems.map((session) => (
                   <div key={session.stt} className="table-row sessions-table-grid">
                     <div style={{ fontWeight: '700', color: '#475569' }}>{session.stt}</div>
                     <div style={{ color: '#475569', fontWeight: '500' }}>{session.date}</div>
@@ -270,6 +277,16 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
                 ))
               )}
             </div>
+          </div>
+
+          <div className="table-footer">
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              onChange={setPage}
+              total={total}
+              pageSize={10}
+            />
           </div>
         </section>
       )}

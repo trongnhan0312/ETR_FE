@@ -4,6 +4,8 @@ import { api } from '../utils/api';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const LearnerManagement = () => {
   const { tr, trt } = useLanguage();
@@ -447,6 +449,11 @@ const getStudentDepartments = () => {
     );
   });
 
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredLearners, {
+    pageSize: 10,
+    resetKey: searchTerm,
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header Section */}
@@ -540,7 +547,7 @@ const getStudentDepartments = () => {
                 {searchTerm ? tr('Không tìm thấy học viên phù hợp.') : tr('Chưa có tài khoản học viên nào trong hệ thống.')}
               </div>
             ) : (
-              filteredLearners.map((learner) => {
+              pageItems.map((learner) => {
                 const isInactive = learner.status?.toLowerCase() === 'inactive' || learner.status?.toLowerCase() === 'disabled';
                 return (
                   <div
@@ -672,6 +679,14 @@ const getStudentDepartments = () => {
             )}
           </div>
         </div>
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
 
       {/* CREATE STUDENT MODAL */}

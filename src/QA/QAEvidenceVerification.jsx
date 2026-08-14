@@ -8,6 +8,8 @@ import {
   buildSrToAccountMap,
   resolveEvidenceLearner,
 } from "../utils/evidenceEnrich";
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 
 const QAEvidenceVerification = () => {
   const { tr, trEn } = useLanguage();
@@ -231,6 +233,53 @@ const QAEvidenceVerification = () => {
   // QA KHÔNG có chức năng xóa evidence (backend DELETE /Evidences/{id} chỉ cho Instructor/Admin/Academic)
   const pendingCount = evidenceList.filter((e) => e.status === "Pending").length;
 
+  const { page, setPage, pageCount, pageItems, total } = usePagination(evidenceList, {
+    pageSize: 10,
+    resetKey: evidenceList.length,
+  });
+
+  // Xác minh hàng loạt — PUT /api/Evidences/bulk-verify (khớp BulkVerifyEvidenceRequest BE:
+  // { evidenceIds, verificationStatus, verificationComment }) — QA xử lý 1 lớp 30 HV × 3 file
+  // cùng lúc thay vì bấm Verify từng file. Item lỗi nằm trong "failed", không rollback item khác.
+  const [bulkVerifyLoading, setBulkVerifyLoading] = useState(false);
+
+  const handleBulkVerify = async () => {
+    const pending = evidenceList.filter(
+      (e) => e.status === "Pending" && !e.locked,
+    );
+    if (pending.length === 0 || bulkVerifyLoading) return;
+    setBulkVerifyLoading(true);
+    try {
+      const result = await api.put("/Evidences/bulk-verify", {
+        evidenceIds: pending.map((e) => e.id),
+        verificationStatus: "Verified",
+      });
+      const verifiedCount = Array.isArray(result?.verified)
+        ? result.verified.length
+        : 0;
+      const failedCount = Array.isArray(result?.failed)
+        ? result.failed.length
+        : 0;
+      if (verifiedCount > 0) {
+        toast.success(
+          `${tr("Đã xác thực hàng loạt")}: ${verifiedCount}/${pending.length} ${tr("minh chứng")}`,
+        );
+      }
+      if (failedCount > 0) {
+        const reasons = result.failed
+          .map((f) => `#${f.evidenceFileId ?? f.id}: ${f.reason || f.error || f.message || "lỗi"}`)
+          .join("; ");
+        toast.warning(`${tr("Có")} ${failedCount} ${tr("minh chứng thất bại")} — ${reasons}`);
+      }
+      await loadEvidences();
+    } catch (err) {
+      console.error("Lỗi bulk verify:", err);
+      toast.error(tr("Xác thực hàng loạt thất bại!"));
+    } finally {
+      setBulkVerifyLoading(false);
+    }
+  };
+
   return (
     <div className="qa-shell">
       {/* Toast notifications */}
@@ -252,6 +301,20 @@ const QAEvidenceVerification = () => {
               {trEn('All evidence awaiting QA attention appears here in one queue.')}
             </p>
           </div>
+          {pendingCount > 0 && (
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+              <button
+                className="qa-btn"
+                type="button"
+                onClick={handleBulkVerify}
+                disabled={bulkVerifyLoading || processing}
+                style={{ padding: "8px 14px", fontSize: "11px", whiteSpace: "nowrap" }}
+                title={tr('Xác thực tất cả minh chứng đang chờ (chưa khóa)')}
+              >
+                {bulkVerifyLoading ? trEn('Verifying...') : trEn('Verify All Pending')}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="qa-list">
@@ -264,7 +327,7 @@ const QAEvidenceVerification = () => {
               {tr('Chưa có evidence nào cần xác thực.')}
             </div>
           ) : (
-            evidenceList.map((row) => (
+            pageItems.map((row) => (
               <div key={row.id} className="qa-list-item">
                 <div
                   style={{ flex: 1, cursor: "pointer", minWidth: 0 }}
@@ -335,6 +398,14 @@ const QAEvidenceVerification = () => {
             ))
           )}
         </div>
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
 
       {/* Modal nhập lý do từ chối evidence (thay window.prompt) */}

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchEtrList } from './auditorApi';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const AuditorAdvancedSearch = () => {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ const AuditorAdvancedSearch = () => {
   const [allRecords, setAllRecords] = useState([]);
   const [filteredResults, setFilteredResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchNonce, setSearchNonce] = useState(0);
 
   useEffect(() => {
     const loadRecords = async () => {
@@ -84,7 +87,13 @@ const AuditorAdvancedSearch = () => {
     });
 
     setFilteredResults(results);
+    setSearchNonce((n) => n + 1);
   };
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredResults, {
+    pageSize: 10,
+    resetKey: searchNonce,
+  });
 
   const handleReset = () => {
     setFilters({
@@ -97,6 +106,7 @@ const AuditorAdvancedSearch = () => {
       status: 'All'
     });
     setFilteredResults(allRecords);
+    setSearchNonce((n) => n + 1);
   };
 
   return (
@@ -256,7 +266,7 @@ const AuditorAdvancedSearch = () => {
             ) : filteredResults.length === 0 ? (
               <div className="empty-table-state">{trEn('No matching records found for the applied filter parameters.')}</div>
             ) : (
-              filteredResults.map((etr) => (
+              pageItems.map((etr) => (
                 <div key={etr.id} className="table-row auditor-table-grid">
                   <div className="col-id">{etr.id}</div>
                   <div className="col-name">{etr.learnerName}</div>
@@ -270,7 +280,7 @@ const AuditorAdvancedSearch = () => {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                     <button
                       className="auditor-btn-sm"
-                      onClick={() => navigate(`/auditor/details?id=${etr.id}`)}
+                      onClick={() => navigate(`/auditor/details?id=${etr.etrCourseRecordId}`)}
                     >
                       {trEn('View Details')}
                     </button>
@@ -279,6 +289,16 @@ const AuditorAdvancedSearch = () => {
               ))
             )}
           </div>
+        </div>
+
+        <div className="table-footer">
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onChange={setPage}
+            total={total}
+            pageSize={10}
+          />
         </div>
       </section>
     </div>

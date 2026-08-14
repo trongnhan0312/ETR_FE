@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const AuditLog = () => {
   const { tr } = useLanguage();
@@ -15,7 +17,9 @@ const AuditLog = () => {
         setAuditLogs(audits.slice(0, 50).map((a) => ({
           user: `Account #${a.accountId || 'System'}`,
           action: a.actionType || a.entityName || 'UPDATE',
-          date: a.createdAt ? new Date(a.createdAt).toLocaleDateString('vi-VN') : 'N/A',
+          module: a.entityName || '—',
+          description: a.description || `${a.actionType || ''} ${a.entityName || ''} #${a.recordId ?? ''}`.trim(),
+          date: a.createdAt ? new Date(a.createdAt).toLocaleString('vi-VN') : 'N/A',
           status: 'Success',
         })));
       } catch (err) {
@@ -26,6 +30,9 @@ const AuditLog = () => {
     };
     loadData();
   }, []);
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(auditLogs, { pageSize: 10 });
+
   return (
     <div className="page-shell">
       <section className="page-header-card">
@@ -74,6 +81,8 @@ const AuditLog = () => {
           <div className="table-header table-layout audit-layout">
             <div>{tr('User')}</div>
             <div>{tr('Action')}</div>
+            <div>{tr('Module')}</div>
+            <div>{tr('Details')}</div>
             <div>{tr('Date')}</div>
             <div>{tr('Status')}</div>
           </div>
@@ -87,13 +96,15 @@ const AuditLog = () => {
               {tr('Chưa có bản ghi audit nào.')}
             </div>
           ) : (
-            auditLogs.map((entry, idx) => (
+            pageItems.map((entry, idx) => (
             // Key phải DUY NHẤT: trước đây `${user}-${action}` trùng khi có 2 bản ghi
             // audit cùng Account + cùng Action (VD 2 lần "Account #4-INSERT" khi tạo tài khoản)
             // → React cảnh báo "Encountered two children with the same key".
             <div key={`${entry.user}-${entry.action}-${idx}`} className="table-row table-layout audit-layout">
               <div className="font-medium">{entry.user}</div>
               <div className="text-gray">{entry.action}</div>
+              <div className="text-gray">{entry.module}</div>
+              <div className="text-gray" title={entry.description} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '360px' }}>{entry.description}</div>
               <div className="text-gray">{entry.date}</div>
               <div>
                 <span className="status status-active">{entry.status}</span>
@@ -101,6 +112,14 @@ const AuditLog = () => {
             </div>
           )))}
         </div>
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
     </div>
   );

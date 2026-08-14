@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { api } from "../utils/api";
 import { buildSrToAccountMap } from "../utils/evidenceEnrich";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 
 // Trạng thái ETR → nhãn hiển thị + màu badge/chip
 const STATUS_META = {
@@ -124,6 +126,11 @@ const QAETRList = () => {
     });
   }, [etrRecords, statusFilter, searchTerm]);
 
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filtered, {
+    pageSize: 10,
+    resetKey: `${searchTerm}|${statusFilter}`,
+  });
+
   const getMeta = (status) => STATUS_META[status] || { label: status, color: "#64748b", bg: "rgba(100,116,139,0.1)" };
 
   return (
@@ -214,7 +221,7 @@ const QAETRList = () => {
               {tr('Không có ETR nào.')}
             </div>
           ) : (
-            filtered.map((etr) => {
+            pageItems.map((etr) => {
               const meta = getMeta(etr.status);
               return (
                 <div
@@ -264,6 +271,14 @@ const QAETRList = () => {
             })
           )}
         </div>
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
     </div>
   );

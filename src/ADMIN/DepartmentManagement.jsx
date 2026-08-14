@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api, parseApiError } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const DepartmentManagement = () => {
   const [departments, setDepartments] = useState([]);
@@ -49,6 +51,11 @@ const DepartmentManagement = () => {
     const nameStr = getDeptName(d).toLowerCase();
     const descStr = getDeptDesc(d).toLowerCase();
     return idStr.includes(term) || nameStr.includes(term) || descStr.includes(term);
+  });
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredDepartments, {
+    pageSize: 10,
+    resetKey: searchTerm,
   });
 
   // Reset form inputs
@@ -232,7 +239,7 @@ const DepartmentManagement = () => {
               {searchTerm ? tr('Không tìm thấy phòng ban phù hợp.') : tr('Chưa có phòng ban nào trong hệ thống.')}
             </div>
           ) : (
-            filteredDepartments.map((dept) => {
+            pageItems.map((dept) => {
               const id = getDeptId(dept);
               const name = getDeptName(dept);
               const desc = getDeptDesc(dept);
@@ -282,6 +289,14 @@ const DepartmentManagement = () => {
             })
           )}
         </div>
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
 
       {/* CREATE MODAL */}

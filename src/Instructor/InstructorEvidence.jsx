@@ -3,6 +3,8 @@ import { api } from "../utils/api";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 const getAccountIdFromToken = () => {
   try {
     const token = localStorage.getItem("token");
@@ -453,6 +455,11 @@ const InstructorEvidence = () => {
     );
   }, [evidences, selectedStudent]);
 
+  const evidencePager = usePagination(visibleEvidences, {
+    pageSize: 10,
+    resetKey: selectedStudentId,
+  });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <section className="content-header">
@@ -593,7 +600,7 @@ const InstructorEvidence = () => {
                   : tr('Chưa có tệp minh chứng nào được tải lên cho lớp này.')}
               </div>
             ) : (
-              visibleEvidences.map((ev) => (
+              evidencePager.pageItems.map((ev) => (
                 <div
                   key={ev.evidenceFileId}
                   className="table-row"
@@ -770,6 +777,16 @@ const InstructorEvidence = () => {
                 </div>
               ))
             )}
+          </div>
+
+          <div className="table-footer">
+            <Pagination
+              page={evidencePager.page}
+              pageCount={evidencePager.pageCount}
+              onChange={evidencePager.setPage}
+              total={evidencePager.total}
+              pageSize={10}
+            />
           </div>
         </section>
 
