@@ -4,6 +4,8 @@ import { api } from "../utils/api";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 import "./instructor.scss";
 
 const InstructorClasses = () => {
@@ -172,6 +174,11 @@ const InstructorClasses = () => {
     });
   }, [classesData, searchTerm, statusFilter, courseKey, hasScheduleOnly]);
 
+  const classesPager = usePagination(filteredClasses, {
+    pageSize: 10,
+    resetKey: `${searchTerm}|${statusFilter}|${courseKey}|${hasScheduleOnly}`,
+  });
+
   // Filter sessions
   const filteredSessions = useMemo(() => {
     return sessions.filter(
@@ -181,6 +188,11 @@ const InstructorClasses = () => {
         s.room.toLowerCase().includes(sessionSearch.toLowerCase()),
     );
   }, [sessions, sessionSearch]);
+
+  const sessionPager = usePagination(filteredSessions, {
+    pageSize: 10,
+    resetKey: sessionSearch,
+  });
 
   // Assessments for the selected subject that are not already signed to another session.
   // While editing, keep the currently assigned assessment selectable.
@@ -531,7 +543,7 @@ const InstructorClasses = () => {
 
           {/* Sessions List Row */}
           <div className="table-body">
-            {filteredSessions.map((session) => (
+            {sessionPager.pageItems.map((session) => (
               <div
                 key={session.sessionId}
                 className="table-row"
@@ -642,14 +654,13 @@ const InstructorClasses = () => {
 
           {/* Footer */}
           <div className="table-footer">
-            <span className="footer-info">
-              {tr('Hiển thị ')}{filteredSessions.length}{tr(' trên ')}{sessions.length}{tr(' buổi học')}
-            </span>
-            <div className="pagination">
-              <button className="page-num active" type="button">
-                1
-              </button>
-            </div>
+            <Pagination
+              page={sessionPager.page}
+              pageCount={sessionPager.pageCount}
+              onChange={sessionPager.setPage}
+              total={sessionPager.total}
+              pageSize={10}
+            />
           </div>
         </section>
 
@@ -1430,7 +1441,7 @@ const InstructorClasses = () => {
               {tr('Không tìm thấy lớp học nào khớp với bộ lọc hiện tại.')}
             </div>
           ) : (
-            filteredClasses.map((cls) => {
+            classesPager.pageItems.map((cls) => {
               const statusColors = getStatusStyle(cls.status);
 
               return (
@@ -1602,14 +1613,13 @@ const InstructorClasses = () => {
         </div>
 
         <div className="table-footer">
-          <span className="footer-info">
-            {tr('Hiển thị ')}{filteredClasses.length}{tr(' trên ')}{classesData.length}{tr(' lớp')}
-          </span>
-          <div className="pagination">
-            <button className="page-num active" type="button">
-              1
-            </button>
-          </div>
+          <Pagination
+            page={classesPager.page}
+            pageCount={classesPager.pageCount}
+            onChange={classesPager.setPage}
+            total={classesPager.total}
+            pageSize={10}
+          />
         </div>
       </section>
 

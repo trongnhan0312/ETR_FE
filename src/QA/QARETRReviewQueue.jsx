@@ -6,6 +6,8 @@ import PromptModal from "../components/PromptModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import ApprovalHistory from "../components/ApprovalHistory";
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 
 // Dòng hiển thị 1 bước kiểm duyệt trong modal chi tiết ETR
 const StepStatusRow = ({ label, ok }) => {
@@ -330,6 +332,16 @@ const QARETRReviewQueue = () => {
       .some((field) => String(field).toLowerCase().includes(q));
   });
 
+  const queuePager = usePagination(etrRecords, {
+    pageSize: 10,
+    resetKey: etrRecords.length,
+  });
+
+  const historyPager = usePagination(filteredHistoryRecords, {
+    pageSize: 10,
+    resetKey: historySearch,
+  });
+
   return (
     <div className="qa-shell">
       {/* Toast notifications */}
@@ -371,7 +383,7 @@ const QARETRReviewQueue = () => {
               {tr('Chưa có ETR nào được gửi để xác thực.')}
             </div>
           ) : (
-            etrRecords.map((record) => (
+            queuePager.pageItems.map((record) => (
               <div
                 key={record.id}
                 className="qa-list-item"
@@ -450,6 +462,14 @@ const QARETRReviewQueue = () => {
             ))
           )}
         </div>
+
+        <Pagination
+          page={queuePager.page}
+          pageCount={queuePager.pageCount}
+          onChange={queuePager.setPage}
+          total={queuePager.total}
+          pageSize={10}
+        />
       </section>
 
       {/* Lịch sử duyệt: hiển thị TẤT CẢ các ETR kèm trạng thái duyệt/từ chối/trả lại
@@ -522,7 +542,7 @@ const QARETRReviewQueue = () => {
               {tr('Không tìm thấy ETR phù hợp với từ khóa.')}
             </div>
           ) : (
-            filteredHistoryRecords.map((record) => (
+            historyPager.pageItems.map((record) => (
               <div
                 key={record.id}
                 className="qa-list-item"
@@ -643,6 +663,14 @@ const QARETRReviewQueue = () => {
             ))
           )}
         </div>
+
+        <Pagination
+          page={historyPager.page}
+          pageCount={historyPager.pageCount}
+          onChange={historyPager.setPage}
+          total={historyPager.total}
+          pageSize={10}
+        />
       </section>
 
       {/* Modal xem chi tiết đầy đủ ETR (toàn bộ thông tin trước khi Verify/Return)

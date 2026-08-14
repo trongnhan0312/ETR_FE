@@ -54,6 +54,7 @@ import TrainingManagerLayout from './TrainingManager/TrainingManagerLayout';
 import TrainingManagerDashboard from './TrainingManager/TrainingManagerDashboard';
 import ClassStatus from './TrainingManager/ClassStatus';
 import EtrApproval from './TrainingManager/EtrApproval';
+import TrainingManagerAmendments from './TrainingManager/TrainingManagerAmendments';
 import StudentLayout from './Student/StudentLayout';
 import StudentDashboard from './Student/StudentDashboard';
 import StudentMyETR from './Student/StudentMyETR';
@@ -233,6 +234,7 @@ function App() {
 						<Route path="classes" element={<ClassStatus />} />
 						<Route path="etr-approval" element={<EtrApproval />} />
 						<Route path="expiring-students" element={<ExpiringStudents />} />
+						<Route path="amendments" element={<TrainingManagerAmendments />} />
 					</Route>
 				</Route>
 

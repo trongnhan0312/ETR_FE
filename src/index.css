@@ -120,3 +120,48 @@ code {
   from { opacity: 1; transform: translateX(0); }
   to { opacity: 0; transform: translateX(110%); }
 }
+
+/* ── Pagination dùng chung (tối đa 5 nút trang) ── */
+.etr-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 4px 4px;
+}
+.etr-pagination-info {
+  font-size: 12px;
+  color: #6b7280;
+}
+.etr-pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.etr-page-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.etr-page-btn:hover:not(:disabled):not(.active) {
+  border-color: #b8963e;
+  color: #b8963e;
+}
+.etr-page-btn.active {
+  background: #1e293b;
+  border-color: #1e293b;
+  color: #f6d47c;
+  font-weight: 600;
+}
+.etr-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

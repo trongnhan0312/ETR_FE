@@ -4,6 +4,8 @@ import { api } from '../utils/api';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from '../utils/usePagination';
+import Pagination from '../components/Pagination';
 
 const UserManagement = () => {
   const { tr, trt } = useLanguage();
@@ -410,6 +412,11 @@ const handleEditRoleChange = (newRoleId) => {
     return matchesSearch && matchesRole;
   });
 
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredUsers, {
+    pageSize: 10,
+    resetKey: `${searchTerm}|${roleFilter}`,
+  });
+
   return (
     <div className="page-shell">
       <section className="page-header-card">
@@ -503,7 +510,7 @@ const handleEditRoleChange = (newRoleId) => {
               {tr('Không tìm thấy tài khoản nào.')}
             </div>
           ) : (
-            filteredUsers.map((user) => {
+            pageItems.map((user) => {
               const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
               return (
                 <div key={user.accountId} className="table-row table-layout user-layout" style={{ gridTemplateColumns: '1.1fr 1.2fr 1.2fr 0.9fr 1.1fr 0.8fr 0.8fr 1.2fr', alignItems: 'center' }}>
@@ -579,6 +586,14 @@ const handleEditRoleChange = (newRoleId) => {
             })
           )}
         </div>
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
 
       {/* CREATE USER MODAL */}

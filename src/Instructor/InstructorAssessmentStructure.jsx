@@ -4,6 +4,8 @@ import { api } from "../utils/api";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 import "./instructor.scss";
 
 const ASSESSMENT_TYPES = [
@@ -340,6 +342,9 @@ const InstructorAssessmentStructure = () => {
 
   const [assessments, setAssessments] = useState([]);
   const [checklists, setChecklists] = useState([]);
+
+  const assessmentPager = usePagination(assessments, { pageSize: 10 });
+  const checklistPager = usePagination(checklists, { pageSize: 10 });
 
   const [loading, setLoading] = useState(true);
 
@@ -833,7 +838,7 @@ const InstructorAssessmentStructure = () => {
                   <div>{tr("Thao tác")}</div>
                 </div>
                 <div className="table-body">
-                  {assessments
+                  {assessmentPager.pageItems
                     .slice()
                     .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
                     .map((a) => (
@@ -917,6 +922,16 @@ const InstructorAssessmentStructure = () => {
                 </div>
               </div>
             )}
+
+            <div className="table-footer">
+              <Pagination
+                page={assessmentPager.page}
+                pageCount={assessmentPager.pageCount}
+                onChange={assessmentPager.setPage}
+                total={assessmentPager.total}
+                pageSize={10}
+              />
+            </div>
           </section>
 
           <section className="table-card">
@@ -1006,7 +1021,7 @@ const InstructorAssessmentStructure = () => {
                   <div>{tr("Thao tác")}</div>
                 </div>
                 <div className="table-body">
-                  {checklists
+                  {checklistPager.pageItems
                     .slice()
                     .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
                     .map((c) => (
@@ -1087,6 +1102,16 @@ const InstructorAssessmentStructure = () => {
                 </div>
               </div>
             )}
+
+            <div className="table-footer">
+              <Pagination
+                page={checklistPager.page}
+                pageCount={checklistPager.pageCount}
+                onChange={checklistPager.setPage}
+                total={checklistPager.total}
+                pageSize={10}
+              />
+            </div>
           </section>
         </>
       )}

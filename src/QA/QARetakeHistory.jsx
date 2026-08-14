@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
 import { useLanguage } from '../context/LanguageContext';
+import { usePagination } from "../utils/usePagination";
+import Pagination from "../components/Pagination";
 
 const QARetakeHistory = () => {
   const { tr, trEn } = useLanguage();
@@ -65,6 +67,11 @@ const QARetakeHistory = () => {
   const filteredRetakes = subjectFilter
     ? retakes.filter((r) => r.subjectResultId === parseInt(subjectFilter))
     : retakes;
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(filteredRetakes, {
+    pageSize: 10,
+    resetKey: subjectFilter,
+  });
 
   return (
     <div className="qa-shell">
@@ -133,7 +140,7 @@ const QARetakeHistory = () => {
               {tr('Chưa có bản ghi retake nào.')}
             </div>
           ) : (
-            filteredRetakes.map((entry, idx) => (
+            pageItems.map((entry, idx) => (
               <div key={idx} className="qa-list-item">
                 <div style={{ flex: 1 }}>
                   <div
@@ -182,6 +189,14 @@ const QARetakeHistory = () => {
             ))
           )}
         </div>
+
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onChange={setPage}
+          total={total}
+          pageSize={10}
+        />
       </section>
     </div>
   );
