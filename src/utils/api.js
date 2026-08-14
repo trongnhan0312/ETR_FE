@@ -416,6 +416,12 @@ export const parseApiError = (err, fallback) => {
     );
   }
 
+  if (raw.includes("unconfirmed sessions")) {
+    return translateVn(
+      "❌ Quy tắc nghiệp vụ: Không thể chuyển Lớp sang Completed (Đã kết thúc) vì vẫn còn buổi học chưa được confirm. Vui lòng confirm toàn bộ buổi học của lớp trước khi hoàn thành.",
+    );
+  }
+
   if (
     raw.includes("Completed or Locked") ||
     raw.includes("ETR is locked") ||
