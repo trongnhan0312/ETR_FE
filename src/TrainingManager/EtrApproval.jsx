@@ -837,16 +837,7 @@ const EtrApproval = () => {
           >
             {metrics.pending}
           </p>
-          <div className="tm-zulu-badge" style={{ marginTop: "auto" }}>
-            <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-              <path
-                d="M5.25 12V2.86875L1.05 7.06875L0 6L6 0L12 6L10.95 7.06875L6.75 2.86875V12H5.25Z"
-                fill="#D4AF37"
-              />
-            </svg>
-            <span>{tr('+2 since 08:00 Zulu')}</span>
           </div>
-        </div>
 
         {/* AVG PROCESSING TIME */}
         <div
@@ -874,23 +865,7 @@ const EtrApproval = () => {
           <div className="tm-gradient-bar-gold" style={{ marginTop: "auto" }} />
         </div>
 
-        {/* SECURITY STATUS */}
-        <div className="tm-vault-card tm-col-span-2">
-          <div className="tm-vault-icon-bg">
-            <svg width={52} height={61} viewBox="0 0 52 61" fill="none">
-              <path
-                d="M28.9583 56.4583L52.5 32.9167L46.5625 26.9792L28.9583 44.5833L20.2083 35.8333L14.2708 41.7708L28.9583 56.4583ZM33.3333 83.3333C23.6806 80.9028 15.7118 75.3646 9.42708 66.7188C3.14236 58.0729 0 48.4722 0 37.9167V12.5L33.3333 0L66.6667 12.5V37.9167C66.6667 48.4722 63.5243 58.0729 57.2396 66.7188C50.9549 75.3646 42.9861 80.9028 33.3333 83.3333ZM33.3333 74.5833C40.5556 72.2917 46.5278 67.7083 51.25 60.8333C55.9722 53.9583 58.3333 46.3194 58.3333 37.9167V18.2292L33.3333 8.85417L8.33333 18.2292V37.9167C8.33333 46.3194 10.6944 53.9583 15.4167 60.8333C20.1389 67.7083 26.1111 72.2917 33.3333 74.5833Z"
-                fill="white"
-              />
-            </svg>
-          </div>
-          <span className="tm-vault-label">{tr('SECURITY STATUS')}</span>
-          <h2 className="tm-vault-title">{tr('AeroVault™ Protocol Active')}</h2>
-          <p className="tm-vault-desc">
-            {tr('Cryptographic seals are initialized and ready for deployment on verified records.')}
-          </p>
         </div>
-      </div>
 
       {/* OPERATIONAL CLASS ANALYTICS ROW */}
       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -938,28 +913,6 @@ const EtrApproval = () => {
             >
               {metrics.activeClasses ?? "—"}
             </p>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                marginTop: "auto",
-              }}
-            >
-              <span
-                style={{
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "50%",
-                  backgroundColor: "#22c55e",
-                }}
-              />
-              <span
-                style={{ fontSize: "11px", color: "#545f71", fontWeight: 500 }}
-              >
-                {tr('Live Sessions In Progress')}
-              </span>
-            </div>
           </div>
 
           {/* Avg Attendance */}
