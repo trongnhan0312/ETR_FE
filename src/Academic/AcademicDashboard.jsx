@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ApexChart from '../components/ApexChart';
-import { api } from '../utils/api';
 import { fetchMyDashboard } from '../utils/dashboardApi';
 import { useLanguage } from '../context/LanguageContext';
 import '../dashboard.scss';
@@ -11,8 +10,6 @@ const AcademicDashboard = () => {
   const { tr } = useLanguage();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [lowAttendance, setLowAttendance] = useState([]);
-  const [loadingLow, setLoadingLow] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -28,25 +25,13 @@ const AcademicDashboard = () => {
     load();
   }, []);
 
-  useEffect(() => {
-    const loadLow = async () => {
-      setLoadingLow(true);
-      try {
-        const data = await api.get('/Attendance/low-attendance').catch(() => []);
-        setLowAttendance(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Error loading low-attendance list:', err);
-      } finally {
-        setLoadingLow(false);
-      }
-    };
-    loadLow();
-  }, []);
-
   const o = dashboard?.overview ?? null;
   const f = dashboard?.funnel ?? null;
   const ai = dashboard?.actionItems ?? null;
   const totalEtrs = o?.totalEtrs || 0;
+  // Backend tính sẵn cho Academic: danh sách điểm danh thấp toàn hệ thống + số hồ sơ sắp hết hạn
+  const lowAttendance = dashboard?.lowAttendanceStudents ?? [];
+  const expiringStudentsCount = dashboard?.expiringStudentsCount ?? 0;
 
   const kpis = [
     {
@@ -124,6 +109,18 @@ const AcademicDashboard = () => {
       ),
       iconBg: 'rgba(239,68,68,0.1)',
       iconColor: '#dc2626',
+    },
+    {
+      label: tr('Sắp hết hạn (30 ngày)'),
+      value: expiringStudentsCount,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      ),
+      iconBg: 'rgba(245,158,11,0.14)',
+      iconColor: '#d97706',
     },
   ];
 
@@ -237,7 +234,7 @@ const AcademicDashboard = () => {
         </div>
         <div className="page-status-box">
           <strong>{tr('Data source')}</strong>
-          <p>GET /api/Dashboard/my-dashboard · /api/Attendance/low-attendance</p>
+          <p>GET /api/Dashboard/my-dashboard</p>
         </div>
       </section>
 
@@ -324,12 +321,12 @@ const AcademicDashboard = () => {
             <div>
               <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#002147', margin: 0 }}>{tr('Học viên dưới ngưỡng điểm danh')}</h2>
               <p style={{ fontSize: '12px', color: 'rgba(0,33,71,0.5)', margin: '4px 0 0' }}>
-                {tr('Nguồn:')} GET /api/Attendance/low-attendance
+                {tr('Học viên có tỉ lệ điểm danh dưới ngưỡng tối thiểu (toàn hệ thống).')}
               </p>
             </div>
             <span className="dash-badge dash-badge-danger">{lowAttendance.length}</span>
           </div>
-          {loadingLow ? (
+          {loading ? (
             <div className="dash-empty">{tr('Đang tải...')}</div>
           ) : lowAttendance.length === 0 ? (
             <div className="dash-empty">{tr('Không có học viên nào dưới ngưỡng.')}</div>

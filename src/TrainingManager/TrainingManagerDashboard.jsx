@@ -1,68 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ApexChart from "../components/ApexChart";
-import { api } from "../utils/api";
 import { fetchMyDashboard } from "../utils/dashboardApi";
 import { useLanguage } from "../context/LanguageContext";
 import "../dashboard.scss";
-
-// Đếm hồ sơ ETR theo tháng (8 tháng gần nhất) cho biểu đồ đường cong.
-// 2 chuỗi so sánh: locked (khóa/hoàn tất, theo completedAt/verifiedAt/submittedAt) và
-// returned (bị QA trả về / từ chối, theo updatedAt). Toàn bộ từ danh sách ETR thật.
-const buildEtrTrend = (etrs) => {
-  const buckets = {};
-  const now = new Date();
-  for (let i = 7; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    buckets[key] = {
-      label: `${d.toLocaleString("en-US", { month: "short" })} ${String(d.getFullYear()).slice(2)}`,
-      locked: 0,
-      returned: 0,
-    };
-  }
-  const bucketKey = (d) => {
-    if (!d || Number.isNaN(d.getTime())) return null;
-    return `${d.getFullYear()}-${d.getMonth()}`;
-  };
-  etrs.forEach((etr) => {
-    const status = String(etr.Status ?? etr.status ?? "").toLowerCase();
-    const isReturned =
-      status.includes("returned") || status.includes("reopened") || status.includes("rejected");
-    if (isReturned) {
-      const k = bucketKey(etr.UpdatedAt ? new Date(etr.UpdatedAt) : null);
-      if (k && buckets[k]) buckets[k].returned += 1;
-      return;
-    }
-    const rawDate = etr.CompletedAt ?? etr.VerifiedAt ?? etr.SubmittedAt;
-    const k = bucketKey(rawDate ? new Date(rawDate) : null);
-    if (k && buckets[k]) buckets[k].locked += 1;
-  });
-  const keys = Object.keys(buckets);
-  return {
-    categories: keys.map((k) => buckets[k].label),
-    locked: keys.map((k) => buckets[k].locked),
-    returned: keys.map((k) => buckets[k].returned),
-  };
-};
 
 const TrainingManagerDashboard = () => {
   const navigate = useNavigate();
   const { tr } = useLanguage();
   const [dashboard, setDashboard] = useState(null);
-  const [etrs, setEtrs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [d, etrList] = await Promise.all([
-          fetchMyDashboard(),
-          api.get("/Etr").catch(() => []),
-        ]);
-        setDashboard(d);
-        setEtrs(Array.isArray(etrList) ? etrList : []);
+        setDashboard(await fetchMyDashboard());
       } catch (err) {
         console.error("Error loading Training Manager Dashboard:", err);
       } finally {
@@ -77,8 +30,23 @@ const TrainingManagerDashboard = () => {
   const ai = dashboard?.actionItems ?? null;
   const totalEtrs = o?.totalEtrs || 0;
 
-  // Đường cong Locked vs Returned theo tháng — dữ liệu thật từ GET /api/Etr
-  const etrTrend = useMemo(() => buildEtrTrend(etrs), [etrs]);
+  // Xu hướng Locked vs Returned theo 8 tháng gần nhất — backend tính sẵn (monthlyTrend)
+  const etrTrend = useMemo(() => {
+    const t = dashboard?.monthlyTrend ?? null;
+    if (!t || !Array.isArray(t.months)) return { categories: [], locked: [], returned: [] };
+    const label = (m) => {
+      const parts = String(m).split("-").map(Number);
+      const y = parts[0];
+      const mo = parts[1];
+      if (!y || !mo) return String(m);
+      return `${new Date(y, mo - 1, 1).toLocaleString("en-US", { month: "short" })} ${String(y).slice(2)}`;
+    };
+    return {
+      categories: t.months.map(label),
+      locked: Array.isArray(t.locked) ? t.locked : [],
+      returned: Array.isArray(t.returned) ? t.returned : [],
+    };
+  }, [dashboard]);
 
   const donutOptions = useMemo(() => {
     const labels = [
@@ -212,7 +180,7 @@ const TrainingManagerDashboard = () => {
         </div>
         <div className="page-status-box">
           <strong>{tr("Data source")}</strong>
-          <p>GET /api/Dashboard/my-dashboard · GET /api/Etr</p>
+          <p>GET /api/Dashboard/my-dashboard</p>
         </div>
       </section>
 
@@ -308,7 +276,7 @@ const TrainingManagerDashboard = () => {
         </section>
       )}
 
-      {/* Trend Chart — dữ liệu thật từ GET /api/Etr */}
+      {/* Trend Chart — monthlyTrend từ backend (8 tháng gần nhất) */}
       {showTrend && (
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px" }}>
           <div className="freedash-dist-card">

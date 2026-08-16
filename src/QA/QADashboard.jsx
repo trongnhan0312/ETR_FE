@@ -1,100 +1,22 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ApexChart from "../components/ApexChart";
-import { api } from "../utils/api";
 import { fetchMyDashboard } from "../utils/dashboardApi";
 import { useLanguage } from '../context/LanguageContext';
-import {
-  buildSrToAccountMap,
-  resolveEvidenceLearner,
-} from "../utils/evidenceEnrich";
 import "../dashboard.scss";
 
 const QADashboard = () => {
   const navigate = useNavigate();
   const { trEn } = useLanguage();
-  const [metrics, setMetrics] = useState({
-    pendingEvidence: null,
-    pendingEtrs: null,
-    rejectedEvidence: null,
-    reviewedToday: null,
-  });
-  const [evidenceFiles, setEvidenceFiles] = useState([]);
-  const [evidenceTotal, setEvidenceTotal] = useState(0);
-  const [evidenceBreakdown, setEvidenceBreakdown] = useState({ verified: 0, pending: 0, rejected: 0 });
-  const [funnel, setFunnel] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Chỉ 1 lần gọi GET /api/Dashboard/my-dashboard — backend đã gom sẵn evidenceSummary,
+  // reviewedToday và recentEvidenceFiles (kèm learnerName) cho role QA.
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [evidences, etrs, audit, profiles, dashboard] = await Promise.all([
-          api.get("/Evidences").catch(() => []),
-          api.get("/Etr").catch(() => []),
-          api.get("/Audit?page=1&pageSize=50").catch(() => []),
-          api.get("/UserProfiles/learners").catch(() => []),
-          fetchMyDashboard(),
-        ]);
-
-        const evfs = Array.isArray(evidences) ? evidences : [];
-        const etrsArr = Array.isArray(etrs) ? etrs : [];
-        const profilesArr = Array.isArray(profiles) ? profiles : [];
-        // Map subjectResultId → accountId để hiển thị đúng tên học viên cho evidence
-        // bị lưu nhầm accountId giảng viên (tải lên qua trang Instructor trước khi fix).
-        const srData = await buildSrToAccountMap(etrsArr);
-        const srToAccount = srData?.srToAccount || {};
-        const audits = Array.isArray(audit)
-          ? audit
-          : Array.isArray(audit?.items)
-            ? audit.items
-            : [];
-
-        const pendingEvidence = evfs.filter(
-          (e) => e.verificationStatus !== "Verified" && e.verificationStatus !== "Rejected"
-        ).length;
-        const rejectedEvidence = evfs.filter(
-          (e) => e.verificationStatus === "Rejected"
-        ).length;
-        const verifiedEvidence = evfs.filter(
-          (e) => e.verificationStatus === "Verified"
-        ).length;
-        const pendingEtrs =
-          dashboard?.pendingVerificationEtrIds?.length ??
-          etrsArr.filter((e) => e.status === "Submitted").length;
-        const todayReviewed = audits.filter((a) => {
-          const t = a.createdAt ?? a.recordedAt;
-          if (!t) return false;
-          const d = new Date(t);
-          const today = new Date();
-          return d.toDateString() === today.toDateString();
-        }).length;
-
-        setMetrics({
-          pendingEvidence,
-          pendingEtrs,
-          rejectedEvidence,
-          reviewedToday: todayReviewed,
-        });
-        setEvidenceBreakdown({ verified: verifiedEvidence, pending: pendingEvidence, rejected: rejectedEvidence });
-        setFunnel(dashboard?.funnel ?? null);
-
-        // Danh sách file minh chứng đã tải lên (nối tên học viên qua AccountId)
-        const files = evfs
-          .map((ev) => ({
-            id: ev.evidenceFileId,
-            fileName: ev.fileName || "File",
-            learner: resolveEvidenceLearner(ev, profilesArr, srToAccount),
-            status:
-              ev.verificationStatus === "Verified"
-                ? "Verified"
-                : ev.verificationStatus === "Rejected"
-                  ? "Rejected"
-                  : "Pending",
-            uploadedAt: ev.uploadedAt || null,
-          }))
-          .sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0));
-        setEvidenceTotal(files.length);
-        setEvidenceFiles(files.slice(0, 8));
+        setDashboard(await fetchMyDashboard());
       } catch (err) {
         console.error("Error loading QA dashboard:", err);
       } finally {
@@ -104,7 +26,37 @@ const QADashboard = () => {
     loadData();
   }, []);
 
-  // Donut: phân bố trạng thái evidence (dữ liệu thật từ GET /api/Evidences)
+  const es = dashboard?.evidenceSummary ?? null;
+  const funnel = dashboard?.funnel ?? null;
+
+  const metrics = {
+    pendingEvidence: es?.pending ?? 0,
+    pendingEtrs: dashboard?.pendingVerificationEtrIds?.length ?? 0,
+    rejectedEvidence: es?.rejected ?? 0,
+    reviewedToday: dashboard?.reviewedToday ?? 0,
+  };
+  const evidenceBreakdown = {
+    verified: es?.verified ?? 0,
+    pending: es?.pending ?? 0,
+    rejected: es?.rejected ?? 0,
+  };
+  const evidenceTotal = es?.total ?? 0;
+
+  // Backend đã nối sẵn learnerName — không còn enrich client-side
+  const evidenceFiles = (dashboard?.recentEvidenceFiles ?? []).map((f) => ({
+    id: f.evidenceFileId,
+    fileName: f.fileName || "File",
+    learner: f.learnerName || "—",
+    status:
+      f.verificationStatus === "Verified"
+        ? "Verified"
+        : f.verificationStatus === "Rejected"
+          ? "Rejected"
+          : "Pending",
+    uploadedAt: f.uploadedAt || null,
+  }));
+
+  // Donut: phân bố trạng thái evidence (evidenceSummary từ /Dashboard/my-dashboard)
   const evidenceDonut = useMemo(() => {
     return {
       chart: { type: "donut", fontFamily: "inherit" },
@@ -212,7 +164,7 @@ const QADashboard = () => {
         </div>
         <div className="page-status-box">
           <strong>{trEn("Data source")}</strong>
-          <p>GET /api/Evidences · /api/Etr · /api/Audit · /api/Dashboard/my-dashboard</p>
+          <p>GET /api/Dashboard/my-dashboard</p>
         </div>
       </section>
 

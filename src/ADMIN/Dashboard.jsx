@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ApexChart from '../components/ApexChart';
-import { api } from '../utils/api';
 import { fetchMyDashboard } from '../utils/dashboardApi';
 import { useLanguage } from '../context/LanguageContext';
 import '../dashboard.scss';
@@ -9,54 +8,13 @@ import '../dashboard.scss';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { tr } = useLanguage();
-  const [metrics, setMetrics] = useState({
-    totalUsers: null,
-    totalLearners: null,
-    totalCourses: null,
-    totalClasses: null,
-    totalEtrs: null,
-    pendingReviews: null,
-  });
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [accounts, profiles, courses, classes, d] = await Promise.all([
-          api.get('/Accounts').catch(() => []),
-          api.get('/UserProfiles/learners').catch(() => []),
-          api.get('/Courses').catch(() => []),
-          api.get('/Classes').catch(() => []),
-          fetchMyDashboard(),
-        ]);
-        const accs = Array.isArray(accounts) ? accounts : [];
-        const profs = Array.isArray(profiles) ? profiles : [];
-        const totalEtrs = d?.overview?.totalEtrs ?? 0;
-        const pendingCount =
-          d?.actionItems?.pendingApprovalEtrIds?.length ??
-          d?.overview?.pendingApprovalCount ??
-          0;
-
-        const isLearner = (acc) => {
-          const rId = Number(acc.roleId);
-          const rName = String(acc.role || '').toLowerCase();
-          return rId === 6 || rName === 'student' || rName === 'learner';
-        };
-
-        const learnerCount = accs.length > 0
-          ? accs.filter(isLearner).length
-          : profs.filter(isLearner).length;
-
-        setMetrics({
-          totalUsers: accs.length,
-          totalLearners: learnerCount,
-          totalCourses: Array.isArray(courses) ? courses.length : 0,
-          totalClasses: Array.isArray(classes) ? classes.length : 0,
-          totalEtrs,
-          pendingReviews: pendingCount,
-        });
-        setDashboard(d);
+        setDashboard(await fetchMyDashboard());
       } catch (err) {
         console.error('Error loading admin dashboard:', err);
       } finally {
@@ -69,7 +27,20 @@ const Dashboard = () => {
   const o = dashboard?.overview ?? null;
   const f = dashboard?.funnel ?? null;
   const ai = dashboard?.actionItems ?? null;
+  const ss = dashboard?.systemStats ?? null;
   const totalEtrs = o?.totalEtrs || 0;
+
+  // systemStats được backend tính sẵn cho Admin — không còn gọi /Accounts, /Courses, /Classes
+  const metrics = {
+    totalUsers: ss?.totalUsers,
+    totalLearners: ss?.totalLearners,
+    totalInstructors: ss?.totalInstructors,
+    totalCourses: ss?.totalCourses,
+    totalClasses: ss?.totalClasses,
+    totalEtrs,
+    pendingReviews: ai?.pendingApprovalEtrIds?.length ?? o?.pendingApprovalCount ?? 0,
+    newUsersThisMonth: ss?.newUsersThisMonth,
+  };
 
   const kpis = [
     {
@@ -89,6 +60,18 @@ const Dashboard = () => {
     {
       label: tr('Total Learners'),
       value: metrics.totalLearners,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+          <path d="M6 12v5c3 3 9 3 12 0v-5" />
+        </svg>
+      ),
+      iconBg: 'rgba(99,102,241,0.12)',
+      iconColor: '#6366f1',
+    },
+    {
+      label: tr('Total Instructors'),
+      value: metrics.totalInstructors,
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
@@ -134,6 +117,20 @@ const Dashboard = () => {
       ),
       iconBg: 'rgba(34,197,94,0.12)',
       iconColor: '#16a34a',
+    },
+    {
+      label: tr('New Users This Month'),
+      value: metrics.newUsersThisMonth,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="8.5" cy="7" r="4" />
+          <line x1="20" y1="8" x2="20" y2="14" />
+          <line x1="23" y1="11" x2="17" y2="11" />
+        </svg>
+      ),
+      iconBg: 'rgba(16,185,129,0.12)',
+      iconColor: '#059669',
     },
     {
       label: tr('Pending Reviews'),
@@ -259,7 +256,7 @@ const Dashboard = () => {
         </div>
         <div className="page-status-box">
           <strong>{tr('Data source')}</strong>
-          <p>GET /api/Accounts · /api/Courses · /api/Classes · /api/Dashboard/my-dashboard</p>
+          <p>GET /api/Dashboard/my-dashboard</p>
         </div>
       </section>
 
