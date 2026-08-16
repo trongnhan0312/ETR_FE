@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ApexChart from '../components/ApexChart';
-import { api } from '../utils/api';
 import { fetchMyDashboard } from '../utils/dashboardApi';
 import { useLanguage } from '../context/LanguageContext';
 import '../dashboard.scss';
@@ -19,6 +18,7 @@ const STATUS_MAP = {
   'Completed': 'completed',
   'Draft': 'draft',
   'Returned': 'returned',
+  'ReturnedForCorrection': 'returned',
 };
 
 const STATUS_LABEL = {
@@ -28,6 +28,7 @@ const STATUS_LABEL = {
   'Completed': 'Hoàn thành',
   'Draft': 'Nháp',
   'Returned': 'Trả lại',
+  'ReturnedForCorrection': 'Trả lại',
 };
 
 /** Format an ISO date string → Vietnamese locale, or '--' */
@@ -40,14 +41,6 @@ const formatDate = (d) => {
   }
 };
 
-/** Map API response fields (PascalCase from .NET) to consistent camelCase */
-const mapEtr = (e) => ({
-  id: e.ETRCourseRecordId ?? e.etrCourseRecordId ?? null,
-  enrollmentId: e.EnrollmentId ?? e.enrollmentId ?? null,
-  status: e.Status ?? e.status ?? 'Draft',
-  date: e.CompletedAt ?? e.completedAt ?? e.VerifiedAt ?? e.verifiedAt ?? e.SubmittedAt ?? e.submittedAt ?? null,
-});
-
 const statusBucket = (s) => {
   const st = String(s || '').toLowerCase().replace(/[\s_-]/g, '');
   if (st === 'inprogress' || st === 'draft') return 'progress';
@@ -56,51 +49,32 @@ const statusBucket = (s) => {
   return 'other';
 };
 
+// Hệ thống chưa có entity Certificate riêng — ETRCourseRecord.Status == "Completed" được coi là
+// chứng chỉ, hạn dùng theo ExpiryDate (cùng ngưỡng 30 ngày với backend).
+const certValidity = (expiryDate) => {
+  if (!expiryDate) return 'Valid';
+  const now = Date.now();
+  const exp = new Date(expiryDate).getTime();
+  if (Number.isNaN(exp)) return 'Valid';
+  if (exp < now) return 'Expired';
+  if (exp < now + 30 * 24 * 60 * 60 * 1000) return 'ExpiringSoon';
+  return 'Valid';
+};
+
 const StudentDashboard = () => {
   const { tr } = useLanguage();
   const navigate = useNavigate();
-  const [etrs, setEtrs] = useState([]);
-  const [profile, setProfile] = useState(null);
-  const [certStatus, setCertStatus] = useState([]);
-  const [myEtrs, setMyEtrs] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Chỉ 1 lần gọi GET /api/Dashboard/my-dashboard — backend trả sẵn myEtrs, profile
+  // và certificateSummary cho role Student (gộp 4 call cũ: /Etr/my-etr, /auth/me,
+  // /Etr/student/{id}/current-status thành 1).
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const [etrData, profileData, certData, dashboard] = await Promise.all([
-          api.get('/Etr/my-etr', { suppressAuthRedirect: true }).catch(() => []),
-          api.get('/auth/me', { suppressAuthRedirect: true }).catch(() => null),
-          (async () => {
-            try {
-              const u = JSON.parse(localStorage.getItem('user') || '{}');
-              const aid = u.accountId || u.userId;
-              if (aid) {
-                return api.get(`/Etr/student/${aid}/current-status`, { suppressAuthRedirect: true }).catch(() => []);
-              }
-              return [];
-            } catch { return []; }
-          })(),
-          fetchMyDashboard({ suppressAuthRedirect: true }),
-        ]);
-        if (Array.isArray(etrData)) setEtrs(etrData);
-        if (profileData) setProfile(profileData);
-        if (dashboard?.myEtrs?.length) setMyEtrs(dashboard.myEtrs);
-        if (Array.isArray(certData)) {
-          setCertStatus(
-            certData.map((c) => ({
-              ...c,
-              ValidityStatus: c.ValidityStatus ?? c.validityStatus,
-              ExpiryDate: c.ExpiryDate ?? c.expiryDate ?? null,
-              IssuedDate: c.IssuedDate ?? c.issuedDate ?? null,
-              CourseName: c.CourseName ?? c.courseName,
-              CourseId: c.CourseId ?? c.courseId,
-              ETRCourseRecordId:
-                c.ETRCourseRecordId ?? c.etrCourseRecordId ?? c.courseRecordId,
-            })),
-          );
-        }
+        setDashboard(await fetchMyDashboard({ suppressAuthRedirect: true }));
       } catch {
         // silent
       } finally {
@@ -109,17 +83,20 @@ const StudentDashboard = () => {
     })();
   }, []);
 
+  const profile = dashboard?.profile ?? null;
+  const certSummary = dashboard?.certificateSummary ?? null;
+  const myEtrs = dashboard?.myEtrs ?? [];
+
   // User info
   let userName = tr('Học viên');
   let userLogin = 'student';
-  if (profile) {
-    userName = profile.FullName ?? profile.fullName ?? userName;
-    userLogin = profile.Username ?? profile.username ?? userLogin;
-  } else {
+  if (profile?.fullName) userName = profile.fullName;
+  if (profile?.username) userLogin = profile.username;
+  else {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
-      userName = u.fullName || userName;
-      userLogin = u.username || userLogin;
+      if (!profile?.fullName && u.fullName) userName = u.fullName;
+      if (!profile?.username && u.username) userLogin = u.username;
     } catch { /* ignore */ }
   }
 
@@ -130,9 +107,14 @@ const StudentDashboard = () => {
     return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  const mapped = etrs.map(mapEtr);
+  const mapped = myEtrs.map((e) => ({
+    id: e.etrCourseRecordId,
+    status: e.status || 'Draft',
+    percentComplete: e.percentComplete,
+    expiryDate: e.expiryDate,
+  }));
 
-  const metricSource = myEtrs && myEtrs.length ? myEtrs : mapped;
+  const metricSource = mapped;
   const metrics = [
     { label: tr('Tổng số hồ sơ'), value: metricSource.length, cls: '' },
     { label: tr('Đang đào tạo'), value: metricSource.filter(e => statusBucket(e.status) === 'progress').length, cls: 'blue' },
@@ -140,7 +122,15 @@ const StudentDashboard = () => {
     { label: tr('Đã hoàn thành'), value: metricSource.filter(e => statusBucket(e.status) === 'completed').length, cls: 'green' },
   ];
 
-  // Donut: phân bố trạng thái hồ sơ của chính học viên (dữ liệu thật từ /Etr/my-etr)
+  // Danh sách chứng chỉ gần nhất (tối đa 5, backend sắp theo expiryDate giảm dần)
+  const certItems = (certSummary?.recent ?? []).map((c) => ({
+    id: c.etrCourseRecordId,
+    courseName: `ETR #${c.etrCourseRecordId}`,
+    expiryDate: c.expiryDate,
+    validity: certValidity(c.expiryDate),
+  }));
+
+  // Donut: phân bố trạng thái hồ sơ của chính học viên (từ myEtrs)
   const statusDonut = useMemo(() => {
     const progress = metricSource.filter(e => statusBucket(e.status) === 'progress').length;
     const pending = metricSource.filter(e => statusBucket(e.status) === 'pending').length;
@@ -166,7 +156,7 @@ const StudentDashboard = () => {
       tooltip: { y: { formatter: (v) => `${v} ${tr('hồ sơ')}` } },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myEtrs, mapped.length]);
+  }, [myEtrs]);
 
   const Badge = ({ status }) => (
     <span className={`student-badge student-badge--${STATUS_MAP[status] || 'draft'}`}>
@@ -203,12 +193,12 @@ const StudentDashboard = () => {
         ))}
       </section>
 
-      {/* ── Status donut (dữ liệu thật) ── */}
+      {/* ── Status donut ── */}
       {!loading && metricSource.length > 0 && (
         <section style={{ marginBottom: 24 }}>
           <div className="freedash-dist-card">
             <h3 className="freedash-dist-title">{tr('Phân bố hồ sơ theo trạng thái')}</h3>
-            <p className="freedash-dist-sub">{tr('Dữ liệu từ GET /api/Etr/my-etr.')}</p>
+            <p className="freedash-dist-sub">{tr('Dữ liệu từ GET /api/Dashboard/my-dashboard (myEtrs).')}</p>
             <ApexChart options={statusDonut} height={280} />
           </div>
         </section>
@@ -232,12 +222,12 @@ const StudentDashboard = () => {
           <div className="student-empty">{tr('Bạn chưa có hồ sơ ETR nào.')}</div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <div className="student-table-grid" style={{ gridTemplateColumns: '48px 1.2fr 1.8fr 120px 140px 100px' }}>
+            <div className="student-table-grid" style={{ gridTemplateColumns: '48px 1.2fr 1fr 120px 140px 100px' }}>
               {/* Header */}
               <div className="student-table-cell student-table-cell--header">{tr('STT')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Mã hồ sơ')}</div>
-              <div className="student-table-cell student-table-cell--header">{tr('Ghi danh')}</div>
-              <div className="student-table-cell student-table-cell--header">{tr('Ngày')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Tiến độ')}</div>
+              <div className="student-table-cell student-table-cell--header">{tr('Ngày hết hạn')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Trạng thái')}</div>
               <div className="student-table-cell student-table-cell--header student-table-cell--end">&nbsp;</div>
 
@@ -249,9 +239,9 @@ const StudentDashboard = () => {
                     {e.id ? `ETR #${e.id}` : `${tr('Hồ sơ #')}${idx + 1}`}
                   </div>
                   <div className="student-table-cell">
-                    {e.enrollmentId ? `${tr('Mã GD: ')}${e.enrollmentId}` : '--'}
+                    {e.percentComplete != null ? `${Math.round(e.percentComplete)}%` : '--'}
                   </div>
-                  <div className="student-table-cell">{formatDate(e.date)}</div>
+                  <div className="student-table-cell">{formatDate(e.expiryDate)}</div>
                   <div className="student-table-cell"><Badge status={e.status} /></div>
                   <div className="student-table-cell student-table-cell--end">
                     <button className="action-btn" type="button" onClick={() => navigate('/student/etr')}>
@@ -266,7 +256,7 @@ const StudentDashboard = () => {
       </section>
 
       {/* ── Certificate Status Summary ── */}
-      {certStatus.length > 0 && (
+      {certSummary && certSummary.total > 0 && (
         <section className="student-table-section" style={{ marginBottom: 24 }}>
           <div className="student-table-header">
             <div className="student-table-header-left">
@@ -277,19 +267,25 @@ const StudentDashboard = () => {
               {tr('Xem tất cả')}
             </button>
           </div>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            <span className="dash-badge dash-badge-compliant">{tr('Còn hiệu lực')}: {certSummary.valid}</span>
+            <span className="dash-badge dash-badge-warn">{tr('Sắp hết hạn')}: {certSummary.expiringSoon}</span>
+            <span className="dash-badge dash-badge-danger">{tr('Đã hết hạn')}: {certSummary.expired}</span>
+            <span className="dash-badge" style={{ background: 'rgba(10,44,85,0.08)', color: '#0a2c55' }}>{tr('Tổng')}: {certSummary.total}</span>
+          </div>
           <div className="student-cert-mini-list">
-            {certStatus.slice(0, 4).map((cert, idx) => (
-              <div key={idx} className="student-cert-mini-item">
+            {certItems.slice(0, 5).map((cert, idx) => (
+              <div key={cert.id || idx} className="student-cert-mini-item">
                 <div className="student-cert-mini-info">
                   <span className="student-cert-mini-course">
-                    {cert.CourseName || `${tr('Khóa học #')}${cert.CourseId}`}
+                    {cert.courseName}
                   </span>
                   <span className="student-cert-mini-date">
-                    {cert.ExpiryDate ? `${tr('Hết hạn: ')}${formatDate(cert.ExpiryDate)}` : tr('Vĩnh viễn')}
+                    {cert.expiryDate ? `${tr('Hết hạn: ')}${formatDate(cert.expiryDate)}` : tr('Vĩnh viễn')}
                   </span>
                 </div>
-                <span className={`student-cert-mini-badge student-cert-mini-badge--${(cert.ValidityStatus || '').toLowerCase()}`}>
-                  {tr(VALIDITY_LABELS[cert.ValidityStatus]) || cert.ValidityStatus}
+                <span className={`student-cert-mini-badge student-cert-mini-badge--${cert.validity.toLowerCase()}`}>
+                  {tr(VALIDITY_LABELS[cert.validity]) || cert.validity}
                 </span>
               </div>
             ))}

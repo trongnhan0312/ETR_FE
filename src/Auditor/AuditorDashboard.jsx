@@ -2,130 +2,88 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ApexChart from "../components/ApexChart";
 import { useLanguage } from "../context/LanguageContext";
-import {
-  fetchDashboardStats,
-  fetchEtrList,
-  fetchAuditLogs,
-  fetchExportJobs,
-} from "./auditorApi";
 import { fetchMyDashboard } from "../utils/dashboardApi";
+
+const fmtDateTime = (d) => {
+  if (!d) return "—";
+  try {
+    const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+};
+
+// "yyyy-MM" → "Mar 26" (nhãn trục X cho monthlyTrend)
+const monthLabel = (m) => {
+  const parts = String(m).split("-").map(Number);
+  const y = parts[0];
+  const mo = parts[1];
+  if (!y || !mo) return String(m);
+  return `${new Date(y, mo - 1, 1).toLocaleString("en-US", { month: "short" })} ${String(y).slice(2)}`;
+};
 
 const AuditorDashboard = () => {
   const navigate = useNavigate();
   const { trEn } = useLanguage();
-  const [stats, setStats] = useState({
-    totalLockedRecords: "...",
-    complianceRate: "...",
-    pendingAudit: "...",
-    auditPackagesExported: "...",
-  });
-  const [recentETRs, setRecentETRs] = useState([]);
-  const [recentLogs, setRecentLogs] = useState([]);
-  const [recentExports, setRecentExports] = useState([]);
-  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
-  // Xu hướng ETR đã khóa theo tháng — dữ liệu thật từ danh sách ETR (lockedDate/completionDate)
-  const [etrTrend, setEtrTrend] = useState({ categories: [], locked: [], returned: [] });
 
+  // Chỉ 1 lần gọi GET /api/Dashboard/my-dashboard — backend đã gom sẵn mọi số liệu
+  // cho role Audit (lockedRecords, monthlyTrend, recentLockedEtrs, recentAuditLogs,
+  // recentExportJobs) nên FE không còn gọi thêm /Etr, /Audit, /Exports, lookup nữa.
   useEffect(() => {
-    const loadDashboardData = async () => {
+    const load = async () => {
       setLoading(true);
       try {
-        const [statsData, etrsData, logsData, exportJobs, dashboard] =
-          await Promise.all([
-            fetchDashboardStats(),
-            fetchEtrList(),
-            fetchAuditLogs(),
-            fetchExportJobs(),
-            fetchMyDashboard(),
-          ]);
-
-        const ov = dashboard?.overview ?? null;
-        const lockedCount = Array.isArray(etrsData)
-          ? etrsData.filter((e) => e.isLocked).length
-          : 0;
-        setStats({
-          totalLockedRecords:
-            lockedCount || statsData?.totalLockedRecords || "...",
-          complianceRate: ov
-            ? ov.completionRatePercent
-            : (statsData?.complianceRate ?? "..."),
-          pendingAudit: ov
-            ? ov.pendingApprovalCount
-            : (statsData?.pendingAudit ?? "..."),
-          auditPackagesExported: Array.isArray(exportJobs)
-            ? exportJobs.length
-            : (statsData?.auditPackagesExported ?? "..."),
-        });
-        if (Array.isArray(etrsData)) {
-          setRecentETRs(etrsData.slice(0, 3));
-          setEtrTrend(buildEtrTrend(etrsData));
-        }
-        if (Array.isArray(logsData)) setRecentLogs(logsData.slice(0, 3));
-        if (Array.isArray(exportJobs)) setRecentExports(exportJobs.slice(0, 2));
-        setDashboardData(dashboard);
+        setDashboard(await fetchMyDashboard());
       } catch (err) {
-        console.error("Error loading Auditor Dashboard data:", err);
+        console.error("Error loading Auditor Dashboard:", err);
       } finally {
         setLoading(false);
       }
     };
-
-    loadDashboardData();
+    load();
   }, []);
 
-  // ── Đếm hồ sơ ETR theo tháng (8 tháng gần nhất) cho biểu đồ đường cong ──
-  // 2 chuỗi so sánh: locked (khóa/hoàn tất, theo completedAt/verifiedAt) và
-  // returned (bị QA trả về, theo updatedAt của hồ sơ đang ở trạng thái trả về).
-  const buildEtrTrend = (etrs) => {
-    const buckets = {};
-    const now = new Date();
-    for (let i = 7; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      buckets[key] = {
-        label: `${d.toLocaleString("en-US", { month: "short" })} ${String(d.getFullYear()).slice(2)}`,
-        locked: 0,
-        returned: 0,
-      };
-    }
-    const bucketKey = (d) => {
-      if (!d || Number.isNaN(d.getTime())) return null;
-      return `${d.getFullYear()}-${d.getMonth()}`;
-    };
-    etrs.forEach((etr) => {
-      const status = String(etr.statusRaw || etr.status || "").toLowerCase();
-      const isReturned =
-        status.includes("returned") ||
-        status.includes("reopened") ||
-        status.includes("rejected");
-      if (isReturned) {
-        const k = bucketKey(etr.returnedAtRaw ? new Date(etr.returnedAtRaw) : null);
-        if (k && buckets[k]) buckets[k].returned += 1;
-        return;
-      }
-      // Hồ sơ khóa/hoàn tất: ưu tiên completedAt → verifiedAt → submittedAt (raw ISO)
-      const rawDate =
-        etr.completedAtRaw || etr.verifiedAtRaw || etr.submittedAtRaw;
-      const k = bucketKey(rawDate ? new Date(rawDate) : null);
-      if (k && buckets[k]) buckets[k].locked += 1;
-    });
-    const keys = Object.keys(buckets);
-    return {
-      categories: keys.map((k) => buckets[k].label),
-      locked: keys.map((k) => buckets[k].locked),
-      returned: keys.map((k) => buckets[k].returned),
-    };
-  };
-
-  // Dữ liệu overview của /Dashboard/my-dashboard (dùng cho radial + total donut)
-  const ov = dashboardData?.overview ?? null;
+  const ov = dashboard?.overview ?? null;
+  const lr = dashboard?.lockedRecords ?? null;
+  const trend = dashboard?.monthlyTrend ?? null;
+  const recentLocked = dashboard?.recentLockedEtrs ?? [];
+  const recentLogs = dashboard?.recentAuditLogs ?? [];
+  const recentExports = dashboard?.recentExportJobs ?? [];
   const totalEtrs = ov?.totalEtrs || 0;
 
-  // ── Biểu đồ ApexCharts (thư viện chart của FreeDash) ──
+  const stats = {
+    totalLockedRecords: lr?.totalLocked,
+    complianceRate: lr?.complianceRate,
+    pendingAudit: ov?.pendingApprovalCount,
+    auditPackagesExported: recentExports.length,
+  };
+
+  // Xu hướng Locked vs Returned theo 8 tháng gần nhất — backend tính sẵn (monthlyTrend)
+  const etrTrend = useMemo(() => {
+    if (!trend || !Array.isArray(trend.months)) {
+      return { categories: [], locked: [], returned: [] };
+    }
+    return {
+      categories: trend.months.map(monthLabel),
+      locked: Array.isArray(trend.locked) ? trend.locked : [],
+      returned: Array.isArray(trend.returned) ? trend.returned : [],
+    };
+  }, [trend]);
+
+  // ── Biểu đồ ApexCharts (kiểu FreeDash) ──
   // Donut: phân bố trạng thái ETR (statusFunnel)
   const donutOptions = useMemo(() => {
-    const f = dashboardData?.funnel ?? null;
+    const f = dashboard?.funnel ?? null;
     const labels = [
       trEn("Draft"),
       trEn("InProgress"),
@@ -183,7 +141,7 @@ const AuditorDashboard = () => {
       tooltip: { y: { formatter: (v) => `${v} ${trEn("records")}` } },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dashboardData, totalEtrs]);
+  }, [dashboard, totalEtrs]);
 
   // Radial: tỷ lệ hoàn thành
   const radialOptions = useMemo(() => {
@@ -196,21 +154,9 @@ const AuditorDashboard = () => {
       plotOptions: {
         radialBar: {
           hollow: { size: "62%" },
-          // Tách label (name) và số (value) ra xa nhau — offsetY cũ (-6/+4) làm
-          // số 28px đè lên label. Value nhích lên, name đẩy xuống, chừa khoảng trống.
           dataLabels: {
-            name: {
-              fontSize: "13px",
-              color: "rgba(0,33,71,0.55)",
-              offsetY: 18,
-            },
-            value: {
-              fontSize: "24px",
-              fontWeight: 700,
-              color: "#002147",
-              offsetY: -12,
-              formatter: (v) => `${Math.round(v)}%`,
-            },
+            name: { fontSize: "13px", color: "rgba(0,33,71,0.55)", offsetY: 18 },
+            value: { fontSize: "24px", fontWeight: 700, color: "#002147", offsetY: -12, formatter: (v) => `${Math.round(v)}%` },
           },
         },
       },
@@ -218,19 +164,13 @@ const AuditorDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ov]);
 
-  // Đường cong (smooth area) so sánh 2 chuỗi: Locked vs Returned theo tháng — 8 tháng gần nhất
+  // Đường cong: Locked vs Returned theo tháng (8 tháng gần nhất)
   const trendOptions = useMemo(() => {
     return {
       chart: { type: "area", fontFamily: "inherit", toolbar: { show: false } },
       series: [
-        {
-          name: trEn("Locked"),
-          data: etrTrend.locked,
-        },
-        {
-          name: trEn("Returned"),
-          data: etrTrend.returned,
-        },
+        { name: trEn("Locked"), data: etrTrend.locked },
+        { name: trEn("Returned"), data: etrTrend.returned },
       ],
       xaxis: {
         categories: etrTrend.categories,
@@ -240,12 +180,7 @@ const AuditorDashboard = () => {
       stroke: { curve: "smooth", width: 3 },
       fill: {
         type: "gradient",
-        gradient: {
-          shadeIntensity: 1,
-          opacityFrom: 0.3,
-          opacityTo: 0.05,
-          stops: [0, 90],
-        },
+        gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 90] },
       },
       markers: { size: 4, colors: ["#c5a059", "#ef4444"], strokeColors: "#fff", strokeWidth: 2 },
       dataLabels: { enabled: false },
@@ -263,7 +198,7 @@ const AuditorDashboard = () => {
 
   // Cột: tổng quan tuân thủ
   const columnOptions = useMemo(() => {
-    const o = dashboardData?.overview ?? null;
+    const o = dashboard?.overview ?? null;
     return {
       chart: { type: "bar", fontFamily: "inherit", toolbar: { show: false } },
       series: [
@@ -295,11 +230,24 @@ const AuditorDashboard = () => {
       tooltip: { y: { formatter: (v) => `${v} ${trEn("records")}` } },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dashboardData]);
+  }, [dashboard]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Header Card */}
+      <section className="page-header-card">
+        <div>
+          <p className="eyebrow">{trEn("Auditor Portal")}</p>
+          <h1>{trEn("Auditor Dashboard")}</h1>
+          <p className="page-description">
+            {trEn("Compliance overview: locked records, audit trail and export history — all from one dashboard call.")}
+          </p>
+        </div>
+        <div className="page-status-box">
+          <strong>{trEn("Data source")}</strong>
+          <p>GET /api/Dashboard/my-dashboard</p>
+        </div>
+      </section>
 
       {/* KPI Cards — phong cách FreeDash (card sáng + icon + badge %), giữ tông navy/gold */}
       <section className="freedash-kpi-grid">
@@ -324,25 +272,18 @@ const AuditorDashboard = () => {
           </div>
           <div className="freedash-kpi-body">
             <div className="freedash-kpi-value">
-              {stats.totalLockedRecords}
-              {ov?.completionRatePercent > 0 && (
+              {loading ? "..." : stats.totalLockedRecords ?? 0}
+              {!loading && stats.complianceRate > 0 && (
                 <span
                   className="freedash-kpi-badge"
-                  style={{
-                    background: "rgba(34,197,94,0.12)",
-                    color: "#16a34a",
-                  }}
+                  style={{ background: "rgba(34,197,94,0.12)", color: "#16a34a" }}
                 >
-                  {ov.completionRatePercent}%
+                  {stats.complianceRate}%
                 </span>
               )}
             </div>
-            <div className="freedash-kpi-label">
-              {trEn("Total Locked Records")}
-            </div>
-            <div className="freedash-kpi-sub">
-              {trEn("IsLocked = true Records")}
-            </div>
+            <div className="freedash-kpi-label">{trEn("Total Locked Records")}</div>
+            <div className="freedash-kpi-sub">{trEn("IsLocked = true Records")}</div>
           </div>
         </div>
 
@@ -367,12 +308,10 @@ const AuditorDashboard = () => {
           </div>
           <div className="freedash-kpi-body">
             <div className="freedash-kpi-value" style={{ color: "#16a34a" }}>
-              {stats.complianceRate}%
+              {loading ? "..." : `${stats.complianceRate ?? 0}%`}
             </div>
             <div className="freedash-kpi-label">{trEn("Compliance Rate")}</div>
-            <div className="freedash-kpi-sub">
-              {trEn("0 Compliance Breaches")}
-            </div>
+            <div className="freedash-kpi-sub">{trEn("Locked vs total completed records")}</div>
           </div>
         </div>
 
@@ -397,12 +336,10 @@ const AuditorDashboard = () => {
           </div>
           <div className="freedash-kpi-body">
             <div className="freedash-kpi-value" style={{ color: "#d97706" }}>
-              {stats.pendingAudit}
+              {loading ? "..." : stats.pendingAudit ?? 0}
             </div>
             <div className="freedash-kpi-label">{trEn("Pending Audit")}</div>
-            <div className="freedash-kpi-sub">
-              {trEn("Scheduled Inspections")}
-            </div>
+            <div className="freedash-kpi-sub">{trEn("Awaiting review / sign-off")}</div>
           </div>
         </div>
 
@@ -428,20 +365,16 @@ const AuditorDashboard = () => {
           </div>
           <div className="freedash-kpi-body">
             <div className="freedash-kpi-value">
-              {stats.auditPackagesExported}
+              {loading ? "..." : stats.auditPackagesExported ?? 0}
             </div>
-            <div className="freedash-kpi-label">
-              {trEn("Audit Packages Exported")}
-            </div>
-            <div className="freedash-kpi-sub">
-              {trEn("Regulatory Archives")}
-            </div>
+            <div className="freedash-kpi-label">{trEn("Audit Packages Exported")}</div>
+            <div className="freedash-kpi-sub">{trEn("From real export jobs (GET /api/Exports)")}</div>
           </div>
         </div>
       </section>
 
       {/* Charts row — ApexCharts kiểu FreeDash (donut + radial + cột) */}
-      {dashboardData && (
+      {dashboard && (
         <section
           style={{
             display: "grid",
@@ -464,20 +397,16 @@ const AuditorDashboard = () => {
             <ApexChart options={radialOptions} height={300} />
           </div>
           <div className="freedash-dist-card">
-            <h3 className="freedash-dist-title">
-              {trEn("Compliance Overview")}
-            </h3>
+            <h3 className="freedash-dist-title">{trEn("Compliance Overview")}</h3>
             <p className="freedash-dist-sub">
-              {trEn(
-                "Records by compliance group (completed, pending approval, returned, rejected, missing evidence).",
-              )}
+              {trEn("Records by compliance group (completed, pending approval, returned, rejected, missing evidence).")}
             </p>
             <ApexChart options={columnOptions} height={300} />
           </div>
         </section>
       )}
 
-      {/* Line chart — đường cong so sánh Locked vs Returned theo tháng (8 tháng gần nhất) */}
+      {/* Line chart — đường cong Locked vs Returned theo tháng (8 tháng gần nhất) */}
       {etrTrend.locked.some((c) => c > 0) && (
         <section
           style={{
@@ -487,13 +416,9 @@ const AuditorDashboard = () => {
           }}
         >
           <div className="freedash-dist-card">
-            <h3 className="freedash-dist-title">
-              {trEn("Locked vs Returned Trend")}
-            </h3>
+            <h3 className="freedash-dist-title">{trEn("Locked vs Returned Trend")}</h3>
             <p className="freedash-dist-sub">
-              {trEn(
-                "Records locked vs records returned by QA, per month over the last 8 months (smooth curves).",
-              )}
+              {trEn("Records locked vs records returned by QA, per month over the last 8 months (smooth curves).")}
             </p>
             <ApexChart options={trendOptions} height={280} />
           </div>
@@ -504,23 +429,13 @@ const AuditorDashboard = () => {
       <section className="table-card">
         <div className="table-toolbar">
           <div className="toolbar-left">
-            <h2
-              style={{
-                fontSize: "16px",
-                fontWeight: "700",
-                color: "#002147",
-                margin: 0,
-              }}
-            >
+            <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#002147", margin: 0 }}>
               {trEn("Recently Locked Records (Finalized ETRs)")}
             </h2>
           </div>
           <div className="toolbar-right">
-            <button
-              className="auditor-btn-sm"
-              onClick={() => navigate("/auditor/etrs")}
-            >
-              {trEn("View All")} ({recentETRs.length}) →
+            <button className="auditor-btn-sm" onClick={() => navigate("/auditor/etrs")}>
+              {trEn("View All")} ({recentLocked.length}) →
             </button>
           </div>
         </div>
@@ -531,71 +446,40 @@ const AuditorDashboard = () => {
             <div>{trEn("Learner")}</div>
             <div>{trEn("Course")}</div>
             <div>{trEn("Completion")}</div>
-            <div>{trEn("Locked Date")}</div>
             <div>{trEn("Approved By")}</div>
             <div>{trEn("Status")}</div>
             <div style={{ textAlign: "right" }}>{trEn("Actions")}</div>
           </div>
           <div className="table-body">
             {loading ? (
-              <div className="empty-table-state">
-                {trEn("Loading locked records...")}
-              </div>
-            ) : recentETRs.length === 0 ? (
-              <div className="empty-table-state">
-                {trEn("No locked ETR records available.")}
-              </div>
+              <div className="empty-table-state">{trEn("Loading locked records...")}</div>
+            ) : recentLocked.length === 0 ? (
+              <div className="empty-table-state">{trEn("No locked ETR records available.")}</div>
             ) : (
-              recentETRs.map((etr) => (
-                <div key={etr.id} className="table-row auditor-table-grid">
-                  <div className="col-id">{etr.id}</div>
+              recentLocked.map((etr) => (
+                <div key={etr.etrCourseRecordId} className="table-row auditor-table-grid">
+                  <div className="col-id">#{String(etr.etrCourseRecordId).padStart(4, "0")}</div>
                   <div className="col-name">{etr.learnerName}</div>
                   <div className="col-course">{etr.courseName}</div>
-                  <div>{etr.completionDate}</div>
-                  <div>{etr.lockedDate}</div>
-                  <div>{etr.approvedBy}</div>
+                  <div>{fmtDateTime(etr.completedAt)}</div>
+                  <div>{etr.approvedBy || "—"}</div>
                   <div>
                     <span className="badge-locked">
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                      >
-                        <rect
-                          x="3"
-                          y="11"
-                          width="18"
-                          height="11"
-                          rx="2"
-                          ry="2"
-                        />
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                       </svg>
-                      {etr.status || trEn("Locked")}
+                      {trEn("Locked")}
                     </span>
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: "8px",
-                    }}
-                  >
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
                     <button
                       className="auditor-btn-sm"
-                      onClick={() =>
-                        navigate(`/auditor/details?id=${etr.etrCourseRecordId}`)
-                      }
+                      onClick={() => navigate(`/auditor/details?id=${etr.etrCourseRecordId}`)}
                     >
                       {trEn("View Details")}
                     </button>
-                    <button
-                      className="auditor-btn-sm"
-                      onClick={() => navigate("/auditor/export-packages")}
-                    >
+                    <button className="auditor-btn-sm" onClick={() => navigate("/auditor/export-packages")}>
                       {trEn("Export")}
                     </button>
                   </div>
@@ -606,7 +490,7 @@ const AuditorDashboard = () => {
         </div>
       </section>
 
-      {/* Grid containing Recent Audit Logs & Recent Export History */}
+      {/* Grid: Recent Audit Logs & Recent Export History */}
       <div
         style={{
           display: "grid",
@@ -616,157 +500,92 @@ const AuditorDashboard = () => {
       >
         {/* Section 2: Recent Audit Logs */}
         <section className="table-card" style={{ padding: "20px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "16px",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "15px",
-                fontWeight: "700",
-                color: "#002147",
-                margin: 0,
-              }}
-            >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <h2 style={{ fontSize: "15px", fontWeight: "700", color: "#002147", margin: 0 }}>
               {trEn("Recent Audit Trail Events")}
             </h2>
-            <button
-              className="auditor-btn-sm"
-              onClick={() => navigate("/auditor/audit-logs")}
-            >
+            <button className="auditor-btn-sm" onClick={() => navigate("/auditor/audit-logs")}>
               {trEn("View All Logs")} →
             </button>
           </div>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-          >
-            {recentLogs.map((log) => (
-              <div
-                key={log.id}
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: "12px",
-                  background: "#f8fafc",
-                  border: "1px solid #dfe6f1",
-                }}
-              >
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {loading ? (
+              <div className="empty-table-state">{trEn("Loading audit logs...")}</div>
+            ) : recentLogs.length === 0 ? (
+              <div className="empty-table-state">{trEn("No audit events recorded.")}</div>
+            ) : (
+              recentLogs.map((log) => (
                 <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "4px",
-                  }}
+                  key={log.id}
+                  style={{ padding: "12px 14px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #dfe6f1" }}
                 >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      color: "#c5a059",
-                    }}
-                  >
-                    {log.action}
-                  </span>
-                  <span
-                    style={{ fontSize: "11px", color: "rgba(0,33,71,0.5)" }}
-                  >
-                    {log.timestamp}
-                  </span>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#c5a059" }}>
+                      {log.actionType}
+                    </span>
+                    <span style={{ fontSize: "11px", color: "rgba(0,33,71,0.5)" }}>
+                      {fmtDateTime(log.createdAt)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#002147", fontWeight: "600" }}>
+                    {log.accountId ? `Account #${log.accountId}` : "—"}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "rgba(0,33,71,0.7)", marginTop: "4px" }}>
+                    {log.description ||
+                      `${log.actionType} ${log.entityName}${log.recordId != null ? ` #${log.recordId}` : ""}`.trim()}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "#002147",
-                    fontWeight: "600",
-                  }}
-                >
-                  {log.user}
-                </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "rgba(0,33,71,0.7)",
-                    marginTop: "4px",
-                  }}
-                >
-                  {log.details}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
 
         {/* Section 3: Recent Export History */}
         <section className="table-card" style={{ padding: "20px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "16px",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "15px",
-                fontWeight: "700",
-                color: "#002147",
-                margin: 0,
-              }}
-            >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <h2 style={{ fontSize: "15px", fontWeight: "700", color: "#002147", margin: 0 }}>
               {trEn("Recent Export History")}
             </h2>
-            <button
-              className="auditor-btn-sm"
-              onClick={() => navigate("/auditor/export-packages")}
-            >
+            <button className="auditor-btn-sm" onClick={() => navigate("/auditor/export-packages")}>
               {trEn("Export Center")} →
             </button>
           </div>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-          >
-            {recentExports.map((pkg) => (
-              <div
-                key={pkg.id}
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: "12px",
-                  background: "#f8fafc",
-                  border: "1px solid #dfe6f1",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "700",
-                      color: "#002147",
-                    }}
-                  >
-                    {pkg.name}
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {loading ? (
+              <div className="empty-table-state">{trEn("Loading export history...")}</div>
+            ) : recentExports.length === 0 ? (
+              <div className="empty-table-state">{trEn("No export jobs recorded yet.")}</div>
+            ) : (
+              recentExports.map((pkg) => (
+                <div
+                  key={pkg.id}
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: "12px",
+                    background: "#f8fafc",
+                    border: "1px solid #dfe6f1",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: "700", color: "#002147" }}>
+                      {pkg.fileName}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "rgba(0,33,71,0.5)", marginTop: "2px" }}>
+                      {pkg.exportType} • {fmtDateTime(pkg.requestedAt)}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "rgba(0,33,71,0.5)",
-                      marginTop: "2px",
-                    }}
+                  <span
+                    className={pkg.status === "Completed" ? "badge-compliant" : "dash-badge dash-badge-warn"}
+                    style={{ fontSize: "10px" }}
                   >
-                    {pkg.type} • {pkg.size} • {pkg.generatedDate}
-                  </div>
+                    {pkg.status}
+                  </span>
                 </div>
-                <span className="badge-compliant" style={{ fontSize: "10px" }}>
-                  {trEn("Verified")}
-                </span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
       </div>

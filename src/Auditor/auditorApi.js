@@ -35,7 +35,8 @@ const fmtSize = (bytes) => {
 
 const extractEtrId = (raw) => raw?.etrCourseRecordId ?? raw?.eTRCourseRecordId ?? null;
 
-// In-session export job history (BE has no "list export jobs" endpoint)
+// In-session export job history — dùng để hiển thị ngay job vừa export trong phiên
+// (có thể chưa kịp xuất hiện ở GET /Exports), gộp cùng danh sách thật từ backend.
 const exportJobCache = [];
 
 // --- Lookup data (enrichment cross-references) ---
@@ -247,8 +248,24 @@ export const exportDashboard = async (payload = {}) => {
   return pkg;
 };
 
-/** Danh sách export job trong phiên (BE không có endpoint list) */
-export const fetchExportJobs = async () => [...exportJobCache];
+/**
+ * GET /api/Exports?page=&pageSize= — danh sách export job THẬT (phân trang, mới nhất trước).
+ * Gộp thêm các job vừa export trong phiên (exportJobCache) để hiển thị tức thì.
+ */
+export const fetchExportJobs = async (page = 1, pageSize = 100) => {
+  try {
+    const data = await api.get(`/Exports?page=${page}&pageSize=${pageSize}`);
+    const jobs = extractList(data).map(normalizeExportJob);
+    const seen = new Set(jobs.map((j) => j.id));
+    exportJobCache.forEach((j) => {
+      if (!seen.has(j.id)) jobs.unshift(j);
+    });
+    return jobs;
+  } catch (err) {
+    console.warn("Không lấy được danh sách export job từ GET /Exports:", err.message);
+    return [...exportJobCache];
+  }
+};
 
 /** GET /api/Exports/download/{id} — tải file binary qua fetch thuần (dùng đúng base URL đã khóa) */
 export const downloadExportFile = async (id, fileName = "export.zip") => {
@@ -285,11 +302,12 @@ export const downloadExportFile = async (id, fileName = "export.zip") => {
 /** GET /api/Dashboard/stats (KPIs: totalEtrs, completionRatePercent, pendingApprovalCount, ...) */
 export const fetchDashboardStats = async () => {
   const data = await api.get("/Dashboard/stats");
+  const exportJobs = await fetchExportJobs();
   return {
     totalLockedRecords: data?.totalEtrs ?? data?.TotalEtrs ?? "—",
     complianceRate: data?.completionRatePercent ?? data?.CompletionRatePercent ?? "—",
     pendingAudit: data?.pendingApprovalCount ?? data?.PendingApprovalCount ?? "—",
-    auditPackagesExported: exportJobCache.length,
+    auditPackagesExported: exportJobs.length,
   };
 };
 

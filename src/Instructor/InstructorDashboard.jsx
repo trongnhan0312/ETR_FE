@@ -8,17 +8,14 @@ import '../dashboard.scss';
 const InstructorDashboard = () => {
   const navigate = useNavigate();
   const { tr } = useLanguage();
-  const [myClasses, setMyClasses] = useState([]);
-  const [lowAttendance, setLowAttendance] = useState([]);
+  const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const d = await fetchMyDashboard();
-        setMyClasses(d?.myClasses ?? []);
-        setLowAttendance(d?.lowAttendanceStudents ?? []);
+        setDashboard(await fetchMyDashboard());
       } catch (err) {
         console.error('Error loading Instructor Dashboard:', err);
       } finally {
@@ -27,6 +24,11 @@ const InstructorDashboard = () => {
     };
     load();
   }, []);
+
+  const myClasses = dashboard?.myClasses ?? [];
+  const lowAttendance = dashboard?.lowAttendanceStudents ?? [];
+  const todaySessions = dashboard?.todaySessions ?? [];
+  const pendingSignoffs = dashboard?.pendingSignoffs ?? 0;
 
   const totalStudents = myClasses.reduce((sum, c) => sum + (Number(c.studentCount) || 0), 0);
 
@@ -87,6 +89,33 @@ const InstructorDashboard = () => {
       iconBg: 'rgba(239,68,68,0.1)',
       iconColor: '#dc2626',
     },
+    {
+      label: tr('Buổi học hôm nay'),
+      value: todaySessions.length,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      ),
+      iconBg: 'rgba(6,182,212,0.12)',
+      iconColor: '#0891b2',
+    },
+    {
+      label: tr('Chờ ký xác nhận'),
+      value: pendingSignoffs,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+          <polyline points="9 13 11 15 15 11" />
+        </svg>
+      ),
+      iconBg: 'rgba(245,158,11,0.14)',
+      iconColor: '#d97706',
+    },
   ];
 
   return (
@@ -132,6 +161,37 @@ const InstructorDashboard = () => {
         </section>
       )}
 
+      {todaySessions.length > 0 && (
+        <section className="table-card" style={{ padding: '20px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#002147', margin: 0 }}>{tr('BUỔI HỌC HÔM NAY')}</h2>
+              <p style={{ fontSize: '12px', color: 'rgba(0,33,71,0.5)', margin: '4px 0 0' }}>{tr('Các buổi học của lớp bạn diễn ra hôm nay.')}</p>
+            </div>
+            <span className="dash-badge dash-badge-warn">{todaySessions.length} {tr('buổi')}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {todaySessions.map((s) => (
+              <div
+                key={s.sessionId}
+                style={{ padding: '10px 12px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #dfe6f1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}
+              >
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#002147' }}>
+                  {s.sessionTitle || tr('Buổi học')}
+                  <div style={{ fontSize: '11px', color: 'rgba(0,33,71,0.55)', fontWeight: '500' }}>
+                    {s.classCode || `#${s.classId}`}
+                    {s.sessionDate ? ` · ${new Date(s.sessionDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                  </div>
+                </div>
+                <span className={s.isConfirmed ? 'dash-badge dash-badge-compliant' : 'dash-badge dash-badge-warn'}>
+                  {s.isConfirmed ? tr('Đã xác nhận') : tr('Chưa xác nhận')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="table-card" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
@@ -148,21 +208,25 @@ const InstructorDashboard = () => {
           <div className="dash-empty">{tr('Bạn chưa được phân công lớp nào.')}</div>
         ) : (
           <div className="table-responsive-scroll">
-            <div className="table-header" style={{ display: 'grid', gridTemplateColumns: '120px 1fr 140px 140px' }}>
-              <div>{tr('Mã lớp')}</div>
-              <div>{tr('Tên lớp')}</div>
-              <div>{tr('Học viên')}</div>
-              <div style={{ textAlign: 'right' }}>{tr('Thao tác')}</div>
+            <div className="table-header" style={{ display: 'grid', gridTemplateColumns: '110px 1fr 100px 110px 100px 130px' }}>
+            <div>{tr('Mã lớp')}</div>
+            <div>{tr('Tên lớp')}</div>
+            <div>{tr('Học viên')}</div>
+            <div>{tr('Điểm danh')}</div>
+            <div>{tr('Số buổi')}</div>
+            <div style={{ textAlign: 'right' }}>{tr('Thao tác')}</div>
             </div>
             {myClasses.map((cls) => (
               <div
                 key={cls.classId}
                 className="table-row"
-                style={{ display: 'grid', gridTemplateColumns: '120px 1fr 140px 140px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #eef2f7' }}
+                style={{ display: 'grid', gridTemplateColumns: '110px 1fr 100px 110px 100px 130px', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #eef2f7' }}
               >
                 <div className="col-id">{cls.classCode || `#${cls.classId}`}</div>
                 <div className="col-name">{cls.className || tr('Lớp học')}</div>
                 <div>{Number(cls.studentCount) || 0} {tr('HV')}</div>
+                <div>{cls.attendanceRate != null ? `${cls.attendanceRate}%` : '—'}</div>
+                <div>{Number(cls.sessionCount) || 0}</div>
                 <div style={{ textAlign: 'right' }}>
                   <button className="dash-btn-sm" type="button" onClick={() => navigate('/instructor/attendance')}>
                     {tr('Điểm danh')}
