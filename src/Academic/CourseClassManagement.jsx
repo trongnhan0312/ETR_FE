@@ -538,6 +538,10 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allClassesRaw, allCoursesRaw, instructorsList, tr, allSubjects]);
+  const { page: orphanPage, setPage: setOrphanPage, pageCount: orphanPageCount, pageItems: pagedOrphans, total: orphanTotal } = usePagination(orphanClasses, {
+    pageSize: 10,
+  });
+
 
   // Phân trang: khóa học (nhóm có thể mở rộng) + lớp mồ côi — tối đa 5 nút trang.
   const { page: coursePage, setPage: setCoursePage, pageCount: coursePageCount, pageItems: pagedCourses, total: courseTotal } = usePagination(filteredCourses, {
