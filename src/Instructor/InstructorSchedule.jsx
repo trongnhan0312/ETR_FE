@@ -3,6 +3,21 @@ import { api } from "../utils/api";
 import { useLanguage } from '../context/LanguageContext';
 import "./instructor.scss";
 
+// BE chỉ lưu giờ bắt đầu (SessionDate), không có cột giờ kết thúc (EndTime).
+// → Frontend tự tính: EndTime = StartTime + duration mặc định (2 giờ) để hiển thị
+// khung giờ hợp lý thay vì "11:16 - 11:16" (lấy luôn giờ bắt đầu làm giờ kết thúc).
+const DEFAULT_SESSION_DURATION_MINUTES = 120;
+
+// Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login)
+const getCurrentAccountId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.accountId ?? user.userId ?? null;
+  } catch {
+    return null;
+  }
+};
+
 const InstructorSchedule = () => {
   const { tr } = useLanguage();
   const [schedule, setSchedule] = useState([
@@ -39,18 +54,50 @@ const InstructorSchedule = () => {
           { day: "Chủ Nhật", sessions: [] }
         ];
 
+        // /sessions trả về buổi học của MỌI lớp/môn trong hệ thống (không lọc theo
+        // giảng viên), trong khi /classes (BE) đã lọc sẵn chỉ còn lớp của giảng viên
+        // hiện tại. → Lập bản đồ classId → mã lớp + các môn được phân công để chỉ
+        // hiển thị đúng buổi của lớp/môn mình giảng dạy, bỏ hẳn buổi lớp khác (CL-N/A).
+        const currentAccountId = getCurrentAccountId();
+        const myClasses = new Map();
+        apiClasses.forEach((cls) => {
+          const assignedSubjectIds = (Array.isArray(cls.instructorAssignments) ? cls.instructorAssignments : [])
+            .filter(
+              (a) =>
+                a.instructorAccountId != null &&
+                currentAccountId != null &&
+                String(a.instructorAccountId) === String(currentAccountId),
+            )
+            .map((a) => a.subjectId);
+          myClasses.set(cls.classId, {
+            code: cls.classCode || `CL-${cls.classId}`,
+            subjectIds: new Set(assignedSubjectIds),
+          });
+        });
+
+        // Buổi thuộc lớp/môn mà giảng viên hiện tại được phân công giảng dạy
+        const isMySession = (session) => {
+          const cls = myClasses.get(session.classId);
+          if (!cls) return false;
+          // Không có thông tin phân công môn → giữ nguyên buổi của lớp này
+          if (cls.subjectIds.size === 0) return true;
+          return cls.subjectIds.has(session.subjectId);
+        };
+
         // Các buổi học chưa có SessionDate (nháp/TBA) — hiển thị riêng bên dưới lịch tuần
         const tbaSessions = [];
 
         apiSessions.forEach(session => {
+          if (!isMySession(session)) return;
+
           const rawDate = session.sessionDate;
-          const cls = apiClasses.find(c => c.classId === session.classId);
+          const cls = myClasses.get(session.classId);
+          const code = cls ? cls.code : "CL-N/A";
+          const name = session.sessionTitle || tr("Buổi học");
+          const room = session.location || tr("Phòng LAB");
+
           if (!rawDate) {
-            tbaSessions.push({
-              code: cls ? cls.classCode : "CL-N/A",
-              name: session.sessionTitle || tr("Buổi học"),
-              room: session.location || tr("Phòng LAB")
-            });
+            tbaSessions.push({ code, name, room });
             return;
           }
           const d = new Date(rawDate);
@@ -60,22 +107,42 @@ const InstructorSchedule = () => {
           const targetDay = weeklyData.find(item => item.day === dayName);
           
           if (targetDay) {
-            // Format time (from sessionDate)
+            // Format time (from sessionDate) — BE chỉ có giờ bắt đầu nên giờ kết
+            // thúc = giờ bắt đầu + duration mặc định (xử lý đúng cả buổi qua nửa đêm).
             const hours = String(d.getHours()).padStart(2, '0');
             const minutes = String(d.getMinutes()).padStart(2, '0');
-            const timeStr = `${hours}:${minutes} - ${hours}:${minutes}`;
+            const end = new Date(d.getTime() + DEFAULT_SESSION_DURATION_MINUTES * 60 * 1000);
+            const endHours = String(end.getHours()).padStart(2, '0');
+            const endMinutes = String(end.getMinutes()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes} - ${endHours}:${endMinutes}`;
 
-            targetDay.sessions.push({
-              time: timeStr,
-              code: cls ? cls.classCode : "CL-N/A",
-              name: session.sessionTitle || tr("Buổi học"),
-              room: session.location || tr("Phòng LAB")
-            });
+            targetDay.sessions.push({ time: timeStr, code, name, room });
           }
         });
 
+        // Gộp buổi trùng hiển thị: mỗi môn của lớp đều tự sinh bộ buổi cùng tên
+        // ("Session 1", "Session 2"...) cùng ngày/giờ/phòng → chỉ giữ 1 thẻ mỗi khung.
+        weeklyData.forEach((dayData) => {
+          const seen = new Set();
+          dayData.sessions = dayData.sessions.filter((s) => {
+            const key = `${s.time}|${s.code}|${s.name}|${s.room}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        });
+
+        const seenTba = new Set();
+        const uniqueTba = [];
+        tbaSessions.forEach((s) => {
+          const key = `${s.code}|${s.name}|${s.room}`;
+          if (seenTba.has(key)) return;
+          seenTba.add(key);
+          uniqueTba.push(s);
+        });
+
         setSchedule(weeklyData);
-        setTbaSessions(tbaSessions);
+        setTbaSessions(uniqueTba);
       } catch (err) {
         console.error("Lỗi khi tải lịch học:", err);
       } finally {
