@@ -76,10 +76,10 @@ const loadLookup = () => {
 // Ưu tiên UserProfiles/learners (Audit đã được phép truy cập) — chỉ fallback qua Accounts khi không
 // có profile, để tên học viên/người phê duyệt hiển thị được ngay cả khi /Accounts chưa mở cho Audit.
 const accountName = (lookup, accountId) => {
-  if (!accountId) return "—";
-  const profile = lookup.profiles.find((p) => p.accountId === accountId);
+  if (!accountId) return "Hệ thống (System)";
+  const profile = lookup?.profiles?.find((p) => p.accountId === accountId);
   if (profile?.fullName) return profile.fullName;
-  const account = lookup.accounts.find((a) => a.accountId === accountId);
+  const account = lookup?.accounts?.find((a) => a.accountId === accountId);
   return account?.username || `Account #${accountId}`;
 };
 

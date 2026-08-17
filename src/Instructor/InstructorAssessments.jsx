@@ -1959,8 +1959,8 @@ const InstructorAssessments = () => {
             )}
           </div>
 
-          <div style={{ padding: "12px 20px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.9fr 1fr 1.1fr 1.1fr 0.8fr", gap: "10px", alignItems: "center", padding: "6px 0", fontSize: "10px", fontWeight: "800", color: "rgba(0,33,71,0.5)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid #eef2f6" }}>
+          <div style={{ padding: "12px 20px", overflowX: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.9fr 1fr 1.1fr 1.1fr 0.8fr", gap: "10px", alignItems: "center", padding: "6px 0", fontSize: "10px", fontWeight: "800", color: "rgba(0,33,71,0.5)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid #eef2f6", minWidth: "680px" }}>
               <div>{tr('Học viên')}</div>
               <div style={{ textAlign: "center" }}>{tr('Điểm danh ≥ 80%')}</div>
               <div style={{ textAlign: "center" }}>{tr('Điểm lý thuyết ≥ Pass')}</div>
@@ -1974,7 +1974,7 @@ const InstructorAssessments = () => {
               </div>
             ) : (
               eligibilityList.map((e) => (
-                <div key={e.code} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.9fr 1fr 1.1fr 2.1fr 0.8fr", gap: "10px", alignItems: "center", padding: "8px 0", fontSize: "12px", fontWeight: "600", color: "#002147", borderBottom: "1px solid #f5f7fa" }}>
+                <div key={e.code} style={{ display: "grid", gridTemplateColumns: "1.4fr 0.9fr 1fr 1.1fr 1.1fr 0.8fr", gap: "10px", alignItems: "center", padding: "8px 0", fontSize: "12px", fontWeight: "600", color: "#002147", borderBottom: "1px solid #f5f7fa", minWidth: "680px" }}>
                   <div>{e.code} · {e.name}</div>
                   {[
                     { ok: e.attendanceOk, label: e.attendanceRate != null ? `${e.attendanceRate}%` : tr("N/A") },
@@ -2011,55 +2011,57 @@ const InstructorAssessments = () => {
 
         {/* Score Table */}
         <section className="table-card">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "60px 100px 200px 80px 140px 1fr 100px",
-              alignItems: "center",
-              gap: "8px",
-              background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
-              color: "#ffffff",
-              padding: "14px 20px",
-              fontSize: "11px",
-              fontWeight: "700",
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-            }}
-          >
-            <div style={{ textAlign: "center" }}>{tr('STT')}</div>
-            <div style={{ textAlign: "center" }}>{tr('Mã HV')}</div>
-            <div>{tr('Học viên')}</div>
-            <div style={{ textAlign: "center" }}>{tr('Điểm danh')}</div>
-            <div style={{ textAlign: "center" }}>{tr('Điểm số (0-100)')}</div>
-            <div>{tr('Nhận xét chuyên môn')}</div>
-            <div style={{ textAlign: "center" }}>{tr('Khóa')}</div>
-          </div>
+          <div style={{ overflowX: "auto" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "60px 100px 200px 80px 140px 1fr 100px",
+                alignItems: "center",
+                gap: "12px",
+                background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
+                color: "#ffffff",
+                padding: "14px 20px",
+                fontSize: "11px",
+                fontWeight: "700",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                minWidth: "820px",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>{tr('STT')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Mã HV')}</div>
+              <div>{tr('Học viên')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Điểm danh')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Điểm số (0-100)')}</div>
+              <div>{tr('Nhận xét chuyên môn')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Khóa')}</div>
+            </div>
 
-          <div className="table-body">
-            {loading ? (
-              <div
-                style={{
-                  padding: "24px",
-                  textAlign: "center",
-                  color: "rgba(0,33,71,0.4)",
-                  fontStyle: "italic",
-                }}
-              >
-                {tr('Đang tải bảng điểm...')}
-              </div>
-            ) : (
-              scorePager.pageItems.map((student, idx) => (
+            <div className="table-body" style={{ minWidth: "820px" }}>
+              {loading ? (
                 <div
-                  key={student.enrollmentId ?? student.code}
-                  className="table-row"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "60px 100px 200px 80px 140px 1fr 100px",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "14px 20px",
+                    padding: "24px",
+                    textAlign: "center",
+                    color: "rgba(0,33,71,0.4)",
+                    fontStyle: "italic",
                   }}
                 >
+                  {tr('Đang tải bảng điểm...')}
+                </div>
+              ) : (
+                scorePager.pageItems.map((student, idx) => (
+                  <div
+                    key={student.enrollmentId ?? student.code}
+                    className="table-row"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "60px 100px 200px 80px 140px 1fr 100px",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "14px 20px",
+                    }}
+                  >
                   <span
                     style={{
                       fontSize: "13px",
@@ -2501,6 +2503,7 @@ const InstructorAssessments = () => {
                 </div>
               ))
             )}
+            </div>
           </div>
 
           <div className="table-footer">

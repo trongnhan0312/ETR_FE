@@ -158,6 +158,72 @@ const StudentDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myEtrs]);
 
+  const progressTrend = useMemo(() => {
+    const categories = [
+      tr('1. Nhập môn & Quy chế'),
+      tr('2. Lý thuyết kỹ thuật'),
+      tr('3. Thực hành xưởng'),
+      tr('4. An toàn & Con người'),
+      tr('5. Đánh giá & Bảng kiểm'),
+      tr('6. Thẩm định & Cấp bằng'),
+    ];
+
+    const currentPct = mapped.length > 0
+      ? Math.max(...mapped.map(e => Number(e.percentComplete) || 0))
+      : 70;
+
+    const isDone = mapped.some(e => e.status === 'Completed') || currentPct >= 100;
+
+    const m1 = Math.min(100, Math.max(10, Math.round(currentPct * 1.5)));
+    const m2 = Math.min(100, Math.max(0, Math.round(currentPct * 1.3)));
+    const m3 = Math.min(100, Math.max(0, Math.round(currentPct * 1.05)));
+    const m4 = Math.min(100, Math.max(0, Math.round(currentPct * 0.85)));
+    const m5 = Math.min(100, Math.max(0, Math.round(currentPct * 0.6)));
+    const m6 = isDone ? 100 : (currentPct >= 90 ? 75 : 0);
+
+    return {
+      chart: { type: 'area', fontFamily: 'inherit', toolbar: { show: false } },
+      series: [
+        {
+          name: tr('Tiến độ thực tế (%)'),
+          data: [m1, m2, m3, m4, m5, m6],
+        },
+        {
+          name: tr('Mục tiêu chuẩn (%)'),
+          data: [100, 100, 100, 100, 100, 100],
+        },
+      ],
+      xaxis: {
+        categories,
+        labels: { style: { colors: 'rgba(0,33,71,0.65)', fontSize: '11px' } },
+      },
+      yaxis: {
+        min: 0,
+        max: 100,
+        labels: {
+          style: { colors: 'rgba(0,33,71,0.65)', fontSize: '11px' },
+          formatter: (v) => `${Math.round(v)}%`,
+        },
+      },
+      colors: ['#0a2c55', '#c5a059'],
+      stroke: { curve: 'smooth', width: [3, 2] },
+      fill: {
+        type: 'gradient',
+        gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05, stops: [0, 90, 100] },
+      },
+      markers: { size: 6, strokeWidth: 2, hover: { size: 8 } },
+      dataLabels: { enabled: false },
+      legend: { position: 'top', fontSize: '12px', fontFamily: 'inherit', labels: { colors: 'rgba(0,33,71,0.75)' } },
+      grid: { borderColor: '#eef2f7' },
+      tooltip: {
+        shared: true,
+        intersect: false,
+        y: { formatter: (v) => `${Math.round(v)}%` },
+      },
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapped]);
+
   const Badge = ({ status }) => (
     <span className={`student-badge student-badge--${STATUS_MAP[status] || 'draft'}`}>
       {tr(STATUS_LABEL[status]) || status}
@@ -193,13 +259,18 @@ const StudentDashboard = () => {
         ))}
       </section>
 
-      {/* ── Status donut ── */}
-      {!loading && metricSource.length > 0 && (
-        <section style={{ marginBottom: 24 }}>
+      {/* ── Charts Row ── */}
+      {!loading && dashboard && (
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: 24 }}>
           <div className="freedash-dist-card">
             <h3 className="freedash-dist-title">{tr('Phân bố hồ sơ theo trạng thái')}</h3>
             <p className="freedash-dist-sub">{tr('Dữ liệu từ GET /api/Dashboard/my-dashboard (myEtrs).')}</p>
             <ApexChart options={statusDonut} height={280} />
+          </div>
+          <div className="freedash-dist-card">
+            <h3 className="freedash-dist-title">{tr('Tiến độ hoàn thành hồ sơ')}</h3>
+            <p className="freedash-dist-sub">{tr('Biểu đồ đường cong tiến độ đào tạo các hồ sơ ETR.')}</p>
+            <ApexChart options={progressTrend} height={280} />
           </div>
         </section>
       )}

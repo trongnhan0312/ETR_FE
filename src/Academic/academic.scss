@@ -2688,10 +2688,87 @@
   gap: 8px !important;
 }
 
-.breadcrumb-item {
-  white-space: nowrap !important;
+.student-table-grid {
+  display: grid;
+  gap: 0;
+  align-items: center;
+  min-width: 820px;
 }
 
+.student-table-row {
+  display: contents;
+}
 
+.student-table-cell {
+  padding: 14px 20px;
+  font-size: 13px;
+  color: rgba(0, 33, 71, 0.75);
+  border-bottom: 1px solid #f0f4f9;
+  display: flex;
+  align-items: center;
+}
 
+.student-table-cell--header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0, 33, 71, 0.55);
+  padding: 12px 20px;
+  background: #f8faff;
+  border-bottom: 1px solid #e4eaf3;
+}
 
+.student-table-cell--strong {
+  font-weight: 600;
+  color: #002147;
+}
+
+.student-table-cell--index {
+  font-weight: 700;
+  color: #c5a059;
+}
+
+.student-table-cell--end {
+  justify-content: flex-end;
+}
+
+.student-metric-card {
+  padding: 18px 20px;
+  background: #ffffff;
+  border: 1px solid #dfe6f1;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(0, 33, 71, 0.04);
+}
+
+.student-metric-label {
+  font-size: 12px;
+  color: rgba(0, 33, 71, 0.55);
+  font-weight: 600;
+}
+
+.student-metric-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #002147;
+
+  &.amber {
+    color: #b45309;
+  }
+
+  &.green {
+    color: #16a34a;
+  }
+}
+
+.student-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(0, 33, 71, 0.5);
+  font-size: 13.5px;
+  background: #f8fafc;
+  border-radius: 14px;
+}

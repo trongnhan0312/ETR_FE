@@ -19,11 +19,11 @@ const ApexChart = ({ options, type, height = 300, width = "100%" }) => {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
 
-  // Tạo chart khi mount
-  useEffect(() => {
+  const initOrUpdate = () => {
     const el = containerRef.current;
-    if (!el) return undefined;
-    const base = {
+    if (!el || !options) return;
+
+    const merged = {
       ...(options || {}),
       chart: {
         ...((options || {}).chart || {}),
@@ -32,38 +32,54 @@ const ApexChart = ({ options, type, height = 300, width = "100%" }) => {
         width,
       },
     };
-    let chart = null;
-    try {
-      chart = new ApexCharts(el, base);
-      chart.render();
-      chartRef.current = chart;
-    } catch (err) {
-      // Môi trường thiếu API (VD jsdom test) → render thô không lỗi
-      console.warn("[ApexChart] render failed:", err);
-    }
-    return () => {
+
+    if (!chartRef.current) {
       try {
-        if (chart) chart.destroy();
-      } catch {
-        /* noop */
+        const chart = new ApexCharts(el, merged);
+        chart.render();
+        chartRef.current = chart;
+      } catch (err) {
+        console.warn("[ApexChart] render failed:", err);
       }
-      chartRef.current = null;
+    } else {
+      try {
+        chartRef.current.updateOptions(merged, true, true);
+      } catch (err) {
+        // If update failed (e.g. SVG element destroyed), re-create chart
+        try {
+          chartRef.current.destroy();
+        } catch {
+          /* noop */
+        }
+        try {
+          const chart = new ApexCharts(el, merged);
+          chart.render();
+          chartRef.current = chart;
+        } catch (e) {
+          console.warn("[ApexChart] re-render failed:", e);
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    initOrUpdate();
+    return () => {
+      if (chartRef.current) {
+        try {
+          chartRef.current.destroy();
+        } catch {
+          /* noop */
+        }
+        chartRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [options, type, height, width]);
 
-  // Đồng bộ khi options thay đổi (dữ liệu API load xong)
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart || !options) return;
-    try {
-      chart.updateOptions(options);
-    } catch (err) {
-      console.warn("[ApexChart] sync error:", err);
-    }
-  }, [options]);
+  const minH = typeof height === "number" ? `${height}px` : height;
 
-  return <div ref={containerRef} style={{ width }} />;
+  return <div ref={containerRef} style={{ width, minHeight: minH, display: "block" }} />;
 };
 
 export default ApexChart;

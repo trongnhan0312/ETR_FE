@@ -9,11 +9,8 @@ const AuditorLockedETRs = () => {
   const navigate = useNavigate();
   const { trEn } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
   const [allEtrs, setAllEtrs] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const categories = ['All', 'Line Maintenance', 'Flight Operations', 'Quality Assurance', 'Base Maintenance'];
 
   useEffect(() => {
     const loadETRs = async () => {
@@ -31,19 +28,17 @@ const AuditorLockedETRs = () => {
   }, []);
 
   const filteredEtrs = allEtrs.filter((etr) => {
-    const matchesSearch =
+    return (
       etr.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       etr.learnerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       etr.courseName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      etr.learnerId?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    if (activeCategory === 'All') return matchesSearch;
-    return matchesSearch && etr.learnerDepartment?.toLowerCase().includes(activeCategory.toLowerCase());
+      etr.learnerId?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   });
 
   const { page, setPage, pageCount, pageItems, total } = usePagination(filteredEtrs, {
     pageSize: 10,
-    resetKey: `${searchQuery}|${activeCategory}`,
+    resetKey: searchQuery,
   });
 
   return (
@@ -63,8 +58,8 @@ const AuditorLockedETRs = () => {
       <section className="table-card">
         {/* Table Toolbar */}
         <div className="table-toolbar">
-          <div className="toolbar-left">
-            <div className="search-box">
+          <div className="toolbar-left" style={{ width: '100%', maxWidth: '420px' }}>
+            <div className="search-box" style={{ width: '100%' }}>
               <span className="search-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8" />
@@ -76,20 +71,9 @@ const AuditorLockedETRs = () => {
                 placeholder={trEn('Search locked ETR by ID, learner name, course...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ width: '100%' }}
               />
             </div>
-          </div>
-          <div className="toolbar-right" style={{ flexWrap: 'wrap' }}>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                className={`filter-btn${activeCategory === cat ? ' active' : ''}`}
-                onClick={() => setActiveCategory(cat)}
-              >
-                {trEn(cat)}
-              </button>
-            ))}
           </div>
         </div>
 

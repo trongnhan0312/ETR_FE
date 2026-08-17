@@ -31,6 +31,7 @@ import CourseClassManagement from './Academic/CourseClassManagement';
 import EtrManagement from './Academic/EtrManagement';
 import ExpiringStudents from './Academic/ExpiringStudents';
 import SubjectManagement from './Academic/SubjectManagement';
+import AcademicAuditLogs from './Academic/AcademicAuditLogs';
 import InstructorLayout from './Instructor/InstructorLayout';
 import InstructorDashboard from './Instructor/InstructorDashboard';
 import InstructorClasses from './Instructor/InstructorClasses';
@@ -190,6 +191,7 @@ function App() {
 						<Route path="etr" element={<EtrManagement />} />
 						<Route path="expiring-students" element={<ExpiringStudents />} />
 						<Route path="subjects" element={<SubjectManagement />} />
+						<Route path="audit" element={<AcademicAuditLogs />} />
 					</Route>
 				</Route>
 

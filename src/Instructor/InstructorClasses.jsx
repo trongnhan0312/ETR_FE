@@ -541,22 +541,49 @@ const InstructorClasses = () => {
             </div>
           </div>
 
-          {/* Sessions List Row */}
-          <div className="table-body">
-            {sessionPager.pageItems.map((session) => (
-              <div
-                key={session.sessionId}
-                className="table-row"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "60px 100px 1fr 1fr 1fr 120px 120px",
-                  alignItems: "center",
-                  gap: "12px",
-                  padding: "14px 20px",
-                  borderTop: "1px solid #e0e4e8",
-                  cursor: "default",
-                }}
-              >
+          {/* Sessions List Header & Rows */}
+          <div style={{ overflowX: "auto", width: "100%" }}>
+            <div
+              className="table-header"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "60px 100px 1fr 1fr 1fr 120px 120px",
+                alignItems: "center",
+                gap: "12px",
+                background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
+                color: "#ffffff",
+                padding: "14px 20px",
+                fontSize: "11px",
+                fontWeight: "700",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                minWidth: "780px",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>{tr('STT')}</div>
+              <div>{tr('Ngày học')}</div>
+              <div>{tr('Tên buổi học')}</div>
+              <div>{tr('Phòng học')}</div>
+              <div>{tr('Giảng viên')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Trạng thái')}</div>
+              <div style={{ textAlign: "right" }}>{tr('Thao tác')}</div>
+            </div>
+
+            <div className="table-body" style={{ minWidth: "780px" }}>
+              {sessionPager.pageItems.map((session) => (
+                <div
+                  key={session.sessionId}
+                  className="table-row"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "60px 100px 1fr 1fr 1fr 120px 120px",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "14px 20px",
+                    borderTop: "1px solid #e0e4e8",
+                    cursor: "default",
+                  }}
+                >
                 <span
                   style={{
                     fontSize: "13px",
@@ -650,6 +677,7 @@ const InstructorClasses = () => {
                 </div>
               </div>
             ))}
+            </div>
           </div>
 
           {/* Footer */}
@@ -1400,217 +1428,188 @@ const InstructorClasses = () => {
 
       {/* Class List Table */}
       <section className="table-card">
-        <div
-          className="table-header"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "60px 120px 1fr 100px 150px 100px 140px 160px",
-            alignItems: "center",
-            gap: "12px",
-            background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
-            color: "#ffffff",
-            padding: "12px 20px",
-            fontSize: "11px",
-            fontWeight: "700",
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-          }}
-        >
-          <div style={{ textAlign: "center" }}>{tr('STT')}</div>
-          <div>{tr('Mã lớp')}</div>
-          <div>{tr('Tên khóa học / chuyên đề')}</div>
-          <div style={{ textAlign: "center" }}>{tr('Khóa')}</div>
-          <div>{tr('Lịch học')}</div>
-          <div style={{ textAlign: "center" }}>{tr('Sĩ số')}</div>
-          <div>{tr('Trạng thái')}</div>
-          <div style={{ textAlign: "right", paddingRight: "24px" }}>
-            {tr('Thao tác')}
-          </div>
-        </div>
-
-        <div className="table-body">
-          {filteredClasses.length === 0 ? (
-            <div
-              style={{
-                padding: "24px",
-                textAlign: "center",
-                color: "rgba(0,33,71,0.4)",
-                fontStyle: "italic",
-              }}
-            >
-              {tr('Không tìm thấy lớp học nào khớp với bộ lọc hiện tại.')}
+        <div style={{ overflowX: "auto", width: "100%" }}>
+          <div
+            className="table-header"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "60px 120px 1fr 100px 150px 100px 140px 160px",
+              alignItems: "center",
+              gap: "12px",
+              background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
+              color: "#ffffff",
+              padding: "12px 20px",
+              fontSize: "11px",
+              fontWeight: "700",
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              minWidth: "900px",
+            }}
+          >
+            <div style={{ textAlign: "center" }}>{tr('STT')}</div>
+            <div>{tr('Mã lớp')}</div>
+            <div>{tr('Tên khóa học / chuyên đề')}</div>
+            <div style={{ textAlign: "center" }}>{tr('Khóa')}</div>
+            <div>{tr('Lịch học')}</div>
+            <div style={{ textAlign: "center" }}>{tr('Sĩ số')}</div>
+            <div>{tr('Trạng thái')}</div>
+            <div style={{ textAlign: "right", paddingRight: "24px" }}>
+              {tr('Thao tác')}
             </div>
-          ) : (
-            classesPager.pageItems.map((cls) => {
-              const statusColors = getStatusStyle(cls.status);
+          </div>
 
-              return (
-                <div
-                  key={cls.code}
-                  className="table-row"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "60px 120px 1fr 100px 150px 100px 140px 160px",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "14px 20px",
-                    cursor: "default",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "700",
-                      color: "rgba(0,33,71,0.4)",
-                      textAlign: "center",
-                    }}
-                  >
-                    {cls.stt}
-                  </span>
-                  <span
-                    className="col-id"
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "700",
-                      color: "#002147",
-                    }}
-                  >
-                    {cls.code}
-                  </span>
+          <div className="table-body" style={{ minWidth: "900px" }}>
+            {filteredClasses.length === 0 ? (
+              <div
+                style={{
+                  padding: "24px",
+                  textAlign: "center",
+                  color: "rgba(0,33,71,0.4)",
+                  fontStyle: "italic",
+                }}
+              >
+                {tr('Không tìm thấy lớp học nào khớp với bộ lọc hiện tại.')}
+              </div>
+            ) : (
+              classesPager.pageItems.map((cls) => {
+                const statusColors = getStatusStyle(cls.status);
+
+                return (
                   <div
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setSelectedClass(cls)}
-                  >
-                    <p
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: "600",
-                        color: "#002147",
-                        margin: 0,
-                      }}
-                    >
-                      {cls.name}
-                    </p>
-                    <p
-                      style={{
-                        fontSize: "11px",
-                        color: "rgba(0,33,71,0.5)",
-                        margin: "2px 0 0",
-                      }}
-                    >
-                      {cls.subName}
-                    </p>
-                  </div>
-                  <span
+                    key={cls.code}
+                    className="table-row"
                     style={{
-                      fontSize: "13px",
-                      color: "rgba(0,33,71,0.7)",
-                      textAlign: "center",
+                      display: "grid",
+                      gridTemplateColumns:
+                        "60px 120px 1fr 100px 150px 100px 140px 160px",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "14px 20px",
+                      cursor: "default",
                     }}
                   >
-                    {tr('Khóa ')}{cls.courseKey}
-                  </span>
-                  <div>
-                    {cls.schedule === "Chưa sắp lịch" ? (
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        color: "rgba(0,33,71,0.4)",
+                        textAlign: "center",
+                      }}
+                    >
+                      {cls.stt}
+                    </span>
+                    <span
+                      className="col-id"
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        color: "#002147",
+                      }}
+                    >
+                      {cls.code}
+                    </span>
+                    <div
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setSelectedClass(cls)}
+                    >
                       <p
                         style={{
-                          fontStyle: "italic",
-                          color: "rgba(0,33,71,0.4)",
+                          fontSize: "14px",
+                          fontWeight: "600",
+                          color: "#002147",
                           margin: 0,
                         }}
                       >
-                        {tr('Chưa sắp lịch')}
+                        {cls.name}
                       </p>
-                    ) : (
-                      <>
-                        <p
-                          style={{
-                            fontSize: "13px",
-                            color: "#002147",
-                            fontWeight: "600",
-                            margin: 0,
-                          }}
-                        >
-                          {cls.schedule}
-                        </p>
-                        <p
-                          style={{
-                            fontSize: "10px",
-                            color: "rgba(0,33,71,0.4)",
-                            margin: "2px 0 0",
-                          }}
-                        >
-                          ({cls.time})
-                        </p>
-                      </>
-                    )}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "700",
-                      color: "#002147",
-                      textAlign: "center",
-                    }}
-                  >
-                    {cls.studentsCount}
-                  </span>
-                  <div>
+                      <p
+                        style={{
+                          fontSize: "11px",
+                          color: "rgba(0,33,71,0.5)",
+                          margin: "2px 0 0",
+                        }}
+                      >
+                        {cls.subName}
+                      </p>
+                    </div>
                     <span
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "5px 12px",
-                        borderRadius: "999px",
-                        fontSize: "10px",
-                        fontWeight: "700",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.03em",
-                        backgroundColor: statusColors.bg,
-                        color: statusColors.color,
-                        border: `1px solid ${statusColors.border}`,
+                        fontSize: "13px",
+                        color: "rgba(0,33,71,0.7)",
+                        textAlign: "center",
                       }}
                     >
+                      {tr('Khóa ')}{cls.courseKey}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.7)" }}>
+                      {cls.schedule}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        color: "#002147",
+                        textAlign: "center",
+                      }}
+                    >
+                      {cls.studentsCount}
+                    </span>
+                    <div>
                       <span
                         style={{
-                          width: "6px",
-                          height: "6px",
-                          borderRadius: "50%",
-                          backgroundColor: statusColors.dot,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "5px 12px",
+                          borderRadius: "999px",
+                          fontSize: "10px",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.03em",
+                          backgroundColor: statusColors.bg,
+                          color: statusColors.color,
+                          border: `1px solid ${statusColors.border}`,
                         }}
-                      />
-                      {cls.status}
-                    </span>
+                      >
+                        <span
+                          style={{
+                            width: "6px",
+                            height: "6px",
+                            borderRadius: "50%",
+                            backgroundColor: statusColors.dot,
+                          }}
+                        />
+                        {cls.status}
+                      </span>
+                    </div>
+                    <div style={{ textAlign: "right", paddingRight: "12px" }}>
+                      <button
+                        onClick={() => setSelectedClass(cls)}
+                        className="ghost-btn"
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "8px",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          backgroundColor: "#c5a059",
+                          color: "white",
+                          border: "none",
+                          cursor: "pointer",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          transition: "all 0.2s",
+                          boxShadow: "0 2px 4px rgba(197, 160, 89, 0.2)",
+                        }}
+                      >
+                        {tr('Xem chi tiết')}
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ textAlign: "right", paddingRight: "12px" }}>
-                    <button
-                      onClick={() => setSelectedClass(cls)}
-                      className="ghost-btn"
-                      style={{
-                        padding: "6px 12px",
-                        borderRadius: "8px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        backgroundColor: "#c5a059",
-                        color: "white",
-                        border: "none",
-                        cursor: "pointer",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        transition: "all 0.2s",
-                        boxShadow: "0 2px 4px rgba(197, 160, 89, 0.2)",
-                      }}
-                    >
-                      {tr('Xem chi tiết')}
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+            </div>
+          </div>
 
         <div className="table-footer">
           <Pagination
