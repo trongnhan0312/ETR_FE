@@ -508,16 +508,6 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
     };
   }).filter((course) => course.shouldShow);
 
-  // Phân trang: khóa học (nhóm có thể mở rộng) + lớp mồ côi — tối đa 5 nút trang.
-  const { page: coursePage, setPage: setCoursePage, pageCount: coursePageCount, pageItems: pagedCourses, total: courseTotal } = usePagination(filteredCourses, {
-    pageSize: 10,
-    resetKey: `${searchTerm}|${statusFilter}`,
-  });
-
-  const { page: orphanPage, setPage: setOrphanPage, pageCount: orphanPageCount, pageItems: pagedOrphans, total: orphanTotal } = usePagination(orphanClasses, {
-    pageSize: 10,
-  });
-
   // Lớp "mồ côi": có CourseId không khớp bất kỳ khóa học nào đang tồn tại (khóa học đã bị xóa
   // hoặc lớp được tạo với CourseId không hợp lệ) — Academic cần thấy để xử lý (sửa/xóa/ghi danh).
   const orphanClasses = useMemo(() => {
@@ -548,6 +538,16 @@ status: (cls.status === 'Active' || cls.status === 'InProgress') ? 'Đang diễn
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allClassesRaw, allCoursesRaw, instructorsList, tr, allSubjects]);
+
+  // Phân trang: khóa học (nhóm có thể mở rộng) + lớp mồ côi — tối đa 5 nút trang.
+  const { page: coursePage, setPage: setCoursePage, pageCount: coursePageCount, pageItems: pagedCourses, total: courseTotal } = usePagination(filteredCourses, {
+    pageSize: 10,
+    resetKey: `${searchTerm}|${statusFilter}`,
+  });
+
+  const { page: orphanPage, setPage: setOrphanPage, pageCount: orphanPageCount, pageItems: pagedOrphans, total: orphanTotal } = usePagination(orphanClasses, {
+    pageSize: 10,
+  });
 
   // Statistics calculation
   const totalClasses = courses.reduce((sum, course) => sum + course.classes.length, 0);
