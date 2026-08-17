@@ -125,6 +125,8 @@ export const VN_TO_EN = {
   'Trả lại / Cần điều chỉnh (Returned)': 'Returned / Needs Correction',
 
   // ── Tables, Badges, Portals, Actions & Headers ──
+  'AUDIT TRAIL (LỊCH SỬ THAO TÁC HỒ SƠ ETR)': 'AUDIT TRAIL (ETR RECORD OPERATION LOGS)',
+  'Chưa có lịch sử thao tác nào cho hồ sơ ETR này.': 'No audit trail logs found for this ETR record.',
   'NHẬT KÝ KIỂM TOÁN': 'AUDIT TRAIL',
   'Nhật ký Hoạt động Hệ thống (System Audit Trail)': 'System Activity Audit Trail',
   'Theo dõi toàn bộ vận hành, can thiệp kỹ thuật và bảo mật. Lưu trữ bất biến mọi thao tác CRUD (Tạo mới, Cập nhật, Xóa, Phê duyệt, Bảo mật).': 'Monitor all system operations, technical interventions, and security. Immutably logs all CRUD operations (Create, Update, Delete, Approval, Security).',

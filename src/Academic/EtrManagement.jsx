@@ -166,9 +166,21 @@ const EtrManagement = () => {
           if (prof?.accountId && prof?.fullName) accountMap.set(prof.accountId, prof.fullName);
         });
 
+        // Filter audit logs strictly related to ETRs (ETRCourseRecord, ApprovalRequest, ApprovalHistory, EvidenceFile, or has etrRecordId)
+        const etrAuditsArr = auditsArr.filter((a) => {
+          const mod = String(a.entityName || "").toLowerCase();
+          const hasEtrId = !!(a.etrRecordId || a.etrCourseRecordId);
+          return (
+            hasEtrId ||
+            mod.includes("etrcourserecord") ||
+            mod.includes("approval") ||
+            mod.includes("evidence")
+          );
+        });
+
         // Merge audit trail
         setAuditTrail(
-          auditsArr.map((a) => {
+          etrAuditsArr.map((a) => {
             const actorName = a.accountId
               ? (accountMap.get(a.accountId) || `Account #${a.accountId}`)
               : trEn("Hệ thống (System / Admin)");
@@ -187,8 +199,8 @@ const EtrManagement = () => {
               accountId: a.accountId,
               action: a.actionType || a.entityName || "UPDATE",
               actionType: a.actionType || "UPDATE",
-              module: a.entityName || "ETR",
-              entityName: a.entityName || "ETR",
+              module: a.entityName || "ETRCourseRecord",
+              entityName: a.entityName || "ETRCourseRecord",
               recordId: a.recordId,
               target: a.recordId,
               etrCourseRecordId: a.etrRecordId,
@@ -610,14 +622,15 @@ const EtrManagement = () => {
   });
 
   const filteredAuditTrail = useMemo(() => {
-    if (!selectedRecord) return auditTrail;
+    if (!selectedRecord) {
+      return auditTrail;
+    }
     const targetEtrId = selectedRecord.etrCourseRecordId || selectedRecord.eTRCourseRecordId || Number(String(selectedRecord.id || '').replace(/\D/g, ''));
-    const related = auditTrail.filter((a) => {
+    return auditTrail.filter((a) => {
       if (a.etrCourseRecordId && Number(a.etrCourseRecordId) === Number(targetEtrId)) return true;
-      if (a.module === 'ETRCourseRecord' && Number(a.recordId) === Number(targetEtrId)) return true;
+      if (String(a.module).toLowerCase().includes('etrcourserecord') && Number(a.recordId) === Number(targetEtrId)) return true;
       return false;
     });
-    return related.length > 0 ? related : auditTrail;
   }, [auditTrail, selectedRecord]);
 
   const auditPager = usePagination(filteredAuditTrail, {
@@ -2791,7 +2804,7 @@ const EtrManagement = () => {
               className="text-sm font-black text-left uppercase text-[#002147]"
               style={{ margin: 0 }}
             >
-              AUDIT TRAIL (LỊCH SỬ THAO TÁC)
+              {tr("AUDIT TRAIL (LỊCH SỬ THAO TÁC HỒ SƠ ETR)")} {selectedRecord ? `— ${selectedRecord.id}` : ""}
             </p>
           </div>
 
@@ -2818,7 +2831,7 @@ const EtrManagement = () => {
                 </div>
               ) : auditPager.pageItems.length === 0 ? (
                 <div style={{ padding: "32px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>
-                  {tr("Chưa có lịch sử thao tác nào.")}
+                  {selectedRecord ? tr("Chưa có lịch sử thao tác nào cho hồ sơ ETR này.") : tr("Chưa có lịch sử thao tác nào.")}
                 </div>
               ) : (
                 auditPager.pageItems.map((log, idx) => (
