@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { createPortal } from "react-dom";
@@ -6,13 +6,15 @@ import { api } from "../utils/api";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
+import AuditLogDetailModal from "../components/AuditLogDetailModal";
 
 const EtrManagement = () => {
-  const { tr } = useLanguage();
+  const { tr, trEn } = useLanguage();
   const [etrRecords, setEtrRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [auditTrail, setAuditTrail] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedAuditModalLog, setSelectedAuditModalLog] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -85,11 +87,19 @@ const EtrManagement = () => {
           api.get("/EvidenceTypes").catch(() => []),
         ]);
 
-        const etrsArr = Array.isArray(etrs) ? etrs : [];
-        const evfsArr = Array.isArray(evfs) ? evfs : [];
-        const accountsArr = Array.isArray(accounts) ? accounts : [];
-        const profilesArr = Array.isArray(profiles) ? profiles : [];
-        const enrollmentsArr = Array.isArray(enrollments) ? enrollments : [];
+        const extractList = (data) => {
+          if (Array.isArray(data)) return data;
+          if (data && Array.isArray(data.items)) return data.items;
+          if (data && Array.isArray(data.Items)) return data.Items;
+          return [];
+        };
+
+        const etrsArr = extractList(etrs);
+        const evfsArr = extractList(evfs);
+        const accountsArr = extractList(accounts);
+        const profilesArr = extractList(profiles);
+        const enrollmentsArr = extractList(enrollments);
+        const auditsArr = extractList(audits);
 
         setAllAccounts(accountsArr);
         setAllProfiles(profilesArr);
@@ -116,15 +126,8 @@ const EtrManagement = () => {
           const id = e.etrCourseRecordId || e.eTRCourseRecordId;
           const srs = detailsArr[i]?.subjectResults || [];
           srMap[id] = srs.map((sr) => sr.subjectResultId);
-          // Điểm danh/Chuyên cần chỉ "đạt" khi MỌI môn đã có AttendanceRate >= 80 (khớp quy tắc
-          // backend khi Submit ETR). ETR mới chưa điểm danh → attendanceRate null → false →
-          // hiển thị "⌛ ĐANG CHỜ" thay vì "✓ ĐÃ XÁC THỰC" sai lệch.
           attendanceOkMap[id] =
             srs.length > 0 && srs.every((sr) => (sr.attendanceRate ?? 0) >= 80);
-          // Bước 3 "Điểm số kết quả kiểm tra" tính từ dữ liệu thật: MỌI môn phải có kết quả
-          // đánh giá (assessment + practical) và TẤT CẢ đều đã được giảng viên chốt điểm
-          // (isPublished = true sau khi bấm "CHỐT ĐIỂM"). Trước đây gắn vào etr.status
-          // Verified/Completed nên đã chốt điểm mà ETR chưa được QA duyệt vẫn hiển thị sai.
           resultsOkMap[id] =
             srs.length > 0 &&
             srs.every((sr) => {
@@ -132,7 +135,6 @@ const EtrManagement = () => {
                 ...(sr.assessmentResults || []),
                 ...(sr.practicalChecklistResults || []),
               ];
-              // Môn được miễn thi (Exempted) hoặc chưa cấu hình bài kiểm tra → không còn điểm chờ chốt.
               if (sr.status === "Exempted" || all.length === 0) return true;
               return all.every((r) => r.isPublished === true);
             });
@@ -155,20 +157,47 @@ const EtrManagement = () => {
           setSelectedRecord(merged[0]);
         }
 
+        // Build account map for accurate actor names
+        const accountMap = new Map();
+        accountsArr.forEach((acc) => {
+          if (acc?.accountId) accountMap.set(acc.accountId, acc.username || acc.fullName);
+        });
+        profilesArr.forEach((prof) => {
+          if (prof?.accountId && prof?.fullName) accountMap.set(prof.accountId, prof.fullName);
+        });
+
         // Merge audit trail
-        const auditsArr = Array.isArray(audits) ? audits : [];
         setAuditTrail(
-          auditsArr.map((a, idx) => ({
-            time:
-              (a.createdAt ?? a.recordedAt)
+          auditsArr.map((a) => {
+            const actorName = a.accountId
+              ? (accountMap.get(a.accountId) || `Account #${a.accountId}`)
+              : trEn("Hệ thống (System / Admin)");
+
+            return {
+              id: a.auditLogId || a.id || "—",
+              auditLogId: a.auditLogId || a.id,
+              time: (a.createdAt ?? a.recordedAt)
                 ? new Date(a.createdAt ?? a.recordedAt).toLocaleString("vi-VN")
-                : "",
-            actor: `Account #${a.accountId || "N/A"}`,
-            action: a.actionType || a.entityName || "UPDATE",
-            desc:
-              a.description ||
-              `${a.actionType || tr("Cập nhật")} ${a.entityName || tr("hồ sơ")} #${a.recordId || ""}`,
-          })),
+                : "—",
+              timestamp: (a.createdAt ?? a.recordedAt)
+                ? new Date(a.createdAt ?? a.recordedAt).toLocaleString("vi-VN")
+                : "—",
+              actor: actorName,
+              user: actorName,
+              accountId: a.accountId,
+              action: a.actionType || a.entityName || "UPDATE",
+              actionType: a.actionType || "UPDATE",
+              module: a.entityName || "ETR",
+              entityName: a.entityName || "ETR",
+              recordId: a.recordId,
+              target: a.recordId,
+              etrCourseRecordId: a.etrRecordId,
+              oldValue: a.oldValue || "—",
+              newValue: a.newValue || "—",
+              desc: a.description || `${a.actionType || tr("Cập nhật")} ${a.entityName || tr("hồ sơ")} #${a.recordId || ""}`.trim(),
+              details: a.description || `${a.actionType || tr("Cập nhật")} ${a.entityName || tr("hồ sơ")} #${a.recordId || ""}`.trim(),
+            };
+          }),
         );
       } catch (error) {
         console.error("Error loading ETR data:", error);
@@ -580,9 +609,20 @@ const EtrManagement = () => {
     resetKey: `${searchTerm}|${statusFilter}`,
   });
 
-  const auditPager = usePagination(auditTrail, {
+  const filteredAuditTrail = useMemo(() => {
+    if (!selectedRecord) return auditTrail;
+    const targetEtrId = selectedRecord.etrCourseRecordId || selectedRecord.eTRCourseRecordId || Number(String(selectedRecord.id || '').replace(/\D/g, ''));
+    const related = auditTrail.filter((a) => {
+      if (a.etrCourseRecordId && Number(a.etrCourseRecordId) === Number(targetEtrId)) return true;
+      if (a.module === 'ETRCourseRecord' && Number(a.recordId) === Number(targetEtrId)) return true;
+      return false;
+    });
+    return related.length > 0 ? related : auditTrail;
+  }, [auditTrail, selectedRecord]);
+
+  const auditPager = usePagination(filteredAuditTrail, {
     pageSize: 10,
-    resetKey: selectedRecord?.id,
+    resetKey: `${selectedRecord?.id}|${auditTrail.length}`,
   });
 
   // Evidence Specific Counts and Filters
@@ -2772,43 +2812,71 @@ const EtrManagement = () => {
             </div>
 
             <div className="table-body" style={{ minWidth: "800px" }}>
-              {auditPager.pageItems.map((log, idx) => (
-                <div key={idx} className="table-row audit-table-grid">
-                  <div style={{ fontSize: "12px", color: "#64748b" }}>
-                    {log.time}
-                  </div>
-                  <div style={{ fontWeight: "700", color: "#002147" }}>
-                    {log.actor}
-                  </div>
-                  <div>
-                    <span
-                      className={`class-status ${
-                        log.action === "UPDATE"
-                          ? "status-active"
-                          : "status-pending"
-                      }`}
-                      style={{
-                        backgroundColor:
-                          log.action === "UPDATE" ? "#eff6ff" : "#fef3c7",
-                        border:
-                          log.action === "UPDATE"
-                            ? "1px solid #dbeafe"
-                            : "1px solid #fde68a",
-                        color: log.action === "UPDATE" ? "#1d4ed8" : "#d97706",
-                        padding: "2px 8px",
-                        borderRadius: "4px",
-                        fontSize: "9px",
-                        fontWeight: "900",
-                      }}
-                    >
-                      {log.action}
-                    </span>
-                  </div>
-                  <div style={{ color: "#475569", fontSize: "13px" }}>
-                    {log.desc}
-                  </div>
+              {loading ? (
+                <div style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>
+                  {tr("Đang tải dữ liệu lịch sử thao tác...")}
                 </div>
-              ))}
+              ) : auditPager.pageItems.length === 0 ? (
+                <div style={{ padding: "32px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>
+                  {tr("Chưa có lịch sử thao tác nào.")}
+                </div>
+              ) : (
+                auditPager.pageItems.map((log, idx) => (
+                  <div
+                    key={log.id || idx}
+                    className="table-row audit-table-grid"
+                    onClick={() => setSelectedAuditModalLog(log)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div style={{ fontSize: "12px", color: "#64748b" }}>
+                      {log.time}
+                    </div>
+                    <div style={{ fontWeight: "700", color: "#002147" }}>
+                      {log.actor}
+                    </div>
+                    <div>
+                      <span
+                        className="class-status"
+                        style={{
+                          backgroundColor:
+                            log.action === "INSERT" || log.action === "CREATE"
+                              ? "#eff6ff"
+                              : log.action === "UPDATE"
+                                ? "#fefce8"
+                                : log.action === "DELETE"
+                                  ? "#fef2f2"
+                                  : "#f0fdf4",
+                          border:
+                            log.action === "INSERT" || log.action === "CREATE"
+                              ? "1px solid #dbeafe"
+                              : log.action === "UPDATE"
+                                ? "1px solid #fef08a"
+                                : log.action === "DELETE"
+                                  ? "1px solid #fecaca"
+                                  : "1px solid #bbf7d0",
+                          color:
+                            log.action === "INSERT" || log.action === "CREATE"
+                              ? "#1d4ed8"
+                              : log.action === "UPDATE"
+                                ? "#a16207"
+                                : log.action === "DELETE"
+                                  ? "#b91c1c"
+                                  : "#15803d",
+                          padding: "3px 8px",
+                          borderRadius: "4px",
+                          fontSize: "10px",
+                          fontWeight: "800",
+                        }}
+                      >
+                        {trEn(log.action)}
+                      </span>
+                    </div>
+                    <div style={{ color: "#475569", fontSize: "13px" }}>
+                      {log.desc}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -3357,6 +3425,14 @@ const EtrManagement = () => {
             </div>,
             document.body,
           )}
+
+        {/* Audit Log Detail Modal */}
+        {selectedAuditModalLog && (
+          <AuditLogDetailModal
+            log={selectedAuditModalLog}
+            onClose={() => setSelectedAuditModalLog(null)}
+          />
+        )}
       </div>
     </div>
   );
