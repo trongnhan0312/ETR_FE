@@ -2772,3 +2772,40 @@
   background: #f8fafc;
   border-radius: 14px;
 }
+
+/* ── FIX: Tailwind CDN overrides our grid tables ──────────────────────────
+   index.html loads Tailwind via CDN (cdn.tailwindcss.com). Its runtime scans
+   the DOM and, seeing classes like `table-row` or `table-header`,
+   injects table utility styles AFTER our CSS bundle.
+   Force display: grid !important on all our custom grid table classes. */
+.table-header,
+.table-row,
+.table-header.course-table-grid,
+.table-row.course-table-grid,
+.course-table-grid,
+.table-row.table-layout,
+.table-row.data-table-layout,
+.table-row[class*="-grid"],
+.table-header[class*="-grid"],
+.table-layout,
+.data-table-layout,
+.etr-table-grid,
+.sessions-table-grid,
+.audit-table-grid,
+.evidence-table-grid,
+.class-nested-row,
+.course-row {
+  display: grid !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.course-table-grid {
+  grid-template-columns: 36px 1.2fr 2fr 1.3fr 1.8fr 1.2fr minmax(280px, auto) !important;
+  align-items: center !important;
+}
+
+.table-responsive-scroll {
+  width: 100% !important;
+  overflow-x: auto !important;
+}

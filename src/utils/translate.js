@@ -398,6 +398,7 @@ export const VN_TO_EN = {
   // ── Phòng ban / Departments ──
   'Quản lý phòng ban (Departments)': 'Department Management',
   'Quản lý danh sách phòng ban trong hệ thống ETR Management.': 'Manage the list of departments in the ETR Management system.',
+  'Quản lý danh sách phòng ban trong hệ thống ETR Management: Thêm, sửa, xoá phòng ban.': 'Manage department list in ETR Management system: create, edit, and delete departments.',
   'TỔNG SỐ PHÒNG BAN': 'TOTAL DEPARTMENTS',
   'DANH SÁCH PHÒNG BAN': 'DEPARTMENT LIST',
   'Tất cả phòng ban': 'All departments',
@@ -406,7 +407,6 @@ export const VN_TO_EN = {
   'Tên phòng ban (Department Name) *': 'Department Name *',
   'Mô tả / Thông tin thêm': 'Description / Additional info',
   'Nhập mô tả cho phòng ban này...': 'Enter a description for this department...',
-  'Thêm phòng ban mới': 'Add new department',
   'Cập nhật phòng ban': 'Update department',
   'Xác nhận xoá phòng ban': 'Confirm delete department',
   'Bạn có chắc chắn muốn xoá phòng ban': 'Are you sure you want to delete the department',
@@ -415,10 +415,15 @@ export const VN_TO_EN = {
   'Đang lưu...': 'Saving...',
   'Đang xoá...': 'Deleting...',
   'Tạo phòng ban thành công': 'Department created successfully',
+  'Tạo phòng ban thành công!': 'Department created successfully!',
   'Cập nhật phòng ban thành công': 'Department updated successfully',
+  'Cập nhật phòng ban thành công!': 'Department updated successfully!',
   'Xoá phòng ban thành công': 'Department deleted successfully',
+  'Xoá phòng ban thành công!': 'Department deleted successfully!',
 
   // ── Tài khoản / Accounts ──
+  'Tài khoản hệ thống (System Accounts)': 'System Accounts',
+  'Cập nhật tài khoản thành công!': 'Account updated successfully!',
   'User Management': 'User Management',
   'Quản lý tài khoản hệ thống: Tạo mới, cập nhật hồ sơ, đổi vai trò (Role), phòng ban (Department), vô hiệu hóa (Soft Delete) và kích hoạt lại tài khoản.': 'Manage system accounts: create new, update profile, change role, department, soft-delete and reactivate accounts.',
   '+ Create User': '+ Create User',
