@@ -165,3 +165,52 @@ code {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── Robust Table Layout Overrides (Protects Grid Tables against Tailwind CDN) ── */
+.table-header,
+.table-row,
+.table-layout,
+.data-table-layout,
+.course-table-grid,
+.user-layout,
+.dept-layout,
+.role-layout,
+.audit-layout,
+.etr-table-grid,
+.sessions-table-grid,
+.evidence-table-grid,
+.audit-table-grid,
+.class-nested-row,
+.course-row,
+.student-table-grid {
+  display: grid !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.table-responsive-scroll {
+  width: 100% !important;
+  overflow-x: auto !important;
+}
+
+.data-table,
+.table-body,
+.table-card {
+  width: 100% !important;
+}
+
+.course-table-grid {
+  grid-template-columns: 36px 1.2fr 2fr 1.3fr 1.8fr 1.2fr minmax(280px, auto) !important;
+  align-items: center !important;
+}
+
+.user-layout {
+  grid-template-columns: 1.1fr 1.3fr 1.3fr 0.9fr 1.1fr 0.8fr 0.8fr 1.2fr !important;
+  align-items: center !important;
+}
+
+.dept-layout {
+  grid-template-columns: 0.8fr 2fr 3fr 1.2fr !important;
+  align-items: center !important;
+}
+
