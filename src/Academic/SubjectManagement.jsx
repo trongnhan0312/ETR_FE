@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
@@ -375,15 +376,15 @@ const SubjectManagement = () => {
       </section>
 
       {/* CREATE MODAL */}
-      {isCreateOpen && (
+      {isCreateOpen && createPortal(
         <div className="modal-overlay">
-          <div className="modal-container" style={{ width: '560px' }}>
+          <div className="modal-container" style={{ width: '560px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             <header className="modal-header">
               <h2>{tr('Tạo mới môn học')}</h2>
               <button className="close-btn" type="button" onClick={() => { setIsCreateOpen(false); resetCreateForm(); }} aria-label={tr('Đóng')}>&times;</button>
             </header>
-            <form onSubmit={handleCreateSubmit}>
-              <div className="modal-body" style={{ padding: '24px' }}>
+            <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <div className="modal-body" style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
                 {formError && (
                   <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px' }}>{formError}</div>
                 )}
@@ -436,25 +437,26 @@ const SubjectManagement = () => {
                   <textarea id="subj-desc" value={cDescription} onChange={(e) => setCDescription(e.target.value)} placeholder={tr('Mô tả môn học (tùy chọn)')} rows={3} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', resize: 'vertical' }} />
                 </div>
               </div>
-              <footer className="modal-footer">
+              <footer className="modal-footer" style={{ flexShrink: 0 }}>
                 <button className="modal-cancel-btn" type="button" onClick={() => { setIsCreateOpen(false); resetCreateForm(); }}>{tr('Hủy bỏ')}</button>
                 <button className="modal-submit-btn" type="submit" disabled={submitting}>{submitting ? tr('Đang tạo...') : tr('Tạo môn học')}</button>
               </footer>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* EDIT MODAL */}
-      {isEditOpen && editingSubject && (
+      {isEditOpen && editingSubject && createPortal(
         <div className="modal-overlay">
-          <div className="modal-container" style={{ width: '560px' }}>
+          <div className="modal-container" style={{ width: '560px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             <header className="modal-header">
               <h2>{tr('Chỉnh sửa môn học')}</h2>
               <button className="close-btn" type="button" onClick={() => { setIsEditOpen(false); setEditingSubject(null); resetEditForm(); }} aria-label={tr('Đóng')}>&times;</button>
             </header>
-            <form onSubmit={handleEditSubmit}>
-              <div className="modal-body" style={{ padding: '24px' }}>
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <div className="modal-body" style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
                 {formError && (
                   <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px' }}>{formError}</div>
                 )}
@@ -507,13 +509,14 @@ const SubjectManagement = () => {
                   <textarea id="esubj-desc" value={eDescription} onChange={(e) => setEDescription(e.target.value)} placeholder={tr('Mô tả môn học (tùy chọn)')} rows={3} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', resize: 'vertical' }} />
                 </div>
               </div>
-              <footer className="modal-footer">
+              <footer className="modal-footer" style={{ flexShrink: 0 }}>
                 <button className="modal-cancel-btn" type="button" onClick={() => { setIsEditOpen(false); setEditingSubject(null); resetEditForm(); }}>{tr('Hủy bỏ')}</button>
                 <button className="modal-submit-btn" type="submit" disabled={submitting}>{submitting ? tr('Đang lưu...') : tr('Lưu thay đổi')}</button>
               </footer>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <toast.ToastContainer />
