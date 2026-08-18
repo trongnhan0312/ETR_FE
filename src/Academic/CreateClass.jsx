@@ -32,30 +32,101 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
   const [status, setStatus] = useState('Sắp diễn ra');
   const [subjectWarning, setSubjectWarning] = useState('');
 
-  // Danh sách môn học của khóa đã chọn (từ /Courses/{id}) — dùng để gán Giảng viên theo từng Môn học
+  // Danh sách môn học của khóa đã chọn (từ /Courses/{id} hoặc props) — dùng để gán Giảng viên theo từng Môn học
   const [courseSubjects, setCourseSubjects] = useState([]);
   // instructorBySubject: subjectId -> instructorAccountId ('' = Chưa phân công)
   const [instructorBySubject, setInstructorBySubject] = useState({});
 
+  const extractSubjectsFromCourse = (courseObj) => {
+    if (!courseObj) return [];
+    const candidates = [
+      courseObj.courseSubjects,
+      courseObj.subjects,
+      courseObj.CourseSubjects,
+      courseObj.Subjects,
+      courseObj.selectedSubjectIds,
+      courseObj.subjectIds,
+      courseObj.SubjectIds,
+    ];
+    for (const item of candidates) {
+      if (Array.isArray(item) && item.length > 0) {
+        return item.map((s, idx) => {
+          if (typeof s === 'object' && s !== null) {
+            const sid = s.subjectId ?? s.SubjectId ?? s.id ?? s.Id;
+            const subDetails = subjects.find((sub) => String(sub.subjectId) === String(sid));
+            return {
+              subjectId: Number(sid) || sid,
+              sequenceNo: s.sequenceNo ?? s.SequenceNo ?? idx + 1,
+              requiredHours: s.requiredHours ?? s.RequiredHours ?? subDetails?.defaultHours ?? 0,
+              requiredSessions: s.requiredSessions ?? s.RequiredSessions ?? subDetails?.minSessions ?? 1,
+              isMandatory: s.isMandatory ?? s.IsMandatory ?? true,
+              passingScore: s.passingScore ?? s.PassingScore ?? 5,
+              subjectCode: s.subjectCode || s.SubjectCode || subDetails?.subjectCode || '',
+              subjectName: s.subjectName || s.SubjectName || subDetails?.subjectName || '',
+            };
+          }
+          const sid = Number(s) || s;
+          const subDetails = subjects.find((sub) => String(sub.subjectId) === String(sid));
+          return {
+            subjectId: sid,
+            sequenceNo: idx + 1,
+            requiredHours: subDetails?.defaultHours ?? 0,
+            requiredSessions: subDetails?.minSessions ?? 1,
+            isMandatory: true,
+            passingScore: 5,
+            subjectCode: subDetails?.subjectCode || '',
+            subjectName: subDetails?.subjectName || '',
+          };
+        });
+      }
+    }
+    return [];
+  };
+
   useEffect(() => {
     if (!parentCourse) return;
     setSubjectWarning('');
-    setCourseSubjects([]);
     setInstructorBySubject({});
 
-    api.get(`/Courses/${parentCourse}`).then((cDetail) => {
-      if (cDetail && Array.isArray(cDetail.courseSubjects) && cDetail.courseSubjects.length === 0) {
-        setSubjectWarning(`${tr('⚠️ Khóa học')} "${cDetail.courseName || cDetail.courseCode}" ${tr('chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.')}`);
-      }
-      if (cDetail && Array.isArray(cDetail.courseSubjects)) {
-        setCourseSubjects(cDetail.courseSubjects);
-      }
-    }).catch(() => {});
-  }, [parentCourse]);
+    // 1. Immediately check course from props for instant subject display
+    const foundCourse = courses.find((c) => String(c.courseId) === String(parentCourse));
+    const initialSubs = extractSubjectsFromCourse(foundCourse);
+    if (initialSubs.length > 0) {
+      setCourseSubjects(initialSubs);
+    } else {
+      setCourseSubjects([]);
+    }
+
+    // 2. Fetch fresh course detail from API
+    api.get(`/Courses/${parentCourse}`)
+      .then((cDetail) => {
+        if (!cDetail) return;
+        const apiSubs = extractSubjectsFromCourse(cDetail);
+        if (apiSubs.length > 0) {
+          setCourseSubjects(apiSubs);
+          setSubjectWarning('');
+        } else if (initialSubs.length === 0) {
+          const cName = cDetail.courseName || cDetail.courseCode || foundCourse?.name || foundCourse?.code || '';
+          setSubjectWarning(
+            `${tr('⚠️ Khóa học')} "${cName}" ${tr('chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.')}`
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Error fetching course subjects in CreateClass:', err);
+      });
+  }, [parentCourse, courses, subjects]);
 
   const subjectName = (subjectId) => {
     const sub = subjects.find((s) => String(s.subjectId) === String(subjectId));
-    return sub ? `[${sub.subjectCode}] ${sub.subjectName}` : `Môn #${subjectId}`;
+    if (sub) {
+      return `[${sub.subjectCode || 'MÔN'}] ${sub.subjectName || ''}`;
+    }
+    const fromCs = courseSubjects.find((cs) => String(cs.subjectId) === String(subjectId));
+    if (fromCs && (fromCs.subjectCode || fromCs.subjectName)) {
+      return `[${fromCs.subjectCode || 'MÔN'}] ${fromCs.subjectName || ''}`;
+    }
+    return `Môn #${subjectId}`;
   };
 
   const setSubjectInstructor = (subjectId, accountId) => {

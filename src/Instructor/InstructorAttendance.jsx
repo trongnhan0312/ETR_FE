@@ -84,13 +84,39 @@ const InstructorAttendance = () => {
       setLoading(true);
       try {
         const [apiClasses, apiCourses, apiSubjects] = await Promise.all([
-          api.get("/classes").catch(() => []),
-          api.get("/courses").catch(() => []),
-          api.get("/subjects").catch(() => []),
+          api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
+          api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
+          api.get("/Subjects").catch(() => api.get("/subjects").catch(() => [])),
         ]);
 
-        const mapped = apiClasses.map((cls, idx) => {
-          const course = apiCourses.find((c) => c.courseId === cls.courseId);
+        const storedOverrides = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("etr_class_instructors") || "{}");
+          } catch {
+            return {};
+          }
+        })();
+
+        const mapped = (Array.isArray(apiClasses) ? apiClasses : []).map((cls, idx) => {
+          const course = (Array.isArray(apiCourses) ? apiCourses : []).find(
+            (c) => String(c.courseId) === String(cls.courseId)
+          );
+          const cached =
+            storedOverrides[String(cls.classId)] ||
+            (cls.classCode ? storedOverrides[String(cls.classCode).trim().toUpperCase()] : null);
+          const resolvedAssignments =
+            Array.isArray(cls.instructorAssignments) && cls.instructorAssignments.length > 0
+              ? cls.instructorAssignments
+              : Array.isArray(cls.classSubjects) && cls.classSubjects.length > 0
+                ? cls.classSubjects
+                : Array.isArray(cls.ClassSubjects) && cls.ClassSubjects.length > 0
+                  ? cls.ClassSubjects
+                  : Array.isArray(cached) && cached.length > 0
+                    ? cached
+                    : cls.instructorAccountId || cls.InstructorAccountId
+                      ? [{ subjectId: cls.subjectId || 1, instructorAccountId: cls.instructorAccountId || cls.InstructorAccountId }]
+                      : [];
+
           return {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
@@ -102,11 +128,7 @@ const InstructorAttendance = () => {
             time: cls.time || "08:00 - 11:30",
             studentsCount: "0/0",
             status: cls.status || tr("Đang diễn ra"),
-            // Giữ nguyên danh sách phân công giảng viên theo môn của lớp (từ BE) —
-            // dùng để chỉ hiển thị buổi của môn mình được phân công.
-            assignments: Array.isArray(cls.instructorAssignments)
-              ? cls.instructorAssignments
-              : [],
+            assignments: resolvedAssignments,
           };
         });
         setClassesData(mapped);

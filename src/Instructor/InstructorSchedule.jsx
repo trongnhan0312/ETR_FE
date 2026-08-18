@@ -37,8 +37,8 @@ const InstructorSchedule = () => {
       setLoading(true);
       try {
         const [apiSessions, apiClasses] = await Promise.all([
-          api.get("/sessions").catch(() => []),
-          api.get("/classes").catch(() => [])
+          api.get("/Sessions").catch(() => api.get("/sessions").catch(() => [])),
+          api.get("/Classes").catch(() => api.get("/classes").catch(() => []))
         ]);
 
         const daysOfWeek = ["Chủ Nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
@@ -54,21 +54,45 @@ const InstructorSchedule = () => {
           { day: "Chủ Nhật", sessions: [] }
         ];
 
-        // /sessions trả về buổi học của MỌI lớp/môn trong hệ thống (không lọc theo
-        // giảng viên), trong khi /classes (BE) đã lọc sẵn chỉ còn lớp của giảng viên
-        // hiện tại. → Lập bản đồ classId → mã lớp + các môn được phân công để chỉ
-        // hiển thị đúng buổi của lớp/môn mình giảng dạy, bỏ hẳn buổi lớp khác (CL-N/A).
         const currentAccountId = getCurrentAccountId();
+        const storedOverrides = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("etr_class_instructors") || "{}");
+          } catch {
+            return {};
+          }
+        })();
+
         const myClasses = new Map();
-        apiClasses.forEach((cls) => {
-          const assignedSubjectIds = (Array.isArray(cls.instructorAssignments) ? cls.instructorAssignments : [])
+        (Array.isArray(apiClasses) ? apiClasses : []).forEach((cls) => {
+          const cached =
+            storedOverrides[String(cls.classId)] ||
+            (cls.classCode ? storedOverrides[String(cls.classCode).trim().toUpperCase()] : null);
+          const rawAssignments =
+            Array.isArray(cls.instructorAssignments) && cls.instructorAssignments.length > 0
+              ? cls.instructorAssignments
+              : Array.isArray(cls.classSubjects) && cls.classSubjects.length > 0
+                ? cls.classSubjects
+                : Array.isArray(cls.ClassSubjects) && cls.ClassSubjects.length > 0
+                  ? cls.ClassSubjects
+                  : Array.isArray(cached) && cached.length > 0
+                    ? cached
+                    : cls.instructorAccountId || cls.InstructorAccountId
+                      ? [{ subjectId: cls.subjectId || 1, instructorAccountId: cls.instructorAccountId || cls.InstructorAccountId }]
+                      : [];
+
+          const assignedSubjectIds = rawAssignments
             .filter(
               (a) =>
-                a.instructorAccountId != null &&
-                currentAccountId != null &&
-                String(a.instructorAccountId) === String(currentAccountId),
+                (a.instructorAccountId != null &&
+                  currentAccountId != null &&
+                  String(a.instructorAccountId) === String(currentAccountId)) ||
+                (a.InstructorAccountId != null &&
+                  currentAccountId != null &&
+                  String(a.InstructorAccountId) === String(currentAccountId)),
             )
-            .map((a) => a.subjectId);
+            .map((a) => a.subjectId ?? a.SubjectId);
+
           myClasses.set(cls.classId, {
             code: cls.classCode || `CL-${cls.classId}`,
             subjectIds: new Set(assignedSubjectIds),

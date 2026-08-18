@@ -134,16 +134,42 @@ const InstructorAssessments = () => {
       try {
         const [apiClasses, apiCourses, apiAssessments, apiSubjects] =
           await Promise.all([
-            api.get("/classes").catch(() => []),
-            api.get("/courses").catch(() => []),
+            api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
+            api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
             api
               .get("/Assessments")
               .catch(() => api.get("/assessments").catch(() => [])),
-            api.get("/subjects").catch(() => []),
+            api.get("/Subjects").catch(() => api.get("/subjects").catch(() => [])),
           ]);
 
-        const mapped = apiClasses.map((cls, idx) => {
-          const course = apiCourses.find((c) => c.courseId === cls.courseId);
+        const storedOverrides = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("etr_class_instructors") || "{}");
+          } catch {
+            return {};
+          }
+        })();
+
+        const mapped = (Array.isArray(apiClasses) ? apiClasses : []).map((cls, idx) => {
+          const course = (Array.isArray(apiCourses) ? apiCourses : []).find(
+            (c) => String(c.courseId) === String(cls.courseId)
+          );
+          const cached =
+            storedOverrides[String(cls.classId)] ||
+            (cls.classCode ? storedOverrides[String(cls.classCode).trim().toUpperCase()] : null);
+          const resolvedAssignments =
+            Array.isArray(cls.instructorAssignments) && cls.instructorAssignments.length > 0
+              ? cls.instructorAssignments
+              : Array.isArray(cls.classSubjects) && cls.classSubjects.length > 0
+                ? cls.classSubjects
+                : Array.isArray(cls.ClassSubjects) && cls.ClassSubjects.length > 0
+                  ? cls.ClassSubjects
+                  : Array.isArray(cached) && cached.length > 0
+                    ? cached
+                    : cls.instructorAccountId || cls.InstructorAccountId
+                      ? [{ subjectId: cls.subjectId || 1, instructorAccountId: cls.instructorAccountId || cls.InstructorAccountId }]
+                      : [];
+
           return {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
@@ -156,11 +182,7 @@ const InstructorAssessments = () => {
             status: cls.status || tr("Đang diễn ra"),
             subjectId: cls.subjectId || 1,
             courseId: course ? course.courseId : (cls.courseId ?? null),
-            // Giữ nguyên danh sách phân công giảng viên theo môn của lớp (từ BE) —
-            // dùng để chỉ hiển thị assessment của môn mình được phân công (như Attendance).
-            assignments: Array.isArray(cls.instructorAssignments)
-              ? cls.instructorAssignments
-              : [],
+            assignments: resolvedAssignments,
           };
         });
         setClassesData(mapped);
@@ -284,28 +306,41 @@ const InstructorAssessments = () => {
   const loadStudents = async () => {
     try {
       const [allEnrollments, allProfiles] = await Promise.all([
-        api.get("/enrollments").catch(() => []),
-        api.get("/userprofiles").catch(() => []),
+        api.get("/Enrollments").catch(() => api.get("/enrollments").catch(() => [])),
+        api.get("/UserProfiles").catch(() => api.get("/userprofiles").catch(() => [])),
       ]);
 
-      const classEnrollments = allEnrollments.filter(
-        (e) => e.classId === parseInt(selectedClassId),
+      const enrArr = Array.isArray(allEnrollments)
+        ? allEnrollments
+        : Array.isArray(allEnrollments?.items)
+          ? allEnrollments.items
+          : [];
+      const profArr = Array.isArray(allProfiles)
+        ? allProfiles
+        : Array.isArray(allProfiles?.items)
+          ? allProfiles.items
+          : [];
+
+      const classEnrollments = enrArr.filter(
+        (e) => String(e.classId) === String(selectedClassId),
       );
       const mappedStudents = classEnrollments.map((en) => {
-        const profile = allProfiles.find((p) => p.accountId === en.accountId);
+        const profile = profArr.find(
+          (p) => String(p.accountId) === String(en.accountId),
+        );
         return {
           code: profile
             ? profile.employeeCode || `HV${en.accountId}`
             : `HV${en.accountId}`,
           name: profile ? profile.fullName : tr("Học viên"),
           accountId: en.accountId,
-          enrollmentId: en.enrollmentId,
+          enrollmentId: en.enrollmentId ?? en.id ?? en.accountId,
         };
       });
 
       console.log("[InstructorAssessments] loadStudents:", {
         selectedClassId,
-        totalEnrollments: allEnrollments.length,
+        totalEnrollments: enrArr.length,
         matchedStudents: mappedStudents.length,
         students: mappedStudents,
       });
@@ -320,14 +355,18 @@ const InstructorAssessments = () => {
   // Load all assessment results at once — filter by accountId/assessmentId in caller
   const getAllAssessmentResults = async () => {
     // Backend: GET /api/AssessmentResults
-    const result = await api.get("/AssessmentResults").catch(() => []);
+    const result = await api
+      .get("/AssessmentResults")
+      .catch(() => api.get("/assessmentresults").catch(() => []));
     return Array.isArray(result) ? result : [];
   };
 
   // Load all practical checklist results — filter by subjectResultId in caller
   const getAllPracticalResults = async () => {
     // Backend: GET /api/PracticalChecklistResults
-    const result = await api.get("/PracticalChecklistResults").catch(() => []);
+    const result = await api
+      .get("/PracticalChecklistResults")
+      .catch(() => api.get("/practicalchecklistresults").catch(() => []));
     return Array.isArray(result) ? result : [];
   };
 
@@ -346,7 +385,7 @@ const InstructorAssessments = () => {
 
       // Data for Subject Signoff eligibility (4 validation rules)
       const currentCourseId = classesData.find(
-        (c) => c.classId === parseInt(selectedClassId),
+        (c) => String(c.classId) === String(selectedClassId),
       )?.courseId ?? 1;
       const [allEvidences, allPracticalChecklists, courseDetail] = await Promise.all([
         api.get("/Evidences").catch(() => api.get("/evidences").catch(() => [])),

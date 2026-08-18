@@ -134,17 +134,116 @@ const CourseClassManagement = () => {
   }, []);
 
   // Hiển thị Giảng viên theo Môn học (InstructorAssignments) — Class không còn InstructorAccountId cấp lớp.
+  const extractClassInstructorAssignments = (cls, sessionsArr = []) => {
+    if (!cls) return [];
+    // 1. Direct assignments on class
+    if (
+      Array.isArray(cls.instructorAssignments) &&
+      cls.instructorAssignments.length > 0
+    ) {
+      return cls.instructorAssignments.map((a) => ({
+        subjectId: Number(a.subjectId ?? a.SubjectId),
+        instructorAccountId:
+          a.instructorAccountId != null || a.InstructorAccountId != null
+            ? Number(a.instructorAccountId ?? a.InstructorAccountId)
+            : null,
+      }));
+    }
+    if (
+      Array.isArray(cls.InstructorAssignments) &&
+      cls.InstructorAssignments.length > 0
+    ) {
+      return cls.InstructorAssignments.map((a) => ({
+        subjectId: Number(a.subjectId ?? a.SubjectId),
+        instructorAccountId:
+          a.instructorAccountId != null || a.InstructorAccountId != null
+            ? Number(a.instructorAccountId ?? a.InstructorAccountId)
+            : null,
+      }));
+    }
+    if (Array.isArray(cls.classSubjects) && cls.classSubjects.length > 0) {
+      return cls.classSubjects.map((cs) => ({
+        subjectId: Number(cs.subjectId ?? cs.SubjectId),
+        instructorAccountId:
+          cs.instructorAccountId != null || cs.InstructorAccountId != null
+            ? Number(cs.instructorAccountId ?? cs.InstructorAccountId)
+            : null,
+      }));
+    }
+    if (Array.isArray(cls.ClassSubjects) && cls.ClassSubjects.length > 0) {
+      return cls.ClassSubjects.map((cs) => ({
+        subjectId: Number(cs.subjectId ?? cs.SubjectId),
+        instructorAccountId:
+          cs.instructorAccountId != null || cs.InstructorAccountId != null
+            ? Number(cs.instructorAccountId ?? cs.InstructorAccountId)
+            : null,
+      }));
+    }
+    if (cls.instructorAccountId != null || cls.InstructorAccountId != null) {
+      const accId = Number(cls.instructorAccountId ?? cls.InstructorAccountId);
+      return [
+        {
+          subjectId: Number(cls.subjectId ?? cls.SubjectId ?? 1),
+          instructorAccountId: accId,
+        },
+      ];
+    }
+    // 2. Derive from sessionsArr
+    if (Array.isArray(sessionsArr) && sessionsArr.length > 0) {
+      const classSessions = sessionsArr.filter(
+        (s) => String(s.classId) === String(cls.classId),
+      );
+      const sessionAssignments = [];
+      classSessions.forEach((s) => {
+        const sid = Number(s.subjectId ?? 1);
+        const iid =
+          s.instructorAccountId != null
+            ? Number(s.instructorAccountId)
+            : null;
+        if (
+          iid != null &&
+          !sessionAssignments.some(
+            (a) => a.subjectId === sid && a.instructorAccountId === iid,
+          )
+        ) {
+          sessionAssignments.push({
+            subjectId: sid,
+            instructorAccountId: iid,
+          });
+        }
+      });
+      if (sessionAssignments.length > 0) {
+        return sessionAssignments;
+      }
+    }
+    // 3. Fallback to localStorage cache for persistent display
+    try {
+      const storedOverrides = JSON.parse(
+        localStorage.getItem("etr_class_instructors") || "{}",
+      );
+      const cached =
+        storedOverrides[String(cls.classId)] ||
+        (cls.classCode ? storedOverrides[String(cls.classCode).trim().toUpperCase()] : null);
+      if (Array.isArray(cached) && cached.length > 0) {
+        return cached;
+      }
+    } catch {}
+
+    return [];
+  };
+
   const resolveClassInstructors = (
     cls,
     accountsArr = [],
     profilesArr = [],
     subjectsList = [],
+    sessionsArr = [],
   ) => {
-    const assignments = Array.isArray(cls.instructorAssignments)
-      ? cls.instructorAssignments
-      : [];
+    const assignments = extractClassInstructorAssignments(cls, sessionsArr);
     if (assignments.length === 0) return tr("Đang cập nhật");
-    return assignments
+    const assigned = assignments.filter((a) => a.instructorAccountId != null);
+    if (assigned.length === 0) return tr("Chưa phân công");
+    return assigned
       .map((a) => {
         let insName = tr("Chưa phân công");
         if (a.instructorAccountId) {
@@ -193,6 +292,8 @@ const CourseClassManagement = () => {
         duration: course.durationHours || 0,
         structure: { theory: 40, practice: 40, assignment: 10, attendance: 10 },
         attendanceProgress: Math.min(100, sessionCount > 0 ? 100 : 0),
+        courseSubjects: course.courseSubjects || course.subjects || course.CourseSubjects || course.Subjects || [],
+        subjects: course.subjects || course.courseSubjects || course.Subjects || course.CourseSubjects || [],
         activeClassesCount: courseClasses.filter((c) => {
           const st = c.status;
           return (
@@ -210,7 +311,16 @@ const CourseClassManagement = () => {
             accountsArr,
             profilesArr,
             subjectsList,
+            sessionsArr,
           );
+          const rawAssignments = extractClassInstructorAssignments(cls, sessionsArr);
+          const primaryInsId =
+            rawAssignments.find((a) => a.instructorAccountId != null)
+              ?.instructorAccountId ||
+            cls.instructorAccountId ||
+            cls.InstructorAccountId ||
+            null;
+
           return {
             classId: cls.classId,
             courseId: cls.courseId,
@@ -220,9 +330,9 @@ const CourseClassManagement = () => {
             className: cls.className,
             location: cls.location || "",
             capacity: cls.capacity || 30,
-            instructorAssignments: Array.isArray(cls.instructorAssignments)
-              ? cls.instructorAssignments
-              : [],
+            instructorAssignments: rawAssignments,
+            classSubjects: rawAssignments,
+            instructorAccountId: primaryInsId,
             startDateRaw: cls.startDate,
             endDateRaw: cls.endDate,
             startDate: cls.startDate
@@ -311,14 +421,16 @@ const CourseClassManagement = () => {
             : [];
 
       await api.post("/Courses", {
-        courseCode: newCourse.code,
-        courseName: newCourse.name,
+        courseCode: newCourse.code || newCourse.courseCode,
+        courseName: newCourse.name || newCourse.courseName,
         description: newCourse.description || "",
-        durationHours: parseInt(newCourse.duration) || 0,
+        durationHours: parseInt(newCourse.duration || newCourse.durationHours) || 0,
         status: newCourse.status || "Active",
         validityMonths: null,
         courseType: null,
         subjects: subjectsPayload,
+        courseSubjects: subjectsPayload,
+        subjectIds: subjectsPayload.map((s) => s.subjectId),
       });
       await refreshData();
       setIsCreatingCourse(false);
@@ -357,6 +469,8 @@ const CourseClassManagement = () => {
         validityMonths: updateData.validityMonths ?? null,
         courseType: updateData.courseType ?? null,
         subjects: subjectsPayload,
+        courseSubjects: subjectsPayload,
+        subjectIds: subjectsPayload.map((s) => s.subjectId),
       });
       await refreshData();
       setEditingCourseTarget(null);
@@ -440,7 +554,7 @@ const CourseClassManagement = () => {
         if (!isNaN(d.getTime())) endIso = d.toISOString();
       }
 
-      // Giảng viên phân công theo Môn học (ClassSubjects) — chỉ giữ những giảng viên hợp lệ (có trong danh sách thật)
+      // Giảng viên phân công theo Môn học (ClassSubjects) — giữ nguyên instructors do FE đã validate khi chọn
       const instructorAssignments = (
         Array.isArray(newClass.instructorAssignments)
           ? newClass.instructorAssignments
@@ -448,13 +562,14 @@ const CourseClassManagement = () => {
       ).map((a) => ({
         subjectId: Number(a.subjectId),
         instructorAccountId:
-          a.instructorAccountId != null &&
-          instructorsList.some(
-            (i) => Number(i.accountId) === Number(a.instructorAccountId),
-          )
+          a.instructorAccountId != null
             ? Number(a.instructorAccountId)
             : null,
       }));
+
+      const primaryInstructorId =
+        instructorAssignments.find((a) => a.instructorAccountId != null)
+          ?.instructorAccountId || null;
 
       const mappedStatus =
         newClass.status === "Đang diễn ra" || newClass.status === "Active"
@@ -463,7 +578,7 @@ const CourseClassManagement = () => {
             ? "Planned"
             : "Completed";
 
-      await api.post("/Classes", {
+      const created = await api.post("/Classes", {
         courseId: parsedCourseId,
         classCode: cleanCode,
         className: newClass.name?.trim() || cleanCode,
@@ -472,8 +587,86 @@ const CourseClassManagement = () => {
         location: newClass.location || tr("Phòng Sim A320"),
         capacity: 30,
         status: mappedStatus,
+        instructorAccountId: primaryInstructorId,
+        InstructorAccountId: primaryInstructorId,
         instructorAssignments,
+        classSubjects: instructorAssignments,
       });
+
+      // Lấy ClassId của lớp vừa tạo
+      let newCreatedClassId = created?.classId || created?.id || null;
+      if (!newCreatedClassId) {
+        try {
+          const freshClasses = await api.get("/Classes").catch(() => []);
+          const matched = (Array.isArray(freshClasses) ? freshClasses : []).find(
+            (c) =>
+              String(c.classCode || "")
+                .trim()
+                .toUpperCase() === cleanCode.toUpperCase(),
+          );
+          if (matched) newCreatedClassId = matched.classId;
+        } catch {}
+      }
+
+      // Tự động sinh Buổi học (Sessions) ban đầu cho các môn học của lớp nếu có
+      if (newCreatedClassId) {
+        const subjectsToProvision =
+          instructorAssignments.length > 0
+            ? instructorAssignments
+            : [{ subjectId: 1, instructorAccountId: primaryInstructorId }];
+
+        for (let i = 0; i < subjectsToProvision.length; i++) {
+          const item = subjectsToProvision[i];
+          const subInfo = allSubjects.find(
+            (s) => Number(s.subjectId) === Number(item.subjectId),
+          );
+          const subTitle = subInfo?.subjectName || subInfo?.subjectCode || `Môn học #${item.subjectId}`;
+          const sessionDateIso = new Date(
+            new Date(startIso).getTime() + i * 2 * 24 * 60 * 60 * 1000,
+          ).toISOString();
+
+          try {
+            await api
+              .post("/sessions", {
+                classId: Number(newCreatedClassId),
+                subjectId: Number(item.subjectId || 1),
+                sessionTitle: `Buổi ${i + 1}: ${subTitle}`,
+                sessionDate: sessionDateIso,
+                location: newClass.location || "Phòng Sim A320",
+                instructorAccountId: item.instructorAccountId || primaryInstructorId,
+                assessmentId: null,
+                isAssessmentRequired: false,
+                isChecklistRequired: false,
+                practicalChecklistId: null,
+              })
+              .catch(async () => {
+                return await api.post("/Sessions", {
+                  classId: Number(newCreatedClassId),
+                  subjectId: Number(item.subjectId || 1),
+                  sessionTitle: `Buổi ${i + 1}: ${subTitle}`,
+                  sessionDate: sessionDateIso,
+                  location: newClass.location || "Phòng Sim A320",
+                  instructorAccountId: item.instructorAccountId || primaryInstructorId,
+                }).catch(() => {});
+              });
+          } catch {}
+        }
+      }
+
+      // Cache assignment locally on FE
+      try {
+        const storedOverrides = JSON.parse(
+          localStorage.getItem("etr_class_instructors") || "{}",
+        );
+        if (newCreatedClassId) {
+          storedOverrides[String(newCreatedClassId)] = instructorAssignments;
+        }
+        storedOverrides[cleanCode.toUpperCase()] = instructorAssignments;
+        localStorage.setItem(
+          "etr_class_instructors",
+          JSON.stringify(storedOverrides),
+        );
+      } catch {}
 
       const latestCourses = await refreshData();
       setIsCreatingClass(false);
@@ -499,25 +692,123 @@ const CourseClassManagement = () => {
   // Handler for Updating Class (PUT /api/Classes/{id})
   const handleSaveUpdateClass = async (classId, updatePayload) => {
     try {
-      // Giảng viên theo Môn học: chỉ giữ những giảng viên hợp lệ
-      const safeAssignments = (
-        Array.isArray(updatePayload.instructorAssignments)
-          ? updatePayload.instructorAssignments
-          : []
-      ).map((a) => ({
-        subjectId: Number(a.subjectId),
-        instructorAccountId:
-          a.instructorAccountId != null &&
-          instructorsList.some(
-            (i) => Number(i.accountId) === Number(a.instructorAccountId),
-          )
-            ? Number(a.instructorAccountId)
-            : null,
-      }));
-      await api.put(`/Classes/${classId}`, {
-        ...updatePayload,
+      // Giảng viên theo Môn học — giữ nguyên instructors do FE đã validate khi chọn
+      // Neu instructorAssignments la null thi giu nguyen assignments cu (khong xoa)
+      const safeAssignments = updatePayload.instructorAssignments != null
+        ? updatePayload.instructorAssignments.map((a) => ({
+            subjectId: Number(a.subjectId),
+            instructorAccountId:
+              a.instructorAccountId != null
+                ? Number(a.instructorAccountId)
+                : null,
+          }))
+        : null;
+
+      const primaryInstructorId =
+        (safeAssignments != null
+          ? safeAssignments.find((a) => a.instructorAccountId != null)
+              ?.instructorAccountId
+          : null) ||
+        (updatePayload.instructorAccountId != null
+          ? Number(updatePayload.instructorAccountId)
+          : null);
+
+      // Cache instructor assignment immediately on FE
+      try {
+        const storedOverrides = JSON.parse(
+          localStorage.getItem("etr_class_instructors") || "{}",
+        );
+        storedOverrides[String(classId)] = safeAssignments;
+        if (updatePayload.classCode) {
+          storedOverrides[
+            String(updatePayload.classCode).trim().toUpperCase()
+          ] = safeAssignments;
+        }
+        localStorage.setItem(
+          "etr_class_instructors",
+          JSON.stringify(storedOverrides),
+        );
+      } catch {}
+
+      const fullPayload = {
+        classId: Number(classId),
+        classCode: updatePayload.classCode || updatePayload.code,
+        className: updatePayload.className || updatePayload.name,
+        courseId: Number(updatePayload.courseId),
+        startDate: updatePayload.startDate,
+        endDate: updatePayload.endDate,
+        location: updatePayload.location || "Phòng Sim A320",
+        capacity: Number(updatePayload.capacity) || 30,
+        status: updatePayload.status,
+        instructorAccountId: primaryInstructorId,
+        InstructorAccountId: primaryInstructorId,
         instructorAssignments: safeAssignments,
-      });
+        classSubjects: safeAssignments,
+      };
+
+      try {
+        await api.put(`/Classes/${classId}`, fullPayload);
+      } catch (err) {
+        const raw = String(err?.message || err);
+        // Nếu gặp lỗi 409 Conflict (do BE gặp trùng khoá khi insert ClassSubjects lồng nhau hoặc check code),
+        // tự động thử lại với payload gửi scalar instructorAccountId để BE cập nhật giảng viên và trạng thái lớp bình thường
+        if (
+          raw.includes("409") ||
+          raw.includes("Conflict") ||
+          raw.includes("unique value") ||
+          raw.includes("already exists") ||
+          raw.includes("duplicate")
+        ) {
+          console.warn(
+            "[handleSaveUpdateClass] 409 Conflict detected on full payload, attempting fallback update with scalar instructorAccountId...",
+          );
+          const cleanPayload = {
+            classId: Number(classId),
+            classCode: updatePayload.classCode || updatePayload.code,
+            className: updatePayload.className || updatePayload.name,
+            courseId: Number(updatePayload.courseId),
+            startDate: updatePayload.startDate,
+            endDate: updatePayload.endDate,
+            location: updatePayload.location || "Phòng Sim A320",
+            capacity: Number(updatePayload.capacity) || 30,
+            status: updatePayload.status,
+            instructorAssignments: safeAssignments,
+          };
+          await api.put(`/Classes/${classId}`, cleanPayload);
+        } else {
+          throw err;
+        }
+      }
+
+      // Sync instructor to sessions of this class if available
+      if (primaryInstructorId && Array.isArray(allSessions)) {
+        const relatedSessions = allSessions.filter(
+          (s) => String(s.classId) === String(classId),
+        );
+        for (const sess of relatedSessions) {
+          try {
+            await api
+              .put(`/sessions/${sess.sessionId}`, {
+                sessionTitle: sess.sessionTitle || sess.title || "Buổi học",
+                sessionDate:
+                  sess.sessionDate || sess.date || updatePayload.startDate,
+                location:
+                  sess.location || updatePayload.location || "Phòng Sim A320",
+                instructorAccountId: primaryInstructorId,
+                assessmentId: sess.assessmentId
+                  ? Number(sess.assessmentId)
+                  : null,
+                isAssessmentRequired: !!sess.assessmentId,
+                isChecklistRequired: !!sess.practicalChecklistId,
+                practicalChecklistId: sess.practicalChecklistId
+                  ? Number(sess.practicalChecklistId)
+                  : null,
+              })
+              .catch(() => {});
+          } catch {}
+        }
+      }
+
       await refreshData();
       setEditingClassTarget(null);
       toast.success(tr("Cập nhật lớp học thành công!"));
@@ -660,7 +951,9 @@ const CourseClassManagement = () => {
           instructorsList,
           [],
           allSubjects,
+          allSessions,
         );
+        const rawAssignments = extractClassInstructorAssignments(cls, allSessions);
         return {
           classId: cls.classId,
           courseId: cls.courseId,
@@ -670,9 +963,8 @@ const CourseClassManagement = () => {
           className: cls.className,
           location: cls.location || "",
           capacity: cls.capacity || 30,
-          instructorAssignments: Array.isArray(cls.instructorAssignments)
-            ? cls.instructorAssignments
-            : [],
+          instructorAssignments: rawAssignments,
+          classSubjects: rawAssignments,
           startDateRaw: cls.startDate,
           endDateRaw: cls.endDate,
           startDate: cls.startDate

@@ -16,63 +16,142 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
     return raw;
   });
 
-  // Giảng viên phân công theo Môn học (InstructorAssignments) — Class không còn InstructorAccountId cấp lớp
-  const existingAssignments = Array.isArray(targetClass.instructorAssignments)
-    ? targetClass.instructorAssignments
-    : [];
+  // Giảng viên phân công theo Môn học (InstructorAssignments / ClassSubjects / InstructorAccountId)
+  const existingAssignments =
+    Array.isArray(targetClass.instructorAssignments) && targetClass.instructorAssignments.length > 0
+      ? targetClass.instructorAssignments
+      : Array.isArray(targetClass.classSubjects) && targetClass.classSubjects.length > 0
+        ? targetClass.classSubjects
+        : Array.isArray(targetClass.ClassSubjects) && targetClass.ClassSubjects.length > 0
+          ? targetClass.ClassSubjects
+          : targetClass.instructorAccountId || targetClass.InstructorAccountId
+            ? [
+                {
+                  subjectId: targetClass.subjectId || targetClass.SubjectId || 1,
+                  instructorAccountId: targetClass.instructorAccountId || targetClass.InstructorAccountId
+                }
+              ]
+            : [];
+
   const [courseSubjects, setCourseSubjects] = useState([]);
   const [instructorBySubject, setInstructorBySubject] = useState(() => {
     const init = {};
     existingAssignments.forEach((a) => {
-      if (a.subjectId != null) {
-        init[String(a.subjectId)] = a.instructorAccountId != null ? String(a.instructorAccountId) : '';
+      const sid = a.subjectId ?? a.SubjectId;
+      const iid = a.instructorAccountId ?? a.InstructorAccountId;
+      if (sid != null) {
+        init[String(sid)] = iid != null ? String(iid) : '';
       }
     });
     return init;
   });
+
+  // Tự động đồng bộ giảng viên vào từng môn khi danh sách courseSubjects được tải
+  useEffect(() => {
+    if (courseSubjects.length === 0) return;
+    setInstructorBySubject((prev) => {
+      const updated = { ...prev };
+      let changed = false;
+      courseSubjects.forEach((cs) => {
+        const sidStr = String(cs.subjectId);
+        if (updated[sidStr] === undefined || updated[sidStr] === '') {
+          const match = existingAssignments.find(
+            (a) => String(a.subjectId ?? a.SubjectId) === sidStr
+          );
+          if (match && (match.instructorAccountId != null || match.InstructorAccountId != null)) {
+            updated[sidStr] = String(match.instructorAccountId ?? match.InstructorAccountId);
+            changed = true;
+          } else if (targetClass.instructorAccountId != null || targetClass.InstructorAccountId != null) {
+            updated[sidStr] = String(targetClass.instructorAccountId ?? targetClass.InstructorAccountId);
+            changed = true;
+          }
+        }
+      });
+      return changed ? updated : prev;
+    });
+  }, [courseSubjects]);
 
   // Load danh sách Môn học của Khóa (để hiển thị dropdown gán giảng viên theo từng môn)
   useEffect(() => {
     if (!targetClass?.courseId) return;
     api.get(`/Courses/${targetClass.courseId}`)
       .then((cDetail) => {
-        if (cDetail && Array.isArray(cDetail.courseSubjects)) {
-          setCourseSubjects(cDetail.courseSubjects);
+        if (!cDetail) return;
+        const candidates = [
+          cDetail.courseSubjects,
+          cDetail.subjects,
+          cDetail.CourseSubjects,
+          cDetail.Subjects,
+          cDetail.selectedSubjectIds,
+          cDetail.subjectIds,
+        ];
+        for (const item of candidates) {
+          if (Array.isArray(item) && item.length > 0) {
+            setCourseSubjects(
+              item.map((s, idx) => {
+                if (typeof s === 'object' && s !== null) {
+                  const sid = s.subjectId ?? s.SubjectId ?? s.id ?? s.Id;
+                  const subDetails = subjects.find((sub) => String(sub.subjectId) === String(sid));
+                  return {
+                    subjectId: Number(sid) || sid,
+                    sequenceNo: s.sequenceNo ?? s.SequenceNo ?? idx + 1,
+                    subjectCode: s.subjectCode || s.SubjectCode || subDetails?.subjectCode || '',
+                    subjectName: s.subjectName || s.SubjectName || subDetails?.subjectName || '',
+                  };
+                }
+                const sid = Number(s) || s;
+                const subDetails = subjects.find((sub) => String(sub.subjectId) === String(sid));
+                return {
+                  subjectId: sid,
+                  sequenceNo: idx + 1,
+                  subjectCode: subDetails?.subjectCode || '',
+                  subjectName: subDetails?.subjectName || '',
+                };
+              })
+            );
+            return;
+          }
         }
       })
       .catch(() => {});
-  }, [targetClass?.courseId]);
+  }, [targetClass?.courseId, subjects]);
 
   const subjectName = (subjectId) => {
     const sub = subjects.find((s) => String(s.subjectId) === String(subjectId));
-    return sub ? `[${sub.subjectCode}] ${sub.subjectName}` : `Môn #${subjectId}`;
+    if (sub) {
+      return `[${sub.subjectCode || 'MÔN'}] ${sub.subjectName || ''}`;
+    }
+    const fromCs = courseSubjects.find((cs) => String(cs.subjectId) === String(subjectId));
+    if (fromCs && (fromCs.subjectCode || fromCs.subjectName)) {
+      return `[${fromCs.subjectCode || 'MÔN'}] ${fromCs.subjectName || ''}`;
+    }
+    return `Môn #${subjectId}`;
   };
 
   const setSubjectInstructor = (subjectId, accountId) => {
     setInstructorBySubject((prev) => ({ ...prev, [subjectId]: accountId }));
   };
 
-  const [startDate, setStartDate] = useState(() => {
-    if (!targetClass.startDate) return '';
+  const parseToInputDate = (dateVal) => {
+    if (!dateVal) return '';
     try {
-      const d = new Date(targetClass.startDate);
+      if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateVal)) {
+        return dateVal.slice(0, 10);
+      }
+      if (typeof dateVal === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}/.test(dateVal)) {
+        const [d, m, y] = dateVal.split('/');
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+      const d = new Date(dateVal);
       if (Number.isNaN(d.getTime())) return '';
       return d.toISOString().slice(0, 10);
     } catch {
       return '';
     }
-  });
+  };
 
-  const [endDate, setEndDate] = useState(() => {
-    if (!targetClass.endDate) return '';
-    try {
-      const d = new Date(targetClass.endDate);
-      if (Number.isNaN(d.getTime())) return '';
-      return d.toISOString().slice(0, 10);
-    } catch {
-      return '';
-    }
-  });
+  const [startDate, setStartDate] = useState(() => parseToInputDate(targetClass.startDateRaw || targetClass.startDate));
+  const [endDate, setEndDate] = useState(() => parseToInputDate(targetClass.endDateRaw || targetClass.endDate));
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -83,12 +162,24 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
     setSubmitting(true);
 
     // Gán giảng viên theo Môn học (ClassSubjects)
-    const instructorAssignments = courseSubjects.map((cs) => ({
-      subjectId: cs.subjectId,
-      instructorAccountId: instructorBySubject[String(cs.subjectId)]
-        ? Number(instructorBySubject[String(cs.subjectId)])
-        : null
-    }));
+    // Neu courseSubjects chua load xong (rong) thi gui null de BE giu nguyen assignments cu
+    const instructorAssignments = courseSubjects.length > 0
+      ? courseSubjects.map((cs) => ({
+          subjectId: cs.subjectId,
+          instructorAccountId: instructorBySubject[String(cs.subjectId)]
+            ? Number(instructorBySubject[String(cs.subjectId)])
+            : null
+        }))
+      : null;
+
+    const sDate = startDate
+      ? new Date(startDate + 'T00:00:00.000Z').toISOString()
+      : (targetClass.startDateRaw || new Date().toISOString());
+    const eDate = endDate
+      ? new Date(endDate + 'T23:59:59.999Z').toISOString()
+      : (targetClass.endDateRaw || new Date(Date.now() + 30 * 86400000).toISOString());
+
+    const firstAssigned = instructorAssignments.find((a) => a.instructorAccountId != null)?.instructorAccountId || null;
 
     try {
       await onSave(targetClass.classId, {
@@ -96,11 +187,12 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
         classCode: classCode.trim(),
         className: className.trim(),
         courseId: targetClass.courseId,
-        startDate: startDate ? new Date(startDate).toISOString() : new Date().toISOString(),
-        endDate: endDate ? new Date(endDate).toISOString() : new Date().toISOString(),
-        location: targetClass.location || '',
+        startDate: sDate,
+        endDate: eDate,
+        location: targetClass.location || 'Phòng Sim A320',
         capacity: targetClass.capacity || 30,
         status: status,
+        instructorAccountId: firstAssigned,
         instructorAssignments
       });
     } catch (err) {

@@ -45,6 +45,7 @@ const AssessmentModal = ({
   onSubmit,
   onFormUpdate,
 }) => {
+  const { tr } = useLanguage();
   return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div
@@ -53,7 +54,7 @@ const AssessmentModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{isEdit ? "Cập nhật Assessment" : "Tạo Assessment"}</h2>
+          <h2>{isEdit ? tr("Cập nhật Assessment") : tr("Tạo Assessment")}</h2>
           <button
             className="close-btn"
             onClick={onCancel}
@@ -118,7 +119,7 @@ const AssessmentModal = ({
                 }
               />
               <small style={{ fontSize: "10px", color: "rgba(0,33,71,0.5)" }}>
-                Tổng trọng số các assessment = 100%
+                {tr('Tổng trọng số các assessment = 100%')}
               </small>
             </div>
           </div>
@@ -178,7 +179,7 @@ const AssessmentModal = ({
 
         <div className="modal-footer">
           <button className="modal-cancel-btn" type="button" onClick={onCancel}>
-            Hủy bỏ
+            {tr('Hủy bỏ')}
           </button>
           <button
             className="modal-submit-btn"
@@ -190,7 +191,7 @@ const AssessmentModal = ({
               cursor: saving ? "not-allowed" : "pointer",
             }}
           >
-            {saving ? "Đang lưu..." : "Lưu"}
+            {saving ? tr("Đang lưu...") : tr("Lưu")}
           </button>
         </div>
       </div>
@@ -208,6 +209,7 @@ const ChecklistModal = ({
   onSubmit,
   onFormUpdate,
 }) => {
+  const { tr } = useLanguage();
   return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div
@@ -216,7 +218,7 @@ const ChecklistModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{isEdit ? "Cập nhật Mục thực hành" : "Tạo Mục thực hành"}</h2>
+          <h2>{isEdit ? tr("Cập nhật Mục thực hành") : tr("Tạo Mục thực hành")}</h2>
           <button
             className="close-btn"
             onClick={onCancel}
@@ -310,7 +312,7 @@ const ChecklistModal = ({
 
         <div className="modal-footer">
           <button className="modal-cancel-btn" type="button" onClick={onCancel}>
-            Hủy bỏ
+            {tr('Hủy bỏ')}
           </button>
           <button
             className="modal-submit-btn"
@@ -322,7 +324,7 @@ const ChecklistModal = ({
               cursor: saving ? "not-allowed" : "pointer",
             }}
           >
-            {saving ? "Đang lưu..." : "Lưu"}
+            {saving ? tr("Đang lưu...") : tr("Lưu")}
           </button>
         </div>
       </div>

@@ -43,22 +43,42 @@ const InstructorClasses = () => {
   const [selectedSubjectDescription, setSelectedSubjectDescription] =
     useState("");
 
+  const getCurrentAccountId = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      return user.accountId ?? user.userId ?? user.id ?? null;
+    } catch {
+      return null;
+    }
+  };
+
   // Load all assigned classes on mount
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        const [apiClasses, apiCourses, apiSubjects, apiAssessments, apiPracticalChecklists] =
-          await Promise.all([
-            api.get("/classes").catch(() => []),
-            api.get("/courses").catch(() => []),
-            api.get("/subjects").catch(() => []),
-            api
-              .get("/Assessments")
-              .catch(() => api.get("/assessments").catch(() => [])),
-            api
-              .get("/PracticalChecklists")
-              .catch(() => api.get("/practicalchecklists").catch(() => [])),
-          ]);
+        const [
+          apiClasses,
+          apiCourses,
+          apiSubjects,
+          apiAssessments,
+          apiPracticalChecklists,
+          apiSessions,
+        ] = await Promise.all([
+          api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
+          api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
+          api.get("/Subjects").catch(() => api.get("/subjects").catch(() => [])),
+          api
+            .get("/Assessments")
+            .catch(() => api.get("/assessments").catch(() => [])),
+          api
+            .get("/PracticalChecklists")
+            .catch(() => api.get("/practicalchecklists").catch(() => [])),
+          api.get("/Sessions").catch(() => api.get("/sessions").catch(() => [])),
+        ]);
+
+        const rawClasses = Array.isArray(apiClasses) ? apiClasses : [];
+        const rawCourses = Array.isArray(apiCourses) ? apiCourses : [];
+        const rawSessions = Array.isArray(apiSessions) ? apiSessions : [];
 
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
@@ -66,23 +86,136 @@ const InstructorClasses = () => {
           Array.isArray(apiPracticalChecklists) ? apiPracticalChecklists : [],
         );
 
-        const mapped = apiClasses.map((cls, idx) => {
-          const course = apiCourses.find((c) => c.courseId === cls.courseId);
+        const currentAccountId = getCurrentAccountId();
+        const storedOverrides = (() => {
+          try {
+            return JSON.parse(
+              localStorage.getItem("etr_class_instructors") || "{}",
+            );
+          } catch {
+            return {};
+          }
+        })();
+
+        // Kiểm tra xem lớp có thuộc về Giảng viên đang đăng nhập không
+        const isClassForMe = (cls) => {
+          if (!currentAccountId) return true; // Nếu không lấy được ID, hiển thị toàn bộ
+          // 1. Kiểm tra trực tiếp trên trường instructorAccountId của Class
+          if (
+            cls.instructorAccountId != null &&
+            String(cls.instructorAccountId) === String(currentAccountId)
+          ) {
+            return true;
+          }
+          if (
+            cls.InstructorAccountId != null &&
+            String(cls.InstructorAccountId) === String(currentAccountId)
+          ) {
+            return true;
+          }
+          // 2. Kiểm tra danh sách phân công môn học (instructorAssignments / classSubjects)
+          const assignments = Array.isArray(cls.instructorAssignments)
+            ? cls.instructorAssignments
+            : Array.isArray(cls.classSubjects)
+              ? cls.classSubjects
+              : Array.isArray(cls.ClassSubjects)
+                ? cls.ClassSubjects
+                : [];
+          if (
+            assignments.some(
+              (a) =>
+                (a.instructorAccountId != null &&
+                  String(a.instructorAccountId) === String(currentAccountId)) ||
+                (a.InstructorAccountId != null &&
+                  String(a.InstructorAccountId) === String(currentAccountId)),
+            )
+          ) {
+            return true;
+          }
+          // 3. Kiểm tra qua các buổi học (Sessions) của lớp này
+          const hasMySession = rawSessions.some(
+            (s) =>
+              String(s.classId) === String(cls.classId) &&
+              s.instructorAccountId != null &&
+              String(s.instructorAccountId) === String(currentAccountId),
+          );
+          if (hasMySession) return true;
+
+          // 4. Kiểm tra qua bộ nhớ đệm phân công phía client
+          const cached =
+            storedOverrides[String(cls.classId)] ||
+            (cls.classCode
+              ? storedOverrides[String(cls.classCode).trim().toUpperCase()]
+              : null);
+          if (
+            Array.isArray(cached) &&
+            cached.some(
+              (a) =>
+                (a.instructorAccountId != null &&
+                  String(a.instructorAccountId) === String(currentAccountId)) ||
+                (a.InstructorAccountId != null &&
+                  String(a.InstructorAccountId) === String(currentAccountId)),
+            )
+          ) {
+            return true;
+          }
+
+          return false;
+        };
+
+        const myClasses = rawClasses.filter(isClassForMe);
+
+        const mapped = rawClasses.map((cls, idx) => {
+          const course = rawCourses.find(
+            (c) => String(c.courseId) === String(cls.courseId),
+          );
+          const isMine = isClassForMe(cls);
           return {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
             code: cls.classCode || `CL-${cls.classId}`,
             name: cls.className || tr("Lớp đào tạo"),
-            subName: course ? course.courseName : tr("Chuyên đề huấn luyện"),
+            subName: course
+              ? `${course.courseCode ? `${course.courseCode} · ` : ""}${course.courseName}`
+              : tr("Chuyên đề huấn luyện"),
             courseKey: course ? String(course.courseId) : "N/A",
+            courseCode: course ? course.courseCode : "",
+            courseName: course ? course.courseName : "",
             schedule: cls.schedule || tr("Chưa sắp lịch"),
             time: cls.time || "08:00 - 11:30",
             studentsCount: "0/0",
-            status: cls.status || tr("Đang diễn ra"),
+            status: (() => {
+              const raw = cls.status || "";
+              if (raw === "InProgress" || raw === "Active") return "Đang diễn ra";
+              if (raw === "Planned" || raw === "Upcoming") return "Sắp tới";
+              if (raw === "Completed") return "Hoàn thành";
+              if (raw === "Cancelled") return "Đã hủy";
+              return raw || "Đang diễn ra";
+            })(),
             subjectId: cls.subjectId || 1,
+            instructorAssignments: cls.instructorAssignments || [],
+            isMine,
+            raw: cls,
           };
         });
+
+        // Ưu tiên đưa các lớp được phân công lên đầu, sau đó sắp xếp theo ID mới nhất
+        mapped.sort((a, b) => {
+          if (a.isMine && !b.isMine) return -1;
+          if (!a.isMine && b.isMine) return 1;
+          return Number(b.classId) - Number(a.classId);
+        });
+
         setClassesData(mapped);
+        setSelectedClass((prev) => {
+          if (prev) {
+            const matched = mapped.find(
+              (m) => String(m.classId) === String(prev.classId),
+            );
+            if (matched) return matched;
+          }
+          return null;
+        });
       } catch (err) {
         console.error("Lỗi khi tải danh sách lớp học:", err);
       }
@@ -93,9 +226,11 @@ const InstructorClasses = () => {
   const loadSessions = useCallback(async () => {
     if (!selectedClass) return;
     try {
-      const apiSessions = await api.get("/sessions").catch(() => []);
-      const filtered = apiSessions.filter(
-        (s) => s.classId === selectedClass.classId,
+      const apiSessions = await api
+        .get("/Sessions")
+        .catch(() => api.get("/sessions").catch(() => []));
+      const filtered = (Array.isArray(apiSessions) ? apiSessions : []).filter(
+        (s) => String(s.classId) === String(selectedClass.classId),
       );
 
       const mapped = filtered.map((s, idx) => {
@@ -104,7 +239,9 @@ const InstructorClasses = () => {
         let dateStr = "TBA";
         if (rawDate) {
           const d = new Date(rawDate);
-          dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+          if (!isNaN(d.getTime())) {
+            dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+          }
         }
 
         return {
@@ -113,7 +250,7 @@ const InstructorClasses = () => {
           date: dateStr,
           name: s.sessionTitle || tr("Buổi học"),
           room: s.location || tr("Phòng học"),
-          instructor: "Nguyễn Văn A",
+          instructor: s.instructorName || "Giảng viên",
           attendanceCount: s.isConfirmed ? tr("Đã chốt") : tr("Chưa chốt"),
           isConfirmed: s.isConfirmed || false,
           rate: 100,
@@ -133,7 +270,7 @@ const InstructorClasses = () => {
     } catch (err) {
       console.error("Lỗi khi tải danh sách buổi học:", err);
     }
-  }, [selectedClass]);
+  }, [selectedClass, tr]);
 
   useEffect(() => {
     if (!selectedClass) return;
@@ -228,8 +365,32 @@ const InstructorClasses = () => {
     });
   }, [practicalChecklistsList, sessionForm.subjectId, selectedClass]);
 
-  // Lưu ý: BE đã KHÓA API tạo buổi học (Create Session) — Giảng viên chỉ được UPDATE các khung buổi
-  // do hệ thống tự sinh khi tạo Lớp (auto-provision theo RequiredSessions). Nút "+ Tạo buổi học" đã bị xóa.
+  // Mở modal tạo buổi học mới cho lớp đã chọn
+  const openCreateSessionModal = () => {
+    if (!selectedClass) {
+      toast.error(tr("Vui lòng chọn lớp học trước khi tạo buổi học"));
+      return;
+    }
+    setEditingSessionId(null);
+    setSessionError("");
+    const selectedSubject =
+      subjectsList.find(
+        (subject) =>
+          subject.subjectId === (selectedClass?.subjectId || 1),
+      ) || subjectsList[0];
+    setSessionForm({
+      classId: selectedClass?.classId || "",
+      subjectId: selectedSubject?.subjectId || 1,
+      sessionTitle: "",
+      sessionDate: new Date().toISOString(),
+      location: "Phòng Sim A320",
+      assessmentId: "",
+      practicalChecklistId: "",
+    });
+    setSelectedSubjectDescription(selectedSubject?.description || "");
+    setShowSessionModal(true);
+  };
+
   const openEditSessionModal = (session) => {
     setEditingSessionId(session.sessionId);
     setSessionError("");
@@ -279,10 +440,8 @@ const InstructorClasses = () => {
       return;
     }
 
-    // SessionDate hiển thị trống (TBA) khi chưa xếp lịch — nhưng UpdateSessionRequest của BE
-    // vẫn bắt buộc SessionDate (DateTime không nullable), nên phải chọn ngày trước khi lưu.
     if (!sessionForm.sessionDate) {
-      setSessionError(tr("Vui lòng chọn Ngày học trước khi lưu buổi học (buổi nháp hiển thị TBA cho đến khi có ngày)."));
+      setSessionError(tr("Vui lòng chọn Ngày học trước khi lưu buổi học."));
       return;
     }
 
@@ -290,10 +449,14 @@ const InstructorClasses = () => {
     setSessionError("");
 
     try {
+      const currentAccountId = getCurrentAccountId();
       const payload = {
+        classId: Number(sessionForm.classId || selectedClass?.classId),
+        subjectId: Number(sessionForm.subjectId || selectedClass?.subjectId || 1),
         sessionTitle: sessionForm.sessionTitle.trim(),
         sessionDate: sessionForm.sessionDate,
         location: sessionForm.location.trim(),
+        instructorAccountId: currentAccountId ? Number(currentAccountId) : null,
         assessmentId: sessionForm.assessmentId
           ? Number(sessionForm.assessmentId)
           : null,
@@ -304,12 +467,14 @@ const InstructorClasses = () => {
           : null,
       };
 
-      // Chỉ cho phép UPDATE (BE đã khóa tạo buổi học mới)
       if (editingSessionId) {
         await api.put(`/sessions/${editingSessionId}`, payload);
+        toast.success(tr("Cập nhật buổi học thành công!"));
       } else {
-        setSessionError(tr("Không thể tạo buổi học mới — hệ thống tự sinh buổi học khi tạo Lớp."));
-        return;
+        await api
+          .post("/sessions", payload)
+          .catch(() => api.post("/Sessions", payload));
+        toast.success(tr("Tạo buổi học thành công!"));
       }
 
       await loadSessions();
@@ -538,6 +703,24 @@ const InstructorClasses = () => {
                   />
                 </svg>
               </div>
+
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "9px 16px",
+                  background: "rgba(59,130,246,0.08)",
+                  color: "#2563eb",
+                  border: "1px solid rgba(59,130,246,0.2)",
+                  borderRadius: "10px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span>ℹ️</span> {tr('Buổi học được tự động tạo khi lớp được thiết lập')}
+              </span>
             </div>
           </div>
 
@@ -736,7 +919,9 @@ const InstructorClasses = () => {
                     margin: 0,
                   }}
                 >
-                  {tr("Cập nhật buổi học")}
+                  {editingSessionId
+                    ? tr("Cập nhật buổi học")
+                    : tr("Tạo buổi học")}
                 </h3>
                 <button
                   onClick={() => setShowSessionModal(false)}
