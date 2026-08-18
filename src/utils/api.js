@@ -626,7 +626,6 @@ export const fetchPublicNewsById = async (id) => {
  * Public Regulatory Library API
  */
 export const fetchPublicRegulatoryDocs = async () => {
-  // 100% dữ liệu từ API — API lỗi/không có endpoint → throw để trang hiển thị trống.
   return await apiFetch("/regulatory-library");
 };
 
@@ -644,4 +643,31 @@ export const submitContactForm = async (contactData) => {
     return { success: false, message: translateVn("Không gửi được tin nhắn. Vui lòng thử lại sau.") };
   }
 };
+
+/**
+ * Định dạng chuỗi ngày giờ từ Backend (UTC) sang giờ địa phương Việt Nam (GMT+7).
+ * Tự động gắn hậu tố 'Z' nếu chuỗi chưa có để trình duyệt nhận diện chính xác là UTC.
+ */
+export const formatDateTime = (dateStr, options = {}) => {
+  if (!dateStr || dateStr === "—") return "—";
+  try {
+    const raw = String(dateStr).trim();
+    const utcStr = raw.endsWith("Z") || raw.includes("+") || raw.includes("-", 10) ? raw : `${raw}Z`;
+    const d = new Date(utcStr);
+    if (Number.isNaN(d.getTime())) return String(dateStr);
+    return d.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      ...options,
+    });
+  } catch {
+    return String(dateStr);
+  }
+};
+
 

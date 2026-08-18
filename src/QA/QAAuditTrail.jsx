@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { api } from "../utils/api";
+import { api, formatDateTime } from "../utils/api";
 import { useLanguage } from "../context/LanguageContext";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
@@ -94,7 +94,7 @@ const QAAuditTrail = () => {
 
         return {
           id: a.auditLogId || a.id || "—",
-          timestamp: (a.createdAt ?? a.recordedAt) ? new Date(a.createdAt ?? a.recordedAt).toLocaleString("vi-VN") : "—",
+          timestamp: formatDateTime(a.createdAt ?? a.recordedAt),
           user: userLabel,
           actor: userLabel,
           accountId: a.accountId,
