@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
@@ -499,13 +500,13 @@ const InstructorAssessmentStructure = () => {
           `/Assessments/${editingAssessment.assessmentId}`,
           { ...payload, assessmentId: editingAssessment.assessmentId },
         );
-        toast.success("Đã cập nhật");
+        toast.success(tr("Đã cập nhật"), announce("edit", tr("Assessment")));
       } else {
         saved = await api.post("/Assessments", {
           ...payload,
           courseId: parseInt(selectedCourseId, 10),
         });
-        toast.success("Đã tạo");
+        toast.success(tr("Đã tạo"), announce("add", tr("Assessment")));
       }
       const newItem = saved || {
         ...payload,
@@ -574,14 +575,14 @@ const InstructorAssessmentStructure = () => {
             practicalChecklistId: editingChecklist.practicalChecklistId,
           },
         );
-        toast.success("Đã cập nhật");
+        toast.success(tr("Đã cập nhật"), announce("edit", tr("Practical Checklist")));
       } else {
         saved = await api.post("/PracticalChecklists", {
           ...payload,
           courseId: parseInt(selectedCourseId, 10),
           subjectId: parseInt(selectedSubjectId, 10),
         });
-        toast.success("Đã tạo");
+        toast.success(tr("Đã tạo"), announce("add", tr("Practical Checklist")));
       }
       const newItem = saved || {
         ...payload,
@@ -618,13 +619,13 @@ const InstructorAssessmentStructure = () => {
         setAssessments((prev) =>
           prev.filter((a) => a.assessmentId !== item.assessmentId),
         );
-        toast.success("Đã xóa");
+        toast.success(tr("Đã xóa"), announce("delete", tr("Assessment")));
       } else {
         await api.delete(`/PracticalChecklists/${item.practicalChecklistId}`);
         setChecklists((prev) =>
           prev.filter((c) => c.practicalChecklistId !== item.practicalChecklistId),
         );
-        toast.success("Đã xóa");
+        toast.success(tr("Đã xóa"), announce("delete", tr("Practical Checklist")));
       }
       setConfirmDelete(null);
     } catch (err) {

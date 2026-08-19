@@ -87,109 +87,6 @@ const Homepage = () => {
             </div>
           </div>
         </div>
-
-        {/* FLOATING CERTIFICATION CARD WIDGET */}
-        <div className="hero-widget">
-          <div className="widget-card">
-            <div className="widget-header">
-              <div className="widget-dots">
-                <span className="w-dot red"></span>
-                <span className="w-dot yellow"></span>
-                <span className="w-dot green"></span>
-              </div>
-              <div className="widget-tag">ETR / {tr('CERTIFICATION')} #23.4A</div>
-            </div>
-
-            <div className="widget-grid">
-              <div className="widget-metric">
-                <span className="metric-title">{tr('ACTIVE LEARNERS')}</span>
-                <div className="metric-num">2,481</div>
-                <span className="metric-sub positive">{tr('+312 this month')}</span>
-              </div>
-              <div className="widget-metric">
-                <span className="metric-title">{tr('CERT. ISSUED')}</span>
-                <div className="metric-num">9,416</div>
-                <span className="metric-sub">{tr('cryptographically signed')}</span>
-              </div>
-              <div className="widget-metric">
-                <span className="metric-title">{tr('COMPLIANCE')}</span>
-                <div className="metric-num text-cyan">99.98%</div>
-                <span className="metric-sub">{tr('audit-ready')}</span>
-              </div>
-              <div className="widget-metric">
-                <span className="metric-title">{tr('AVG. SIGN-OFF')}</span>
-                <div className="metric-num">4.2 min</div>
-                <span className="metric-sub">{tr('from evaluation')}</span>
-              </div>
-            </div>
-
-            <div className="widget-progress-list">
-              <div className="progress-row">
-                <div className="row-info">
-                  <span className="module-name">Avionics Wiring — Module 07</span>
-                  <span className="status-tag status-certified">{tr('CERTIFIED')}</span>
-                </div>
-                <div className="bar-track">
-                  <div className="bar-fill cyan" style={{ width: '95%' }}></div>
-                </div>
-              </div>
-
-              <div className="progress-row">
-                <div className="row-info">
-                  <span className="module-name">EWIS Inspection — Practical</span>
-                  <span className="status-tag status-review">{tr('IN REVIEW')}</span>
-                </div>
-                <div className="bar-track">
-                  <div className="bar-fill orange" style={{ width: '78%' }}></div>
-                </div>
-              </div>
-
-              <div className="progress-row">
-                <div className="row-info">
-                  <span className="module-name">Part 145 Refresher</span>
-                  <span className="status-tag status-progress">{tr('IN PROGRESS')}</span>
-                </div>
-                <div className="bar-track">
-                  <div className="bar-fill yellow" style={{ width: '45%' }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ================= SOCIAL PROOF & STATS ================= */}
-      <section className="stats-banner">
-        <div className="stats-container">
-          <div className="stat-box">
-            <span className="stat-value">72K+</span>
-            <span className="stat-label">{tr('CERTIFIED TECHNICIANS')}</span>
-          </div>
-          <div className="stat-box">
-            <span className="stat-value">180</span>
-            <span className="stat-label">{tr('TRAINING CENTERS')}</span>
-          </div>
-          <div className="stat-box">
-            <span className="stat-value">99.98%</span>
-            <span className="stat-label">{tr('AUDIT PASS RATE')}</span>
-          </div>
-          <div className="stat-box">
-            <span className="stat-value">24 mo.</span>
-            <span className="stat-label">{tr('AVG. CERTIFICATION CYCLE')}</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="clients-strip">
-        <p className="strip-title">{tr('TRUSTED ACROSS THE AVIATION INDUSTRY')}</p>
-        <div className="logos-row">
-          <span>NorthStar Avionics</span>
-          <span>Vertex MRO</span>
-          <span>Skyline Group</span>
-          <span>PrattWorks</span>
-          <span>TransAtlas</span>
-          <span>HeliCorp</span>
-        </div>
       </section>
 
       {/* ================= PLATFORM FEATURES ================= */}
@@ -255,9 +152,14 @@ const Homepage = () => {
 
       {/* ================= TARGET AUDIENCE SOLUTIONS ================= */}
       <section id="solutions" className="solutions-section">
-        {/* Solution 1: Directors */}
-        <div className="solution-block">
-          <div className="solution-text">
+        <div className="section-head text-center">
+          <span className="sub-tag orange">{tr('— SOLUTIONS')}</span>
+          <h2 className="section-title text-white">{tr('Built for every role in aviation training and compliance.')}</h2>
+        </div>
+
+        <div className="solutions-grid">
+          {/* Solution 1: Directors */}
+          <div className="solution-card">
             <span className="sub-tag">{tr('— FOR TRAINING DIRECTORS')}</span>
             <h2>{tr('Run every program from a single control tower.')}</h2>
             <p>
@@ -269,41 +171,9 @@ const Homepage = () => {
               <li><span className="check-icon">✓</span> {tr('Role-based delegation')}</li>
             </ul>
           </div>
-          <div className="solution-visual">
-            <div className="visual-card-mockup">
-              <div className="mockup-header">
-                <span className="mockup-dot"></span>
-                <span className="mockup-title">{tr('AVIATION DASHBOARD')}</span>
-              </div>
-              <div className="mockup-body">
-                <div className="mockup-stat-row">
-                  <div className="m-stat">
-                    <span>{tr('Cohorts')}</span>
-                    <strong>12 {tr('Active')}</strong>
-                  </div>
-                  <div className="m-stat">
-                    <span>{tr('Evaluators')}</span>
-                    <strong>48 {tr('Certified')}</strong>
-                  </div>
-                  <div className="m-stat">
-                    <span>{tr('Cert. Score')}</span>
-                    <strong className="text-cyan">94.8%</strong>
-                  </div>
-                </div>
-                <div className="mockup-chart-bars">
-                  <div className="bar-group"><div className="b-bar" style={{ height: '60%' }}></div><span>Jan</span></div>
-                  <div className="bar-group"><div className="b-bar" style={{ height: '80%' }}></div><span>Feb</span></div>
-                  <div className="bar-group"><div className="b-bar" style={{ height: '75%' }}></div><span>Mar</span></div>
-                  <div className="bar-group"><div className="b-bar" style={{ height: '95%' }}></div><span>Apr</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Solution 2: Instructors */}
-        <div className="solution-block reverse">
-          <div className="solution-text">
+          {/* Solution 2: Instructors */}
+          <div className="solution-card">
             <span className="sub-tag">{tr('— FOR INSTRUCTORS')}</span>
             <h2>{tr('Sign off practical evaluations from the flightline.')}</h2>
             <p>
@@ -315,33 +185,9 @@ const Homepage = () => {
               <li><span className="check-icon">✓</span> {tr('Cryptographic sign-off')}</li>
             </ul>
           </div>
-          <div className="solution-visual">
-            <div className="visual-card-mockup instructor-mockup">
-              <div className="mockup-header">
-                <span className="mockup-dot orange"></span>
-                <span className="mockup-title">{tr('FLIGHTLINE EVALUATION')}</span>
-              </div>
-              <div className="mockup-body">
-                <div className="eval-item">
-                  <div className="eval-title">EWIS Bundle Inspection</div>
-                  <span className="eval-status status-pass">{tr('PASSED')}</span>
-                </div>
-                <div className="eval-item">
-                  <div className="eval-title">Crimping & Splicing (M07)</div>
-                  <span className="eval-status status-pass">{tr('VERIFIED')}</span>
-                </div>
-                <div className="photo-evidence-box">
-                  <span className="camera-icon">📷</span>
-                  <span>{tr('2 Evidence photos attached')}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Solution 3: Compliance */}
-        <div id="compliance" className="solution-block">
-          <div className="solution-text">
+          {/* Solution 3: Compliance */}
+          <div id="compliance" className="solution-card">
             <span className="sub-tag">{tr('— FOR COMPLIANCE')}</span>
             <h2>{tr('Turn audits from fire drills into two-minute exports.')}</h2>
             <p>
@@ -352,26 +198,6 @@ const Homepage = () => {
               <li><span className="check-icon">✓</span> {tr('FAA / EASA reporting templates')}</li>
               <li><span className="check-icon">✓</span> {tr('SOC 2 Type II')}</li>
             </ul>
-          </div>
-          <div className="solution-visual">
-            <div className="visual-card-mockup compliance-mockup">
-              <div className="mockup-header">
-                <span className="mockup-dot green"></span>
-                <span className="mockup-title">{tr('AUDIT LEDGER SEAL')}</span>
-              </div>
-              <div className="mockup-body">
-                <div className="hash-code font-mono">
-                  HASH: 8f92a10b4c810d7e...
-                </div>
-                <div className="compliance-row">
-                  <span>{tr('FAA Part 145 Audit')}</span>
-                  <span className="text-cyan font-bold">{tr('100% READY')}</span>
-                </div>
-                <button type="button" className="btn-export-preview" onClick={handleGoToLogin}>
-                  {tr('Export PDF Package')} &rarr;
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </section>

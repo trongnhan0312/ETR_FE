@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { announce } from '../utils/crudNotify';
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 
@@ -72,6 +73,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
     try {
       await api.delete(`/Enrollments/${cls.enrollmentId}`);
       setAssignedClasses(assignedClasses.filter((c) => c.code !== classCode));
+      toast.success(tr('Xóa ghi danh thành công'), announce('delete', tr('Ghi danh')));
     } catch (error) {
       console.error("Error removing enrollment:", error);
       toast.error(tr("Xóa ghi danh thất bại"));
@@ -107,6 +109,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
         instructor: 'Đang cập nhật'
       };
       setAssignedClasses([...assignedClasses, newAssignment]);
+      toast.success(tr('Ghi danh thành công'), announce('add', tr('Ghi danh')));
     } catch (error) {
       console.error("Error adding enrollment:", error);
       toast.error(tr("Ghi danh thất bại"));

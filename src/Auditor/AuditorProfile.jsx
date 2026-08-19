@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { announce } from '../utils/crudNotify';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -43,7 +44,7 @@ const AuditorProfile = () => {
       toast.error(tr('Mật khẩu không khớp'));
       return;
     }
-    toast.success(tr('Cập nhật mật khẩu thành công'));
+    toast.success(tr('Cập nhật mật khẩu thành công'), announce('edit', tr('Mật khẩu')));
     setCurrentPwd('');
     setNewPwd('');
     setConfirmPwd('');

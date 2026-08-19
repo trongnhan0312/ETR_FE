@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
@@ -205,6 +206,7 @@ const ClassStatus = () => {
       // Reload classes from API after creation
       await loadClasses();
       setShowCreateModal(false);
+      toast.success(tr("Tạo lớp học thành công!"), announce("add", tr("Lớp học")));
 
       // Reset fields
       setNewClassId("");

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { announce } from '../utils/crudNotify';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -121,7 +122,7 @@ const StudentProfile = () => {
         },
         { suppressAuthRedirect: true },
       );
-      toast.success(tr('Cập nhật thành công'));
+      toast.success(tr('Cập nhật thành công'), announce('edit', tr('Hồ sơ')));
     } catch (err) {
       toast.error(tr('Cập nhật thất bại'));
     } finally {
@@ -153,7 +154,7 @@ const StudentProfile = () => {
         { oldPassword: currentPwd, newPassword: newPwd },
         { suppressAuthRedirect: true },
       );
-      toast.success(tr('Đổi mật khẩu thành công'));
+      toast.success(tr('Đổi mật khẩu thành công'), announce('edit', tr('Mật khẩu')));
       setCurrentPwd('');
       setNewPwd('');
       setConfirmPwd('');

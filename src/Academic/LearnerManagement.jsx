@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
+import { announce } from '../utils/crudNotify';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
@@ -256,6 +257,7 @@ const getStudentDepartments = () => {
 
       await loadLearners();
       setIsCreateOpen(false);
+      toast.success(tr("Tạo học viên thành công!"), announce("add", tr("Học viên")));
     } catch (err) {
       console.error("Failed to create student:", err);
       setFormError(parseApiError(err, tr("Tạo học viên thất bại.")));
@@ -314,6 +316,7 @@ const getStudentDepartments = () => {
       });
       await loadLearners();
       setIsProfileOpen(false);
+      toast.success(tr("Tạo hồ sơ học viên thành công!"), announce("add", tr("Hồ sơ học viên")));
     } catch (err) {
       console.error('Failed to create learner profile:', err);
       setFormError(parseApiError(err, tr('Tạo hồ sơ học viên thất bại.')));
@@ -396,6 +399,7 @@ const getStudentDepartments = () => {
 
       await loadLearners();
       setIsEditOpen(false);
+      toast.success(tr("Cập nhật hồ sơ học viên thành công!"), announce("edit", tr("Hồ sơ học viên")));
     } catch (err) {
       console.error("Failed to update student profile:", err);
       setFormError(parseApiError(err, tr("Cập nhật hồ sơ học viên thất bại.")));
@@ -415,10 +419,10 @@ const getStudentDepartments = () => {
       if (type === 'disable') {
         await api.delete(`/Accounts/${user.accountId}`);
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-        toast.success(tr("Vô hiệu hóa thành công"));
+        toast.success(tr("Vô hiệu hóa thành công"), announce("delete", tr("Tài khoản")));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
-        toast.success(tr("Kích hoạt thành công"));
+        toast.success(tr("Kích hoạt thành công"), announce("edit", tr("Tài khoản")));
       }
       await loadLearners();
     } catch (err) {

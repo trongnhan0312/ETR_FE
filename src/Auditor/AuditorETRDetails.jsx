@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchEtrById, fetchApprovals, fetchAuditLogs, fetchEtrList, exportPdf } from './auditorApi';
+import { announce } from '../utils/crudNotify';
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
@@ -95,7 +96,7 @@ const AuditorETRDetails = () => {
       // Truyền ĐÚNG id hồ sơ đang xem — trước đây exportPdf bỏ qua payload và luôn
       // xuất "ETR Completed đầu tiên" nên file nhận được là hồ sơ của học viên khác.
       await exportPdf({ etrCourseRecordId: etr.etrCourseRecordId, name: `${etr.id}_Compliance_Dossier.pdf` });
-      toast.success(tr("Xuất PDF thành công"));
+      toast.success(tr("Xuất PDF thành công"), announce("add", tr("Hồ sơ")));
       navigate('/auditor/export-packages');
     } catch (err) {
       console.error('Export PDF failed:', err);

@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import { api, parseApiError } from "../utils/api";
 import { downloadExportFile } from "../Auditor/auditorApi";
+import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -322,7 +323,7 @@ const CourseClassManagement = () => {
       });
       await refreshData();
       setIsCreatingCourse(false);
-      toast.success(tr("Tạo khóa học thành công!"));
+      toast.success(tr("Tạo khóa học thành công!"), announce("add", tr("Khóa học")));
     } catch (error) {
       console.error("Error creating course:", error);
       toast.error(tr("Tạo khóa học thất bại"));
@@ -360,7 +361,7 @@ const CourseClassManagement = () => {
       });
       await refreshData();
       setEditingCourseTarget(null);
-      toast.success(tr("Cập nhật khóa học thành công!"));
+      toast.success(tr("Cập nhật khóa học thành công!"), announce("edit", tr("Khóa học")));
     } catch (error) {
       console.error("Error updating course:", error);
       toast.error(tr("Cập nhật khóa học thất bại"));
@@ -375,7 +376,7 @@ const CourseClassManagement = () => {
     try {
       await api.delete(`/Courses/${deletingCourseTarget.courseId}`);
       await refreshData();
-      toast.success(tr("Xóa khóa học thành công!"));
+      toast.success(tr("Xóa khóa học thành công!"), announce("delete", tr("Khóa học")));
       setDeletingCourseTarget(null);
     } catch (error) {
       console.error("Error deleting course:", error);
@@ -487,7 +488,7 @@ const CourseClassManagement = () => {
       if (targetCourse) {
         setExpandedCourses((prev) => ({ ...prev, [targetCourse.code]: true }));
       }
-      toast.success(tr("Tạo lớp học thành công!"));
+      toast.success(tr("Tạo lớp học thành công!"), announce("add", tr("Lớp học")));
     } catch (error) {
       console.error("Error creating class:", error);
       toast.error(tr("Tạo lớp học thất bại"));
@@ -520,7 +521,7 @@ const CourseClassManagement = () => {
       });
       await refreshData();
       setEditingClassTarget(null);
-      toast.success(tr("Cập nhật lớp học thành công!"));
+      toast.success(tr("Cập nhật lớp học thành công!"), announce("edit", tr("Lớp học")));
     } catch (error) {
       console.error("Error updating class status:", error);
       toast.error(parseApiError(error, tr("Cập nhật lớp học thất bại")));
@@ -535,7 +536,7 @@ const CourseClassManagement = () => {
     try {
       await api.delete(`/Classes/${deletingClassTarget.classId}`);
       await refreshData();
-      toast.success(tr("Xóa lớp học thành công!"));
+      toast.success(tr("Xóa lớp học thành công!"), announce("delete", tr("Lớp học")));
       setDeletingClassTarget(null);
     } catch (error) {
       console.error("Error deleting class:", error);
@@ -555,7 +556,7 @@ const CourseClassManagement = () => {
       await refreshData();
       setIsEnrollingStudent(false);
       setEnrollClassId(null);
-      toast.success(tr("Ghi danh học viên thành công!"));
+      toast.success(tr("Ghi danh học viên thành công!"), announce("add", tr("Ghi danh")));
     } catch (error) {
       console.error("Error creating enrollment:", error);
       throw error;
@@ -593,7 +594,7 @@ const CourseClassManagement = () => {
       }
       const fileName = job?.fileName || `${type}_class_${classId}.zip`;
       await downloadExportFile(jobId, fileName);
-      toast.success(tr("Xuất báo cáo thành công!"));
+      toast.success(tr("Xuất báo cáo thành công!"), announce("add", tr("Báo cáo")));
       setExportClassTarget(null);
     } catch (err) {
       console.error("Error exporting report:", err);

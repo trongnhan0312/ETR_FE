@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
@@ -315,6 +316,7 @@ const InstructorClasses = () => {
       await loadSessions();
       setShowSessionModal(false);
       setEditingSessionId(null);
+      toast.success(tr("Cập nhật buổi học thành công!"), announce("edit", tr("Buổi học")));
     } catch (err) {
       console.error("Lỗi khi lưu buổi học:", err);
       setSessionError(err.message || tr("Không thể lưu buổi học."));
@@ -330,7 +332,7 @@ const InstructorClasses = () => {
     if (!confirmDeleteSessionId) return;
     try {
       await api.delete(`/sessions/${confirmDeleteSessionId}`);
-      toast.success(tr("Xóa thành công"));
+      toast.success(tr("Xóa thành công"), announce("delete", tr("Buổi học")));
       await loadSessions();
     } catch (err) {
       console.error("Lỗi khi xóa buổi học:", err);

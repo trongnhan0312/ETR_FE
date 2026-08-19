@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { api, parseApiError } from '../utils/api';
+import { announce } from '../utils/crudNotify';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
@@ -291,7 +292,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
 
       await loadAllData();
       setIsCreateOpen(false);
-      toast.success(tr("Tạo tài khoản thành công!"));
+      toast.success(tr("Tạo tài khoản thành công!"), announce("add", tr("Tài khoản")));
     } catch (err) {
       console.error("Failed to create user:", err);
       setFormError(parseLocalApiError(err, tr("Tạo tài khoản thất bại.")));
@@ -373,7 +374,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
 
       await loadAllData();
       setIsEditOpen(false);
-      toast.success(tr("Cập nhật tài khoản thành công!"));
+      toast.success(tr("Cập nhật tài khoản thành công!"), announce("edit", tr("Tài khoản")));
     } catch (err) {
       console.error("Failed to update user profile:", err);
       setFormError(parseLocalApiError(err, tr("Cập nhật hồ sơ thất bại.")));
@@ -417,14 +418,14 @@ const UserManagement = ({ defaultTab = 'users' }) => {
         const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
         const nextStatus = isInactive ? 'Active' : 'Inactive';
         await api.put(`/Accounts/${user.accountId}/status`, { status: nextStatus });
-        toast.success(tr("Cập nhật trạng thái"));
+        toast.success(tr("Cập nhật trạng thái"), announce("edit", tr("Tài khoản")));
       } else if (type === 'delete') {
         await api.delete(`/Accounts/${user.accountId}`);
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-        toast.success(tr("Soft Delete"));
+        toast.success(tr("Soft Delete"), announce("delete", tr("Tài khoản")));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
-        toast.success(tr("Kích hoạt thành công"));
+        toast.success(tr("Kích hoạt thành công"), announce("edit", tr("Tài khoản")));
       }
       await loadAllData();
     } catch (err) {
@@ -467,7 +468,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       setIsCreateDeptOpen(false);
       resetDeptForm();
       await loadAllData();
-      toast.success(tr('Tạo phòng ban thành công!'));
+      toast.success(tr('Tạo phòng ban thành công!'), announce('add', tr('Phòng ban')));
     } catch (err) {
       setDeptFormError(parseApiError(err, tr('Lỗi khi tạo phòng ban mới')));
     } finally {
@@ -504,7 +505,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       setIsEditDeptOpen(false);
       resetDeptForm();
       await loadAllData();
-      toast.success(tr('Cập nhật phòng ban thành công!'));
+      toast.success(tr('Cập nhật phòng ban thành công!'), announce('edit', tr('Phòng ban')));
     } catch (err) {
       setDeptFormError(parseApiError(err, tr('Lỗi khi cập nhật phòng ban')));
     } finally {
@@ -527,7 +528,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       setIsDeleteDeptOpen(false);
       resetDeptForm();
       await loadAllData();
-      toast.success(tr('Xoá phòng ban thành công!'));
+      toast.success(tr('Xoá phòng ban thành công!'), announce('delete', tr('Phòng ban')));
     } catch (err) {
       setDeptFormError(parseApiError(err, tr('Lỗi khi xoá phòng ban')));
     } finally {

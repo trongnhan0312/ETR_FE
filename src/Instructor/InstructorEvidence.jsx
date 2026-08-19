@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
@@ -371,7 +372,7 @@ const InstructorEvidence = () => {
       formData.append("File", file, file.name);
 
       await api.postFormData("/Evidences/upload", formData);
-      toast.success(tr("Tải lên thành công"));
+      toast.success(tr("Tải lên thành công"), announce("add", tr("Minh chứng")));
       loadEvidences();
     } catch (err) {
       console.error("[Upload Evidence] Lỗi khi upload minh chứng:", err);
@@ -407,7 +408,7 @@ const InstructorEvidence = () => {
     if (!confirmDeleteId) return;
     try {
       await api.delete(`/Evidences/${confirmDeleteId}`);
-      toast.success(tr("Xóa thành công"));
+      toast.success(tr("Xóa thành công"), announce("delete", tr("Minh chứng")));
       loadEvidences();
     } catch (err) {
       console.error("Lỗi khi xóa minh chứng:", err);

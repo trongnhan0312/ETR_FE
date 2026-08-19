@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import ExcelPreviewTable from "../components/ExcelPreviewTable";
@@ -306,7 +307,7 @@ const InstructorAttendance = () => {
         }),
       );
 
-      toast.success(tr("Lưu điểm danh thành công!"));
+      toast.success(tr("Lưu điểm danh thành công!"), announce("edit", tr("Điểm danh")));
       // Reload records to fetch new IDs
       loadAttendance(selectedSession);
     } catch (err) {
@@ -349,7 +350,7 @@ const InstructorAttendance = () => {
       );
       setConfirmPublishOpen(false);
       setIsConfirmed(true);
-      toast.success(tr("Chốt điểm danh thành công!"));
+      toast.success(tr("Chốt điểm danh thành công!"), announce("edit", tr("Điểm danh")));
 
       // Update local sessions state
       setSessions((prev) =>
@@ -639,7 +640,7 @@ const InstructorAttendance = () => {
           setImportResult(result);
           return;
         }
-        toast.success(tr("Import điểm danh thành công!"));
+        toast.success(tr("Import điểm danh thành công!"), announce("add", tr("Điểm danh")));
         // 1) Áp NGAY dữ liệu file cho bảng (hiển thị tức thì)
         setSessionAttendance((prev) => mergeFileInto(prev, excelPreview));
         // 2) Tải lại từ server để lấy attendanceRecordId mới, rồi ÉP dữ liệu file lên

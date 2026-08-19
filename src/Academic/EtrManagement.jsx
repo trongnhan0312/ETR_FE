@@ -3,6 +3,7 @@ import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
@@ -436,7 +437,7 @@ const EtrManagement = () => {
       // ETR tự động được tạo khi Enrollment được tạo thành công (backend auto-generates)
       // Nếu ETR chưa tồn tại, hệ thống sẽ tự động tạo khi ghi danh
       // Chỉ cần refresh dữ liệu để hiển thị ETR mới
-      toast.success(tr("ETR tự động tạo"));
+      toast.success(tr("ETR tự động tạo"), announce("add", tr("Hồ sơ")));
       await refreshData();
       setIsCreateOpen(false);
     } catch (error) {
@@ -491,7 +492,7 @@ const EtrManagement = () => {
 
       await api.postFormData("/Evidences/upload", formData);
 
-      toast.success(tr("Tải lên thành công"));
+      toast.success(tr("Tải lên thành công"), announce("add", tr("Minh chứng")));
       setUploadFile(null);
       setIsEvidenceUploadOpen(false);
       await refreshData();
@@ -523,7 +524,7 @@ const EtrManagement = () => {
       await refreshData();
       setConfirmSubmitOpen(false);
       setRecordToSubmit(null);
-      toast.success(tr("Gửi ETR thành công"));
+      toast.success(tr("Gửi ETR thành công"), announce("edit", tr("Hồ sơ")));
     } catch (error) {
       console.error("Error submitting ETR:", error);
       toast.error(tr("Gửi ETR thất bại"));
@@ -578,7 +579,7 @@ const EtrManagement = () => {
     }
     try {
       await api.delete(`/Evidences/${confirmDeleteFile.fileId}`);
-      toast.success(tr("Xóa thành công"));
+      toast.success(tr("Xóa thành công"), announce("delete", tr("Minh chứng")));
       await refreshData();
     } catch (error) {
       console.error("Error deleting file:", error);
