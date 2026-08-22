@@ -312,7 +312,7 @@ const InstructorAttendance = () => {
       loadAttendance(selectedSession);
     } catch (err) {
       console.error("Lỗi khi lưu điểm danh:", err);
-      toast.error(tr("Lưu điểm danh thất bại!"));
+      toast.error(parseApiError(err, tr("Lưu điểm danh thất bại!")));
     } finally {
       setSaving(false);
     }
@@ -362,7 +362,7 @@ const InstructorAttendance = () => {
       );
     } catch (err) {
       console.error("Lỗi khi chốt điểm danh:", err);
-      toast.error(tr("Chốt điểm danh thất bại!"));
+      toast.error(parseApiError(err, tr("Chốt điểm danh thất bại!")));
     } finally {
       setPublishing(false);
     }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../utils/api";
+import { api, parseApiError } from "../utils/api";
 import { announce } from "../utils/crudNotify";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
@@ -523,7 +523,7 @@ const InstructorAssessmentStructure = () => {
       });
       setShowAssessmentModal(false);
     } catch (err) {
-      toast.error("Không lưu được");
+      toast.error(parseApiError(err, tr("Không lưu được")));
     } finally {
       setSavingAssessment(false);
     }
@@ -603,7 +603,7 @@ const InstructorAssessmentStructure = () => {
       });
       setShowChecklistModal(false);
     } catch (err) {
-      toast.error("Không lưu được");
+      toast.error(parseApiError(err, tr("Không lưu được")));
     } finally {
       setSavingChecklist(false);
     }
@@ -629,7 +629,7 @@ const InstructorAssessmentStructure = () => {
       }
       setConfirmDelete(null);
     } catch (err) {
-      toast.error("Không xóa được");
+      toast.error(parseApiError(err, tr("Không xóa được")));
     } finally {
       setDeleting(false);
     }

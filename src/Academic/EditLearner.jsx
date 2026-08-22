@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../utils/api';
+import { api, parseApiError } from '../utils/api';
 import { announce } from '../utils/crudNotify';
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
@@ -76,7 +76,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
       toast.success(tr('Xóa ghi danh thành công'), announce('delete', tr('Ghi danh')));
     } catch (error) {
       console.error("Error removing enrollment:", error);
-      toast.error(tr("Xóa ghi danh thất bại"));
+      toast.error(parseApiError(error, tr("Xóa ghi danh thất bại")));
     }
   };
 
@@ -112,7 +112,7 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
       toast.success(tr('Ghi danh thành công'), announce('add', tr('Ghi danh')));
     } catch (error) {
       console.error("Error adding enrollment:", error);
-      toast.error(tr("Ghi danh thất bại"));
+      toast.error(parseApiError(error, tr("Ghi danh thất bại")));
     }
   };
 

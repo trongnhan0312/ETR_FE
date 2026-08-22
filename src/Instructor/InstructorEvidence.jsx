@@ -1,34 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "../utils/api";
 import { announce } from "../utils/crudNotify";
+import { uploadToCloudinary, validateEvidenceFile } from "../utils/cloudinary";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
-const getAccountIdFromToken = () => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) return 0;
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(""),
-    );
-    const decoded = JSON.parse(jsonPayload);
-    const id =
-      decoded[
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-      ];
-    return parseInt(id) || 0;
-  } catch (e) {
-    console.error("Lỗi giải mã token:", e);
-    return 0;
-  }
-};
 
 const InstructorEvidence = () => {
   const { tr } = useLanguage();
@@ -250,6 +228,13 @@ const InstructorEvidence = () => {
   const handleUploadFile = async (file) => {
     if (!file) return;
 
+    // Chặn sớm định dạng không nằm trong whitelist (khớp BE + Cloudinary preset)
+    const invalidReason = validateEvidenceFile(file);
+    if (invalidReason) {
+      toast.error(tr(invalidReason));
+      return;
+    }
+
     // Validate evidence type is selected
     if (!selectedEvidenceTypeId) {
       toast.warning(tr("Thiếu loại bằng chứng"));
@@ -259,24 +244,6 @@ const InstructorEvidence = () => {
     setUploading(true);
     setUploadingFileName(file.name);
     try {
-      // Get logged-in user accountId
-      let currentAccountId = getAccountIdFromToken();
-      if (!currentAccountId) {
-        try {
-          const userJson = localStorage.getItem("user");
-          if (userJson) {
-            const parsedUser = JSON.parse(userJson);
-            currentAccountId =
-              parseInt(parsedUser.userId) ||
-              parseInt(parsedUser.accountId) ||
-              parseInt(parsedUser.id) ||
-              0;
-          }
-        } catch (e) {
-          console.error("Error reading accountId from user info", e);
-        }
-      }
-
       // Find subjectResultId to link this evidence file
       const allEtrs = await api.get("/etr").catch(() => []);
       const classEnrollments = await api.get("/enrollments").catch(() => []);
@@ -323,55 +290,20 @@ const InstructorEvidence = () => {
       const accountIdInt = parseInt(learnerAccountId);
       const subjectResultIdInt = parseInt(subjectResultId);
 
-      console.log("[Upload Evidence] ====== DEBUG UPLOAD ======");
-      console.log("[Upload Evidence] EvidenceTypeId:", {
-        raw: selectedEvidenceTypeId,
-        parsedInt: evidenceTypeIdInt,
-        type: typeof selectedEvidenceTypeId,
-      });
-      console.log("[Upload Evidence] AccountId (learner, from enrollment):", classEnrollment?.accountId);
-      console.log("[Upload Evidence] SubjectResultId:", {
-        raw: subjectResultId,
-        parsedInt: subjectResultIdInt,
-        type: typeof subjectResultId,
-      });
-      console.log("[Upload Evidence] File:", {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
-      console.log("[Upload Evidence] Selected class:", {
-        classId: selectedClassId,
-        className: selectedClass?.name,
-        subjectId: selectedClass?.subjectId,
-      });
-      console.log("[Upload Evidence] ==========================");
+      // Mô hình Cloudinary (2026-08): FE upload thẳng file lên Cloudinary để lấy URL,
+      // sau đó chỉ gửi JSON metadata về BE — BE không nhận byte file nào nữa.
+      const cloudFile = await uploadToCloudinary(file);
 
-      // Validate IDs are valid numbers
-      if (isNaN(evidenceTypeIdInt) || evidenceTypeIdInt <= 0) {
-        throw new Error("EvidenceTypeId không hợp lệ: " + selectedEvidenceTypeId);
-      }
-      if (isNaN(accountIdInt) || accountIdInt <= 0) {
-        throw new Error("AccountId không hợp lệ: " + currentAccountId);
-      }
-      if (isNaN(subjectResultIdInt) || subjectResultIdInt <= 0) {
-        throw new Error(
-          "SubjectResultId không hợp lệ: " +
-            subjectResultId +
-            ". Không tìm thấy ETR/subject result cho giảng viên.",
-        );
-      }
-
-      const formData = new FormData();
-      formData.append("EvidenceTypeId", String(evidenceTypeIdInt));
-      // AccountId phải là tài khoản HỌC VIÊN (không phải giảng viên đang đăng nhập) —
-      // lấy từ enrollment của học viên đã chọn, khớp với SubjectResultId ở trên.
-      // Trước đây gửi nhầm accountId của giảng viên → QA hiển thị "Student #<giảng viên>".
-      formData.append("AccountId", String(learnerAccountId));
-      formData.append("SubjectResultId", String(subjectResultIdInt));
-      formData.append("File", file, file.name);
-
-      await api.postFormData("/Evidences/upload", formData);
+      await api.post("/Evidences/upload", {
+        evidenceTypeId: evidenceTypeIdInt,
+        accountId: accountIdInt,
+        subjectResultId: subjectResultIdInt,
+        fileUrl: cloudFile.fileUrl,
+        publicId: cloudFile.publicId,
+        fileName: cloudFile.fileName,
+        mimeType: cloudFile.mimeType,
+        fileSize: cloudFile.fileSize,
+      });
       toast.success(tr("Tải lên thành công"), announce("add", tr("Minh chứng")));
       loadEvidences();
     } catch (err) {
@@ -435,10 +367,6 @@ const InstructorEvidence = () => {
       toast.error(tr("Tải xuống thất bại"));
     }
   };
-
-  const selectedClass = useMemo(() => {
-    return classesData.find((c) => c.classId === parseInt(selectedClassId));
-  }, [classesData, selectedClassId]);
 
   // Học viên đang chọn trong dropdown (bên phải) — evidence hiển thị bên trái chỉ của học viên này
   const selectedStudent = useMemo(() => {
@@ -932,7 +860,7 @@ const InstructorEvidence = () => {
                 {tr('Kéo thả tệp minh chứng vào đây')}
               </span>
               <span className="dropzone-subtitle">
-                {tr('Hỗ trợ PDF, PNG, JPG, DOCX (Tối đa 10MB)')}
+                {tr('Hỗ trợ PDF, PNG, JPG, GIF, WEBP — lưu trữ trên Cloudinary')}
               </span>
               <span
                 className="dropzone-subtitle"
@@ -944,6 +872,7 @@ const InstructorEvidence = () => {
               <input
                 type="file"
                 id="file-upload-input"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
                 style={{ display: "none" }}
                 onChange={(e) => {
                   if (e.target.files && e.target.files.length > 0) {

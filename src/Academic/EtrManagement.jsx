@@ -4,6 +4,7 @@ import Pagination from "../components/Pagination";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
 import { announce } from "../utils/crudNotify";
+import { uploadToCloudinary, validateEvidenceFile } from "../utils/cloudinary";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
@@ -285,7 +286,9 @@ const EtrManagement = () => {
           rejectReason: ev.verificationComment || "",
           mimeType: ev.mimeType || "",
           fileExtension: ev.fileExtension || "",
-          filePath: ev.filePath || "",
+          // BE đã đổi FilePath → FileUrl (lưu trữ Cloudinary)
+          filePath: ev.fileUrl || ev.filePath || "",
+          fileUrl: ev.fileUrl || ev.filePath || "",
         }));
 
       return {
@@ -464,6 +467,12 @@ const EtrManagement = () => {
         toast.warning(tr("Thiếu tệp tin"));
         return;
       }
+      // Chặn sớm định dạng không nằm trong whitelist (khớp BE + Cloudinary preset)
+      const invalidReason = validateEvidenceFile(uploadFile);
+      if (invalidReason) {
+        toast.error(tr(invalidReason));
+        return;
+      }
       if (!uploadEvidenceTypeId) {
         toast.warning(tr("Thiếu loại minh chứng"));
         return;
@@ -484,13 +493,19 @@ const EtrManagement = () => {
         return;
       }
 
-      const formData = new FormData();
-      formData.append("EvidenceTypeId", String(uploadEvidenceTypeId));
-      formData.append("AccountId", String(selectedRecord.accountId || 0));
-      formData.append("SubjectResultId", String(subjectResultId));
-      formData.append("File", uploadFile, uploadFile.name);
-
-      await api.postFormData("/Evidences/upload", formData);
+      // Mô hình Cloudinary (2026-08): FE upload thẳng file lên Cloudinary để lấy URL,
+      // sau đó chỉ gửi JSON metadata về BE — BE không nhận byte file nào nữa.
+      const cloudFile = await uploadToCloudinary(uploadFile);
+      await api.post("/Evidences/upload", {
+        evidenceTypeId: Number(uploadEvidenceTypeId),
+        accountId: Number(selectedRecord.accountId || 0),
+        subjectResultId: Number(subjectResultId),
+        fileUrl: cloudFile.fileUrl,
+        publicId: cloudFile.publicId,
+        fileName: cloudFile.fileName,
+        mimeType: cloudFile.mimeType,
+        fileSize: cloudFile.fileSize,
+      });
 
       toast.success(tr("Tải lên thành công"), announce("add", tr("Minh chứng")));
       setUploadFile(null);
@@ -3076,6 +3091,7 @@ const EtrManagement = () => {
                       <input
                         id="upload-file"
                         type="file"
+                        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
                         onChange={(e) => {
                           if (e.target.files && e.target.files.length > 0) {
                             setUploadFile(e.target.files[0]);

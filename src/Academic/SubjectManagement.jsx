@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { api } from '../utils/api';
+import { api, parseApiError } from '../utils/api';
 import { announce } from '../utils/crudNotify';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
@@ -155,7 +155,7 @@ const SubjectManagement = () => {
       toast.success(tr('Tạo môn học thành công!'), announce('add', tr('Môn học')));
     } catch (err) {
       console.error('Failed to create subject:', err);
-      toast.error(tr('Tạo môn học thất bại.'));
+      toast.error(parseApiError(err, tr('Tạo môn học thất bại.')));
     } finally {
       setSubmitting(false);
     }
@@ -192,7 +192,7 @@ const SubjectManagement = () => {
       toast.success(tr('Cập nhật môn học thành công!'), announce('edit', tr('Môn học')));
     } catch (err) {
       console.error('Failed to update subject:', err);
-      toast.error(tr('Cập nhật môn học thất bại.'));
+      toast.error(parseApiError(err, tr('Cập nhật môn học thất bại.')));
     } finally {
       setSubmitting(false);
     }
@@ -205,7 +205,7 @@ const SubjectManagement = () => {
       toast.success(tr('Xóa môn học thành công!'), announce('delete', tr('Môn học')));
     } catch (err) {
       console.error('Failed to delete subject:', err);
-      toast.error(tr('Xóa môn học thất bại.'));
+      toast.error(parseApiError(err, tr('Xóa môn học thất bại.')));
     }
   };
 

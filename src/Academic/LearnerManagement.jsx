@@ -432,10 +432,10 @@ const getStudentDepartments = () => {
           await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
           await loadLearners();
         } catch (putErr) {
-          toast.error(tr("Vô hiệu hóa tài khoản thất bại"));
+          toast.error(parseApiError(putErr, tr("Vô hiệu hóa tài khoản thất bại")));
         }
       } else {
-        toast.error(tr("Kích hoạt tài khoản thất bại"));
+        toast.error(parseApiError(err, tr("Kích hoạt tài khoản thất bại")));
       }
     } finally {
       setConfirmAction(null);

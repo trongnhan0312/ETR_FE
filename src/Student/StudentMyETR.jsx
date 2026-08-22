@@ -134,6 +134,13 @@ const DetailView = ({ etr, onBack }) => {
       <section className="student-info-card" style={{ marginBottom: 24 }}>
         <p className="info-eyebrow">{tr('Kết quả môn học')}</p>
         <h3>{tr('Kết quả')}</h3>
+        <p style={{ fontSize: 12, color: 'rgba(0,33,71,0.6)', margin: '4px 0 8px' }}>
+          <span style={{ color: '#15803d', fontWeight: 700 }}>{tr('GIỮ NGUYÊN')}</span>
+          {' — '}{tr('môn đã Pass/Exempted được giữ kết quả từ lần học trước')}
+          {' · '}
+          <span style={{ color: '#d97706', fontWeight: 700 }}>{tr('CẦN HỌC LẠI')}</span>
+          {' — '}{tr('môn chưa Pass phải học/thi lại trong kỳ này')}
+        </p>
         {s.subjectResults && s.subjectResults.length > 0 ? (
           <table className="student-subject-table">
             <thead>
@@ -152,10 +159,32 @@ const DetailView = ({ etr, onBack }) => {
                 const scoreVal = sr.Score ?? sr.score ?? sr.AssessmentScore ?? sr.assessmentScore;
                 const practicalVal = sr.PracticalScore ?? sr.practicalScore;
                 const attendanceVal = sr.AttendanceRate ?? sr.attendanceRate;
+                // Retake tracking (2026-08): IsCarriedOver = true → môn được giữ nguyên kết quả
+                // từ lần học trước (đã Pass/Exempted); false → môn đang phải học/thi lại.
+                const carried = sr.IsCarriedOver ?? sr.isCarriedOver ?? null;
                 return (
                 <tr key={idx}>
                   <td style={{ fontWeight: 600, color: '#002147' }}>
                     {sr.SubjectName ?? sr.subjectName ?? `${tr('Môn #')}${sr.SubjectId ?? sr.subjectId ?? idx + 1}`}
+                    {carried != null && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginLeft: 8,
+                          padding: '2px 8px',
+                          borderRadius: 999,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: '0.04em',
+                          verticalAlign: 'middle',
+                          ...(carried
+                            ? { background: 'rgba(34,197,94,0.12)', color: '#15803d' }
+                            : { background: 'rgba(217,119,6,0.12)', color: '#d97706' }),
+                        }}
+                      >
+                        {carried ? tr('GIỮ NGUYÊN') : tr('CẦN HỌC LẠI')}
+                      </span>
+                    )}
                   </td>
                   <td>{scoreVal != null ? `${scoreVal}%` : '--'}</td>
                   <td>{practicalVal != null ? `${practicalVal}%` : '--'}</td>

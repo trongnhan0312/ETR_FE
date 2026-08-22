@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
-import { api } from "../utils/api";
+import { api, parseApiError } from "../utils/api";
 import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
@@ -169,7 +169,7 @@ const ClassStatus = () => {
     // Chặn trùng Mã lớp ngay tại FE (khớp unique index IX_Classes_ClassCode của CSDL)
     const codeUpper = newClassId.trim().toUpperCase();
     if (rawClasses.some((c) => String(c.classCode || "").trim().toUpperCase() === codeUpper)) {
-      toast.error(tr("Tạo lớp học thất bại"));
+      toast.error(tr("Mã lớp học đã tồn tại. Vui lòng nhập một Mã lớp khác."));
       return;
     }
 
@@ -218,7 +218,7 @@ const ClassStatus = () => {
       setNewTraineesCount(15);
     } catch (error) {
       console.error("Error creating class:", error);
-      toast.error(tr("Tạo lớp học thất bại"));
+      toast.error(parseApiError(error, tr("Tạo lớp học thất bại")));
     } finally {
       setCreatingClass(false);
     }

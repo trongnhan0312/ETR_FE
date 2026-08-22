@@ -326,7 +326,7 @@ const CourseClassManagement = () => {
       toast.success(tr("Tạo khóa học thành công!"), announce("add", tr("Khóa học")));
     } catch (error) {
       console.error("Error creating course:", error);
-      toast.error(tr("Tạo khóa học thất bại"));
+      toast.error(parseApiError(error, tr("Tạo khóa học thất bại")));
     }
   };
 
@@ -364,7 +364,7 @@ const CourseClassManagement = () => {
       toast.success(tr("Cập nhật khóa học thành công!"), announce("edit", tr("Khóa học")));
     } catch (error) {
       console.error("Error updating course:", error);
-      toast.error(tr("Cập nhật khóa học thất bại"));
+      toast.error(parseApiError(error, tr("Cập nhật khóa học thất bại")));
       throw new Error(parseApiError(error));
     }
   };
@@ -380,7 +380,7 @@ const CourseClassManagement = () => {
       setDeletingCourseTarget(null);
     } catch (error) {
       console.error("Error deleting course:", error);
-      toast.error(tr("Xóa khóa học thất bại"));
+      toast.error(parseApiError(error, tr("Xóa khóa học thất bại")));
     } finally {
       setDeletingSubmitting(false);
     }
@@ -491,7 +491,7 @@ const CourseClassManagement = () => {
       toast.success(tr("Tạo lớp học thành công!"), announce("add", tr("Lớp học")));
     } catch (error) {
       console.error("Error creating class:", error);
-      toast.error(tr("Tạo lớp học thất bại"));
+      toast.error(parseApiError(error, tr("Tạo lớp học thất bại")));
     } finally {
       setClassSubmitting(false);
     }
@@ -540,7 +540,7 @@ const CourseClassManagement = () => {
       setDeletingClassTarget(null);
     } catch (error) {
       console.error("Error deleting class:", error);
-      toast.error(tr("Xóa lớp học thất bại"));
+      toast.error(parseApiError(error, tr("Xóa lớp học thất bại")));
     } finally {
       setDeletingSubmitting(false);
     }

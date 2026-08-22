@@ -1574,10 +1574,19 @@ export const EXTRA_VN_TO_EN = {
   'Loại bằng chứng:': 'Evidence Type:',
   'Đang tải loại bằng chứng...': 'Loading evidence types...',
   'Kéo thả tệp minh chứng vào đây': 'Drag & drop evidence files here',
-  'Hỗ trợ PDF, PNG, JPG, DOCX (Tối đa 10MB)': 'Supports PDF, PNG, JPG, DOCX (Max 10MB)',
+  'Hỗ trợ PDF, PNG, JPG, GIF, WEBP — lưu trữ trên Cloudinary': 'Supports PDF, PNG, JPG, GIF, WEBP — stored on Cloudinary',
   'Chọn tệp từ máy': 'Choose File',
   'Đang tải tệp lên máy chủ: ': 'Uploading file to server: ',
   'Bạn có chắc chắn muốn xóa tệp minh chứng này?': 'Are you sure you want to delete this evidence file?',
+
+  // ── Cloudinary evidence + retake carry-over (2026-08) ──
+  'GIỮ NGUYÊN': 'CARRIED OVER',
+  'CẦN HỌC LẠI': 'RETAKE REQUIRED',
+  'môn đã Pass/Exempted được giữ kết quả từ lần học trước': 'subjects already Passed/Exempted keep their results from the previous enrollment',
+  'môn chưa Pass phải học/thi lại trong kỳ này': 'subjects not yet Passed must be re-taken this term',
+  'Định dạng tệp không được hỗ trợ. Vui lòng chọn PDF hoặc ảnh (JPG/PNG/GIF/WEBP).': 'Unsupported file format. Please choose a PDF or an image (JPG/PNG/GIF/WEBP).',
+  'Kiểu tệp không được hỗ trợ. Vui lòng chọn PDF hoặc ảnh (JPG/PNG/GIF/WEBP).': 'Unsupported file type. Please choose a PDF or an image (JPG/PNG/GIF/WEBP).',
+  'Chưa cấu hình Cloudinary (VITE_CLOUDINARY_CLOUD_NAME / VITE_CLOUDINARY_UPLOAD_PRESET). Không thể tải lên minh chứng.': 'Cloudinary is not configured (VITE_CLOUDINARY_CLOUD_NAME / VITE_CLOUDINARY_UPLOAD_PRESET). Cannot upload evidence.',
 
   // ── InstructorAssessments bổ sung ──
   'Không có thay đổi!': 'No changes!',
