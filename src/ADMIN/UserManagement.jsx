@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useOutletContext } from 'react-router-dom';
 import { api, parseApiError } from '../utils/api';
 import { announce } from '../utils/crudNotify';
 import ConfirmModal from "../components/ConfirmModal";
@@ -12,6 +12,9 @@ import Pagination from '../components/Pagination';
 const UserManagement = ({ defaultTab = 'users' }) => {
   const { tr, trt } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
+  // Top-bar search từ AdminLayout (Outlet context) — lọc danh sách người dùng
+  const outletCtx = useOutletContext() ?? {};
+  const topbarQuery = typeof outletCtx.searchQuery === 'string' ? outletCtx.searchQuery : '';
   const activeTab = searchParams.get('tab') || defaultTab || 'users';
 
   const setActiveTab = (tab) => {
@@ -536,11 +539,13 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     }
   };
 
-  // Filtered users
+  // Filtered users — kết hợp search trên trang (searchTerm) và top-bar (topbarQuery):
+  // dùng term nào đang có giá trị, ưu tiên search trong trang nếu người dùng đang gõ.
   const filteredUsers = users.filter((u) => {
-    const q = searchTerm.toLowerCase();
+    const effectiveTerm = searchTerm || topbarQuery;
+    const q = effectiveTerm.toLowerCase();
     const matchesSearch =
-      !searchTerm ||
+      !effectiveTerm ||
       u.username.toLowerCase().includes(q) ||
       u.fullName.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q) ||
@@ -552,7 +557,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
 
   const userPagination = usePagination(filteredUsers, {
     pageSize: 10,
-    resetKey: `${searchTerm}|${roleFilter}`,
+    resetKey: `${searchTerm}|${topbarQuery}|${roleFilter}`,
   });
 
   // Filtered departments

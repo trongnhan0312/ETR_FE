@@ -325,10 +325,6 @@ const Dashboard = () => {
             {tr('Monitor overall platform activity, user counts, and review queues. Administrator can view core data, but workflow actions stay with the business roles.')}
           </p>
         </div>
-        <div className="page-status-box">
-          <strong>{tr('Data source')}</strong>
-          <p>GET /api/Dashboard/my-dashboard</p>
-        </div>
       </section>
 
       {/* KPI Cards */}

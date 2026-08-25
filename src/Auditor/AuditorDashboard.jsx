@@ -344,10 +344,6 @@ const AuditorDashboard = () => {
             {trEn("Compliance overview: locked records, audit trail and export history — all from one dashboard call.")}
           </p>
         </div>
-        <div className="page-status-box">
-          <strong>{trEn("Data source")}</strong>
-          <p>GET /api/Dashboard/my-dashboard</p>
-        </div>
       </section>
 
       {/* KPI Cards — phong cách FreeDash (card sáng + icon + badge %), giữ tông navy/gold */}

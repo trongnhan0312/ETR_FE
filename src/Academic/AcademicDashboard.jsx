@@ -301,10 +301,6 @@ const AcademicDashboard = () => {
             {tr('Tổng quan đào tạo: tiến độ ETR, kênh trạng thái và danh sách hồ sơ cần đôn đốc.')}
           </p>
         </div>
-        <div className="page-status-box">
-          <strong>{tr('Data source')}</strong>
-          <p>GET /api/Dashboard/my-dashboard</p>
-        </div>
       </section>
 
       {/* KPI Cards */}
