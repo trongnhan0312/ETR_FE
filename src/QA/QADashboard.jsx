@@ -230,10 +230,6 @@ const QADashboard = () => {
             {trEn('Central view for pending evidence, ETR review work, rejected records, and compliance actions.')}
           </p>
         </div>
-        <div className="page-status-box">
-          <strong>{trEn("Data source")}</strong>
-          <p>GET /api/Dashboard/my-dashboard</p>
-        </div>
       </section>
 
       {/* KPI Cards */}

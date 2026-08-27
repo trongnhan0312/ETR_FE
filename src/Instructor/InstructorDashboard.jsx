@@ -211,10 +211,6 @@ const InstructorDashboard = () => {
             {tr('Các lớp bạn phụ trách và danh sách học viên có tỉ lệ điểm danh dưới ngưỡng cần nhắc nhở.')}
           </p>
         </div>
-        <div className="page-status-box">
-          <strong>{tr('Data source')}</strong>
-          <p>GET /api/Dashboard/my-dashboard</p>
-        </div>
       </section>
 
       <section className="freedash-kpi-grid">

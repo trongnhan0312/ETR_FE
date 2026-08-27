@@ -115,13 +115,13 @@ beforeEach(() => {
 
 // ─── Admin ──────────────────────────────────────────────────────────────────
 describe('Admin Dashboard (/admin)', () => {
-  it('gọi my-dashboard đúng 1 lần và hiển thị systemStats + data source', async () => {
+  it('gọi my-dashboard đúng 1 lần và hiển thị systemStats', async () => {
     fetchMyDashboard.mockResolvedValue(FULL_PAYLOAD)
     const { default: Dashboard } = await import('../ADMIN/Dashboard')
     mount(<Dashboard />)
 
-    // Data source ghi rõ endpoint
-    expect(await screen.findByText('GET /api/Dashboard/my-dashboard')).toBeInTheDocument()
+    // Không lộ endpoint API lên UI (security): không còn hộp "Data source"
+    expect(screen.queryByText(/my-dashboard/i)).not.toBeInTheDocument()
 
     // KPI tổng người dùng từ systemStats.totalUsers = 50
     await waitFor(() => {
@@ -136,7 +136,10 @@ describe('Admin Dashboard (/admin)', () => {
     fetchMyDashboard.mockResolvedValue(null)
     const { default: Dashboard } = await import('../ADMIN/Dashboard')
     mount(<Dashboard />)
-    expect(await screen.findByText('GET /api/Dashboard/my-dashboard')).toBeInTheDocument()
+    await waitFor(() => {
+      const h1 = document.querySelector('h1')
+      expect(h1 && h1.textContent.length > 0).toBe(true)
+    })
   })
 })
 
