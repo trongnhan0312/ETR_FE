@@ -1,0 +1,15 @@
+Frontend applied — Academic only (confirmed via question: Admin has no classes page)
+New src/Academic/ClassesRosterImportModal.jsx — reusable Validate→Commit modal:
+
+Template download via api.downloadFile('/import/classes-roster/template')
+Excel pick + preview (parseExcelPreview + ExcelPreviewTable)
+Validate (dry-run) showing Total/Valid/Error rows + per-row/column errors (sheet-prefixed)
+Commit when canCommit; all-or-nothing; success → toast + close + onSuccess refresh
+Handles BE JSON errors (400 with errors) and parseApiError fallback
+Self-contained inline styles (avoids depending on Instructor-only instructor.scss)
+Modified src/Academic/CourseClassManagement.jsx:
+
+Import + isImportingClassRoster state
+Green "IMPORT EXCEL (LỚP + HỌC VIÊN)" button in the header toolbar next to "TẠO LỚP HỌC"
+Modal mount calling refreshData() after successful commit
+28/8/2026 change (crosscheck)

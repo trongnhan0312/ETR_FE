@@ -5,6 +5,7 @@ import CreateCourse from "./CreateCourse";
 import CreateClass from "./CreateClass";
 import ClassAttendanceHistory from "./ClassAttendanceHistory";
 import EnrollStudentModal from "./EnrollStudentModal";
+import ClassesRosterImportModal from "./ClassesRosterImportModal";
 import UpdateClassStatusModal from "./UpdateClassStatusModal";
 import UpdateCourseModal from "./UpdateCourseModal";
 import { createPortal } from "react-dom";
@@ -33,6 +34,7 @@ const CourseClassManagement = () => {
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isCreatingClass, setIsCreatingClass] = useState(false);
   const [isEnrollingStudent, setIsEnrollingStudent] = useState(false);
+  const [isImportingClassRoster, setIsImportingClassRoster] = useState(false);
 
   // Xuất báo cáo lớp học — POST /api/Exports/attendance|assessment|class-summary { classId }
   const [exportClassTarget, setExportClassTarget] = useState(null); // class object đang mở modal
@@ -798,6 +800,31 @@ const CourseClassManagement = () => {
               />
             </svg>
             <span>{tr("TẠO LỚP HỌC")}</span>
+          </button>
+
+          <button
+            className="create-btn"
+            type="button"
+            style={{
+              backgroundColor: "#065f46",
+              color: "#ffffff",
+              border: "none",
+              padding: "10px 18px",
+              borderRadius: "4px",
+              fontWeight: 700,
+              fontSize: "12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0,33,71,0.2)",
+            }}
+            onClick={() => setIsImportingClassRoster(true)}
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6.66667 6.66667H12V8.33333H6.66667V13.3333H5V8.33333H0V6.66667H5V1.66667H6.66667V6.66667Z" fill="currentColor"/>
+            </svg>
+            <span>{tr("IMPORT EXCEL (LỚP + HỌC VIÊN)")}</span>
           </button>
 
           <button
@@ -1787,6 +1814,14 @@ const CourseClassManagement = () => {
           </div>,
           document.body,
         )}
+
+      {/* Modal: IMPORT EXCEL — LỚP HỌC + DANH SÁCH HỌC VIÊN (Validate → Commit) */}
+      {isImportingClassRoster && (
+        <ClassesRosterImportModal
+          onClose={() => setIsImportingClassRoster(false)}
+          onSuccess={refreshData}
+        />
+      )}
 
       {/* Toast notifications */}
       <toast.ToastContainer />
