@@ -266,6 +266,11 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       return;
     }
 
+    if (password.length < 6) {
+      setFormError(tr('Mật khẩu phải có ít nhất 6 ký tự để đảm bảo bảo mật và đăng nhập được.'));
+      return;
+    }
+
     if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
       setFormError(tr('Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).'));
       return;

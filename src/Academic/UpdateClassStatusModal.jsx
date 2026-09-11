@@ -36,9 +36,10 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
     if (!targetClass?.courseId) return;
     api.get(`/Courses/${targetClass.courseId}`)
       .then((cDetail) => {
-        if (cDetail && Array.isArray(cDetail.courseSubjects)) {
-          setCourseSubjects(cDetail.courseSubjects);
-        }
+        const subs = Array.isArray(cDetail?.subjects)
+          ? cDetail.subjects
+          : (Array.isArray(cDetail?.courseSubjects) ? cDetail.courseSubjects : []);
+        setCourseSubjects(subs);
       })
       .catch(() => {});
   }, [targetClass?.courseId]);

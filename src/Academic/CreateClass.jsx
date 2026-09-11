@@ -44,12 +44,14 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
     setInstructorBySubject({});
 
     api.get(`/Courses/${parentCourse}`).then((cDetail) => {
-      if (cDetail && Array.isArray(cDetail.courseSubjects) && cDetail.courseSubjects.length === 0) {
+      const subs = Array.isArray(cDetail?.subjects)
+        ? cDetail.subjects
+        : (Array.isArray(cDetail?.courseSubjects) ? cDetail.courseSubjects : []);
+
+      if (cDetail && subs.length === 0) {
         setSubjectWarning(`${tr('⚠️ Khóa học')} "${cDetail.courseName || cDetail.courseCode}" ${tr('chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.')}`);
       }
-      if (cDetail && Array.isArray(cDetail.courseSubjects)) {
-        setCourseSubjects(cDetail.courseSubjects);
-      }
+      setCourseSubjects(subs);
     }).catch(() => {});
   }, [parentCourse]);
 

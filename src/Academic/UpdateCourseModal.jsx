@@ -31,8 +31,11 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
         setAvailableSubjects(subs);
 
         let existingMappings = null;
-        if (cDetail && Array.isArray(cDetail.courseSubjects) && cDetail.courseSubjects.length > 0) {
-          existingMappings = cDetail.courseSubjects;
+        const detailSubs = Array.isArray(cDetail?.subjects)
+          ? cDetail.subjects
+          : (Array.isArray(cDetail?.courseSubjects) ? cDetail.courseSubjects : null);
+        if (detailSubs && detailSubs.length > 0) {
+          existingMappings = detailSubs;
           setSelectedSubjectIds(existingMappings.map((cs) => String(cs.subjectId)));
         } else if (course.subjects && Array.isArray(course.subjects)) {
           existingMappings = course.subjects;

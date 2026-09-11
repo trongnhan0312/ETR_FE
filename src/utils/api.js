@@ -52,22 +52,22 @@ async function fetchWithFallback(endpoint, fetchOptions, method, options) {
   // fetch sẽ bị abort để FE hiển thị lỗi rõ ràng thay vì treo vô hạn.
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 20000);
+  let response;
   try {
     const url = `${baseUrl}${endpoint}`;
     console.log(`[API ${method}] Requesting: DEPLOY (${url})`);
-    const response = await fetch(url, {
+    response = await fetch(url, {
       ...fetchOptions,
       signal: controller.signal,
     });
     console.log(`[API ${method}] ✅ Đang dùng API DEPLOY cho ${endpoint}`);
-    return await handleResponse(response, method, endpoint, options, fetchOptions?.body);
   } catch (error) {
     // Network error / timeout - server not reachable.
     console.warn(
       `[API ${method}] ⚠️ Không tới được API DEPLOY (${baseUrl}${endpoint}):`,
       error.message,
     );
-        // Ghi lịch sử thao tác THẤT BẠI (lỗi mạng) — chỉ request GHI
+    // Ghi lịch sử thao tác THẤT BẠI (lỗi mạng) — chỉ request GHI
     if (method !== "GET") {
       addActivity({ type: "error", method, endpoint, status: 0, message: "Network error / timeout" });
     }
@@ -77,6 +77,8 @@ async function fetchWithFallback(endpoint, fetchOptions, method, options) {
   } finally {
     clearTimeout(timeoutId);
   }
+
+  return await handleResponse(response, method, endpoint, options, fetchOptions?.body);
 }
 
 /**
