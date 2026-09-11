@@ -38,8 +38,20 @@ const formatDate = (iso, lang = 'vi') => {
 const parseApiError = (err, fallbackMsg = 'Thao tác thất bại.', tr = (x) => x) => {
   if (!err) return fallbackMsg;
   const raw = err.message || String(err);
+  // Check for common duplicate-email patterns in the raw string
+  if (raw.toLowerCase().includes('already exist') || raw.toLowerCase().includes('đã tồn tại') || raw.toLowerCase().includes('duplicate')) {
+    return tr('Tên đăng nhập (Email) này đã tồn tại trong hệ thống. Vui lòng chọn email khác.');
+  }
   try {
     const json = JSON.parse(raw);
+    // ProblemDetails format from BE: { status, title, detail, instance }
+    if (json.detail) {
+      const detail = String(json.detail);
+      if (detail.toLowerCase().includes('already exist') || detail.toLowerCase().includes('đã tồn tại')) {
+        return tr('Tên đăng nhập (Email) này đã tồn tại trong hệ thống. Vui lòng chọn email khác.');
+      }
+      return detail;
+    }
     if (json.errors && typeof json.errors === 'object') {
       const fieldMap = {
         UserCode: tr('Mã học viên'),
@@ -55,6 +67,9 @@ const parseApiError = (err, fallbackMsg = 'Thao tác thất bại.', tr = (x) =>
         const errStr = Array.isArray(errs) ? errs.join(', ') : String(errs);
         if (errStr.toLowerCase().includes('valid e-mail address')) {
           return `${fieldLabel} ${tr('phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).')}`;
+        }
+        if (errStr.toLowerCase().includes('already exist') || errStr.toLowerCase().includes('đã tồn tại') || errStr.toLowerCase().includes('duplicate')) {
+          return `${fieldLabel} ${tr('đã tồn tại. Vui lòng chọn giá trị khác.')}`;
         }
         return `${fieldLabel}: ${errStr}`;
       });
@@ -94,12 +109,15 @@ const StudentProfiles = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  // Create Student Form State
-  const [selectedAccountId, setSelectedAccountId] = useState('');
+  // Create Student Account + Profile Form State (unified)
+  const [cUsername, setCUsername] = useState('');
+  const [cPassword, setCPassword] = useState('Default@123');
+  const [cShowPassword, setCShowPassword] = useState(false);
   const [cFullName, setCFullName] = useState('');
   const [cPhone, setCPhone] = useState('');
   const [cDateOfBirth, setCDateOfBirth] = useState('');
   const [cGender, setCGender] = useState('Male');
+  const [cDepartmentId, setCDepartmentId] = useState('3');
 
   // Edit form state
   const [eFullName, setEFullName] = useState('');
@@ -160,52 +178,50 @@ const StudentProfiles = () => {
     loadProfiles();
   }, []);
 
-// Helper to get departments available for Student role: exclude Training (2) and Administration (1).
-// NOTE: GET /api/Departments is Admin-only (DepartmentsController), so as Academic we
-// fall back to the authoritative list seeded in BE DataSeeder (ids 1-6, excluding id 1 and 2).
-const getStudentDepartments = () => {
-  const filtered = departments.filter(
-    (d) =>
-      !d.name?.toLowerCase().includes('training') &&
-      !d.name?.toLowerCase().includes('đào tạo') &&
-      String(d.id) !== '2' &&
-      String(d.id) !== '1',
-  );
-  if (filtered.length > 0) return filtered;
-  return [
-    { id: '3', name: 'Flight Crew' },
-    { id: '4', name: 'Cabin Crew' },
-    { id: '5', name: 'Engineering & Maintenance' },
-    { id: '6', name: 'Ground Operations' },
-  ];
-};
+  const getStudentDepartments = () => {
+    const filtered = departments.filter(
+      (d) =>
+        !d.name?.toLowerCase().includes('training') &&
+        !d.name?.toLowerCase().includes('đào tạo') &&
+        String(d.id) !== '2' &&
+        String(d.id) !== '1',
+    );
+    if (filtered.length > 0) return filtered;
+    return [
+      { id: '3', name: 'Flight Crew' },
+      { id: '4', name: 'Cabin Crew' },
+      { id: '5', name: 'Engineering & Maintenance' },
+      { id: '6', name: 'Ground Operations' },
+    ];
+  };
 
   const handleOpenCreateModal = () => {
-    setSelectedAccountId(studentAccounts[0]?.accountId || studentAccounts[0]?.id || '');
+    setCUsername('');
+    setCPassword('Default@123');
+    setCShowPassword(false);
     setCFullName('');
     setCPhone('');
     setCDateOfBirth('');
     setCGender('Male');
+    const studentDepts = getStudentDepartments();
+    setCDepartmentId(String(studentDepts[0]?.id || '3'));
     setFormError('');
     setIsCreateOpen(true);
   };
 
-  // Submit Create Profile for Selected Student Account
+  // Submit Create Student Account + Profile (unified flow, same as LearnerManagement)
   const handleCreateStudentSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+    const trimmedUsername = cUsername.trim();
+    const trimmedFullName = cFullName.trim();
 
-    if (!selectedAccountId) {
-      setFormError(tr('Vui lòng chọn tài khoản học viên.'));
+    if (!trimmedUsername || !cPassword || !trimmedFullName) {
+      setFormError(tr('Vui lòng nhập Username, Password và Họ tên.'));
       return;
     }
-
-    const selectedAcc = studentAccounts.find((a) => String(a.accountId || a.id) === String(selectedAccountId));
-    const accountEmail = selectedAcc?.username || selectedAcc?.email || '';
-
-    const trimmedFullName = cFullName.trim();
-    if (!trimmedFullName) {
-      setFormError(tr('Vui lòng nhập Họ và tên.'));
+    if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
+      setFormError(tr('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).'));
       return;
     }
     if (!isValidFullName(trimmedFullName)) {
@@ -223,20 +239,33 @@ const getStudentDepartments = () => {
 
     setSubmitting(true);
     try {
-      await api.post(`/UserProfiles/${selectedAccountId}`, {
-        fullName: trimmedFullName,
-        email: accountEmail,
-        phone: cPhone.trim() || null,
-        dateOfBirth: new Date(`${cDateOfBirth}T00:00:00`).toISOString(),
-        gender: cGender,
-        organization: 'ETR Aviation',
+      // 1. Create account with Student Role (roleId: 6)
+      const newAcc = await api.post('/Accounts', {
+        username: trimmedUsername,
+        password: cPassword,
+        roleId: 6,
+        departmentId: Number(cDepartmentId || getStudentDepartments()[0]?.id || 3),
       });
+
+      // 2. Create user profile
+      const accId = newAcc?.accountId || newAcc?.id;
+      if (accId) {
+        await api.post(`/UserProfiles/${accId}`, {
+          userCode: `USR-${accId}`,
+          fullName: trimmedFullName,
+          email: trimmedUsername,
+          phone: cPhone.trim() || null,
+          dateOfBirth: new Date(`${cDateOfBirth}T00:00:00`).toISOString(),
+          gender: cGender || 'Male',
+          organization: 'ETR Aviation',
+        }).catch((err) => console.warn('Failed to create profile details:', err));
+      }
 
       await loadProfiles();
       setIsCreateOpen(false);
     } catch (err) {
-      console.error('Failed to create profile:', err);
-      setFormError(parseApiError(err, tr('Tạo hồ sơ học viên thất bại.'), tr));
+      console.error('Failed to create student:', err);
+      setFormError(parseApiError(err, tr('Tạo học viên thất bại.'), tr));
     } finally {
       setSubmitting(false);
     }
@@ -504,33 +533,62 @@ const getStudentDepartments = () => {
             <form onSubmit={handleCreateStudentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {/* Account Section */}
               <div style={{ fontSize: '12px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>
-                {tr('1. Chọn Tài khoản học viên')}
+                {tr('1. Thông tin Tài khoản')}
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>
-                  {tr('Chọn tài khoản (Student Account) *')}
-                </label>
-                <select
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tên đăng nhập (Email / Username) *')}</label>
+                <input
+                  type="email"
                   required
-                  value={selectedAccountId}
-                  onChange={(e) => setSelectedAccountId(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: '600', outline: 'none' }}
-                >
-                  <option value="">{tr('-- Chọn tài khoản --')}</option>
-                  {studentAccounts.map((acc) => {
-                    const accId = acc.accountId || acc.id;
-                    const hasProf = profiles.some((p) => String(p.accountId) === String(accId));
-                    return (
-                      <option key={accId} value={accId}>
-                        {acc.username} (ID: {accId}) {hasProf ? `[${tr('Đã có Profile')}]` : `[${tr('Chưa có Profile')}]`}
-                      </option>
-                    );
-                  })}
-                </select>
-                <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#64748b' }}>
-                  {tr('* Chọn tài khoản học viên để tiến hành tạo hoặc cập nhật hồ sơ.')}
-                </p>
+                  value={cUsername}
+                  onChange={(e) => setCUsername(e.target.value)}
+                  placeholder={tr('Ví dụ: student@domain.com')}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Mật khẩu *')}</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={cShowPassword ? 'text' : 'password'}
+                    required
+                    value={cPassword}
+                    onChange={(e) => setCPassword(e.target.value)}
+                    style={{ width: '100%', padding: '8px 38px 8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCShowPassword(!cShowPassword)}
+                    style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', padding: '4px' }}
+                  >
+                    {cShowPassword ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Vai trò (Role)')}</label>
+                  <input type="text" disabled value="Student" style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Phòng ban')}</label>
+                  <select
+                    value={cDepartmentId}
+                    onChange={(e) => setCDepartmentId(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
+                  >
+                    {getStudentDepartments().map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Profile Section */}

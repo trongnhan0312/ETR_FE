@@ -324,7 +324,6 @@ const AcademicDashboard = () => {
                 )}
               </div>
               <div className="freedash-kpi-label">{kpi.label}</div>
-              <div className="freedash-kpi-sub">{tr('Live from API')}</div>
             </div>
           </div>
         ))}

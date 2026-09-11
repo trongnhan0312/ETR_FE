@@ -48,6 +48,7 @@ const CourseClassManagement = () => {
   const [classSubmitting, setClassSubmitting] = useState(false);
 
   const [selectedClassForHistory, setSelectedClassForHistory] = useState(null);
+  const [viewingClassDetail, setViewingClassDetail] = useState(null);
   const [instructorsList, setInstructorsList] = useState([]);
 
   // Load all data from APIs on mount
@@ -1553,7 +1554,7 @@ const CourseClassManagement = () => {
                                     );
                                   })()}
 
-                                  {/* Button: XEM LỊCH SỬ ĐIỂM DANH */}
+                                  {/* Button: XEM CHI TIẾT LỚP */}
                                   <button
                                     type="button"
                                     style={{
@@ -1570,10 +1571,33 @@ const CourseClassManagement = () => {
                                     }}
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      setViewingClassDetail(cls);
+                                    }}
+                                  >
+                                    {tr("Xem")}
+                                  </button>
+
+                                  {/* Button: XEM ĐIỂM DANH */}
+                                  <button
+                                    type="button"
+                                    style={{
+                                      backgroundColor: "#f0f9ff",
+                                      color: "#0369a1",
+                                      border: "1px solid #bae6fd",
+                                      fontSize: "11px",
+                                      fontWeight: 600,
+                                      padding: "4px 8px",
+                                      borderRadius: "4px",
+                                      cursor: "pointer",
+                                      whiteSpace: "nowrap",
+                                      flexShrink: 0,
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setSelectedClassForHistory(cls);
                                     }}
                                   >
-                                    {tr("Chi tiết")}
+                                    {tr("Điểm danh")}
                                   </button>
 
                                   {/* Button: XÓA LỚP HỌC */}
@@ -2078,6 +2102,66 @@ const CourseClassManagement = () => {
           </div>,
           document.body,
         )}
+
+      {/* CLASS DETAIL MODAL */}
+      {viewingClassDetail && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '560px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>{tr('Chi tiết lớp học')}</h2>
+              <button
+                type="button"
+                onClick={() => setViewingClassDetail(null)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
+              >✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gap: '14px' }}>
+              {/* Code & Name */}
+              <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '14px 16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{tr('Mã lớp')}</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#002147' }}>{viewingClassDetail.code}</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '4px' }}>{viewingClassDetail.name}</div>
+              </div>
+
+              {/* Schedule & Status */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{tr('Thời gian')}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>{viewingClassDetail.startDate} - {viewingClassDetail.endDate}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{tr('Trạng thái')}</div>
+                  <span
+                    className={`class-status ${viewingClassDetail.status === 'Đang diễn ra' ? 'status-active' : viewingClassDetail.status === 'Sắp diễn ra' ? 'status-pending' : 'status-completed'}`}
+                    style={{ fontSize: '11px' }}
+                  >{tr(viewingClassDetail.status)}</span>
+                </div>
+              </div>
+
+              {/* Instructor */}
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{tr('Giảng viên')}</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>{viewingClassDetail.instructor || tr('Chưa phân công')}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button
+                type="button"
+                onClick={() => setViewingClassDetail(null)}
+                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+              >{tr('Đóng')}</button>
+              <button
+                type="button"
+                onClick={() => { setViewingClassDetail(null); setSelectedClassForHistory(viewingClassDetail); }}
+                style={{ padding: '8px 16px', background: '#002147', border: 'none', borderRadius: '6px', color: '#c5a059', cursor: 'pointer', fontSize: '13px', fontWeight: 700 }}
+              >{tr('Xem điểm danh')}</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Toast notifications */}
       <toast.ToastContainer />
