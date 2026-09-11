@@ -58,6 +58,8 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
               instructor: classInstructor,
               attendance: totalCount > 0 ? `${presentCount}/${totalCount}` : '0/0',
               rate: totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0,
+              // Giữ bản ghi chi tiết để tính overall rate đúng (chỉ đếm học viên đã điểm danh)
+              details: sessionAttendance,
               location: s.location || '',
               isConfirmed: s.isConfirmed || false,
               students: sessionAttendance.map((a) => ({
@@ -92,15 +94,27 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
   });
 
   // Calculate overall attendance rate
-  const totalStudents = sessions.reduce((sum, s) => {
-    const parts = s.attendance.split('/');
-    return sum + (parseInt(parts[1]) || 0);
-  }, 0);
-  const totalPresent = sessions.reduce((sum, s) => {
-    const parts = s.attendance.split('/');
-    return sum + (parseInt(parts[0]) || 0);
-  }, 0);
-  const overallRate = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
+  // Trước đây: đếm TỔNG số record điểm danh làm "tổng học viên" — những buổi chưa điểm
+  // danh (record với status "Chưa điểm danh"/null) bị tính vào mẫu số, làm overall rate
+  // bị kéo xuống SAI THẤP. Cách đúng: mỗi buổi chỉ tính những học viên ĐÃ được điểm danh
+  // (Present/Absent) — dùng Set theo (sessionId|enrollmentId) để chống trùng nếu BE trả
+  // record trùng lặp.
+  const seen = new Set();
+  let totalPresent = 0;
+  let totalMarked = 0;
+  sessions.forEach((s) => {
+    const details = Array.isArray(s.details) ? s.details : [];
+    details.forEach((d) => {
+      const st = String(d.status || "").toLowerCase();
+      if (st !== "present" && st !== "có mặt" && st !== "absent" && st !== "vắng không phép") return;
+      const key = `${s.sessionId}|${d.enrollmentId ?? d.attendanceId ?? d.name}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      totalMarked += 1;
+      if (st === "present" || st === "có mặt") totalPresent += 1;
+    });
+  });
+  const overallRate = totalMarked > 0 ? Math.round((totalPresent / totalMarked) * 100) : 0;
 
   return (
     <div className="attendance-history-page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

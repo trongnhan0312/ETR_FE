@@ -334,6 +334,20 @@ export const parseApiError = (err, fallback) => {
     );
   const raw = typeof err === "string" ? err : err.message || String(err);
 
+  // ——— Trùng tài khoản/Username (tạo Account, Import học viên) ———
+  // BE: BusinessRuleViolationException("An account with username '...' already exists.")
+  // → 400 BusinessRuleViolation, message gốc nằm trong ProblemDetails.detail.
+  if (
+    raw.includes("already exists") ||
+    raw.toLowerCase().includes("đã tồn tại") ||
+    raw.toLowerCase().includes("duplicate username") ||
+    raw.toLowerCase().includes("duplicate email")
+  ) {
+    return translateVn(
+      "Tên đăng nhập (Email) này đã tồn tại trong hệ thống. Vui lòng chọn email khác.",
+    );
+  }
+
   if (
     raw.includes("already enrolled") ||
     raw.includes("ongoing ETR") ||

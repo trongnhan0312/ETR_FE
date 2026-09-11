@@ -56,40 +56,24 @@ const InstructorDashboard = () => {
   }, [myClasses]);
 
   const attendanceTrend = useMemo(() => {
-    const hasMultipleClasses = myClasses.length >= 4;
-    const avgAttendance = myClasses.length > 0
-      ? Math.round(myClasses.reduce((acc, c) => acc + (Number(c.attendanceRate) || 0), 0) / myClasses.length)
-      : 92;
+    // ❗ Trước đây: khi có ít lớp, chart hiển thị dữ liệu GIẢ cứng ([100, 96, 92, 95, 90]
+    // và passRate 82-96) → chỉ số attendance "bị tính sai" trên dashboard.
+    // Giờ: chỉ vẽ khi có dữ liệu THẬT từ backend (myClasses[].attendanceRate);
+    // không có dữ liệu → hiển thị thông báo thay vì ghép số giả.
+    const hasRealData = myClasses.some(
+      (c) => Number.isFinite(Number(c.attendanceRate)) && Number(c.attendanceRate) > 0,
+    );
 
-    let categories = [];
-    let attendanceData = [];
-    let passRateData = [];
-    let studentData = [];
+    if (!hasRealData) return null;
 
-    if (hasMultipleClasses) {
-      categories = myClasses.map((c) => c.classCode || `#${c.classId}`);
-      attendanceData = myClasses.map((c) => Number(c.attendanceRate) || 0);
-      passRateData = myClasses.map((_, i) => Math.min(100, 85 + (i * 3)));
-      studentData = myClasses.map((c) => Number(c.studentCount) || 0);
-    } else {
-      categories = [
-        tr('Buổi 1: Nhập môn'),
-        tr('Buổi 2: Lý thuyết'),
-        tr('Buổi 3: Thực hành 1'),
-        tr('Buổi 4: Thực hành 2'),
-        tr('Buổi 5: Đánh giá'),
-        tr('Buổi hiện tại'),
-      ];
-      attendanceData = [100, 96, 92, 95, 90, avgAttendance];
-      passRateData = [82, 86, 89, 91, 94, 96];
-      studentData = Array(6).fill(totalStudents || 25);
-    }
+    const categories = myClasses.map((c) => c.classCode || `#${c.classId}`);
+    const attendanceData = myClasses.map((c) => Number(c.attendanceRate) || 0);
+    const studentData = myClasses.map((c) => Number(c.studentCount) || 0);
 
     return {
       chart: { type: 'area', fontFamily: 'inherit', toolbar: { show: false } },
       series: [
         { name: tr('Tỉ lệ điểm danh (%)'), data: attendanceData },
-        { name: tr('Tỉ lệ đạt yêu cầu (%)'), data: passRateData },
         { name: tr('Số học viên'), data: studentData },
       ],
       xaxis: {
@@ -111,8 +95,8 @@ const InstructorDashboard = () => {
           labels: { style: { colors: 'rgba(0,33,71,0.65)', fontSize: '11px' }, formatter: (v) => `${Math.round(v)}` },
         },
       ],
-      colors: ['#16a34a', '#0a2c55', '#c5a059'],
-      stroke: { curve: 'smooth', width: [3, 2.5, 2] },
+      colors: ['#16a34a', '#c5a059'],
+      stroke: { curve: 'smooth', width: [3, 2] },
       fill: {
         type: 'gradient',
         gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05, stops: [0, 90, 100] },
@@ -125,12 +109,12 @@ const InstructorDashboard = () => {
         shared: true,
         intersect: false,
         y: {
-          formatter: (v, { seriesIndex }) => (seriesIndex < 2 ? `${Math.round(v)}%` : `${Math.round(v)} ${tr('học viên')}`),
+          formatter: (v, { seriesIndex }) => (seriesIndex === 0 ? `${Math.round(v)}%` : `${Math.round(v)} ${tr('học viên')}`),
         },
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myClasses, totalStudents]);
+  }, [myClasses]);
 
   const kpis = [
     {
@@ -228,7 +212,6 @@ const InstructorDashboard = () => {
                 {loading ? '...' : kpi.value}
               </div>
               <div className="freedash-kpi-label">{kpi.label}</div>
-              <div className="freedash-kpi-sub">{tr('Live from API')}</div>
             </div>
           </div>
         ))}
@@ -244,7 +227,13 @@ const InstructorDashboard = () => {
           <div className="freedash-dist-card">
             <h3 className="freedash-dist-title">{tr('TỈ LỆ ĐIỂM DANH THEO LỚP')}</h3>
             <p className="freedash-dist-sub">{tr('Biểu đồ đường cong điểm danh & phân bổ học viên.')}</p>
-            <ApexChart options={attendanceTrend} height={280} />
+            {attendanceTrend ? (
+              <ApexChart options={attendanceTrend} height={280} />
+            ) : (
+              <div className="dash-empty">
+                {tr('Chưa có dữ liệu điểm danh thực tế. Dữ liệu sẽ hiển thị sau khi giảng viên điểm danh các buổi học.')}
+              </div>
+            )}
           </div>
         </section>
       )}

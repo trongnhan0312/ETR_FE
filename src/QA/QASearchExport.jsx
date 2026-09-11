@@ -5,6 +5,18 @@ import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 
+// Nhãn hiển thị cho status enum trả về từ GET /api/Search/etrs (EtrStatus BE):
+// Draft | InProgress | Submitted | Verified | Completed | ReturnedForCorrection | Cancelled
+const STATUS_LABELS = {
+  Draft: "Draft",
+  InProgress: "In Progress",
+  Submitted: "Submitted",
+  Verified: "QA Verified",
+  Completed: "Completed",
+  ReturnedForCorrection: "Returned for Correction",
+  Cancelled: "Cancelled",
+};
+
 const QASearchExport = () => {
   const { tr, trEn } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,46 +41,45 @@ const QASearchExport = () => {
     }
     setSearching(true);
     try {
-      // Backend: GET /api/Search/etrs?query= — trả về các ETR record (kèm trạng thái thực)
-      const data = await api
-        .get(`/Search/etrs?query=${encodeURIComponent(searchQuery)}`)
-        .catch(() => null);
+      // Backend: GET /api/Search/etrs?query= — trả về các ETR record (kèm trạng thái thực).
+      // KHÔNG nuốt lỗi 404/403/network bằng .catch(() => null) nữa — khi endpoint lỗi
+      // (deploy thiếu controller, sai quyền, server down) người dùng phải thấy lỗi rõ ràng
+      // thay vì kết quả rỗng giả "không tìm thấy".
+      const data = await api.get(`/Search/etrs?query=${encodeURIComponent(searchQuery)}`);
 
-      if (data && Array.isArray(data)) {
-        // Lọc trạng thái phía client — backend không hỗ trợ tham số status
-        const filtered =
-          statusFilter === "all"
-            ? data
-            : data.filter((r) => (r.status || "") === statusFilter);
+      const rows = Array.isArray(data)
+        ? data
+        : data && Array.isArray(data.items)
+          ? data.items
+          : [];
 
-        // Backend /Search/etrs đã trả kèm StudentName/ClassName; enrich thêm họ tên đầy đủ nếu
-        // tài khoản có quyền đọc Enrollments/UserProfiles (fallback vẫn giữ tên từ kết quả search).
-        const [enrollments, profiles] = await Promise.all([
-          api.get("/Enrollments").catch(() => []),
-          api.get("/UserProfiles/learners").catch(() => []),
-        ]);
-        const enrollmentsArr = Array.isArray(enrollments) ? enrollments : [];
-        const profilesArr = Array.isArray(profiles) ? profiles : [];
-        const enriched = filtered.map((r) => {
-          const enrollment = enrollmentsArr.find(
-            (e) => e.enrollmentId === r.enrollmentId
-          );
-          const profile = enrollment
-            ? profilesArr.find((p) => p.accountId === enrollment.accountId)
-            : null;
-          return { ...r, learnerName: profile?.fullName || "" };
-        });
+      // Lọc trạng thái phía client — backend không hỗ trợ tham số status.
+      // So khớp cả giá trị enum BE (ReturnedForCorrection) lẫn nhãn FE (RETURNED FOR CORRECTION).
+      const norm = (v) => String(v || "").toLowerCase().replace(/[\s_-]/g, "");
+      const filtered =
+        statusFilter === "all"
+          ? rows
+          : rows.filter(
+              (r) =>
+                norm(r.status) === norm(statusFilter) ||
+                norm(STATUS_LABELS[r.status] || "") === norm(statusFilter),
+            );
 
-        setResults(enriched);
-        setSearchNonce((n) => n + 1);
-        toast.success(tr("Tìm kiếm hoàn tất"));
-      } else {
-        setResults([]);
-        setSearchNonce((n) => n + 1);
+      setResults(filtered);
+      setSearchNonce((n) => n + 1);
+      if (filtered.length === 0) {
         toast.info(tr("Không có kết quả"));
+      } else {
+        toast.success(tr("Tìm kiếm hoàn tất"));
       }
     } catch (err) {
-      toast.error(tr("Tìm kiếm thất bại"));
+      setResults([]);
+      setSearchNonce((n) => n + 1);
+      toast.error(
+        `${tr("Tìm kiếm thất bại")}: ${
+          err?.message || tr("Lỗi không xác định từ máy chủ")
+        }`,
+      );
     } finally {
       setSearching(false);
     }
@@ -142,14 +153,28 @@ const QASearchExport = () => {
                 <div key={idx} className="qa-list-item">
                   <div>
                     <p className="qa-list-title">
-                      {r.learnerName || r.studentName || `ETR #${r.etrCourseRecordId || r.eTRCourseRecordId || ""}`}
+                      {r.studentName && r.studentName !== "-"
+                        ? r.studentName
+                        : r.learnerName || r.studentName || `ETR #${r.etrCourseRecordId || r.eTRCourseRecordId || ""}`}
                     </p>
                     <p className="qa-list-desc">
-                      ETR #{r.etrCourseRecordId || r.eTRCourseRecordId || ""} - {r.status || ""}
-                      {r.className ? ` · ${r.className}` : ""}
+                      ETR #{r.etrCourseRecordId || r.eTRCourseRecordId || ""}
+                      {r.classCode && r.classCode !== "-" ? ` · ${r.classCode}` : ""}
+                      {r.className && r.className !== "-" && r.className !== r.classCode ? ` — ${r.className}` : ""}
+                      {r.courseCode && r.courseCode !== "-" ? ` · ${r.courseCode}` : ""}
                     </p>
                   </div>
-                  <span className="qa-status neutral">{trEn('Ready')}</span>
+                  <span
+                    className={`qa-status ${
+                      r.status === "Completed" || r.status === "Verified"
+                        ? "reviewed"
+                        : r.status === "ReturnedForCorrection" || r.status === "Cancelled"
+                          ? "rejected"
+                          : "neutral"
+                    }`}
+                  >
+                    {STATUS_LABELS[r.status] || r.status || "—"}
+                  </span>
                 </div>
               ))
             )}
