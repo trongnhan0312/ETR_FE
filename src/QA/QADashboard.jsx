@@ -244,7 +244,6 @@ const QADashboard = () => {
                 {loading ? "..." : kpi.value ?? 0}
               </div>
               <div className="freedash-kpi-label">{kpi.label}</div>
-              <div className="freedash-kpi-sub">{trEn("Live from API")}</div>
             </div>
           </div>
         ))}

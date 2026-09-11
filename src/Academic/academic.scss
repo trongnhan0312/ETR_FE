@@ -2146,13 +2146,13 @@
 .nested-class-code {
   font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: #1e293b;
 }
 
 .nested-class-name {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: #1e293b;
 }
 
 .no-progress-label {
@@ -2307,7 +2307,7 @@
     .detail-label {
       font-size: 11px;
       font-weight: 700;
-      color: #4a4a4a;
+      color: #1e293b;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -2315,7 +2315,7 @@
     .detail-value {
       font-size: 16px;
       font-weight: 600;
-      color: #002147;
+      color: #0f172a;
     }
   }
 }
@@ -2586,6 +2586,16 @@
     &:hover .step-circle {
       transform: scale(1.05);
     }
+  }
+}
+
+// Đường nối giữa các bước tiến độ ETR — class được render inline trong EtrManagement.jsx
+// nhưng trước đây không có CSS nào → line không hiển thị/bị trượt vị trí.
+.etr-workflow-line-bg {
+  pointer-events: none;
+
+  .etr-workflow-line-fill {
+    transition: width 0.4s ease;
   }
 }
 

@@ -41,6 +41,7 @@ const EtrManagement = () => {
   const [allEnrollments, setAllEnrollments] = useState([]);
   const [allAccounts, setAllAccounts] = useState([]);
   const [allProfiles, setAllProfiles] = useState([]);
+  const [allSubjects, setAllSubjects] = useState([]);
 
   // Học viên có ít nhất 1 ghi danh — options cho modal tra cứu ETR
   const enrollableLearners = useMemo(() => {
@@ -85,6 +86,7 @@ const EtrManagement = () => {
           accounts,
           profiles,
           evidenceTypes,
+          subjects,
         ] = await Promise.all([
           api.get("/Etr").catch(() => []),
           api.get("/Evidences").catch((err) => {
@@ -102,6 +104,7 @@ const EtrManagement = () => {
           api.get("/Accounts").catch(() => []),
           api.get("/UserProfiles/learners").catch(() => []),
           api.get("/EvidenceTypes").catch(() => []),
+          api.get("/Subjects").catch(() => []),
         ]);
 
         const extractList = (data) => {
@@ -121,6 +124,7 @@ const EtrManagement = () => {
         setAllAccounts(accountsArr);
         setAllProfiles(profilesArr);
         setAllEnrollments(enrollmentsArr);
+        setAllSubjects(Array.isArray(subjects) ? subjects : []);
         setUploadEvidenceTypes(
           Array.isArray(evidenceTypes) ? evidenceTypes : [],
         );
@@ -344,6 +348,7 @@ const EtrManagement = () => {
         // submit khi KHÔNG còn evidence nào chưa Verified. Mảng rỗng → .every() trả true
         // (giống backend: không có evidence thì không có file chưa verified).
         evidenceReady: etrEvidences.every((ev) => ev.status === "Verified"),
+        returnReason: etr.returnReason || etr.ReturnReason || etr.rejectionReason || etr.RejectionReason || "",
       };
     });
   };
@@ -546,10 +551,94 @@ const EtrManagement = () => {
     }
   };
 
-  const handleOpenFinalView = (record, e) => {
+  const [finalViewDetail, setFinalViewDetail] = useState(null);
+
+  const handleOpenFinalView = async (record, e) => {
     e.stopPropagation();
     setFinalViewRecord(record);
     setIsFinalViewOpen(true);
+    setFinalViewDetail(null);
+    try {
+      const detail = await api.get(`/Etr/${record.etrId}`).catch(() => null);
+      setFinalViewDetail(detail);
+    } catch {}
+  };
+
+  // Nhãn hiển thị trạng thái verification của EvidenceFile (BE trả string enum:
+  // Pending/Verified/Rejected — EtrEvidenceFileResponse chỉ có các field cơ bản).
+  const evidenceVerificationLabel = (file) => {
+    const st = String(file.verificationStatus || file.status || "").toLowerCase();
+    if (st === "verified") return { label: tr("✓ Đã xác thực"), color: "#15803d", bg: "#dcfce7" };
+    if (st === "rejected") return { label: tr("✗ Bị từ chối"), color: "#b91c1c", bg: "#fee2e2" };
+    return { label: tr("Chờ xác thực"), color: "#d97706", bg: "#fef3c7" };
+  };
+
+  // Tên môn học cho View Final — BE (EtrSubjectDetailResponse) chỉ trả subjectId,
+  // không trả tên môn → tra từ danh sách /Subjects đã load.
+  const lookupSubjectName = (sr) => {
+    if (!sr) return "";
+    const sub = (allSubjects || []).find(
+      (s) => String(s.subjectId ?? s.SubjectId) === String(sr.subjectId ?? sr.SubjectId),
+    );
+    if (!sub) return "";
+    const code = sub.subjectCode || sub.SubjectCode || "";
+    const name = sub.subjectName || sub.SubjectName || "";
+    return code ? `[${code}] ${name}` : name;
+  };
+
+  // ── Tra cứu ETR (GET /api/Search/etrs?query=) ────────────────────────────
+  // Nút "Tra cứu ETR" trước đây không có handler (không làm gì khi bấm) → cảm giác
+  // "bị lỗi". Giờ mở modal tra cứu gọi thẳng API Search hệ thống: tìm được cả hồ sơ
+  // KHÔNG nằm trong danh sách đang map FE (điểm danh/dữ liệu chưa load đủ).
+  const [lookupOpen, setLookupOpen] = useState(false);
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupSearching, setLookupSearching] = useState(false);
+  const [lookupResults, setLookupResults] = useState(null);
+  const [lookupError, setLookupError] = useState("");
+
+  const handleEtrLookup = () => {
+    setLookupOpen(true);
+    setLookupError("");
+  };
+
+  const runEtrLookup = async () => {
+    const q = lookupQuery.trim();
+    if (!q) {
+      setLookupError(tr("Vui lòng nhập từ khóa: mã ETR, tên học viên hoặc trạng thái."));
+      return;
+    }
+    setLookupSearching(true);
+    setLookupError("");
+    try {
+      const data = await api.get(`/Search/etrs?query=${encodeURIComponent(q)}`);
+      const rows = Array.isArray(data)
+        ? data
+        : data && Array.isArray(data.items)
+          ? data.items
+          : [];
+      setLookupResults(rows);
+    } catch (err) {
+      console.error("ETR lookup failed:", err);
+      setLookupResults([]);
+      setLookupError(
+        `${tr("Tra cứu thất bại")}: ${err?.message || tr("Lỗi không xác định từ máy chủ")}`,
+      );
+    } finally {
+      setLookupSearching(false);
+    }
+  };
+
+  const etrStatusDisplay = (s) => {
+    const map = {
+      Draft: "UNDER REVIEW",
+      InProgress: "UNDER REVIEW",
+      Submitted: "PENDING QA",
+      Verified: "QA VERIFIED",
+      Completed: "APPROVED",
+      ReturnedForCorrection: "RETURNED FOR CORRECTION",
+      Cancelled: "CANCELLED",
+    };
+    return map[s] || s || "—";
   };
 
   const handleSubmitEtr = async () => {
@@ -2251,10 +2340,17 @@ const EtrManagement = () => {
                 position: "relative",
                 width: "100%",
                 maxWidth: "900px",
+                minHeight: "110px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "16px",
                 margin: "20px 0 0",
+                padding: "0 12px",
+                overflow: "visible",
+                // BẮT BUỘC: .etr-workflow-line-bg dùng position:absolute (top:24px) —
+                // thiếu position:relative ở đây khiến line trượt ra gốc trang và đè lên
+                // nội dung khác → "giao diện tiến độ nhìn bị lỗi".
+                position: "relative",
               }}
             >
               <div
@@ -2551,6 +2647,46 @@ const EtrManagement = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              {/* Tra cứu ETR — gọi API tra cứu hệ thống GET /Search/etrs (khác ô lọc cục bộ
+                  phía trên: ô này tra cứu theo mã ETR/tên học viên trên toàn bộ dữ liệu
+                  backend và trả kết quả trong modal, kể cả hồ sơ không nằm trong danh sách
+                  đang được map ở FE). */}
+              <button
+                className="outline-btn font-gold-btn"
+                type="button"
+                disabled={lookupSearching}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 14px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "4px",
+                  background: "#fff",
+                  color: "#002147",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  cursor: lookupSearching ? "wait" : "pointer",
+                  whiteSpace: "nowrap",
+                }}
+                onClick={handleEtrLookup}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M11.5 6.5C11.5 9.26142 9.26142 11.5 6.5 11.5C3.73858 11.5 1.5 9.26142 1.5 6.5C1.5 3.73858 3.73858 1.5 6.5 1.5C9.26142 11.5 11.5 9.26142 11.5 6.5ZM16 14.5L11.5 10"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                {lookupSearching ? tr("Đang tra cứu...") : tr("Tra cứu ETR")}
+              </button>
               <div
                 className="flex justify-start items-center relative gap-2 px-5 py-2.5 rounded-lg border border-slate-200 cursor-pointer"
                 onClick={() =>
@@ -2705,6 +2841,25 @@ const EtrManagement = () => {
                       >
                         {record.status}
                       </span>
+                      {record.status === "RETURNED FOR CORRECTION" && record.returnReason && (
+                        <div
+                          style={{
+                            marginTop: '4px',
+                            padding: '4px 8px',
+                            backgroundColor: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            color: '#991b1b',
+                            maxWidth: '200px',
+                            lineHeight: '1.3',
+                          }}
+                          title={record.returnReason}
+                        >
+                          📋 {record.returnReason.length > 60 ? record.returnReason.slice(0, 60) + '…' : record.returnReason}
+                        </div>
+                      )}
                     </div>
                     <div
                       className="col-updated"
@@ -3430,6 +3585,82 @@ const EtrManagement = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Subject Results Table */}
+                  {finalViewDetail?.subjectResults && finalViewDetail.subjectResults.length > 0 && (
+                    <div style={{ border: '1px solid #e0e4e8', borderRadius: '8px', padding: '20px', backgroundColor: '#ffffff', marginBottom: '24px' }}>
+                      <div style={{ fontWeight: '700', fontSize: '12px', color: '#002147', textTransform: 'uppercase', marginBottom: '12px' }}>
+                        {tr('BẢNG ĐIỂM CHI TIẾT TỪNG MÔN')}
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                            <th style={{ textAlign: 'left', padding: '8px 6px', color: '#64748b', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{tr('Môn học')}</th>
+                            <th style={{ textAlign: 'center', padding: '8px 6px', color: '#64748b', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{tr('Điểm')}</th>
+                            <th style={{ textAlign: 'center', padding: '8px 6px', color: '#64748b', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{tr('Trạng thái')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {finalViewDetail.subjectResults.map((sr, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '8px 6px', fontWeight: 600, color: '#334155' }}>
+                                {lookupSubjectName(sr) || sr.subjectName || sr.subjectCode || `${tr('Môn #')}${sr.subjectId}`}
+                              </td>
+                              <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, color: '#002147' }}>{sr.score != null ? sr.score : '—'}</td>
+                              <td style={{ padding: '8px 6px', textAlign: 'center' }}>
+                                <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, backgroundColor: sr.isPassed ? '#dcfce7' : '#fef2f2', color: sr.isPassed ? '#15803d' : '#b91c1c' }}>
+                                  {sr.isPassed ? tr('Đạt') : tr('Chưa đạt')}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Attendance Rate per Subject */}
+                  {finalViewDetail?.subjectResults && finalViewDetail.subjectResults.length > 0 && (
+                    <div style={{ border: '1px solid #e0e4e8', borderRadius: '8px', padding: '20px', backgroundColor: '#ffffff', marginBottom: '24px' }}>
+                      <div style={{ fontWeight: '700', fontSize: '12px', color: '#002147', textTransform: 'uppercase', marginBottom: '12px' }}>
+                        {tr('TRẠNG THÁI ĐIỂM DANH TỪNG MÔN')}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {finalViewDetail.subjectResults.map((sr, idx) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                              {lookupSubjectName(sr) || sr.subjectName || sr.subjectCode || `${tr('Môn #')}${sr.subjectId}`}
+                            </span>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: (sr.attendanceRate ?? 0) >= 80 ? '#15803d' : '#b91c1c' }}>
+                              {sr.attendanceRate != null ? `${sr.attendanceRate}%` : '—'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Evidence Files */}
+                  {finalViewDetail?.evidenceFiles && finalViewDetail.evidenceFiles.length > 0 && (
+                    <div style={{ border: '1px solid #e0e4e8', borderRadius: '8px', padding: '20px', backgroundColor: '#ffffff', marginBottom: '24px' }}>
+                      <div style={{ fontWeight: '700', fontSize: '12px', color: '#002147', textTransform: 'uppercase', marginBottom: '12px' }}>
+                        {tr('MINH CHỨNG ĐÀO TẠO ĐÃ UPLOAD')}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {finalViewDetail.evidenceFiles.map((file, idx) => {
+                          const vInfo = evidenceVerificationLabel(file);
+                          return (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>📄 {file.fileName || file.name || `${tr('File #')}${idx + 1}`}</span>
+                              <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', backgroundColor: vInfo.bg, color: vInfo.color }}>
+                                {vInfo.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <footer className="modal-footer">
@@ -3452,6 +3683,97 @@ const EtrManagement = () => {
             log={selectedAuditModalLog}
             onClose={() => setSelectedAuditModalLog(null)}
           />
+        )}
+
+        {/* Modal: Tra cứu ETR (GET /api/Search/etrs) */}
+        {lookupOpen && createPortal(
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+            <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>{tr('Tra cứu ETR')}</h2>
+                <button
+                  type="button"
+                  onClick={() => setLookupOpen(false)}
+                  style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
+                  aria-label={tr('Đóng')}
+                >✕</button>
+              </div>
+
+              <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#64748b' }}>
+                {tr('Nhập mã ETR (số), tên học viên hoặc trạng thái (VD: Completed) để tra cứu trên toàn hệ thống.')}
+              </p>
+
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
+                <input
+                  type="text"
+                  value={lookupQuery}
+                  onChange={(e) => setLookupQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && runEtrLookup()}
+                  placeholder={tr('VD: 42, Nguyễn Văn A, Completed...')}
+                  style={{ flex: 1, padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
+                />
+                <button
+                  type="button"
+                  disabled={lookupSearching}
+                  onClick={runEtrLookup}
+                  style={{ padding: '9px 18px', background: '#002147', border: 'none', borderRadius: '8px', color: '#c5a059', fontWeight: '700', fontSize: '13px', cursor: lookupSearching ? 'wait' : 'pointer' }}
+                >
+                  {lookupSearching ? tr('Đang tra cứu...') : tr('TRA CỨU')}
+                </button>
+              </div>
+
+              {lookupError && (
+                <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '12px' }}>
+                  {lookupError}
+                </div>
+              )}
+
+              {lookupResults !== null && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {lookupResults.length === 0 && !lookupError ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontStyle: 'italic' }}>
+                      {tr('Không tìm thấy hồ sơ ETR phù hợp.')}
+                    </div>
+                  ) : (
+                    lookupResults.map((r, idx) => (
+                      <div key={r.etrCourseRecordId || r.eTRCourseRecordId || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#002147' }}>
+                            ETR #{r.etrCourseRecordId || r.eTRCourseRecordId || '—'} — {r.studentName || '-'}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                            {r.classCode && r.classCode !== '-' ? `${r.classCode} · ` : ''}
+                            {r.className && r.className !== '-' ? `${r.className} · ` : ''}
+                            {r.courseCode && r.courseCode !== '-' ? r.courseCode : ''}
+                          </div>
+                        </div>
+                        <span style={{
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          fontSize: '10px',
+                          fontWeight: 900,
+                          whiteSpace: 'nowrap',
+                          backgroundColor: (r.status === 'Completed' || r.status === 'Verified') ? '#dcfce7' : r.status === 'ReturnedForCorrection' ? '#fef3c7' : '#e2e8f0',
+                          color: (r.status === 'Completed' || r.status === 'Verified') ? '#15803d' : r.status === 'ReturnedForCorrection' ? '#d97706' : '#475569',
+                        }}>
+                          {etrStatusDisplay(r.status)}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px' }}>
+                <button
+                  type="button"
+                  onClick={() => setLookupOpen(false)}
+                  style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                >{tr('Đóng')}</button>
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>

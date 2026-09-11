@@ -53,8 +53,20 @@ const LearnerManagement = () => {
   const parseApiError = (err, fallbackMsg = tr("Thao tác thất bại.")) => {
     if (!err) return fallbackMsg;
     const raw = err.message || String(err);
+    // Check for common duplicate-email patterns in the raw string
+    if (raw.toLowerCase().includes('already exist') || raw.toLowerCase().includes('đã tồn tại') || raw.toLowerCase().includes('duplicate')) {
+      return tr('Tên đăng nhập (Email) này đã tồn tại trong hệ thống. Vui lòng chọn email khác.');
+    }
     try {
       const json = JSON.parse(raw);
+      // ProblemDetails format from BE: { status, title, detail, instance }
+      if (json.detail) {
+        const detail = String(json.detail);
+        if (detail.toLowerCase().includes('already exist') || detail.toLowerCase().includes('đã tồn tại')) {
+          return tr('Tên đăng nhập (Email) này đã tồn tại trong hệ thống. Vui lòng chọn email khác.');
+        }
+        return detail;
+      }
       if (json.errors && typeof json.errors === 'object') {
         const fieldMap = {
           Username: tr('Tên đăng nhập'),
@@ -68,6 +80,9 @@ const LearnerManagement = () => {
           const errStr = Array.isArray(errs) ? errs.join(', ') : String(errs);
           if (errStr.toLowerCase().includes('valid e-mail address')) {
             return `${fieldLabel} ${tr('phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).')}`;
+          }
+          if (errStr.toLowerCase().includes('already exist') || errStr.toLowerCase().includes('đã tồn tại') || errStr.toLowerCase().includes('duplicate')) {
+            return `${fieldLabel} ${tr('đã tồn tại. Vui lòng chọn giá trị khác.')}`;
           }
           return `${fieldLabel}: ${errStr}`;
         });
@@ -411,6 +426,98 @@ const getStudentDepartments = () => {
   // Toast notifications
   const toast = useToast();
 
+  // ── Import học viên từ Excel (BE có sẵn: /import/accounts/template|validate|commit) ──
+  // Trước đây trang chỉ có tạo từng học viên thủ công → thiếu tính năng nhập danh sách.
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importValidating, setImportValidating] = useState(false);
+  const [importCommitting, setImportCommitting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [importError, setImportError] = useState("");
+  const [importDownloading, setImportDownloading] = useState(false);
+
+  const handleOpenImport = () => {
+    setImportFile(null);
+    setImportResult(null);
+    setImportError("");
+    setImportOpen(true);
+  };
+
+  // Tải template chuẩn từ BE — cột: Username (email)*, Mật khẩu*, Vai trò (Role)*,
+  // Phòng ban (Department)* (2 cột cuối có dropdown lấy từ DB).
+  const handleDownloadImportTemplate = async () => {
+    setImportError("");
+    setImportDownloading(true);
+    try {
+      const blob = await api.downloadFile("/import/accounts/template", { suppressAuthRedirect: true });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "bulk_create_accounts.xlsx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(tr("Tải template thành công!"));
+    } catch (err) {
+      console.error("Lỗi tải template import học viên:", err);
+      setImportError(parseApiError(err, tr("Tải template thất bại.")));
+    } finally {
+      setImportDownloading(false);
+    }
+  };
+
+  const handleValidateImport = async () => {
+    setImportError("");
+    if (!importFile) {
+      setImportError(tr("Vui lòng chọn file Excel trước khi kiểm tra."));
+      return;
+    }
+    setImportValidating(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", importFile);
+      const result = await api.postFormData("/import/accounts/validate", fd);
+      setImportResult(result);
+      if (result?.canCommit) {
+        toast.success(tr("File hợp lệ, có thể nhập"));
+      } else {
+        toast.warning(tr("File có lỗi, cần sửa trước khi nhập"));
+      }
+    } catch (err) {
+      console.error("Lỗi validate import học viên:", err);
+      setImportResult(null);
+      setImportError(parseApiError(err, tr("Kiểm tra file thất bại.")));
+    } finally {
+      setImportValidating(false);
+    }
+  };
+
+  const handleCommitImport = async () => {
+    if (!importFile || !importResult?.canCommit) return;
+    setImportCommitting(true);
+    setImportError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", importFile);
+      const result = await api.postFormData("/import/accounts/commit", fd);
+      const imported = result?.imported ?? 0;
+      const skipped = result?.skipped ?? 0;
+      toast.success(
+        `${tr("Đã nhập thành công")} ${imported} ${tr("tài khoản học viên")}${
+          skipped > 0 ? ` — ${tr("bỏ qua")}: ${skipped}` : ""
+        }`,
+      );
+      setImportOpen(false);
+      await loadLearners();
+    } catch (err) {
+      console.error("Lỗi commit import học viên:", err);
+      setImportError(parseApiError(err, tr("Nhập danh sách học viên thất bại.")));
+    } finally {
+      setImportCommitting(false);
+    }
+  };
+
   // Xác nhận trước khi vô hiệu hóa / kích hoạt tài khoản (thay window.confirm)
   const [confirmAction, setConfirmAction] = useState(null); // { type: 'disable' | 'activate', user }
 
@@ -470,26 +577,53 @@ const getStudentDepartments = () => {
           </p>
         </div>
 
-        <button
-          className="create-btn"
-          type="button"
-          onClick={handleOpenCreateModal}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#002147',
-            color: '#fff',
-            padding: '10px 18px',
-            borderRadius: '8px',
-            border: 'none',
-            fontWeight: '600',
-            fontSize: '13px',
-            cursor: 'pointer',
-          }}
-        >
-          <span>{tr('+ Tạo tài khoản học viên')}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            className="create-btn"
+            type="button"
+            onClick={handleOpenImport}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#fff',
+              color: '#002147',
+              padding: '10px 18px',
+              borderRadius: '8px',
+              border: '1px solid #002147',
+              fontWeight: '600',
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 0H1.5C0.67 0 0 0.67 0 1.5V14.5C0 15.33 0.67 16 1.5 16H12.5C13.33 16 14 15.33 14 14.5V5L9 0Z" fill="#16a34a" />
+              <path d="M9 0V5H14L9 0Z" fill="#86efac" />
+              <path d="M7 7V11M7 11L5 9M7 11L9 9" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>{tr('Import Excel')}</span>
+          </button>
+          <button
+            className="create-btn"
+            type="button"
+            onClick={handleOpenCreateModal}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#002147',
+              color: '#fff',
+              padding: '10px 18px',
+              borderRadius: '8px',
+              border: 'none',
+              fontWeight: '600',
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+          >
+            <span>{tr('+ Tạo tài khoản học viên')}</span>
+          </button>
+        </div>
       </section>
 
       {/* Main Table Section */}
@@ -1097,6 +1231,175 @@ const getStudentDepartments = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* IMPORT LEARNERS MODAL (Excel bulk import — BE /import/accounts/*) */}
+      {importOpen && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '560px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>{tr('Import danh sách học viên (Excel)')}</h2>
+              <button
+                type="button"
+                onClick={() => setImportOpen(false)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
+                aria-label={tr('Đóng')}
+              >✕</button>
+            </div>
+
+            <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#64748b' }}>
+              {tr('Tải file mẫu, điền danh sách tài khoản học viên (chỉ role Student), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).')}
+            </p>
+
+            <button
+              type="button"
+              onClick={handleDownloadImportTemplate}
+              disabled={importDownloading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 14px',
+                background: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                borderRadius: '8px',
+                color: '#0369a1',
+                fontWeight: '600',
+                fontSize: '13px',
+                cursor: importDownloading ? 'wait' : 'pointer',
+                marginBottom: '14px',
+              }}
+            >
+              {importDownloading ? tr('Đang tải...') : tr('⬇ Tải file mẫu (.xlsx)')}
+            </button>
+
+            {importError && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '12px', whiteSpace: 'pre-line' }}>
+                {importError}
+              </div>
+            )}
+
+            <div
+              style={{
+                border: '2px dashed #cbd5e1',
+                borderRadius: '10px',
+                padding: '20px',
+                textAlign: 'center',
+                marginBottom: '14px',
+                background: importFile ? '#f0fdf4' : '#f8fafc',
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer.files?.[0];
+                if (f) {
+                  setImportFile(f);
+                  setImportResult(null);
+                  setImportError("");
+                }
+              }}
+            >
+              <input
+                id="learner-import-file"
+                type="file"
+                accept=".xlsx,.xls"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null;
+                  setImportFile(f);
+                  setImportResult(null);
+                  setImportError("");
+                }}
+              />
+              <label
+                htmlFor="learner-import-file"
+                style={{ cursor: 'pointer', color: '#002147', fontWeight: '600', fontSize: '13px' }}
+              >
+                {importFile
+                  ? `📄 ${importFile.name}`
+                  : tr('Bấm để chọn file Excel (.xlsx) hoặc kéo-thả vào đây')}
+              </label>
+            </div>
+
+            {importResult && (
+              <div style={{ marginBottom: '14px' }}>
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    backgroundColor: importResult.canCommit ? '#f0fdf4' : '#fef2f2',
+                    border: `1px solid ${importResult.canCommit ? '#bbf7d0' : '#fca5a5'}`,
+                    color: importResult.canCommit ? '#15803d' : '#b91c1c',
+                  }}
+                >
+                  {importResult.canCommit
+                    ? tr(`✓ Hợp lệ: ${importResult.validRows}/${importResult.totalRows} dòng. Có thể nhập vào hệ thống.`)
+                    : tr(`✗ Không hợp lệ: ${importResult.errorRows}/${importResult.totalRows} dòng lỗi. Vui lòng sửa file rồi kiểm tra lại.`)}
+                </div>
+                {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                  <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
+                          <th style={{ padding: '6px 10px', color: '#475569' }}>{tr('Dòng')}</th>
+                          <th style={{ padding: '6px 10px', color: '#475569' }}>{tr('Cột')}</th>
+                          <th style={{ padding: '6px 10px', color: '#475569' }}>{tr('Lỗi')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.errors.map((er, i) => (
+                          <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '6px 10px', fontWeight: 700, color: '#b91c1c' }}>{er.row}</td>
+                            <td style={{ padding: '6px 10px', color: '#475569' }}>{er.column || '—'}</td>
+                            <td style={{ padding: '6px 10px', color: '#334155' }}>{er.message}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setImportOpen(false)}
+                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer', fontWeight: '600' }}
+              >
+                {tr('Hủy')}
+              </button>
+              <button
+                type="button"
+                onClick={handleValidateImport}
+                disabled={!importFile || importValidating || importCommitting}
+                style={{ padding: '8px 16px', background: '#fff', border: '1px solid #002147', borderRadius: '6px', color: '#002147', cursor: !importFile || importValidating ? 'wait' : 'pointer', fontWeight: '600' }}
+              >
+                {importValidating ? tr('Đang kiểm tra...') : tr('Kiểm tra file')}
+              </button>
+              <button
+                type="button"
+                onClick={handleCommitImport}
+                disabled={!importResult?.canCommit || importValidating || importCommitting}
+                style={{
+                  padding: '8px 18px',
+                  background: importResult?.canCommit ? '#002147' : '#e2e8f0',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: importResult?.canCommit ? '#c5a059' : '#94a3b8',
+                  fontWeight: '700',
+                  cursor: importResult?.canCommit && !importCommitting ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {importCommitting ? tr('Đang nhập...') : tr('Nhập vào hệ thống')}
+              </button>
+            </div>
           </div>
         </div>,
         document.body

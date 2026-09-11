@@ -162,11 +162,15 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
         return;
       }        if (selectedClassObj.courseId) {
           api.get(`/Courses/${selectedClassObj.courseId}`).then((cDetail) => {
-            const subs = Array.isArray(cDetail?.subjects)
-              ? cDetail.subjects
-              : (Array.isArray(cDetail?.courseSubjects) ? cDetail.courseSubjects : []);
-            if (cDetail && subs.length === 0) {
-              setCourseSubjectWarning(`⚠️ ${tr('Khóa học')} "${cDetail.courseName || selectedClassObj.name}" (ID: ${selectedClassObj.courseId}) ${tr('chưa được cấu hình môn học (Subject). Theo quy tắc nghiệp vụ ETR, không thể ghi danh vào khóa chưa có môn học.')}`);
+            const subs =
+              cDetail?.courseSubjects ||
+              cDetail?.subjects ||
+              cDetail?.CourseSubjects ||
+              cDetail?.Subjects ||
+              cDetail?.selectedSubjectIds ||
+              [];
+            if (Array.isArray(subs) && subs.length === 0) {
+              setCourseSubjectWarning(`⚠️ ${tr('Khóa học')} "${cDetail?.courseName || selectedClassObj.name}" (ID: ${selectedClassObj.courseId}) ${tr('chưa được cấu hình môn học (Subject). Theo quy tắc nghiệp vụ ETR, không thể ghi danh vào khóa chưa có môn học.')}`);
               setCourseHasNoSubjects(true);
             }
           }).catch(() => {});
