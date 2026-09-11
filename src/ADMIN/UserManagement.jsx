@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useOutletContext } from 'react-router-dom';
 import { api, parseApiError } from '../utils/api';
+import { announce } from '../utils/crudNotify';
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
@@ -11,6 +12,9 @@ import Pagination from '../components/Pagination';
 const UserManagement = ({ defaultTab = 'users' }) => {
   const { tr, trt } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
+  // Top-bar search từ AdminLayout (Outlet context) — lọc danh sách người dùng
+  const outletCtx = useOutletContext() ?? {};
+  const topbarQuery = typeof outletCtx.searchQuery === 'string' ? outletCtx.searchQuery : '';
   const activeTab = searchParams.get('tab') || defaultTab || 'users';
 
   const setActiveTab = (tab) => {
@@ -262,6 +266,11 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       return;
     }
 
+    if (password.length < 6) {
+      setFormError(tr('Mật khẩu phải có ít nhất 6 ký tự để đảm bảo bảo mật và đăng nhập được.'));
+      return;
+    }
+
     if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
       setFormError(tr('Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).'));
       return;
@@ -291,7 +300,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
 
       await loadAllData();
       setIsCreateOpen(false);
-      toast.success(tr("Tạo tài khoản thành công!"));
+      toast.success(tr("Tạo tài khoản thành công!"), announce("add", tr("Tài khoản")));
     } catch (err) {
       console.error("Failed to create user:", err);
       setFormError(parseLocalApiError(err, tr("Tạo tài khoản thất bại.")));
@@ -373,7 +382,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
 
       await loadAllData();
       setIsEditOpen(false);
-      toast.success(tr("Cập nhật tài khoản thành công!"));
+      toast.success(tr("Cập nhật tài khoản thành công!"), announce("edit", tr("Tài khoản")));
     } catch (err) {
       console.error("Failed to update user profile:", err);
       setFormError(parseLocalApiError(err, tr("Cập nhật hồ sơ thất bại.")));
@@ -385,39 +394,52 @@ const UserManagement = ({ defaultTab = 'users' }) => {
   // Toast notifications
   const toast = useToast();
 
-  // Xác nhận trước các thao tác tài khoản
-  const [confirmAction, setConfirmAction] = useState(null);
+  // Current logged in user ID
+  const currentUserId = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user'));
+      return u?.accountId ?? u?.userId ?? null;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Xác nhận trước các thao tác tài khoản (thay window.confirm)
+  const [confirmAction, setConfirmAction] = useState(null); // { type: 'toggle' | 'delete' | 'activate', user }
 
   const runAccountAction = async (type, user) => {
+    if (String(user.accountId) === String(currentUserId)) {
+      if (type === 'delete') {
+        toast.error(tr("Bạn không thể tự xóa tài khoản của chính mình (cả xóa mềm lẫn xóa cứng)!"));
+        setConfirmAction(null);
+        return;
+      }
+      if (type === 'toggle') {
+        toast.error(tr("Bạn không thể tự vô hiệu hóa tài khoản của chính mình!"));
+        setConfirmAction(null);
+        return;
+      }
+    }
+
     try {
       if (type === 'toggle') {
         const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
         const nextStatus = isInactive ? 'Active' : 'Inactive';
         await api.put(`/Accounts/${user.accountId}/status`, { status: nextStatus });
-        toast.success(tr("Cập nhật trạng thái"));
+        toast.success(tr("Cập nhật trạng thái"), announce("edit", tr("Tài khoản")));
       } else if (type === 'delete') {
         await api.delete(`/Accounts/${user.accountId}`);
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-        toast.success(tr("Soft Delete"));
+        toast.success(tr("Soft Delete"), announce("delete", tr("Tài khoản")));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
-        toast.success(tr("Kích hoạt thành công"));
+        toast.success(tr("Kích hoạt thành công"), announce("edit", tr("Tài khoản")));
       }
       await loadAllData();
     } catch (err) {
       console.error(`Failed to ${type} account:`, err);
-      if (type === 'delete') {
-        try {
-          await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
-          await loadAllData();
-        } catch (putErr) {
-          toast.error(tr("Soft Delete thất bại"));
-        }
-      } else if (type === 'toggle') {
-        toast.error(tr("Cập nhật trạng thái thất bại"));
-      } else {
-        toast.error(tr("Kích hoạt tài khoản thất bại"));
-      }
+      const errMsg = parseApiError(err, type === 'delete' ? tr("Soft Delete thất bại") : tr("Thao tác thất bại"));
+      toast.error(errMsg);
     } finally {
       setConfirmAction(null);
     }
@@ -454,7 +476,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       setIsCreateDeptOpen(false);
       resetDeptForm();
       await loadAllData();
-      toast.success(tr('Tạo phòng ban thành công!'));
+      toast.success(tr('Tạo phòng ban thành công!'), announce('add', tr('Phòng ban')));
     } catch (err) {
       setDeptFormError(parseApiError(err, tr('Lỗi khi tạo phòng ban mới')));
     } finally {
@@ -491,7 +513,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       setIsEditDeptOpen(false);
       resetDeptForm();
       await loadAllData();
-      toast.success(tr('Cập nhật phòng ban thành công!'));
+      toast.success(tr('Cập nhật phòng ban thành công!'), announce('edit', tr('Phòng ban')));
     } catch (err) {
       setDeptFormError(parseApiError(err, tr('Lỗi khi cập nhật phòng ban')));
     } finally {
@@ -514,7 +536,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       setIsDeleteDeptOpen(false);
       resetDeptForm();
       await loadAllData();
-      toast.success(tr('Xoá phòng ban thành công!'));
+      toast.success(tr('Xoá phòng ban thành công!'), announce('delete', tr('Phòng ban')));
     } catch (err) {
       setDeptFormError(parseApiError(err, tr('Lỗi khi xoá phòng ban')));
     } finally {
@@ -522,11 +544,13 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     }
   };
 
-  // Filtered users
+  // Filtered users — kết hợp search trên trang (searchTerm) và top-bar (topbarQuery):
+  // dùng term nào đang có giá trị, ưu tiên search trong trang nếu người dùng đang gõ.
   const filteredUsers = users.filter((u) => {
-    const q = searchTerm.toLowerCase();
+    const effectiveTerm = searchTerm || topbarQuery;
+    const q = effectiveTerm.toLowerCase();
     const matchesSearch =
-      !searchTerm ||
+      !effectiveTerm ||
       u.username.toLowerCase().includes(q) ||
       u.fullName.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q) ||
@@ -538,7 +562,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
 
   const userPagination = usePagination(filteredUsers, {
     pageSize: 10,
-    resetKey: `${searchTerm}|${roleFilter}`,
+    resetKey: `${searchTerm}|${topbarQuery}|${roleFilter}`,
   });
 
   // Filtered departments
@@ -665,7 +689,6 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                 }}
               />
             </div>
-
             <div className="data-table user-table" style={{ marginTop: '16px' }}>
               <div className="table-header table-layout user-layout" style={{ gridTemplateColumns: '1.1fr 1.2fr 1.2fr 0.9fr 1.1fr 0.8fr 0.8fr 1.2fr' }}>
                 <div>{tr('Username')}</div>
@@ -689,9 +712,17 @@ const UserManagement = ({ defaultTab = 'users' }) => {
               ) : (
                 userPagination.pageItems.map((user) => {
                   const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
+                  const isSelf = String(user.accountId) === String(currentUserId);
                   return (
                     <div key={user.accountId} className="table-row table-layout user-layout" style={{ gridTemplateColumns: '1.1fr 1.2fr 1.2fr 0.9fr 1.1fr 0.8fr 0.8fr 1.2fr', alignItems: 'center' }}>
-                      <div className="font-medium" style={{ color: '#0f172a', fontWeight: '600' }}>{user.username}</div>
+                      <div className="font-medium" style={{ color: '#0f172a', fontWeight: '600' }}>
+                        {user.username}
+                        {isSelf && (
+                          <span style={{ marginLeft: '6px', fontSize: '11px', color: '#0284c7', background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                            {tr('(Bạn)')}
+                          </span>
+                        )}
+                      </div>
                       <div className="text-gray">{user.fullName}</div>
                       <div className="text-gray">{user.email || 'N/A'}</div>
                       <div>
@@ -706,10 +737,11 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                       <div>
                         <button
                           type="button"
-                          onClick={() => setConfirmAction({ type: 'toggle', user })}
+                          onClick={() => !isSelf && setConfirmAction({ type: 'toggle', user })}
+                          disabled={isSelf}
                           className={!isInactive ? 'status status-active' : 'status status-pending'}
-                          style={{ cursor: 'pointer', border: 'none' }}
-                          title={tr('Click để toggle Active/Inactive')}
+                          style={{ cursor: isSelf ? 'not-allowed' : 'pointer', border: 'none', opacity: isSelf ? 0.85 : 1 }}
+                          title={isSelf ? tr('Không thể tự vô hiệu hóa tài khoản của chính mình') : tr('Click để toggle Active/Inactive')}
                         >
                           {isInactive ? tr('Inactive') : tr('Active')}
                         </button>
@@ -744,15 +776,18 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                           <button
                             className="action-btn"
                             type="button"
-                            onClick={() => setConfirmAction({ type: 'delete', user })}
+                            onClick={() => !isSelf && setConfirmAction({ type: 'delete', user })}
+                            disabled={isSelf}
                             style={{
                               padding: '4px 10px',
                               fontSize: '12px',
-                              color: '#ef4444',
-                              borderColor: '#fca5a5',
-                              background: '#fff5f5',
-                              cursor: 'pointer'
+                              color: isSelf ? '#94a3b8' : '#ef4444',
+                              borderColor: isSelf ? '#e2e8f0' : '#fca5a5',
+                              background: isSelf ? '#f8fafc' : '#fff5f5',
+                              cursor: isSelf ? 'not-allowed' : 'pointer',
+                              opacity: isSelf ? 0.6 : 1
                             }}
+                            title={isSelf ? tr('Không thể tự xóa tài khoản của chính mình') : tr('Xóa tài khoản')}
                           >
                             {tr('Delete')}
                           </button>

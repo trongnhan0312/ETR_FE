@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import PromptModal from "../components/PromptModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
@@ -86,7 +87,7 @@ const QAEvidenceVerification = () => {
       await api.put(`/Evidences/${row.id}/verify`, {
         VerificationStatus: "Verified",
       });
-      toast.success(tr("Xác thực thành công"));
+      toast.success(tr("Xác thực thành công"), announce("edit", tr("Minh chứng")));
       await loadEvidences();
     } catch (err) {
       toast.error(tr("Xác thực thất bại"));
@@ -115,7 +116,7 @@ const QAEvidenceVerification = () => {
         VerificationStatus: "Rejected",
         VerificationComment: reason.trim(),
       });
-      toast.warning(tr("Đã từ chối"));
+      toast.warning(tr("Đã từ chối"), announce("edit", tr("Minh chứng")));
       setRejectTarget(null);
       await loadEvidences();
     } catch (err) {
@@ -179,7 +180,7 @@ const QAEvidenceVerification = () => {
       await api.put(`/Evidences/${reviewTarget.id}/verify`, {
         VerificationStatus: "Verified",
       });
-      toast.success(tr("Xác thực thành công"));
+      toast.success(tr("Xác thực thành công"), announce("edit", tr("Minh chứng")));
       closeReview();
       await loadEvidences();
     } catch (err) {
@@ -202,7 +203,7 @@ const QAEvidenceVerification = () => {
         VerificationStatus: "Rejected",
         VerificationComment: reason.trim(),
       });
-      toast.warning(tr("Đã từ chối"));
+      toast.warning(tr("Đã từ chối"), announce("edit", tr("Minh chứng")));
       closeReview();
       await loadEvidences();
     } catch (err) {
@@ -263,6 +264,7 @@ const QAEvidenceVerification = () => {
       if (verifiedCount > 0) {
         toast.success(
           `${tr("Đã xác thực hàng loạt")}: ${verifiedCount}/${pending.length} ${tr("minh chứng")}`,
+          announce("edit", tr("Minh chứng")),
         );
       }
       if (failedCount > 0) {

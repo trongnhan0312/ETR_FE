@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 
@@ -46,7 +47,7 @@ const QAAccount = () => {
         oldPassword: currentPwd,
         newPassword: newPwd,
       });
-      toast.success(tr("Cập nhật mật khẩu thành công"));
+      toast.success(tr("Cập nhật mật khẩu thành công"), announce("edit", tr("Mật khẩu")));
       setCurrentPwd("");
       setNewPwd("");
       setConfirmPwd("");

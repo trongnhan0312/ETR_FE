@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { api } from '../utils/api';
+import { api, formatDateTime } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
@@ -99,8 +99,8 @@ const AuditLog = () => {
               newValue: a.newValue || '—',
               description: a.description || `${a.actionType || ''} ${a.entityName || ''} #${a.recordId ?? ''}`.trim(),
               details: a.description || `${a.actionType || ''} ${a.entityName || ''} #${a.recordId ?? ''}`.trim(),
-              date: a.createdAt ? new Date(a.createdAt).toLocaleString('vi-VN') : '—',
-              timestamp: a.createdAt ? new Date(a.createdAt).toLocaleString('vi-VN') : '—',
+              date: formatDateTime(a.createdAt),
+              timestamp: formatDateTime(a.createdAt),
               status: 'Success',
             };
           })

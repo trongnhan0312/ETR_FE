@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import ApprovalHistory from "../components/ApprovalHistory";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
@@ -97,12 +98,12 @@ const QARETRDetails = () => {
         await api.post(`/Etr/${selectedEtr.etrId}/verify`, {
           comment: reviewNotes,
         });
-        toast.success(tr("Xác thực thành công"));
+        toast.success(tr("Xác thực thành công"), announce("edit", tr("Hồ sơ")));
       } else {
         await api.post(`/Etr/${selectedEtr.etrId}/return`, {
           comment: reviewNotes,
         });
-        toast.warning(tr("Đã trả lại ETR"));
+        toast.warning(tr("Đã trả lại ETR"), announce("edit", tr("Hồ sơ")));
       }
       await loadData();
     } catch (err) {

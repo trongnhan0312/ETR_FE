@@ -17,10 +17,12 @@ const extractList = (data) => {
 const fmtDate = (d) => {
   if (!d) return "—";
   try {
-    const date = new Date(d);
+    const raw = String(d).trim();
+    const utcStr = raw.endsWith("Z") || raw.includes("+") || raw.includes("-", 10) ? raw : `${raw}Z`;
+    const date = new Date(utcStr);
     if (Number.isNaN(date.getTime())) return "—";
     return date.toLocaleString("vi-VN", {
-      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
     });
   } catch {
     return "—";

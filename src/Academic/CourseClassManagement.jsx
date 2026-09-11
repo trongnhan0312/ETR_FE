@@ -5,12 +5,14 @@ import CreateCourse from "./CreateCourse";
 import CreateClass from "./CreateClass";
 import ClassAttendanceHistory from "./ClassAttendanceHistory";
 import EnrollStudentModal from "./EnrollStudentModal";
+import ClassesRosterImportModal from "./ClassesRosterImportModal";
 import UpdateClassStatusModal from "./UpdateClassStatusModal";
 import UpdateCourseModal from "./UpdateCourseModal";
 import { createPortal } from "react-dom";
 import ConfirmModal from "../components/ConfirmModal";
 import { api, parseApiError } from "../utils/api";
 import { downloadExportFile } from "../Auditor/auditorApi";
+import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -32,6 +34,7 @@ const CourseClassManagement = () => {
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [isCreatingClass, setIsCreatingClass] = useState(false);
   const [isEnrollingStudent, setIsEnrollingStudent] = useState(false);
+  const [isImportingClassRoster, setIsImportingClassRoster] = useState(false);
 
   // Xuất báo cáo lớp học — POST /api/Exports/attendance|assessment|class-summary { classId }
   const [exportClassTarget, setExportClassTarget] = useState(null); // class object đang mở modal
@@ -435,10 +438,10 @@ const CourseClassManagement = () => {
       });
       await refreshData();
       setIsCreatingCourse(false);
-      toast.success(tr("Tạo khóa học thành công!"));
+      toast.success(tr("Tạo khóa học thành công!"), announce("add", tr("Khóa học")));
     } catch (error) {
       console.error("Error creating course:", error);
-      toast.error(tr("Tạo khóa học thất bại"));
+      toast.error(parseApiError(error, tr("Tạo khóa học thất bại")));
     }
   };
 
@@ -475,10 +478,10 @@ const CourseClassManagement = () => {
       });
       await refreshData();
       setEditingCourseTarget(null);
-      toast.success(tr("Cập nhật khóa học thành công!"));
+      toast.success(tr("Cập nhật khóa học thành công!"), announce("edit", tr("Khóa học")));
     } catch (error) {
       console.error("Error updating course:", error);
-      toast.error(tr("Cập nhật khóa học thất bại"));
+      toast.error(parseApiError(error, tr("Cập nhật khóa học thất bại")));
       throw new Error(parseApiError(error));
     }
   };
@@ -490,11 +493,11 @@ const CourseClassManagement = () => {
     try {
       await api.delete(`/Courses/${deletingCourseTarget.courseId}`);
       await refreshData();
-      toast.success(tr("Xóa khóa học thành công!"));
+      toast.success(tr("Xóa khóa học thành công!"), announce("delete", tr("Khóa học")));
       setDeletingCourseTarget(null);
     } catch (error) {
       console.error("Error deleting course:", error);
-      toast.error(tr("Xóa khóa học thất bại"));
+      toast.error(parseApiError(error, tr("Xóa khóa học thất bại")));
     } finally {
       setDeletingSubmitting(false);
     }
@@ -681,10 +684,10 @@ const CourseClassManagement = () => {
       if (targetCourse) {
         setExpandedCourses((prev) => ({ ...prev, [targetCourse.code]: true }));
       }
-      toast.success(tr("Tạo lớp học thành công!"));
+      toast.success(tr("Tạo lớp học thành công!"), announce("add", tr("Lớp học")));
     } catch (error) {
       console.error("Error creating class:", error);
-      toast.error(tr("Tạo lớp học thất bại"));
+      toast.error(parseApiError(error, tr("Tạo lớp học thất bại")));
     } finally {
       setClassSubmitting(false);
     }
@@ -812,7 +815,7 @@ const CourseClassManagement = () => {
 
       await refreshData();
       setEditingClassTarget(null);
-      toast.success(tr("Cập nhật lớp học thành công!"));
+      toast.success(tr("Cập nhật lớp học thành công!"), announce("edit", tr("Lớp học")));
     } catch (error) {
       console.error("Error updating class status:", error);
       toast.error(parseApiError(error, tr("Cập nhật lớp học thất bại")));
@@ -827,11 +830,11 @@ const CourseClassManagement = () => {
     try {
       await api.delete(`/Classes/${deletingClassTarget.classId}`);
       await refreshData();
-      toast.success(tr("Xóa lớp học thành công!"));
+      toast.success(tr("Xóa lớp học thành công!"), announce("delete", tr("Lớp học")));
       setDeletingClassTarget(null);
     } catch (error) {
       console.error("Error deleting class:", error);
-      toast.error(tr("Xóa lớp học thất bại"));
+      toast.error(parseApiError(error, tr("Xóa lớp học thất bại")));
     } finally {
       setDeletingSubmitting(false);
     }
@@ -847,7 +850,7 @@ const CourseClassManagement = () => {
       await refreshData();
       setIsEnrollingStudent(false);
       setEnrollClassId(null);
-      toast.success(tr("Ghi danh học viên thành công!"));
+      toast.success(tr("Ghi danh học viên thành công!"), announce("add", tr("Ghi danh")));
     } catch (error) {
       console.error("Error creating enrollment:", error);
       throw error;
@@ -885,7 +888,7 @@ const CourseClassManagement = () => {
       }
       const fileName = job?.fileName || `${type}_class_${classId}.zip`;
       await downloadExportFile(jobId, fileName);
-      toast.success(tr("Xuất báo cáo thành công!"));
+      toast.success(tr("Xuất báo cáo thành công!"), announce("add", tr("Báo cáo")));
       setExportClassTarget(null);
     } catch (err) {
       console.error("Error exporting report:", err);
@@ -1090,6 +1093,31 @@ const CourseClassManagement = () => {
               />
             </svg>
             <span>{tr("TẠO LỚP HỌC")}</span>
+          </button>
+
+          <button
+            className="create-btn"
+            type="button"
+            style={{
+              backgroundColor: "#065f46",
+              color: "#ffffff",
+              border: "none",
+              padding: "10px 18px",
+              borderRadius: "4px",
+              fontWeight: 700,
+              fontSize: "12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0,33,71,0.2)",
+            }}
+            onClick={() => setIsImportingClassRoster(true)}
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6.66667 6.66667H12V8.33333H6.66667V13.3333H5V8.33333H0V6.66667H5V1.66667H6.66667V6.66667Z" fill="currentColor"/>
+            </svg>
+            <span>{tr("IMPORT EXCEL (LỚP + HỌC VIÊN)")}</span>
           </button>
 
           <button
@@ -2161,6 +2189,14 @@ const CourseClassManagement = () => {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Modal: IMPORT EXCEL — LỚP HỌC + DANH SÁCH HỌC VIÊN (Validate → Commit) */}
+      {isImportingClassRoster && (
+        <ClassesRosterImportModal
+          onClose={() => setIsImportingClassRoster(false)}
+          onSuccess={refreshData}
+        />
       )}
 
       {/* Toast notifications */}

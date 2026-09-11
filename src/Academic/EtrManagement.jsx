@@ -3,6 +3,8 @@ import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
+import { uploadToCloudinary, validateEvidenceFile } from "../utils/cloudinary";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
@@ -35,14 +37,29 @@ const EtrManagement = () => {
   const [submittingEtr, setSubmittingEtr] = useState(false);
 
   // New ETR form state
-  const [newStudentName, setNewStudentName] = useState("");
-  const [newStudentCode, setNewStudentCode] = useState("");
-  const [newCourse, setNewCourse] = useState("");
-  const [newStatus, setNewStatus] = useState("UNDER REVIEW");
+  const [newAccountId, setNewAccountId] = useState("");
   const [allEnrollments, setAllEnrollments] = useState([]);
   const [allAccounts, setAllAccounts] = useState([]);
   const [allProfiles, setAllProfiles] = useState([]);
   const [allSubjects, setAllSubjects] = useState([]);
+
+  // Học viên có ít nhất 1 ghi danh — options cho modal tra cứu ETR
+  const enrollableLearners = useMemo(() => {
+    const byAccount = new Map();
+    allEnrollments.forEach((enr) => {
+      const accId = Number(enr.accountId);
+      if (!accId || byAccount.has(accId)) return;
+      const profile = allProfiles.find((p) => p.accountId === accId);
+      const account = allAccounts.find((a) => a.accountId === accId);
+      const fullName =
+        profile?.fullName || account?.username || `Account #${accId}`;
+      const code = profile?.userCode || account?.username || String(accId);
+      byAccount.set(accId, { accountId: accId, fullName, code });
+    });
+    return Array.from(byAccount.values()).sort((a, b) =>
+      a.fullName.localeCompare(b.fullName),
+    );
+  }, [allEnrollments, allProfiles, allAccounts]);
 
   // New Evidence upload form state
   const [uploadFile, setUploadFile] = useState(null);
@@ -288,7 +305,9 @@ const EtrManagement = () => {
           rejectReason: ev.verificationComment || "",
           mimeType: ev.mimeType || "",
           fileExtension: ev.fileExtension || "",
-          filePath: ev.filePath || "",
+          // BE đã đổi FilePath → FileUrl (lưu trữ Cloudinary)
+          filePath: ev.fileUrl || ev.filePath || "",
+          fileUrl: ev.fileUrl || ev.filePath || "",
         }));
 
       return {
@@ -425,25 +444,39 @@ const EtrManagement = () => {
     e.preventDefault();
 
     try {
-      const profile = allProfiles.find((p) => p.fullName === newStudentName);
-      const account = profile
-        ? allAccounts.find((a) => a.accountId === profile.accountId)
-        : null;
-      const enrollment = account
-        ? allEnrollments.find((enr) => enr.accountId === account.accountId)
-        : null;
-
-      if (!enrollment) {
-        toast.error(tr("Không tìm thấy ghi danh"));
+      const accId = Number(newAccountId);
+      const profile = allProfiles.find((p) => p.accountId === accId);
+      const account = allAccounts.find((a) => a.accountId === accId);
+      if (!profile && !account) {
+        toast.error(tr("Không tìm thấy học viên"));
         return;
       }
 
-      // ETR tự động được tạo khi Enrollment được tạo thành công (backend auto-generates)
-      // Nếu ETR chưa tồn tại, hệ thống sẽ tự động tạo khi ghi danh
-      // Chỉ cần refresh dữ liệu để hiển thị ETR mới
-      toast.success(tr("ETR tự động tạo"));
+      // ETR được backend TỰ ĐỘNG tạo khi Enrollment thành công — modal này chỉ
+      // TRA CỨU hồ sơ ETR hiện có của học viên, không tạo bản ghi mới.
+      const enrIds = allEnrollments
+        .filter((enr) => Number(enr.accountId) === accId)
+        .map((enr) => enr.enrollmentId);
+      const matchedEtr = etrs.find((rec) => enrIds.includes(rec.enrollmentId));
+
+      if (!matchedEtr) {
+        toast.warning(
+          tr("Học viên chưa có hồ sơ ETR. Hồ sơ sẽ tự động tạo khi có ghi danh mới."),
+        );
+        setIsCreateOpen(false);
+        setNewAccountId("");
+        return;
+      }
+
       await refreshData();
       setIsCreateOpen(false);
+      setNewAccountId("");
+      // Lọc thẳng đến hồ sơ vừa tra cứu
+      setSearchTerm(String(matchedEtr.etrId));
+      toast.success(
+        tr("Đã tìm thấy hồ sơ ETR của học viên"),
+        announce("add", tr("Hồ sơ")),
+      );
     } catch (error) {
       console.error("Error:", error);
       toast.error(tr("Lỗi"));
@@ -468,6 +501,12 @@ const EtrManagement = () => {
         toast.warning(tr("Thiếu tệp tin"));
         return;
       }
+      // Chặn sớm định dạng không nằm trong whitelist (khớp BE + Cloudinary preset)
+      const invalidReason = validateEvidenceFile(uploadFile);
+      if (invalidReason) {
+        toast.error(tr(invalidReason));
+        return;
+      }
       if (!uploadEvidenceTypeId) {
         toast.warning(tr("Thiếu loại minh chứng"));
         return;
@@ -488,15 +527,21 @@ const EtrManagement = () => {
         return;
       }
 
-      const formData = new FormData();
-      formData.append("EvidenceTypeId", String(uploadEvidenceTypeId));
-      formData.append("AccountId", String(selectedRecord.accountId || 0));
-      formData.append("SubjectResultId", String(subjectResultId));
-      formData.append("File", uploadFile, uploadFile.name);
+      // Mô hình Cloudinary (2026-08): FE upload thẳng file lên Cloudinary để lấy URL,
+      // sau đó chỉ gửi JSON metadata về BE — BE không nhận byte file nào nữa.
+      const cloudFile = await uploadToCloudinary(uploadFile);
+      await api.post("/Evidences/upload", {
+        evidenceTypeId: Number(uploadEvidenceTypeId),
+        accountId: Number(selectedRecord.accountId || 0),
+        subjectResultId: Number(subjectResultId),
+        fileUrl: cloudFile.fileUrl,
+        publicId: cloudFile.publicId,
+        fileName: cloudFile.fileName,
+        mimeType: cloudFile.mimeType,
+        fileSize: cloudFile.fileSize,
+      });
 
-      await api.postFormData("/Evidences/upload", formData);
-
-      toast.success(tr("Tải lên thành công"));
+      toast.success(tr("Tải lên thành công"), announce("add", tr("Minh chứng")));
       setUploadFile(null);
       setIsEvidenceUploadOpen(false);
       await refreshData();
@@ -612,7 +657,7 @@ const EtrManagement = () => {
       await refreshData();
       setConfirmSubmitOpen(false);
       setRecordToSubmit(null);
-      toast.success(tr("Gửi ETR thành công"));
+      toast.success(tr("Gửi ETR thành công"), announce("edit", tr("Hồ sơ")));
     } catch (error) {
       console.error("Error submitting ETR:", error);
       toast.error(tr("Gửi ETR thất bại"));
@@ -667,7 +712,7 @@ const EtrManagement = () => {
     }
     try {
       await api.delete(`/Evidences/${confirmDeleteFile.fileId}`);
-      toast.success(tr("Xóa thành công"));
+      toast.success(tr("Xóa thành công"), announce("delete", tr("Minh chứng")));
       await refreshData();
     } catch (error) {
       console.error("Error deleting file:", error);
@@ -2701,7 +2746,7 @@ const EtrManagement = () => {
                   className="text-xs font-black text-center uppercase text-[#002147]"
                   style={{ margin: 0 }}
                 >
-                  TẠO MỚI ETR
+                  TRA CỨU ETR
                 </p>
               </div>
             </div>
@@ -3102,7 +3147,7 @@ const EtrManagement = () => {
             <div className="modal-overlay">
               <div className="modal-container" style={{ width: "600px" }}>
                 <header className="modal-header">
-                  <h2>{tr("TẠO MỚI HỒ SƠ ETR")}</h2>
+                  <h2>{tr("TRA CỨU HỒ SƠ ETR")}</h2>
                   <button
                     className="close-btn"
                     type="button"
@@ -3115,73 +3160,34 @@ const EtrManagement = () => {
 
                 <form onSubmit={handleCreateEtr}>
                   <div className="modal-body" style={{ padding: "24px" }}>
+                    <p
+                      style={{
+                        fontSize: "13px",
+                        color: "#545f71",
+                        margin: "0 0 16px",
+                      }}
+                    >
+                      {tr(
+                        "ETR được hệ thống tự động tạo khi học viên được ghi danh vào lớp. Chọn học viên để tra cứu hồ sơ hiện có.",
+                      )}
+                    </p>
+
                     <div className="form-group">
-                      <label htmlFor="etr-student-name">
-                        {tr("Tên học viên")}
-                      </label>
-                      <input
-                        id="etr-student-name"
-                        type="text"
-                        placeholder={tr("Ví dụ: Nguyễn Văn Bình")}
-                        value={newStudentName}
-                        onChange={(e) => setNewStudentName(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-row" style={{ marginTop: "16px" }}>
-                      <div className="form-group">
-                        <label htmlFor="etr-student-code">
-                          {tr("Mã học viên")}
-                        </label>
-                        <input
-                          id="etr-student-code"
-                          type="text"
-                          placeholder={tr("Ví dụ: AM-2409-005")}
-                          value={newStudentCode}
-                          onChange={(e) => setNewStudentCode(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label htmlFor="etr-course-select">
-                          {tr("Khóa học đào tạo")}
-                        </label>
-                        <select
-                          id="etr-course-select"
-                          value={newCourse}
-                          onChange={(e) => setNewCourse(e.target.value)}
-                          required
-                        >
-                          <option value="Propulsion Systems">
-                            Propulsion Systems
-                          </option>
-                          <option value="Propulsion Systems & Engines">
-                            Propulsion Systems &amp; Engines
-                          </option>
-                          <option value="A320 Maintenance Basics">
-                            A320 Maintenance Basics
-                          </option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="form-group" style={{ marginTop: "16px" }}>
-                      <label htmlFor="etr-status-select">
-                        {tr("Trạng thái phê duyệt ban đầu")}
+                      <label htmlFor="etr-student-select">
+                        {tr("Học viên")}
                       </label>
                       <select
-                        id="etr-status-select"
-                        value={newStatus}
-                        onChange={(e) => setNewStatus(e.target.value)}
+                        id="etr-student-select"
+                        value={newAccountId}
+                        onChange={(e) => setNewAccountId(e.target.value)}
                         required
                       >
-                        <option value="UNDER REVIEW">
-                          {tr("UNDER REVIEW")}
-                        </option>
-                        <option value="PENDING QA">{tr("PENDING QA")}</option>
-                        <option value="APPROVED">{tr("APPROVED")}</option>
+                        <option value="">{tr("-- Chọn học viên --")}</option>
+                        {enrollableLearners.map((l) => (
+                          <option key={l.accountId} value={String(l.accountId)}>
+                            {l.fullName} ({l.code})
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -3195,7 +3201,7 @@ const EtrManagement = () => {
                       {tr("Hủy bỏ")}
                     </button>
                     <button className="modal-submit-btn" type="submit">
-                      {tr("Khởi tạo ETR")}
+                      {tr("Tra cứu hồ sơ")}
                     </button>
                   </footer>
                 </form>
@@ -3230,6 +3236,7 @@ const EtrManagement = () => {
                       <input
                         id="upload-file"
                         type="file"
+                        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
                         onChange={(e) => {
                           if (e.target.files && e.target.files.length > 0) {
                             setUploadFile(e.target.files[0]);

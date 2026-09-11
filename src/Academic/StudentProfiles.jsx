@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
+import { announce } from '../utils/crudNotify';
+import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
@@ -94,6 +96,7 @@ const isValidDateOfBirth = (dob) => {
 
 const StudentProfiles = () => {
   const { tr, lang } = useLanguage();
+  const toast = useToast();
   const [profiles, setProfiles] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [studentAccounts, setStudentAccounts] = useState([]);
@@ -263,6 +266,7 @@ const StudentProfiles = () => {
 
       await loadProfiles();
       setIsCreateOpen(false);
+      toast.success(tr('Tạo hồ sơ học viên thành công!'), announce('add', tr('Hồ sơ học viên')));
     } catch (err) {
       console.error('Failed to create student:', err);
       setFormError(parseApiError(err, tr('Tạo học viên thất bại.'), tr));
@@ -319,6 +323,7 @@ const StudentProfiles = () => {
       });
       await loadProfiles();
       setIsEditOpen(false);
+      toast.success(tr('Cập nhật hồ sơ học viên thành công!'), announce('edit', tr('Hồ sơ học viên')));
     } catch (err) {
       console.error('Failed to update profile:', err);
       setFormError(parseApiError(err, tr('Cập nhật hồ sơ học viên thất bại.'), tr));

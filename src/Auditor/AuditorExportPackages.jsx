@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { announce } from '../utils/crudNotify';
+import { useToast } from '../components/Toast';
 import {
   exportPdf,
   exportTrainingPackage,
@@ -13,6 +15,7 @@ import Pagination from '../components/Pagination';
 
 const AuditorExportPackages = () => {
   const { trEn } = useLanguage();
+  const toast = useToast();
   const [exportHistory, setExportHistory] = useState([]);
   const [loadingType, setLoadingType] = useState(null);
   // Chọn ĐÚNG hồ sơ ETR cần xuất — trước đây export luôn lấy "ETR Completed đầu tiên"
@@ -80,6 +83,7 @@ const AuditorExportPackages = () => {
     try {
       const newPkg = await exportPdf({ ...exportTarget, name: 'Single_ETR_Compliance_Summary.pdf' });
       setExportHistory((prev) => [newPkg, ...prev]);
+      toast.success(trEn('Export successful'), announce('add', trEn('Export package')));
     } catch (err) {
       console.error('Export PDF failed:', err);
     } finally {
@@ -96,6 +100,7 @@ const AuditorExportPackages = () => {
         name: 'Complete_Evidence_Archive.zip',
       });
       setExportHistory((prev) => [newPkg, ...prev]);
+      toast.success(trEn('Export successful'), announce('add', trEn('Export package')));
     } catch (err) {
       console.error('Export Evidence ZIP failed:', err);
     } finally {
@@ -112,6 +117,7 @@ const AuditorExportPackages = () => {
         name: 'CAA_EASA_Regulatory_Package.zip',
       });
       setExportHistory((prev) => [newPkg, ...prev]);
+      toast.success(trEn('Export successful'), announce('add', trEn('Export package')));
     } catch (err) {
       console.error('Export Regulatory Package failed:', err);
     } finally {
@@ -127,6 +133,7 @@ const AuditorExportPackages = () => {
         name: 'Digital_Signature_Manifest.p7b',
       });
       setExportHistory((prev) => [newPkg, ...prev]);
+      toast.success(trEn('Export successful'), announce('add', trEn('Export package')));
     } catch (err) {
       console.error('Export Signature Manifest failed:', err);
     } finally {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import PromptModal from "../components/PromptModal";
 import { useLanguage } from "../context/LanguageContext";
@@ -101,7 +102,7 @@ const TrainingManagerAmendments = () => {
       await api.post(`/Amendments/${approveTarget.id}/approve`, {
         comment: comment || null,
       });
-      toast.success(tr("Đã duyệt yêu cầu mở khóa!"));
+      toast.success(tr("Đã duyệt yêu cầu mở khóa!"), announce("edit", tr("Yêu cầu mở khóa")));
       setApproveTarget(null);
       await loadData(true);
     } catch (err) {
@@ -123,7 +124,7 @@ const TrainingManagerAmendments = () => {
       await api.post(`/Amendments/${rejectTarget.id}/reject`, {
         comment: comment.trim(),
       });
-      toast.warning(tr("Đã từ chối yêu cầu mở khóa."));
+      toast.warning(tr("Đã từ chối yêu cầu mở khóa."), announce("edit", tr("Yêu cầu mở khóa")));
       setRejectTarget(null);
       await loadData(true);
     } catch (err) {

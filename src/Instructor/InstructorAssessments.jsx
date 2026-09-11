@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 import PromptModal from "../components/PromptModal";
@@ -1005,7 +1006,7 @@ const InstructorAssessments = () => {
         toast.error(tr("Lưu điểm: có học viên bị lỗi!"));
       } else {
         setIsEditingScores(false);
-        toast.success(tr("Lưu điểm thành công!"));
+        toast.success(tr("Lưu điểm thành công!"), announce("edit", tr("Điểm")));
       }
     } catch (err) {
       console.error("Lỗi khi lưu bảng điểm:", err);
@@ -1137,7 +1138,7 @@ const InstructorAssessments = () => {
       );
 
       setConfirmSignoffOpen(false);
-      toast.success(tr("Ký xác nhận thành công!"));
+      toast.success(tr("Ký xác nhận thành công!"), announce("add", tr("Ký xác nhận")));
       if (selectedAssessment) {
         loadAssessmentScores(selectedAssessment, selectedAssessmentType);
       }
@@ -1164,7 +1165,7 @@ const InstructorAssessments = () => {
         `/SubjectSignoff/${unlockTarget.subjectResultId}/unlock-request`,
         { reason: reason.trim() },
       );
-      toast.success(tr("Đã gửi yêu cầu mở khóa cho Training Manager!"));
+      toast.success(tr("Đã gửi yêu cầu mở khóa cho Training Manager!"), announce("add", tr("Yêu cầu mở khóa")));
       setUnlockTarget(null);
       if (selectedAssessment) {
         loadAssessmentScores(selectedAssessment, selectedAssessmentType);
@@ -1421,7 +1422,7 @@ const InstructorAssessments = () => {
         toast.error(tr("Chốt điểm: có học viên bị lỗi!"));
       } else {
         setIsEditingScores(false);
-        toast.success(tr("Chốt điểm thành công!"));
+        toast.success(tr("Chốt điểm thành công!"), announce("edit", tr("Điểm")));
       }
       if (selectedAssessment) {
         loadAssessmentScores(selectedAssessment, selectedAssessmentType);
@@ -1650,7 +1651,7 @@ const InstructorAssessments = () => {
           setImportResult(result);
           return;
         }
-        toast.success(tr("Import điểm thành công!"));
+        toast.success(tr("Import điểm thành công!"), announce("add", tr("Điểm")));
         // 1) Áp NGAY dữ liệu file cho bảng (hiển thị tức thì)
         setStudentScores((prev) => mergeScoresFromFile(prev, excelPreview));
         // 2) Tải lại từ server rồi ÉP dữ liệu file lên trên — phòng server trả dữ

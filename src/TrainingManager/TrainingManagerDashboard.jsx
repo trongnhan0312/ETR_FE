@@ -206,10 +206,6 @@ const TrainingManagerDashboard = () => {
             {tr("Operational performance and compliance overview from live ETR data.")}
           </p>
         </div>
-        <div className="page-status-box">
-          <strong>{tr("Data source")}</strong>
-          <p>GET /api/Dashboard/my-dashboard</p>
-        </div>
       </section>
 
       {/* KPI Cards */}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 
@@ -77,7 +78,7 @@ const QARETRReturn = () => {
       await api.post(`/Etr/${selectedEtrId}/return`, {
         comment: returnReason,
       });
-      toast.warning(tr("Đã trả lại ETR"));
+      toast.warning(tr("Đã trả lại ETR"), announce("edit", tr("Hồ sơ")));
       setSelectedEtrId("");
       setReturnReason("");
       await loadEtrs();

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useOutletContext } from "react-router-dom";
 import { api } from "../utils/api";
 import { buildSrToAccountMap } from "../utils/evidenceEnrich";
 import { useLanguage } from '../context/LanguageContext';
@@ -18,6 +19,9 @@ const STATUS_META = {
 
 const QAETRList = () => {
   const { tr, trEn } = useLanguage();
+  // Top-bar search từ QALayout (Outlet context) — lọc danh sách ETR
+  const outletCtx = useOutletContext() ?? {};
+  const topbarQuery = typeof outletCtx.searchQuery === "string" ? outletCtx.searchQuery : "";
   const [etrRecords, setEtrRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -114,7 +118,8 @@ const QAETRList = () => {
   }, [etrRecords]);
 
   const filtered = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+    // Kết hợp search trong trang (searchTerm) và top-bar (topbarQuery)
+    const term = (searchTerm || topbarQuery).trim().toLowerCase();
     return etrRecords.filter((r) => {
       const matchStatus = statusFilter === "all" || r.status === statusFilter;
       const matchSearch =
@@ -124,7 +129,7 @@ const QAETRList = () => {
         r.course.toLowerCase().includes(term);
       return matchStatus && matchSearch;
     });
-  }, [etrRecords, statusFilter, searchTerm]);
+  }, [etrRecords, statusFilter, searchTerm, topbarQuery]);
 
   const { page, setPage, pageCount, pageItems, total } = usePagination(filtered, {
     pageSize: 10,

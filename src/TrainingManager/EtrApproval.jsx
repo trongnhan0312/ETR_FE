@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../utils/api";
+import { announce } from "../utils/crudNotify";
 import PromptModal from "../components/PromptModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
@@ -313,7 +314,7 @@ const EtrApproval = () => {
       await loadEtrsFromApi();
       setShowActionModal(null);
       setSelectedEtr(null);
-      toast.success(tr("Phê duyệt thành công"));
+      toast.success(tr("Phê duyệt thành công"), announce("edit", tr("Hồ sơ")));
     } catch (err) {
       toast.error(tr("Phê duyệt thất bại"));
     }
@@ -370,7 +371,7 @@ const EtrApproval = () => {
     try {
       await api.post(`/Etr/${etrId}/reopen`, { comment: reason.trim() });
       await loadEtrsFromApi();
-      toast.warning(tr("Đã mở lại ETR"));
+      toast.warning(tr("Đã mở lại ETR"), announce("edit", tr("Hồ sơ")));
     } catch (err) {
       toast.error(tr("Mở lại ETR thất bại"));
     } finally {
