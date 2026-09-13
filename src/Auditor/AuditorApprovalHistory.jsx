@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import { fetchApprovals, fetchEtrList } from './auditorApi';
+import { fetchApprovalHistory, fetchEtrList } from './auditorApi';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
 
@@ -25,9 +25,11 @@ const AuditorApprovalHistory = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [etrs, approvals] = await Promise.all([
+        const [etrs, history] = await Promise.all([
           fetchEtrList(),
-          fetchApprovals(selectedEtrId)
+          // Lấy TOÀN BỘ lịch sử thực thi (AuditLog + ApprovalRequest + mốc vòng đời ETR)
+          // thay vì chỉ GET /Approvals → trước đây mỗi ETR chỉ ra đúng 1 dòng log.
+          fetchApprovalHistory(selectedEtrId)
         ]);
 
         if (Array.isArray(etrs) && etrs.length > 0) {
@@ -37,7 +39,7 @@ const AuditorApprovalHistory = () => {
             setSelectedEtrId(etrs[0]?.etrCourseRecordId ?? null);
           }
         }
-        setTimeline(approvals);
+        setTimeline(Array.isArray(history) ? history : []);
       } catch (err) {
         console.error('Error fetching approval history:', err);
       } finally {
@@ -94,25 +96,25 @@ const AuditorApprovalHistory = () => {
             <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Step 1')}</div>
             <div style={{ fontSize: '14px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{trEn('Academic Staff')}</div>
           </div>
-          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>↓</div>
+          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>→</div>
 
           <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1', textAlign: 'center', flex: 1, minWidth: '140px' }}>
             <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Step 2')}</div>
             <div style={{ fontSize: '14px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{trEn('QA Verification')}</div>
           </div>
-          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>↓</div>
+          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>→</div>
 
           <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1', textAlign: 'center', flex: 1, minWidth: '140px' }}>
             <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Step 3')}</div>
             <div style={{ fontSize: '14px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{trEn('Training Manager Approval')}</div>
           </div>
-          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>↓</div>
+          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>→</div>
 
           <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#0a2c55', color: '#ffffff', textAlign: 'center', flex: 1, minWidth: '140px' }}>
             <div style={{ fontSize: '11px', fontWeight: '700', color: '#d4af37', textTransform: 'uppercase' }}>{trEn('Step 4')}</div>
             <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{trEn('System Locked')}</div>
           </div>
-          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>↓</div>
+          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>→</div>
 
           <div style={{ padding: '12px 18px', borderRadius: '12px', background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', color: '#ffffff', textAlign: 'center', flex: 1, minWidth: '140px' }}>
             <div style={{ fontSize: '11px', fontWeight: '700', color: '#ffffff', textTransform: 'uppercase', opacity: 0.8 }}>{trEn('Step 5')}</div>
@@ -129,6 +131,10 @@ const AuditorApprovalHistory = () => {
 
         {loading ? (
           <div className="empty-table-state">{trEn('Loading approval history...')}</div>
+        ) : timeline.length === 0 ? (
+          <div className="empty-table-state">
+            {trEn('No execution log recorded for this ETR yet.')}
+          </div>
         ) : (
           <div className="approval-timeline">
             {pageItems.map((step) => (

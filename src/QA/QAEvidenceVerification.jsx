@@ -68,6 +68,15 @@ const QAEvidenceVerification = () => {
           verificationComment: ev.verificationComment || "",
           subjectResultId: ev.subjectResultId,
           accountId: ev.accountId,
+          // URL Cloudinary thật của file — dùng để tải/xem trước trực tiếp.
+          // Lưu ý: GET /Evidences/{id}/download của BE trả 302 REDIRECT sang Cloudinary
+          // (không trả byte file), nên fetch qua api.downloadFile bị CORS chặn → "Download failed".
+          fileUrl: ev.fileUrl || ev.FileUrl || "",
+          uploadedByAccountId: ev.uploadedByAccountId ?? ev.uploadedBy ?? null,
+          verifiedByAccountId: ev.verifiedByAccountId ?? null,
+          verifiedAt: ev.verifiedAt
+            ? new Date(ev.verifiedAt).toLocaleString("vi-VN")
+            : "",
         };
       });
 
@@ -132,14 +141,65 @@ const QAEvidenceVerification = () => {
   const isPdfType = (mime) =>
     (mime || "").toLowerCase() === "application/pdf";
 
+  // Lưu blob thành file tải về (dùng chung cho download).
+  const saveBlob = (blob, fileName) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  /**
+   * Mở/tải file minh chứng một cách an toàn:
+   *  1. Ưu tiên FileUrl (Cloudinary) lấy trực tiếp từ GET /Evidences — thử fetch để ép tải về.
+   *  2. Nếu fetch bị CORS chặn → mở URL trong tab mới (điều hướng không bị CORS giới hạn).
+   *  3. Không có FileUrl → gọi endpoint BE /Evidences/{id}/download qua api.downloadFile
+   *     (endpoint này 302 sang Cloudinary; fetch follow redirect nên vẫn trả blob khi CORS cho phép).
+   */
+  const openOrDownloadEvidence = async (row) => {
+    if (!row) return;
+    if (row.fileUrl) {
+      try {
+        const res = await fetch(row.fileUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (blob && blob.size > 0 && blob.type !== "text/html") {
+          saveBlob(blob, row.fileName || `evidence-${row.id}`);
+          return;
+        }
+        throw new Error("empty blob");
+      } catch {
+        window.open(row.fileUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+    }
+    const blob = await api.downloadFile(`/Evidences/${row.id}/download`, {
+      suppressAuthRedirect: true,
+    });
+    saveBlob(blob, row.fileName || `evidence-${row.id}`);
+  };
+
   const loadPreview = async (row) => {
     if (!row) return;
+    // FileUrl Cloudinary có thể dùng trực tiếp cho <img>/<iframe> — không cần fetch blob,
+    // tránh hẳn lỗi CORS của endpoint /download (302 redirect).
+    if (row.fileUrl) {
+      setPreviewUrl((prev) => {
+        if (prev && prev.startsWith("blob:")) window.URL.revokeObjectURL(prev);
+        return row.fileUrl;
+      });
+      return;
+    }
     setPreviewLoading(true);
     try {
       const blob = await api.downloadFile(`/Evidences/${row.id}/download`, { suppressAuthRedirect: true });
       const url = window.URL.createObjectURL(blob);
       setPreviewUrl((prev) => {
-        if (prev) window.URL.revokeObjectURL(prev);
+        if (prev && prev.startsWith("blob:")) window.URL.revokeObjectURL(prev);
         return url;
       });
     } catch (err) {
@@ -156,7 +216,7 @@ const QAEvidenceVerification = () => {
   };
 
   const closeReview = () => {
-    if (previewUrl) window.URL.revokeObjectURL(previewUrl);
+    if (previewUrl && previewUrl.startsWith("blob:")) window.URL.revokeObjectURL(previewUrl);
     setPreviewUrl("");
     setReviewTarget(null);
   };
@@ -168,7 +228,9 @@ const QAEvidenceVerification = () => {
   }, [previewUrl]);
   useEffect(
     () => () => {
-      if (previewUrlRef.current) window.URL.revokeObjectURL(previewUrlRef.current);
+      if (previewUrlRef.current && previewUrlRef.current.startsWith("blob:")) {
+        window.URL.revokeObjectURL(previewUrlRef.current);
+      }
     },
     []
   );
@@ -214,20 +276,14 @@ const QAEvidenceVerification = () => {
     }
   };
 
-  // Tải file minh chứng về máy (GET /Evidences/{id}/download)
+  // Tải file minh chứng về máy — ưu tiên FileUrl Cloudinary (xem openOrDownloadEvidence),
+  // fallback endpoint BE /Evidences/{id}/download cho bản ghi cũ không có FileUrl.
   const handleDownload = async (row) => {
     try {
-      const blob = await api.downloadFile(`/Evidences/${row.id}/download`, { suppressAuthRedirect: true });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = row.fileName || `evidence-${row.id}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      await openOrDownloadEvidence(row);
     } catch (err) {
-      toast.error(tr("Tải xuống thất bại"));
+      console.error("Tải minh chứng thất bại:", err);
+      toast.error(`${tr("Tải xuống thất bại")}: ${err?.message || ""}`);
     }
   };
 
@@ -628,6 +684,52 @@ const QAEvidenceVerification = () => {
                     <strong>{tr('Subject Result')}</strong>
                     <span>#{reviewTarget.subjectResultId ?? "—"}</span>
                   </div>
+                  <div className="qa-kv">
+                    <strong>{trEn('Uploaded By')}</strong>
+                    <span>
+                      {reviewTarget.uploadedByAccountId
+                        ? `Account #${reviewTarget.uploadedByAccountId}`
+                        : "—"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Lịch sử xử lý minh chứng */}
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#475569",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {trEn('Submission & Verification History')}
+                  </p>
+                  <ul style={{ margin: "6px 0 0", paddingLeft: 16, fontSize: 12, color: "rgba(0,33,71,0.75)" }}>
+                    <li>
+                      {trEn('Submitted')}: {reviewTarget.uploadedAt || "—"}
+                    </li>
+                    {reviewTarget.verifiedAt ? (
+                      <li>
+                        {trEn(reviewTarget.status === 'Rejected' ? 'Rejected' : 'Verified')}:{" "}
+                        {reviewTarget.verifiedAt}
+                        {reviewTarget.verifiedByAccountId
+                          ? ` — Account #${reviewTarget.verifiedByAccountId}`
+                          : ""}
+                      </li>
+                    ) : (
+                      <li>{trEn('Awaiting QA decision')}</li>
+                    )}
+                  </ul>
                 </div>
 
                 {reviewTarget.locked && (

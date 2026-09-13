@@ -10,7 +10,7 @@ import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
 
 const UserManagement = ({ defaultTab = 'users' }) => {
-  const { tr, trt } = useLanguage();
+  const { tr, trt, trEn } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   // Top-bar search từ AdminLayout (Outlet context) — lọc danh sách người dùng
   const outletCtx = useOutletContext() ?? {};
@@ -33,6 +33,8 @@ const UserManagement = ({ defaultTab = 'users' }) => {
   const [editingUser, setEditingUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  // Lỗi inline riêng cho ô Username (Email) — VD: email đã tồn tại (409 Conflict)
+  const [usernameError, setUsernameError] = useState('');
 
   // Create Form State
   const [username, setUsername] = useState('');
@@ -173,10 +175,21 @@ const UserManagement = ({ defaultTab = 'users' }) => {
         });
         return messages.join('\n');
       }
+      // ASP.NET ProblemDetails dùng `detail` cho mô tả cụ thể (VD: BusinessRuleViolation
+      // "An account with username ... already exists." khi trùng email tài khoản).
+      if (json.detail) return json.detail;
       if (json.title) return json.title;
       if (json.message) return json.message;
     } catch {
       // Not a JSON error string
+    }
+    // Trùng email/username — BE có thể trả 409 Conflict hoặc 400 BusinessRuleViolation với
+    // message "already exists". Đưa về thông báo nghiệp vụ rõ ràng thay vì lỗi mạng chung.
+    if (
+      /already exists|already taken|duplicate username|duplicate email|trùng|đã tồn tại/i.test(raw) ||
+      /conflict|409/i.test(raw)
+    ) {
+      return tr('Email này đã tồn tại trong hệ thống. Vui lòng chọn email khác.');
     }
     return raw || fallbackMsg;
   };
@@ -251,6 +264,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     setDepartmentId(String(studentDepts[0]?.id || '1'));
     setGender('Male');
     setFormError('');
+    setUsernameError('');
     setIsCreateOpen(true);
   };
 
@@ -258,6 +272,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+    setUsernameError('');
     const trimmedUsername = username.trim();
     const trimmedFullName = fullName.trim();
 
@@ -273,6 +288,23 @@ const UserManagement = ({ defaultTab = 'users' }) => {
 
     if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
       setFormError(tr('Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).'));
+      return;
+    }
+
+    // Kiểm tra trùng email/username ngay trên FE (dữ liệu /Accounts đã tải sẵn) — BE trả 409
+    // Conflict nhưng response lỗi có thể bị CORS/redirect làm fetch reject thành
+    // "Cannot reach API server", khiến người dùng nhìn thấy lỗi mạng chung. Chặn trước +
+    // báo đúng lỗi tại ô Username (Email).
+    const lower = trimmedUsername.toLowerCase();
+    const duplicated = users.some(
+      (u) =>
+        String(u.username || '').toLowerCase() === lower ||
+        String(u.email || '').toLowerCase() === lower,
+    );
+    if (duplicated) {
+      const msg = tr('Email này đã tồn tại trong hệ thống. Vui lòng chọn email khác.');
+      setUsernameError(msg);
+      setFormError(msg);
       return;
     }
 
@@ -303,7 +335,12 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       toast.success(tr("Tạo tài khoản thành công!"), announce("add", tr("Tài khoản")));
     } catch (err) {
       console.error("Failed to create user:", err);
-      setFormError(parseLocalApiError(err, tr("Tạo tài khoản thất bại.")));
+      const msg = parseLocalApiError(err, tr("Tạo tài khoản thất bại."));
+      setFormError(msg);
+      // Trùng email → gắn lỗi ngay tại ô Username (Email) theo yêu cầu kiểm thử
+      if (/đã tồn tại|already exists/i.test(msg)) {
+        setUsernameError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -393,6 +430,95 @@ const UserManagement = ({ defaultTab = 'users' }) => {
 
   // Toast notifications
   const toast = useToast();
+
+  // ── Bulk Import Users từ Excel (BE có sẵn: /Import/accounts/template|validate|commit — Admin/Academic) ──
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importValidating, setImportValidating] = useState(false);
+  const [importCommitting, setImportCommitting] = useState(false);
+  const [importDownloading, setImportDownloading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [importError, setImportError] = useState('');
+
+  const handleOpenImportModal = () => {
+    setImportFile(null);
+    setImportResult(null);
+    setImportError('');
+    setIsImportOpen(true);
+  };
+
+  const handleDownloadImportTemplate = async () => {
+    setImportError('');
+    setImportDownloading(true);
+    try {
+      const blob = await api.downloadFile('/Import/accounts/template', {
+        suppressAuthRedirect: true,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'bulk_create_accounts.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(tr('Tải template thành công!'));
+    } catch (err) {
+      console.error('Lỗi tải template import users:', err);
+      setImportError(parseApiError(err, tr('Tải template thất bại.')));
+    } finally {
+      setImportDownloading(false);
+    }
+  };
+
+  const handleValidateImport = async () => {
+    setImportError('');
+    if (!importFile) {
+      setImportError(tr('Vui lòng chọn file Excel trước khi kiểm tra.'));
+      return;
+    }
+    setImportValidating(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', importFile);
+      const result = await api.postFormData('/Import/accounts/validate', fd);
+      setImportResult(result);
+      if (result?.canCommit) {
+        toast.success(tr('File hợp lệ, có thể nhập'));
+      } else {
+        toast.warning(tr('File có lỗi, cần sửa trước khi nhập'));
+      }
+    } catch (err) {
+      console.error('Lỗi validate import users:', err);
+      setImportResult(null);
+      setImportError(parseApiError(err, tr('Kiểm tra file thất bại.')));
+    } finally {
+      setImportValidating(false);
+    }
+  };
+
+  const handleCommitImport = async () => {
+    if (!importFile || !importResult?.canCommit) return;
+    setImportCommitting(true);
+    setImportError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', importFile);
+      const result = await api.postFormData('/Import/accounts/commit', fd);
+      const imported = result?.imported ?? 0;
+      const skipped = result?.skipped ?? 0;
+      toast.success(
+        `${tr('Đã nhập thành công')} ${imported} ${tr('tài khoản')}${skipped > 0 ? ` — ${tr('bỏ qua')}: ${skipped}` : ''}`,
+      );
+      setIsImportOpen(false);
+      await loadAllData();
+    } catch (err) {
+      console.error('Lỗi commit import users:', err);
+      setImportError(parseApiError(err, tr('Nhập danh sách tài khoản thất bại.')));
+    } finally {
+      setImportCommitting(false);
+    }
+  };
 
   // Current logged in user ID
   const currentUserId = (() => {
@@ -629,23 +755,25 @@ const UserManagement = ({ defaultTab = 'users' }) => {
               </p>
             </div>
 
-            <button className="primary-btn" type="button" onClick={handleOpenCreateModal}>
-              {tr('+ Create User')}
-            </button>
+            <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
+              <button
+                className="action-btn"
+                type="button"
+                onClick={handleOpenImportModal}
+                style={{ padding: '10px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                {tr('Import Users (Excel)')}
+              </button>
+              <button className="primary-btn" type="button" onClick={handleOpenCreateModal}>
+                {tr('+ Create User')}
+              </button>
+            </div>
           </section>
 
-          <section className="split-panel">
-            <div className="info-card">
-              <p className="section-label">{tr('Functions')}</p>
-              <div className="pill-row">
-                <span className="tag-chip" style={{ cursor: 'pointer' }} onClick={handleOpenCreateModal}>{tr('+ Create User')}</span>
-                <span className="tag-chip">{tr('Edit User & Role')}</span>
-                <span className="tag-chip">{tr('Department Assignment')}</span>
-                <span className="tag-chip">{tr('Soft Delete (Inactive)')}</span>
-                <span className="tag-chip">{tr('Activate Account')}</span>
-              </div>
-            </div>
-
+          {/* Đã bỏ thẻ "Functions" (danh sách tag-chip tĩnh) — các thao tác Create/Edit/
+              Department/Soft Delete/Activate đã có nút thật ở header và ở cột Actions từng
+              dòng, nên thẻ đó chỉ gây trùng lặp và nhiễu giao diện. Chỉ giữ bộ lọc Role. */}
+          <section className="split-panel" style={{ gridTemplateColumns: '1fr' }}>
             <div className="info-card">
               <p className="section-label">{tr('Filter by Role')}</p>
               <div className="pill-row" style={{ marginTop: '8px' }}>
@@ -950,6 +1078,112 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       )}
 
       {/* ================= USER MODALS ================= */}
+      {/* BULK IMPORT USERS MODAL (Excel) — dùng endpoint /Import/accounts/* của BE */}
+      {isImportOpen && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', margin: 'auto' }}>
+            <h2 style={{ margin: '0 0 6px', fontSize: '18px', color: '#0f172a' }}>{tr('Import Users (Excel)')}</h2>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+              {tr('Tải template chuẩn, điền danh sách tài khoản rồi kiểm tra và nhập hàng loạt.')}
+            </p>
+
+            {importError && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                {importError}
+              </div>
+            )}
+
+            {/* Bước 1: template */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '12px' }}>
+              <div>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{tr('Bước 1 — Tải file mẫu')}</p>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
+                  {tr('Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*')}
+                </p>
+              </div>
+              <button className="action-btn" type="button" onClick={handleDownloadImportTemplate} disabled={importDownloading} style={{ padding: '8px 14px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {importDownloading ? trEn('Downloading...') : tr('Tải template')}
+              </button>
+            </div>
+
+            {/* Bước 2: chọn file + validate */}
+            <div style={{ padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '12px' }}>
+              <p style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{tr('Bước 2 — Chọn file Excel & kiểm tra')}</p>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(e) => { setImportFile(e.target.files?.[0] || null); setImportResult(null); setImportError(''); }}
+                style={{ width: '100%', padding: '8px', border: '1px dashed #cbd5e1', borderRadius: '8px', fontSize: '13px', background: '#f8fafc' }}
+              />
+              <button
+                className="action-btn"
+                type="button"
+                onClick={handleValidateImport}
+                disabled={!importFile || importValidating}
+                style={{ marginTop: '10px', padding: '8px 14px', fontSize: '12px', cursor: !importFile ? 'not-allowed' : 'pointer' }}
+              >
+                {importValidating ? tr('Đang kiểm tra...') : tr('Kiểm tra file (Validate)')}
+              </button>
+            </div>
+
+            {/* Kết quả validate */}
+            {importResult && (
+              <div style={{ padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', marginBottom: '8px' }}>
+                  <span>{tr('Tổng số dòng')}: <strong>{importResult.totalRows ?? 0}</strong></span>
+                  <span style={{ color: '#15803d' }}>{tr('Hợp lệ')}: <strong>{importResult.validRows ?? 0}</strong></span>
+                  <span style={{ color: '#b91c1c' }}>{tr('Lỗi')}: <strong>{importResult.errorRows ?? 0}</strong></span>
+                </div>
+                {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                  <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #fee2e2', borderRadius: '8px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ background: '#fef2f2' }}>
+                          <th style={{ textAlign: 'left', padding: '6px 8px', color: '#b91c1c' }}>{tr('Dòng')}</th>
+                          <th style={{ textAlign: 'left', padding: '6px 8px', color: '#b91c1c' }}>{tr('Cột')}</th>
+                          <th style={{ textAlign: 'left', padding: '6px 8px', color: '#b91c1c' }}>{tr('Lỗi')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.errors.map((er, idx) => (
+                          <tr key={idx} style={{ borderTop: '1px solid #fee2e2' }}>
+                            <td style={{ padding: '6px 8px' }}>{er.row}</td>
+                            <td style={{ padding: '6px 8px' }}>{er.column}</td>
+                            <td style={{ padding: '6px 8px' }}>{er.message}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <p style={{ margin: '8px 0 0', fontSize: '12px', fontWeight: '600', color: importResult.canCommit ? '#15803d' : '#b45309' }}>
+                  {importResult.canCommit ? tr('File hợp lệ — có thể nhập vào hệ thống.') : tr('File còn lỗi — vui lòng sửa rồi kiểm tra lại.')}
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setIsImportOpen(false)}
+                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
+              >
+                {tr('Hủy')}
+              </button>
+              <button
+                type="button"
+                onClick={handleCommitImport}
+                disabled={!importResult?.canCommit || importCommitting}
+                style={{ padding: '8px 18px', background: importResult?.canCommit ? '#002147' : '#94a3b8', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: importResult?.canCommit ? 'pointer' : 'not-allowed' }}
+              >
+                {importCommitting ? tr('Đang nhập...') : tr('Nhập vào hệ thống')}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* CREATE USER MODAL */}
       {isCreateOpen && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
@@ -969,10 +1203,19 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                   type="email"
                   required
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    if (usernameError) setUsernameError('');
+                  }}
                   placeholder={tr('Ví dụ: user@domain.com')}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                  aria-invalid={usernameError ? 'true' : 'false'}
+                  style={{ width: '100%', padding: '8px 12px', border: `1px solid ${usernameError ? '#fca5a5' : '#cbd5e1'}`, borderRadius: '6px', fontSize: '14px', outline: 'none', background: usernameError ? '#fff5f5' : '#fff' }}
                 />
+                {usernameError && (
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#b91c1c', fontWeight: '600' }}>
+                    {usernameError}
+                  </p>
+                )}
               </div>
 
               <div>
