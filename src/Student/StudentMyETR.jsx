@@ -18,7 +18,24 @@ const STATUS_LABEL = {
   'Completed': 'Hoàn thành',
   'Draft': 'Nháp',
   'Returned': 'Trả lại',
+  'ReturnedForCorrection': 'Trả lại để chỉnh sửa',
 };
+
+// Thông điệp theo TỪNG trạng thái — trước đây mọi trạng thái khác Completed đều hiển thị
+// "Hồ sơ đang trong quá trình đào tạo." nên hồ sơ đã SUBMITTED/VERIFIED/LOCKED vẫn bị hiểu là
+// "đang xử lý" (kèm vòng tròn trạng thái giống loading vô tận).
+const STATUS_MESSAGE = {
+  'Completed': 'Hồ sơ đã hoàn thành và đóng băng. Dữ liệu đã được khóa vĩnh viễn.',
+  'Verified': 'Hồ sơ đã được QA thẩm định và đang chờ phê duyệt cuối cùng.',
+  'Submitted': 'Hồ sơ đã được nộp và đang chờ QA thẩm định.',
+  'Returned': 'Hồ sơ đã bị trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.',
+  'ReturnedForCorrection': 'Hồ sơ đã bị trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.',
+  'Draft': 'Hồ sơ đang ở dạng nháp, chưa được nộp.',
+  'In Progress': 'Hồ sơ đang trong quá trình đào tạo.',
+};
+
+// Trạng thái đã "chốt" (không còn quay vòng đào tạo) → icon ✓ và không hiển thị như đang tải.
+const DONE_STATUSES = ['Completed', 'Verified', 'Submitted'];
 
 const Badge = ({ status }) => {
   const { tr } = useLanguage();
@@ -117,16 +134,20 @@ const DetailView = ({ etr, onBack }) => {
           </div>
         </div>
 
-        {/* Status Summary */}
+        {/* Status Summary — render đúng theo TỪNG trạng thái (SUBMITTED/VERIFIED/LOCKED...),
+            không còn hiển thị chung chung "đang trong quá trình" cho mọi trạng thái. */}
         <div className="student-info-card student-info-card--center">
-          <div className={`student-status-icon ${s.status === 'Completed' ? 'student-status-icon--done' : 'student-status-icon--pending'}`}>
-            {s.status === 'Completed' ? '✓' : '○'}
+          <div className={`student-status-icon ${DONE_STATUSES.includes(s.status) || s.isLocked ? 'student-status-icon--done' : 'student-status-icon--pending'}`}>
+            {DONE_STATUSES.includes(s.status) || s.isLocked ? '✓' : '○'}
           </div>
           <p className="student-status-text">
-            {s.status === 'Completed'
-              ? tr('Hồ sơ đã hoàn thành và đóng băng. Dữ liệu đã được khóa vĩnh viễn.')
-              : tr('Hồ sơ đang trong quá trình đào tạo.')}
+            {tr(STATUS_MESSAGE[s.status] || STATUS_MESSAGE['In Progress'])}
           </p>
+          {s.isLocked && (
+            <p style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 700, color: '#15803d' }}>
+              🔒 {tr('Hồ sơ đã được KHÓA (Locked)!')}
+            </p>
+          )}
         </div>
       </section>
 
@@ -201,7 +222,9 @@ const DetailView = ({ etr, onBack }) => {
           </table>
         ) : (
           <p style={{ color: 'rgba(0,33,71,0.5)', fontSize: 13, marginTop: 8 }}>
-            {tr('Không có dữ liệu kết quả môn học.')}
+            {s.detailLoaded === false
+              ? tr('Kết quả môn học sẽ hiển thị khi hồ sơ được thẩm định xong.')
+              : tr('Không có dữ liệu kết quả môn học.')}
           </p>
         )}
       </section>
@@ -383,12 +406,14 @@ const StudentMyETR = () => {
   const openDetail = async (row) => {
     const id = row?.ETRCourseRecordId ?? row?.etrCourseRecordId;
     let detail = row;
+    let loaded = false;
     try {
       if (id) {
         const enriched = await api
           .get(`/Etr/${id}`, { suppressAuthRedirect: true })
           .catch(() => null);
         if (enriched) {
+          loaded = true;
           // EtrDetailsResponse: SubjectResults, EvidenceFiles, ApprovalHistories →
           // DetailView expects subjectResults / evidences / historyLogs.
           const subjects = Array.isArray(enriched.SubjectResults ?? enriched.subjectResults)
@@ -424,7 +449,9 @@ const StudentMyETR = () => {
     } catch {
       // fall back to the list row
     }
-    setSelectedEtr(detail);
+    // Cờ cho biết đã lấy được chi tiết đầy đủ (/Etr/{id}) hay chưa — dùng để hiển thị thông báo
+    // chính xác thay vì "Không có dữ liệu kết quả môn học" gây hiểu nhầm khi API bị chặn (403).
+    setSelectedEtr({ ...detail, detailLoaded: loaded });
   };
 
   const mapped = etrs.map(mapEtr);
