@@ -499,24 +499,8 @@ const getStudentDepartments = () => {
     setImportOpen(true);
   };
 
-  const handleFileSelected = async (f) => {
-    setImportFile(f);
-    setImportResult(null);
-    setImportError("");
-    if (f) {
-      try {
-        const preview = await parseExcelPreview(f);
-        setExcelPreview(preview);
-      } catch {
-        setExcelPreview(null);
-      }
-    } else {
-      setExcelPreview(null);
-    }
-  };
-
-  // Tải template chuẩn từ BE — cột: Username (email)*, Mật khẩu*, Vai trò (Role)*,
-  // Phòng ban (Department)* (2 cột cuối có dropdown lấy từ DB).
+  // Tải template chuẩn học viên từ BE — các cột: Username (email)*, Mật khẩu*,
+  // Phòng ban (Department)*, Họ và tên (FullName)*, Ngày sinh, Giới tính, SĐT, Tổ chức (không cần cột Role).
   const handleDownloadImportTemplate = async () => {
     setImportError("");
     setImportDownloading(true);
@@ -1513,7 +1497,7 @@ const getStudentDepartments = () => {
             </div>
 
             <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#64748b' }}>
-              {tr('Tải file mẫu, điền danh sách tài khoản học viên (chỉ role Student), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).')}
+              {tr('Tải file mẫu, điền danh sách học viên (các cột: Username*, Mật khẩu*, Phòng ban*, Họ và tên*, Ngày sinh, Giới tính, SĐT, Tổ chức; vai trò mặc định là Học viên, Mã học viên tự động sinh), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).')}
             </p>
 
             <button
