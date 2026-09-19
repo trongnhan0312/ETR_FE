@@ -8,6 +8,7 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import { isEtrCompleted } from "../utils/etrStatus";
 import "./training-manager.scss";
 
 const EtrApproval = () => {
@@ -154,7 +155,7 @@ const EtrApproval = () => {
         mapped = approvalsArr.map((req) => mapApprovalToEtr(req)).filter(Boolean);
       } else {
       mapped = etrsArr
-        .filter((e) => e.status === "Verified" || e.status === "Completed")
+        .filter((e) => e.status === "Verified" || isEtrCompleted(e.status))
         .map((etr, i) => {
           const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
           const enrollmentLink = resolveEnrollment(etr.enrollmentId);
@@ -215,7 +216,7 @@ const EtrApproval = () => {
               ? classInfo.className
               : `Class #${classId ?? ""}`,
             avgScore: avgAttendance,
-            qaVerified: etr.status === "Verified" || etr.status === "Completed",
+            qaVerified: etr.status === "Verified" || isEtrCompleted(etr.status),
             qaVerifier: "QA Staff",
             qaDate: etr.verifiedAt
               ? new Date(etr.verifiedAt).toISOString().split("T")[0]
@@ -223,7 +224,7 @@ const EtrApproval = () => {
             submissionDate: etr.submittedAt
               ? new Date(etr.submittedAt).toISOString().split("T")[0]
               : "",
-            status: etr.status === "Completed" ? "APPROVED" : "PENDING",
+            status: isEtrCompleted(etr.status) ? "APPROVED" : "PENDING",
             approvedBy: approval?.approvedByAccountId
               ? `Account #${approval.approvedByAccountId}`
               : "",

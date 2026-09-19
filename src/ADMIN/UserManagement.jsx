@@ -8,6 +8,8 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
+import { parseExcelPreview } from '../utils/excelPreview';
+import ExcelPreviewTable from '../components/ExcelPreviewTable';
 
 const UserManagement = ({ defaultTab = 'users' }) => {
   const { tr, trt, trEn } = useLanguage();
@@ -335,7 +337,14 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       toast.success(tr("Tạo tài khoản thành công!"), announce("add", tr("Tài khoản")));
     } catch (err) {
       console.error("Failed to create user:", err);
-      const msg = parseLocalApiError(err, tr("Tạo tài khoản thất bại."));
+      const raw = err?.message || String(err);
+      let msg = parseLocalApiError(err, tr("Tạo tài khoản thất bại."));
+      if (
+        /already exists|already taken|duplicate|trùng|đã tồn tại|conflict|409/i.test(raw) ||
+        /Cannot reach API server for \/Accounts/i.test(raw)
+      ) {
+        msg = tr('Email này đã tồn tại trong hệ thống. Vui lòng chọn email khác.');
+      }
       setFormError(msg);
       // Trùng email → gắn lỗi ngay tại ô Username (Email) theo yêu cầu kiểm thử
       if (/đã tồn tại|already exists/i.test(msg)) {
@@ -434,6 +443,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
   // ── Bulk Import Users từ Excel (BE có sẵn: /Import/accounts/template|validate|commit — Admin/Academic) ──
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importFile, setImportFile] = useState(null);
+  const [excelPreview, setExcelPreview] = useState(null);
   const [importValidating, setImportValidating] = useState(false);
   const [importCommitting, setImportCommitting] = useState(false);
   const [importDownloading, setImportDownloading] = useState(false);
@@ -442,9 +452,26 @@ const UserManagement = ({ defaultTab = 'users' }) => {
 
   const handleOpenImportModal = () => {
     setImportFile(null);
+    setExcelPreview(null);
     setImportResult(null);
     setImportError('');
     setIsImportOpen(true);
+  };
+
+  const handleFileSelected = async (f) => {
+    setImportFile(f);
+    setImportResult(null);
+    setImportError('');
+    if (f) {
+      try {
+        const preview = await parseExcelPreview(f);
+        setExcelPreview(preview);
+      } catch {
+        setExcelPreview(null);
+      }
+    } else {
+      setExcelPreview(null);
+    }
   };
 
   const handleDownloadImportTemplate = async () => {
@@ -530,10 +557,23 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     }
   })();
 
+  // BE chặn xóa/vô hiệu hóa tài khoản Quản trị viên hệ thống gốc (AccountId = 1)
+  // — xem AccountService.DeleteAccountAsync/UpdateAccountStatusAsync (commit 6d20503).
+  const ROOT_ADMIN_ID = '1';
+  const isRootAdmin = (user) => String(user?.accountId) === ROOT_ADMIN_ID;
+
   // Xác nhận trước các thao tác tài khoản (thay window.confirm)
   const [confirmAction, setConfirmAction] = useState(null); // { type: 'toggle' | 'delete' | 'activate', user }
 
   const runAccountAction = async (type, user) => {
+    if (type !== 'activate' && isRootAdmin(user)) {
+      toast.error(
+        tr('Không thể vô hiệu hóa hoặc xóa tài khoản Quản trị viên hệ thống gốc (ID: 1).'),
+      );
+      setConfirmAction(null);
+      return;
+    }
+
     if (String(user.accountId) === String(currentUserId)) {
       if (type === 'delete') {
         toast.error(tr("Bạn không thể tự xóa tài khoản của chính mình (cả xóa mềm lẫn xóa cứng)!"));
@@ -841,6 +881,12 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                 userPagination.pageItems.map((user) => {
                   const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
                   const isSelf = String(user.accountId) === String(currentUserId);
+                  const isProtectedAdmin = isRootAdmin(user);
+                  // Khóa thao tác với chính mình VÀ với tài khoản Admin gốc (BE chặn ở tầng service).
+                  const isLocked = isSelf || isProtectedAdmin;
+                  const lockedTitle = isSelf
+                    ? tr('Không thể tự vô hiệu hóa/xóa tài khoản của chính mình')
+                    : tr('Không thể vô hiệu hóa hoặc xóa tài khoản Quản trị viên hệ thống gốc (ID: 1).');
                   return (
                     <div key={user.accountId} className="table-row table-layout user-layout" style={{ gridTemplateColumns: '1.1fr 1.2fr 1.2fr 0.9fr 1.1fr 0.8fr 0.8fr 1.2fr', alignItems: 'center' }}>
                       <div className="font-medium" style={{ color: '#0f172a', fontWeight: '600' }}>
@@ -848,6 +894,11 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                         {isSelf && (
                           <span style={{ marginLeft: '6px', fontSize: '11px', color: '#0284c7', background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
                             {tr('(Bạn)')}
+                          </span>
+                        )}
+                        {isProtectedAdmin && (
+                          <span style={{ marginLeft: '6px', fontSize: '11px', color: '#92400e', background: '#fef3c7', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                            {tr('(Quản trị gốc)')}
                           </span>
                         )}
                       </div>
@@ -865,11 +916,11 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                       <div>
                         <button
                           type="button"
-                          onClick={() => !isSelf && setConfirmAction({ type: 'toggle', user })}
-                          disabled={isSelf}
+                          onClick={() => !isLocked && setConfirmAction({ type: 'toggle', user })}
+                          disabled={isLocked}
                           className={!isInactive ? 'status status-active' : 'status status-pending'}
-                          style={{ cursor: isSelf ? 'not-allowed' : 'pointer', border: 'none', opacity: isSelf ? 0.85 : 1 }}
-                          title={isSelf ? tr('Không thể tự vô hiệu hóa tài khoản của chính mình') : tr('Click để toggle Active/Inactive')}
+                          style={{ cursor: isLocked ? 'not-allowed' : 'pointer', border: 'none', opacity: isLocked ? 0.85 : 1 }}
+                          title={isLocked ? lockedTitle : tr('Click để toggle Active/Inactive')}
                         >
                           {isInactive ? tr('Inactive') : tr('Active')}
                         </button>
@@ -904,18 +955,18 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                           <button
                             className="action-btn"
                             type="button"
-                            onClick={() => !isSelf && setConfirmAction({ type: 'delete', user })}
-                            disabled={isSelf}
+                            onClick={() => !isLocked && setConfirmAction({ type: 'delete', user })}
+                            disabled={isLocked}
                             style={{
                               padding: '4px 10px',
                               fontSize: '12px',
-                              color: isSelf ? '#94a3b8' : '#ef4444',
-                              borderColor: isSelf ? '#e2e8f0' : '#fca5a5',
-                              background: isSelf ? '#f8fafc' : '#fff5f5',
-                              cursor: isSelf ? 'not-allowed' : 'pointer',
-                              opacity: isSelf ? 0.6 : 1
+                              color: isLocked ? '#94a3b8' : '#ef4444',
+                              borderColor: isLocked ? '#e2e8f0' : '#fca5a5',
+                              background: isLocked ? '#f8fafc' : '#fff5f5',
+                              cursor: isLocked ? 'not-allowed' : 'pointer',
+                              opacity: isLocked ? 0.6 : 1
                             }}
-                            title={isSelf ? tr('Không thể tự xóa tài khoản của chính mình') : tr('Xóa tài khoản')}
+                            title={isLocked ? lockedTitle : tr('Xóa tài khoản')}
                           >
                             {tr('Delete')}
                           </button>
@@ -1098,7 +1149,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
               <div>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{tr('Bước 1 — Tải file mẫu')}</p>
                 <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
-                  {tr('Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*')}
+                  {tr('Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*, Họ và tên*, Ngày sinh, Giới tính, SĐT, Tổ chức')}
                 </p>
               </div>
               <button className="action-btn" type="button" onClick={handleDownloadImportTemplate} disabled={importDownloading} style={{ padding: '8px 14px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -1112,7 +1163,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
               <input
                 type="file"
                 accept=".xlsx,.xls,.csv"
-                onChange={(e) => { setImportFile(e.target.files?.[0] || null); setImportResult(null); setImportError(''); }}
+                onChange={(e) => handleFileSelected(e.target.files?.[0] || null)}
                 style={{ width: '100%', padding: '8px', border: '1px dashed #cbd5e1', borderRadius: '8px', fontSize: '13px', background: '#f8fafc' }}
               />
               <button
@@ -1125,6 +1176,17 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                 {importValidating ? tr('Đang kiểm tra...') : tr('Kiểm tra file (Validate)')}
               </button>
             </div>
+
+            {/* Xem trước dữ liệu trong file Excel */}
+            {excelPreview && (
+              <div style={{ marginBottom: '12px' }}>
+                <ExcelPreviewTable
+                  headers={excelPreview.headers}
+                  rows={excelPreview.rows}
+                  tr={tr}
+                />
+              </div>
+            )}
 
             {/* Kết quả validate */}
             {importResult && (

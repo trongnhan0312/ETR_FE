@@ -39,10 +39,6 @@ const ClassStatus = () => {
   const [rawClasses, setRawClasses] = useState([]);
   const [classesLoading, setClassesLoading] = useState(true);
 
-  useEffect(() => {
-    loadClasses();
-    loadClassFormOptions();
-  }, []);
 
   // Load Courses + Instructor accounts for the Create Class form.
   // InstructorAccountId must point to an Account whose Role is exactly "Instructor"
@@ -130,6 +126,11 @@ const ClassStatus = () => {
       setClassesLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadClasses();
+    loadClassFormOptions();
+  }, []);
 
   const getFallbackClasses = () => [];
 
@@ -355,22 +356,23 @@ const ClassStatus = () => {
     );
   };
 
+  // Attendance details pagination — called unconditionally at top-level to satisfy Rules of Hooks
+  const selectedClassId = selectedClassDetails?.id;
+  const currentStudentsForDetails = selectedClassId ? getStudentsForClass(selectedClassId) : [];
+  const filteredStudentsForDetails = currentStudentsForDetails.filter(
+    (s) =>
+      s.name.toLowerCase().includes(attendanceSearchQuery.toLowerCase()) ||
+      s.code.toLowerCase().includes(attendanceSearchQuery.toLowerCase()),
+  );
+  const studentPager = usePagination(filteredStudentsForDetails, {
+    pageSize: 10,
+    resetKey: `${selectedClassId}|${attendanceSearchQuery}`,
+  });
+
   // IF VIEWING CLASS ATTENDANCE DETAILS SUB-PAGE
   if (selectedClassDetails) {
     const classId = selectedClassDetails.id;
-    const currentStudents = getStudentsForClass(classId);
-
-    // Search filter for students
-    const filteredStudents = currentStudents.filter(
-      (s) =>
-        s.name.toLowerCase().includes(attendanceSearchQuery.toLowerCase()) ||
-        s.code.toLowerCase().includes(attendanceSearchQuery.toLowerCase()),
-    );
-
-    const studentPager = usePagination(filteredStudents, {
-      pageSize: 10,
-      resetKey: `${classId}|${attendanceSearchQuery}`,
-    });
+    const currentStudents = currentStudentsForDetails;
 
     // Calculate metrics dynamically
     const avgAttendance =

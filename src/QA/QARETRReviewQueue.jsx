@@ -8,6 +8,7 @@ import { useLanguage } from '../context/LanguageContext';
 import ApprovalHistory from "../components/ApprovalHistory";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import { isEtrCompleted } from "../utils/etrStatus";
 
 // Dòng hiển thị 1 bước kiểm duyệt trong modal chi tiết ETR
 const StepStatusRow = ({ label, ok }) => {
@@ -138,7 +139,11 @@ const QARETRReviewQueue = () => {
             outcome = "returned";
           } else if (rawStatus === "Verified") {
             outcome = "verified";
-          } else if (rawStatus === "Submitted" || rawStatus === "Pending") {
+          } else if (
+            rawStatus === "Submitted" ||
+            rawStatus === "Pending" ||
+            rawStatus === "UnderReview"
+          ) {
             outcome = "pending";
           }
 
@@ -291,7 +296,7 @@ const QARETRReviewQueue = () => {
     (detailEvidenceTotal > 0 &&
       detailEvidenceVerified === detailEvidenceTotal) ||
     etrDetail?.status === "Verified" ||
-    etrDetail?.status === "Completed";
+    isEtrCompleted(etrDetail?.status);
 
   // Lọc lịch sử duyệt theo từ khóa: mã ETR (ETR-0001 / 1), tên học viên, khóa, trạng thái
   const filteredHistoryRecords = historyRecords.filter((record) => {
@@ -836,7 +841,7 @@ const QARETRReviewQueue = () => {
                       </div>
                       <span
                         className={`qa-status ${
-                          etrDetail.status === "Completed" ||
+                          isEtrCompleted(etrDetail.status) ||
                           etrDetail.status === "Verified"
                             ? "reviewed"
                             : "pending"

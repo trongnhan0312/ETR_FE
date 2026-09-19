@@ -359,7 +359,10 @@ const InstructorAssessments = () => {
     const result = await api
       .get("/AssessmentResults")
       .catch(() => api.get("/assessmentresults").catch(() => []));
-    return Array.isArray(result) ? result : [];
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result?.items)) return result.items;
+    if (Array.isArray(result?.Items)) return result.Items;
+    return [];
   };
 
   // Load all practical checklist results — filter by subjectResultId in caller
@@ -368,7 +371,10 @@ const InstructorAssessments = () => {
     const result = await api
       .get("/PracticalChecklistResults")
       .catch(() => api.get("/practicalchecklistresults").catch(() => []));
-    return Array.isArray(result) ? result : [];
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result?.items)) return result.items;
+    if (Array.isArray(result?.Items)) return result.Items;
+    return [];
   };
 
   // Load all assessment results for a given assessment (not session-based)
@@ -381,7 +387,14 @@ const InstructorAssessments = () => {
     try {
       const mappedStudents = await loadStudents();
       const scoresData = [];
-      const allEtrs = await api.get("/etr").catch(() => []);
+      const allEtrsRaw = await api.get("/etr").catch(() => []);
+      const allEtrs = Array.isArray(allEtrsRaw)
+        ? allEtrsRaw
+        : Array.isArray(allEtrsRaw?.items)
+          ? allEtrsRaw.items
+          : Array.isArray(allEtrsRaw?.Items)
+            ? allEtrsRaw.Items
+            : [];
       const selectedTypes = getSelectedTypes(type);
 
       // Data for Subject Signoff eligibility (4 validation rules)
@@ -393,8 +406,16 @@ const InstructorAssessments = () => {
         api.get("/PracticalChecklists").catch(() => api.get("/practicalchecklists").catch(() => [])),
         api.get(`/courses/${currentCourseId}`).catch(() => null),
       ]);
-      const evidencesArr = Array.isArray(allEvidences) ? allEvidences : [];
-      const checklistsArr = Array.isArray(allPracticalChecklists) ? allPracticalChecklists : [];
+      const evidencesArr = Array.isArray(allEvidences)
+        ? allEvidences
+        : Array.isArray(allEvidences?.items)
+          ? allEvidences.items
+          : [];
+      const checklistsArr = Array.isArray(allPracticalChecklists)
+        ? allPracticalChecklists
+        : Array.isArray(allPracticalChecklists?.items)
+          ? allPracticalChecklists.items
+          : [];
       const courseDetailArr = courseDetail
         ? (Array.isArray(courseDetail.subjects) ? courseDetail.subjects : (Array.isArray(courseDetail.courseSubjects) ? courseDetail.courseSubjects : []))
         : [];
@@ -438,17 +459,22 @@ const InstructorAssessments = () => {
       const etrDetailsMap = {};
       await Promise.all(
         mappedStudents.map(async (student) => {
-          const studentEtr = allEtrs.find(
-            (e) =>
-              e.accountId === student.accountId ||
-              e.enrollmentId === student.enrollmentId,
-          );
+          const studentEtr = Array.isArray(allEtrs)
+            ? allEtrs.find(
+                (e) =>
+                  Number(e.accountId) === Number(student.accountId) ||
+                  Number(e.enrollmentId) === Number(student.enrollmentId),
+              )
+            : null;
           if (studentEtr) {
-            const details = await api
-              .get(`/etr/${studentEtr.etrCourseRecordId}`)
-              .catch(() => null);
-            if (details) {
-              etrDetailsMap[student.accountId] = details;
+            const etrId = studentEtr.etrCourseRecordId ?? studentEtr.ETRCourseRecordId;
+            if (etrId) {
+              const details = await api
+                .get(`/etr/${etrId}`)
+                .catch(() => null);
+              if (details) {
+                etrDetailsMap[student.accountId] = details;
+              }
             }
           }
         }),
@@ -643,7 +669,6 @@ const InstructorAssessments = () => {
           code: student.code,
           name: student.name,
           accountId: student.accountId,
-          enrollmentId: student.enrollmentId,
           enrollmentId: student.enrollmentId,
           subjectResultId,
           assessmentResultId,
@@ -1117,7 +1142,7 @@ const InstructorAssessments = () => {
 
       if (ineligible.length > 0) {
         const names = ineligible.map((e) => e.name).join(", ");
-        toast.warning(tr("Chưa đủ điều kiện ký xác nhận!"));
+        toast.warning(`${tr("Chưa đủ điều kiện ký xác nhận!")} (${names})`);
         setConfirmSignoffOpen(false);
         return;
       }
@@ -1689,14 +1714,14 @@ const InstructorAssessments = () => {
     }
   };
 
-  // Grading Spreadsheet View
-  if (selectedAssessment) {
-    const displayScores = isEditingScores ? editingScores : studentScores;
+  // Grading Spreadsheet View pagination — must be called unconditionally at top-level of component
+  const displayScores = isEditingScores ? editingScores : studentScores;
+  const scorePager = usePagination(selectedAssessment ? displayScores : [], {
+    pageSize: 10,
+    resetKey: selectedAssessment?.sessionId,
+  });
 
-    const scorePager = usePagination(displayScores, {
-      pageSize: 10,
-      resetKey: selectedAssessment?.sessionId,
-    });
+  if (selectedAssessment) {
 
     // Hình thức đánh giá buổi này THỰC SỰ có: lý thuyết (assessmentId) và/hoặc
     // thực hành (practicalChecklistId) — dùng để khoá dropdown chỉ cho nhập bài tồn tại.
@@ -3197,47 +3222,6 @@ const InstructorAssessments = () => {
             )}
           </div>
         </section>
-      )}
-
-      {/* Grading Spreadsheet View */}
-      {selectedAssessment && (
-        <>
-          <nav className="breadcrumb-nav">
-            <span
-              className="breadcrumb-item"
-              onClick={() => setSelectedAssessment(null)}
-              style={{ cursor: "pointer" }}
-            >
-              {tr('ĐÁNH GIÁ')}
-            </span>
-            <svg width="4" height="6" viewBox="0 0 4 6" fill="none">
-              <path
-                d="M2.3 3L0 0.7L0.7 0L3.7 3L0.7 6L0 5.3L2.3 3Z"
-                fill="currentColor"
-              />
-            </svg>
-            <span className="breadcrumb-item active">
-              {selectedAssessment.componentName}
-            </span>
-          </nav>
-
-          <section className="content-header">
-            <div className="header-left">
-              <h1>{tr('Nhập điểm đánh giá')} — {selectedAssessment.componentName}</h1>
-              <div className="divider-gold" />
-              <p className="header-description">
-                {getAssessmentTypeLabel(selectedAssessmentType)} · Assessment:{" "}
-                {selectedAssessment.componentName} · {tr('Buổi: ')}{" "}
-                {tr(selectedAssessment.sessionTitle)}
-                {selectedAssessment.sessionDate
-                  ? ` (${selectedAssessment.sessionDate})`
-                  : " (TBA)"}{" "}
-                · {tr('Lớp: ')}{" "}
-                {selectedClass ? selectedClass.code : "N/A"}
-              </p>
-            </div>
-          </section>
-        </>
       )}
     </div>
   );

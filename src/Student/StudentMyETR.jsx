@@ -1,24 +1,36 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
+import { isEtrCompleted } from '../utils/etrStatus';
 
 const STATUS_MAP = {
   'In Progress': 'progress',
+  'InProgress': 'progress',
   'Submitted': 'submitted',
   'Verified': 'verified',
   'Completed': 'completed',
   'Draft': 'draft',
   'Returned': 'returned',
+  // Giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
+  'Approved': 'completed',
+  'Rejected': 'returned',
+  'Pending': 'submitted',
+  'UnderReview': 'progress',
 };
 
 const STATUS_LABEL = {
   'In Progress': 'Đang đào tạo',
+  'InProgress': 'Đang đào tạo',
   'Submitted': 'Đã nộp',
   'Verified': 'Đã thẩm định',
   'Completed': 'Hoàn thành',
+  'Approved': 'Hoàn thành',
   'Draft': 'Nháp',
   'Returned': 'Trả lại',
   'ReturnedForCorrection': 'Trả lại để chỉnh sửa',
+  'Rejected': 'Trả lại để chỉnh sửa',
+  'Pending': 'Đã nộp',
+  'UnderReview': 'Đang thẩm định',
 };
 
 // Thông điệp theo TỪNG trạng thái — trước đây mọi trạng thái khác Completed đều hiển thị
@@ -30,12 +42,17 @@ const STATUS_MESSAGE = {
   'Submitted': 'Hồ sơ đã được nộp và đang chờ QA thẩm định.',
   'Returned': 'Hồ sơ đã bị trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.',
   'ReturnedForCorrection': 'Hồ sơ đã bị trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.',
+  'Rejected': 'Hồ sơ đã bị từ chối/trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.',
   'Draft': 'Hồ sơ đang ở dạng nháp, chưa được nộp.',
   'In Progress': 'Hồ sơ đang trong quá trình đào tạo.',
+  'InProgress': 'Hồ sơ đang trong quá trình đào tạo.',
+  'Approved': 'Hồ sơ đã được phê duyệt và đóng băng. Dữ liệu đã được khóa vĩnh viễn.',
+  'Pending': 'Hồ sơ đã được nộp và đang chờ thẩm định.',
+  'UnderReview': 'Hồ sơ đang được thẩm định.',
 };
 
 // Trạng thái đã "chốt" (không còn quay vòng đào tạo) → icon ✓ và không hiển thị như đang tải.
-const DONE_STATUSES = ['Completed', 'Verified', 'Submitted'];
+const DONE_STATUSES = ['Completed', 'Approved', 'Verified', 'Submitted'];
 
 const Badge = ({ status }) => {
   const { tr } = useLanguage();
@@ -235,12 +252,28 @@ const DetailView = ({ etr, onBack }) => {
           <p className="info-eyebrow">{tr('Minh chứng')}</p>
           <h3>{tr('Tệp tin')}</h3>
           <div className="student-evidence-list">
-            {s.evidences.map((ev, idx) => (
-              <span key={idx} className="student-evidence-chip">
-                <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M0 14V0H8L12 4V14H0ZM7 5V1H1V13H11V5H7ZM1 1V5V1V5V13V1Z" fill="currentColor" opacity="0.5" /></svg>
-                {ev.FileName ?? ev.fileName ?? ev.EvidenceTypeName ?? ev.evidenceTypeName ?? `${tr('Tệp #')}${idx + 1}`}
-              </span>
-            ))}
+            {s.evidences.map((ev, idx) => {
+              const fUrl = ev.FileUrl ?? ev.fileUrl;
+              const fName = ev.FileName ?? ev.fileName ?? ev.EvidenceTypeName ?? ev.evidenceTypeName ?? `${tr('Tệp #')}${idx + 1}`;
+              return fUrl ? (
+                <a
+                  key={idx}
+                  href={fUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="student-evidence-chip"
+                  style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                >
+                  <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M0 14V0H8L12 4V14H0ZM7 5V1H1V13H11V5H7ZM1 1V5V1V5V13V1Z" fill="currentColor" opacity="0.5" /></svg>
+                  {fName} ↗
+                </a>
+              ) : (
+                <span key={idx} className="student-evidence-chip">
+                  <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M0 14V0H8L12 4V14H0ZM7 5V1H1V13H11V5H7ZM1 1V5V1V5V13V1Z" fill="currentColor" opacity="0.5" /></svg>
+                  {fName}
+                </span>
+              );
+            })}
           </div>
         </section>
       )}
@@ -316,7 +349,7 @@ const TrainingHistory = () => {
     <div className="student-history-timeline">
       {mapped.map((record, idx) => {
         const isFirst = idx === 0;
-        const isCompleted = record.status === 'Completed';
+        const isCompleted = isEtrCompleted(record.status);
         const isExpired = record.expiryDate && new Date(record.expiryDate) < new Date();
 
         return (
@@ -420,22 +453,25 @@ const StudentMyETR = () => {
             ? (enriched.SubjectResults ?? enriched.subjectResults).map((sr) => ({
                 ...sr,
                 SubjectId: sr.SubjectId ?? sr.subjectId,
-                Score: sr.Score ?? sr.score,
+                SubjectName: sr.SubjectName ?? sr.subjectName,
+                Score: sr.Score ?? sr.score ?? sr.AssessmentScore ?? sr.assessmentScore,
+                PracticalScore: sr.PracticalScore ?? sr.practicalScore,
                 AttendanceRate: sr.AttendanceRate ?? sr.attendanceRate,
-                IsPassed: sr.IsSignedOff ?? sr.isSignedOff,
+                IsPassed: sr.IsPassed ?? sr.isPassed ?? sr.IsSignedOff ?? sr.isSignedOff ?? (Number(sr.Score ?? sr.score ?? 0) >= 50),
               }))
             : null;
           const evidences = Array.isArray(enriched.EvidenceFiles ?? enriched.evidenceFiles)
             ? (enriched.EvidenceFiles ?? enriched.evidenceFiles).map((ev) => ({
                 ...ev,
                 FileName: ev.FileName ?? ev.fileName,
+                FileUrl: ev.FileUrl ?? ev.fileUrl,
               }))
             : null;
           const historyLogs = Array.isArray(enriched.ApprovalHistories ?? enriched.approvalHistories)
             ? (enriched.ApprovalHistories ?? enriched.approvalHistories).map((h) => ({
                 ...h,
-                Description: h.ActionType ?? h.actionType,
-                Timestamp: h.ActionAt ?? h.actionAt,
+                Description: h.ActionType ?? h.actionType ?? h.Comment ?? h.comments,
+                Timestamp: h.ActionAt ?? h.actionAt ?? h.CreatedAt ?? h.createdAt,
               }))
             : null;
           detail = {
@@ -479,7 +515,7 @@ const StudentMyETR = () => {
         </div>
         <div className="student-welcome-right">
           <span className="welcome-role">
-            {mapped.length} {tr('hồ sơ')} &middot; {mapped.filter(e => e.status === 'Completed').length} {tr('hoàn thành')}
+            {mapped.length} {tr('hồ sơ')} &middot; {mapped.filter(e => isEtrCompleted(e.status)).length} {tr('hoàn thành')}
           </span>
         </div>
       </section>

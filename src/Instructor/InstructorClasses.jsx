@@ -64,6 +64,7 @@ const InstructorClasses = () => {
           apiAssessments,
           apiPracticalChecklists,
           apiSessions,
+          apiEnrollments,
         ] = await Promise.all([
           api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
           api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
@@ -75,11 +76,13 @@ const InstructorClasses = () => {
             .get("/PracticalChecklists")
             .catch(() => api.get("/practicalchecklists").catch(() => [])),
           api.get("/Sessions").catch(() => api.get("/sessions").catch(() => [])),
+          api.get("/Enrollments").catch(() => api.get("/enrollments").catch(() => [])),
         ]);
 
         const rawClasses = Array.isArray(apiClasses) ? apiClasses : [];
         const rawCourses = Array.isArray(apiCourses) ? apiCourses : [];
         const rawSessions = Array.isArray(apiSessions) ? apiSessions : [];
+        const rawEnrollments = Array.isArray(apiEnrollments) ? apiEnrollments : [];
 
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
@@ -171,6 +174,13 @@ const InstructorClasses = () => {
             (c) => String(c.courseId) === String(cls.courseId),
           );
           const isMine = isClassForMe(cls);
+          const classEnrs = rawEnrollments.filter(
+            (enr) =>
+              String(enr.classId) === String(cls.classId) &&
+              enr.status !== "Withdrawn" &&
+              enr.status !== "Deleted" &&
+              !enr.isDeleted,
+          );
           return {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
@@ -184,14 +194,14 @@ const InstructorClasses = () => {
             courseName: course ? course.courseName : "",
             schedule: cls.schedule || tr("Chưa sắp lịch"),
             time: cls.time || "08:00 - 11:30",
-            studentsCount: "0/0",
+            studentsCount: `${classEnrs.length} ${tr("học viên")}`,
             status: (() => {
-              const raw = cls.status || "";
-              if (raw === "InProgress" || raw === "Active") return "Đang diễn ra";
-              if (raw === "Planned" || raw === "Upcoming") return "Sắp tới";
-              if (raw === "Completed") return "Hoàn thành";
-              if (raw === "Cancelled") return "Đã hủy";
-              return raw || "Đang diễn ra";
+              const raw = String(cls.status || "").toLowerCase();
+              if (raw.includes("inprogress") || raw.includes("active") || raw.includes("ongoing") || raw.includes("đang diễn ra")) return "Đang diễn ra";
+              if (raw.includes("planned") || raw.includes("upcoming") || raw.includes("sắp diễn ra") || raw.includes("sắp tới")) return "Sắp tới";
+              if (raw.includes("completed") || raw.includes("hoàn thành") || raw.includes("đã kết thúc")) return "Hoàn thành";
+              if (raw.includes("cancelled") || raw.includes("đã hủy")) return "Đã hủy";
+              return "Đang diễn ra";
             })(),
             subjectId: cls.subjectId || 1,
             instructorAssignments: cls.instructorAssignments || [],
@@ -303,7 +313,11 @@ const InstructorClasses = () => {
         cls.subName.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
-        statusFilter === "Tất cả" || cls.status === statusFilter;
+        statusFilter === "Tất cả" ||
+        cls.status === statusFilter ||
+        (statusFilter === "Sắp tới" && (cls.status === "Sắp tới" || cls.status === "Sắp diễn ra" || cls.status === "Planned" || cls.status === "Upcoming")) ||
+        (statusFilter === "Đang diễn ra" && (cls.status === "Đang diễn ra" || cls.status === "Active" || cls.status === "InProgress" || cls.status === "Ongoing")) ||
+        (statusFilter === "Hoàn thành" && (cls.status === "Hoàn thành" || cls.status === "Completed" || cls.status === "Đã kết thúc"));
       const matchesCourse = !courseKey || cls.courseKey === courseKey;
       const matchesSchedule =
         !hasScheduleOnly || cls.schedule !== "Chưa sắp lịch";
@@ -469,12 +483,19 @@ const InstructorClasses = () => {
       };
 
       if (editingSessionId) {
-        await api.put(`/sessions/${editingSessionId}`, payload);
+        const updatePayload = {
+          ...payload,
+          sessionId: Number(editingSessionId),
+          id: Number(editingSessionId),
+        };
+        await api
+          .put(`/Sessions/${editingSessionId}`, updatePayload)
+          .catch(() => api.put(`/sessions/${editingSessionId}`, updatePayload));
         toast.success(tr("Cập nhật buổi học thành công!"));
       } else {
         await api
-          .post("/sessions", payload)
-          .catch(() => api.post("/Sessions", payload));
+          .post("/Sessions", payload)
+          .catch(() => api.post("/sessions", payload));
         toast.success(tr("Tạo buổi học thành công!"));
       }
 

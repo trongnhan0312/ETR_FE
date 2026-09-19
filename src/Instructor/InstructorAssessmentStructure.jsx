@@ -87,7 +87,7 @@ const AssessmentModal = ({
             <label>{tr('Tên đánh giá (ComponentName)')}</label>
             <input
               type="text"
-              value={form.componentName}
+              value={form?.componentName || ""}
               placeholder={tr('VD: Kiểm tra cuối kỳ LT')}
               onChange={(e) => onFormUpdate({ ...form, componentName: e.target.value })}
             />
@@ -97,12 +97,12 @@ const AssessmentModal = ({
             <div className="form-group">
               <label>{tr('Loại đánh giá')}</label>
               <select
-                value={form.assessmentType}
+                value={form?.assessmentType || "Theory"}
                 onChange={(e) => onFormUpdate({ ...form, assessmentType: e.target.value })}
               >
                 {ASSESSMENT_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
-                    {t.label}
+                    {tr(t.label)}
                   </option>
                 ))}
               </select>
@@ -114,7 +114,7 @@ const AssessmentModal = ({
                 min="0"
                 max="100"
                 step="any"
-                value={form.weight}
+                value={form?.weight ?? 0}
                 onChange={(e) =>
                   onFormUpdate({ ...form, weight: parseFloat(e.target.value) || 0 })
                 }
@@ -133,7 +133,7 @@ const AssessmentModal = ({
                 min="0"
                 max="100"
                 step="any"
-                value={form.passingScore}
+                value={form?.passingScore ?? 0}
                 onChange={(e) =>
                   onFormUpdate({
                     ...form,
@@ -147,7 +147,7 @@ const AssessmentModal = ({
               <input
                 type="number"
                 min="0"
-                value={form.displayOrder}
+                value={form?.displayOrder ?? 0}
                 onChange={(e) =>
                   onFormUpdate({
                     ...form,
@@ -169,7 +169,7 @@ const AssessmentModal = ({
             >
               <input
                 type="checkbox"
-                checked={form.isRequired}
+                checked={!!form?.isRequired}
                 onChange={(e) => onFormUpdate({ ...form, isRequired: e.target.checked })}
                 style={{ cursor: "pointer" }}
               />
@@ -462,14 +462,15 @@ const InstructorAssessmentStructure = () => {
   };
 
   const openEditAssessment = (item) => {
+    if (!item) return;
     setEditingAssessment(item);
     setAssessmentForm({
-      componentName: item.componentName || "",
-      assessmentType: item.assessmentType || "Theory",
-      weight: Number(item.weight) || 0,
-      passingScore: Number(item.passingScore) || 0,
-      isRequired: item.isRequired ?? true,
-      displayOrder: Number(item.displayOrder) || 0,
+      componentName: item.componentName || item.ComponentName || "",
+      assessmentType: item.assessmentType || item.AssessmentType || "Theory",
+      weight: Number(item.weight ?? item.Weight ?? 0),
+      passingScore: Number(item.passingScore ?? item.PassingScore ?? 0),
+      isRequired: (item.isRequired ?? item.IsRequired) ?? true,
+      displayOrder: Number(item.displayOrder ?? item.DisplayOrder ?? 0),
     });
     setAssessmentError("");
     setShowAssessmentModal(true);
@@ -477,11 +478,11 @@ const InstructorAssessmentStructure = () => {
 
   const handleSaveAssessment = async () => {
     if (!assessmentForm.componentName.trim()) {
-      setAssessmentError("Vui lòng nhập tên đánh giá.");
+      setAssessmentError(tr("Vui lòng nhập tên đánh giá."));
       return;
     }
     if (!(assessmentForm.weight >= 0 && assessmentForm.weight <= 100)) {
-      setAssessmentError("Trọng số phải nằm trong khoảng 0 – 100.");
+      setAssessmentError(tr("Trọng số phải nằm trong khoảng 0 – 100."));
       return;
     }
     setSavingAssessment(true);
@@ -497,10 +498,11 @@ const InstructorAssessmentStructure = () => {
         displayOrder: Number(assessmentForm.displayOrder) || 0,
       };
       let saved;
-      if (editingAssessment) {
+      const aId = editingAssessment?.assessmentId ?? editingAssessment?.AssessmentId;
+      if (editingAssessment && aId) {
         saved = await api.put(
-          `/Assessments/${editingAssessment.assessmentId}`,
-          { ...payload, assessmentId: editingAssessment.assessmentId },
+          `/Assessments/${aId}`,
+          { ...payload, assessmentId: Number(aId) },
         );
         toast.success(tr("Đã cập nhật"), announce("edit", tr("Assessment")));
       } else {
@@ -512,13 +514,13 @@ const InstructorAssessmentStructure = () => {
       }
       const newItem = saved || {
         ...payload,
-        assessmentId: editingAssessment?.assessmentId || Date.now(),
+        assessmentId: aId || Date.now(),
         courseId: parseInt(selectedCourseId, 10),
       };
       setAssessments((prev) => {
         if (editingAssessment) {
           return prev.map((a) =>
-            a.assessmentId === editingAssessment.assessmentId ? newItem : a,
+            (a.assessmentId ?? a.AssessmentId) === aId ? newItem : a,
           );
         }
         return [...prev, newItem];
@@ -872,7 +874,7 @@ const InstructorAssessmentStructure = () => {
                         </div>
                         <div style={{ fontSize: "12px", fontWeight: "700" }}>
                           {a.isRequired ? (
-                            <span style={{ color: "#15803d" }}>✓ {tr("Có")}</span>
+                            <span style={{ color: "#15803d" }}>✓ {tr("Bắt buộc")}</span>
                           ) : (
                             <span style={{ color: "rgba(0,33,71,0.4)" }}>—</span>
                           )}

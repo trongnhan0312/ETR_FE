@@ -68,7 +68,7 @@ const formatValueSnippet = (val) => {
 };
 
 const AuditorAuditLogs = () => {
-  const { trEn } = useLanguage();
+  const { trEn, tr } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModule, setSelectedModule] = useState('All');
   const [selectedCrud, setSelectedCrud] = useState('ALL');
@@ -181,7 +181,7 @@ const AuditorAuditLogs = () => {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {crud.label}
+                  {trEn(crud.label)}
                 </button>
               ))}
             </div>

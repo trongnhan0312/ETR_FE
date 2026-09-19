@@ -10,9 +10,9 @@ const PromptModal = ({
   isOpen,
   onClose,
   onConfirm,
-  title = tr('Nhập thông tin'),
+  title = "Nhập thông tin",
   message = "",
-  placeholder = tr('Nhập nội dung...'),
+  placeholder = "Nhập nội dung...",
   confirmText = "XÁC NHẬN",
   cancelText = "HỦY BỎ",
   variant = "primary", // "primary" | "danger" | "gold"

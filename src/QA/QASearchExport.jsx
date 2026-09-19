@@ -5,9 +5,11 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import { isEtrCompleted, isEtrReturned } from "../utils/etrStatus";
 
 // Nhãn hiển thị cho status enum trả về từ GET /api/Search/etrs (EtrStatus BE):
 // Draft | InProgress | Submitted | Verified | Completed | ReturnedForCorrection | Cancelled
+// + 4 giá trị legacy BE vẫn trả về từ dữ liệu cũ: Pending | UnderReview | Approved | Rejected
 const STATUS_LABELS = {
   Draft: "Draft",
   InProgress: "In Progress",
@@ -16,6 +18,10 @@ const STATUS_LABELS = {
   Completed: "Completed",
   ReturnedForCorrection: "Returned for Correction",
   Cancelled: "Cancelled",
+  Pending: "Submitted",
+  UnderReview: "In Progress",
+  Approved: "Completed",
+  Rejected: "Returned for Correction",
 };
 
 // Role được phép export (BE: ExportsController [Authorize(Roles = "Admin,Audit,Academic")]).
@@ -57,18 +63,18 @@ const QASearchExport = () => {
 
   const canExport = EXPORT_ROLES.includes(getCurrentRole());
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      toast.error(tr("Thiếu từ khóa"));
-      return;
-    }
+  const handleSearch = async (overrideQuery = null) => {
+    const q = overrideQuery !== null ? overrideQuery : searchQuery;
     setSearching(true);
     try {
-      // Backend: GET /api/Search/etrs?query= — trả về các ETR record (kèm trạng thái thực).
-      // KHÔNG nuốt lỗi 404/403/network bằng .catch(() => null) nữa — khi endpoint lỗi
-      // (deploy thiếu controller, sai quyền, server down) người dùng phải thấy lỗi rõ ràng
-      // thay vì kết quả rỗng giả "không tìm thấy".
-      const data = await api.get(`/Search/etrs?query=${encodeURIComponent(searchQuery)}`);
+      // Try GET /Search/etrs?query= or fallback to /Etr
+      let data = null;
+      if (q && q.trim()) {
+        data = await api.get(`/Search/etrs?query=${encodeURIComponent(q.trim())}`).catch(() => null);
+      }
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        data = await api.get('/Etr').catch(() => []);
+      }
 
       const rows = Array.isArray(data)
         ? data
@@ -77,7 +83,6 @@ const QASearchExport = () => {
           : [];
 
       // Lọc trạng thái phía client — backend không hỗ trợ tham số status.
-      // So khớp cả giá trị enum BE (ReturnedForCorrection) lẫn nhãn FE (RETURNED FOR CORRECTION).
       const norm = (v) => String(v || "").toLowerCase().replace(/[\s_-]/g, "");
       const filtered =
         statusFilter === "all"
@@ -90,10 +95,8 @@ const QASearchExport = () => {
 
       setResults(filtered);
       setSearchNonce((n) => n + 1);
-      if (filtered.length === 0) {
+      if (filtered.length === 0 && q && q.trim()) {
         toast.info(tr("Không có kết quả"));
-      } else {
-        toast.success(tr("Tìm kiếm hoàn tất"));
       }
     } catch (err) {
       setResults([]);
@@ -107,6 +110,11 @@ const QASearchExport = () => {
       setSearching(false);
     }
   };
+
+  // Tự động tải danh sách hồ sơ khi mở trang lần đầu
+  useEffect(() => {
+    handleSearch("");
+  }, [statusFilter]);
 
   // ===== View Details: lấy đầy đủ ETR (subject results + evidence + approval) =====
   const openDetails = async (row) => {
@@ -181,9 +189,9 @@ const QASearchExport = () => {
   }, [canExport, toast, tr]);
 
   const statusClass = (status) =>
-    status === "Completed" || status === "Verified"
+    isEtrCompleted(status) || status === "Verified"
       ? "reviewed"
-      : status === "ReturnedForCorrection" || status === "Cancelled"
+      : isEtrReturned(status) || status === "Cancelled"
         ? "rejected"
         : "neutral";
 
@@ -220,6 +228,10 @@ const QASearchExport = () => {
             <option value="Verified">{trEn('QA Verified')}</option>
             <option value="Completed">{trEn('Completed')}</option>
             <option value="ReturnedForCorrection">{trEn('Returned for Correction')}</option>
+            <option value="UnderReview">{trEn('Under Review')}</option>
+            <option value="Pending">{trEn('Pending QA')}</option>
+            <option value="Approved">{trEn('Approved')}</option>
+            <option value="Rejected">{trEn('Rejected')}</option>
           </select>
           <button
             className="qa-btn"

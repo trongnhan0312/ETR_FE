@@ -95,7 +95,7 @@ const formatValueSnippet = (val) => {
 
 const AuditorDashboard = () => {
   const navigate = useNavigate();
-  const { trEn } = useLanguage();
+  const { trEn, tr } = useLanguage();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -553,8 +553,8 @@ const AuditorDashboard = () => {
             ) : recentLocked.length === 0 ? (
               <div className="empty-table-state">{trEn("No locked ETR records available.")}</div>
             ) : (
-              recentLocked.map((etr) => (
-                <div key={etr.etrCourseRecordId} className="table-row auditor-dash-grid">
+              recentLocked.map((etr, idx) => (
+                <div key={etr.etrCourseRecordId || etr.id || idx} className="table-row auditor-dash-grid">
                   <div className="col-id">#{String(etr.etrCourseRecordId).padStart(4, "0")}</div>
                   <div className="col-name">{etr.learnerName}</div>
                   <div className="col-course">{etr.courseName}</div>
@@ -611,7 +611,7 @@ const AuditorDashboard = () => {
             ) : recentLogs.length === 0 ? (
               <div className="empty-table-state">{trEn("No audit events recorded.")}</div>
             ) : (
-              recentLogs.map((log) => {
+              recentLogs.map((log, idx) => {
                 const meta = ACTION_META[String(log.actionType || "").toUpperCase()] || {
                   label: log.actionType || "Sự kiện",
                   color: "#c5a059",
@@ -628,7 +628,7 @@ const AuditorDashboard = () => {
 
                 return (
                   <div
-                    key={log.id}
+                    key={log.auditLogId || log.auditId || log.id || idx}
                     style={{
                       padding: "12px 14px",
                       borderRadius: "12px",
@@ -651,7 +651,7 @@ const AuditorDashboard = () => {
                           color: meta.color,
                         }}
                       >
-                        {meta.label}
+                        {trEn(meta.label)}
                       </span>
                       <span style={{ fontSize: "11px", color: "rgba(0,33,71,0.5)" }}>
                         {fmtDateTime(log.createdAt)}
@@ -723,9 +723,9 @@ const AuditorDashboard = () => {
             ) : recentExports.length === 0 ? (
               <div className="empty-table-state">{trEn("No export jobs recorded yet.")}</div>
             ) : (
-              recentExports.map((pkg) => (
+              recentExports.map((pkg, idx) => (
                 <div
-                  key={pkg.id}
+                  key={pkg.exportJobId || pkg.id || idx}
                   style={{
                     padding: "12px 14px",
                     borderRadius: "12px",

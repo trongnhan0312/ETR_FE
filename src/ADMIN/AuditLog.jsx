@@ -219,7 +219,7 @@ const AuditLog = () => {
                   transition: 'all 0.15s ease',
                 }}
               >
-                {crud.label}
+                {tr(crud.label)}
               </button>
             ))}
           </div>

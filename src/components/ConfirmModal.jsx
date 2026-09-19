@@ -5,7 +5,7 @@ const ConfirmModal = ({
   isOpen,
   onClose,
   onConfirm,
-  title = tr('Xác nhận'),
+  title = "Xác nhận",
   message = "Bạn có chắc chắn muốn thực hiện thao tác này?",
   confirmText = "XÁC NHẬN",
   cancelText = "HỦY BỎ",

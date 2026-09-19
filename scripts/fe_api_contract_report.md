@@ -1,6 +1,6 @@
 # FE API CONTRACT TEST REPORT
 
-- Date: 2026-08-13T12:26:04.210Z
+- Date: 2026-09-19T14:01:40.278Z
 - Base: `https://etrmanagement-be-fwhvagaxf3f3dmf0.southeastasia-01.azurewebsites.net/api`
 - Mode: read-only (no writes)
 - Probes: 69
@@ -35,7 +35,7 @@
 - `READ GET /Audit?page=1&pageSize=100` page → 200
 - `READ GET /Courses/1` course detail → 200
 - `READ GET /Classes/1` class detail → 200
-- `READ GET /Sessions/1` session detail → 200
+- `READ GET /Sessions/1` session detail → 404
 - `READ GET /Etr/1` etr detail → 200
 - `READ GET /Audit/27` audit detail → 200
 - `READ GET /Dashboard/my-dashboard (admin)` role dashboard → 200

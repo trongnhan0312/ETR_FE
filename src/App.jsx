@@ -186,9 +186,10 @@ function App() {
 					<Route path="/academic" element={<AcademicLayout />}>
 						<Route index element={<AcademicDashboard />} />
 						<Route path="learners" element={<LearnerManagement />} />
-						<Route path="profiles" element={<StudentProfiles />} />
+						<Route path="profiles" element={<Navigate to="/academic/learners" replace />} />
 						<Route path="courses" element={<CourseClassManagement />} />
 						<Route path="etr" element={<EtrManagement />} />
+						<Route path="evidence" element={<EtrManagement defaultView="evidence" />} />
 						<Route path="expiring-students" element={<ExpiringStudents />} />
 						<Route path="subjects" element={<SubjectManagement />} />
 						<Route path="audit" element={<AcademicAuditLogs />} />
