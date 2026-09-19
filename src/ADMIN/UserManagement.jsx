@@ -1098,7 +1098,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
               <div>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{tr('Bước 1 — Tải file mẫu')}</p>
                 <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
-                  {tr('Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*')}
+                  {tr('Cột bắt buộc: Username*, Mật khẩu*, Vai trò*, Phòng ban*, Họ và tên* | Cột tùy chọn: Ngày sinh, Giới tính, SĐT, Tổ chức (Mã định danh được hệ thống tự động tạo)')}
                 </p>
               </div>
               <button className="action-btn" type="button" onClick={handleDownloadImportTemplate} disabled={importDownloading} style={{ padding: '8px 14px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>

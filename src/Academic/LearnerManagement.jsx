@@ -1251,7 +1251,7 @@ const getStudentDepartments = () => {
             </div>
 
             <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#64748b' }}>
-              {tr('Tải file mẫu, điền danh sách tài khoản học viên (chỉ role Student), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).')}
+              {tr('Tải file mẫu, điền danh sách tài khoản học viên (chỉ role Student; bắt buộc Họ và tên, có thể thêm Ngày sinh, Giới tính, SĐT; Mã học viên được hệ thống tự động sinh), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).')}
             </p>
 
             <button
