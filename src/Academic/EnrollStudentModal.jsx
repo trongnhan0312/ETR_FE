@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
+import { isEtrCompleted } from '../utils/etrStatus';
 
 const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCancel }) => {
   const { tr } = useLanguage();
@@ -69,7 +70,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
         const courseOngoingAccountMap = {}; // courseId -> Set(accountId)
 
         etrsArr.forEach((etr) => {
-          const isOngoing = !etr.isLocked && etr.status !== 'Completed';
+          const isOngoing = !etr.isLocked && !isEtrCompleted(etr.status);
           if (!isOngoing) return;
 
           // Find associated enrollment
@@ -323,14 +324,15 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
                 onChange={(e) => setSelectedClassId(e.target.value)}
                 required
               >
-                {classes.map((cls) => {
-                  const disabled = isClassCompletedOrCancelled(cls);
-                  return (
-                    <option key={cls.classId} value={cls.classId} disabled={disabled} style={{ color: disabled ? '#94a3b8' : 'inherit' }}>
-                      {cls.code || cls.classCode} - {cls.name || cls.className} ({cls.status}) {disabled ? `⛔ [${tr('ĐÃ KẾT THÚC')}]` : ''}
+                {eligibleClasses.length === 0 ? (
+                  <option value="">{tr('Không có lớp học nào đang mở')}</option>
+                ) : (
+                  eligibleClasses.map((cls) => (
+                    <option key={cls.classId} value={cls.classId}>
+                      {cls.code || cls.classCode} - {cls.name || cls.className} ({cls.status})
                     </option>
-                  );
-                })}
+                  ))
+                )}
               </select>
             </div>
 
@@ -356,25 +358,27 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
                   onChange={(e) => setSelectedAccountId(e.target.value)}
                   required
                 >
-                  {studentListWithStatus.length === 0 ? (
+                  {studentListWithStatus.filter((s) => !s.alreadyEnrolledInClass).length === 0 ? (
                     <option value="">{tr('Không có học viên nào khả dụng trong hệ thống')}</option>
                   ) : (
-                    studentListWithStatus.map((stu) => {
-                      const isBlocked = stu.hasOngoingEtr || stu.alreadyEnrolledInClass;
-                      return (
-                        <option
-                          key={stu.accountId}
-                          value={stu.accountId}
-                          disabled={isBlocked}
-                          style={{
-                            color: isBlocked ? '#dc2626' : '#0f172a',
-                            backgroundColor: isBlocked ? '#fef2f2' : '#ffffff'
-                          }}
-                        >
-                          [{stu.userCode}] {stu.fullName} ({stu.email}) {stu.hasOngoingEtr ? `⛔ [${tr('ĐÃ CÓ HỒ SƠ ETR ĐANG HỌC')}]` : stu.alreadyEnrolledInClass ? `⛔ [${tr('ĐÃ GHI DANH LỚP NÀY')}]` : ''}
-                        </option>
-                      );
-                    })
+                    studentListWithStatus
+                      .filter((s) => !s.alreadyEnrolledInClass)
+                      .map((stu) => {
+                        const isBlocked = stu.hasOngoingEtr;
+                        return (
+                          <option
+                            key={stu.accountId}
+                            value={stu.accountId}
+                            disabled={isBlocked}
+                            style={{
+                              color: isBlocked ? '#dc2626' : '#0f172a',
+                              backgroundColor: isBlocked ? '#fef2f2' : '#ffffff'
+                            }}
+                          >
+                            [{stu.userCode}] {stu.fullName} ({stu.email}) {stu.hasOngoingEtr ? `⛔ [${tr('ĐÃ CÓ HỒ SƠ ETR ĐANG HỌC')}]` : ''}
+                          </option>
+                        );
+                      })
                   )}
                 </select>
               )}

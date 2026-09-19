@@ -7,9 +7,24 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
+import { parseExcelPreview } from '../utils/excelPreview';
+import ExcelPreviewTable from '../components/ExcelPreviewTable';
+
+const GENDER_LABEL = {
+  Male: 'Nam',
+  Female: 'Nữ',
+  Other: 'Khác',
+};
+
+const formatDate = (iso, currentLang = 'vi') => {
+  if (!iso) return 'N/A';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'N/A';
+  return d.toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'vi-VN');
+};
 
 const LearnerManagement = () => {
-  const { tr, trt } = useLanguage();
+  const { tr, trt, lang } = useLanguage();
   const [learners, setLearners] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,9 +33,16 @@ const LearnerManagement = () => {
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [viewingLearner, setViewingLearner] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+
+  const handleOpenViewModal = (learner) => {
+    setViewingLearner(learner);
+    setIsViewOpen(true);
+  };
 
   // Create Profile (for learner account without a profile yet) Modal State
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -54,7 +76,14 @@ const LearnerManagement = () => {
     if (!err) return fallbackMsg;
     const raw = err.message || String(err);
     // Check for common duplicate-email patterns in the raw string
-    if (raw.toLowerCase().includes('already exist') || raw.toLowerCase().includes('đã tồn tại') || raw.toLowerCase().includes('duplicate')) {
+    if (
+      raw.toLowerCase().includes('already exist') ||
+      raw.toLowerCase().includes('đã tồn tại') ||
+      raw.toLowerCase().includes('duplicate') ||
+      raw.toLowerCase().includes('cannot reach api server for /accounts') ||
+      raw.toLowerCase().includes('409') ||
+      raw.toLowerCase().includes('conflict')
+    ) {
       return tr('Tên đăng nhập (Email) này đã tồn tại trong hệ thống. Vui lòng chọn email khác.');
     }
     try {
@@ -146,7 +175,7 @@ const getStudentDepartments = () => {
     try {
       const [accounts, profiles, deptList] = await Promise.all([
         api.get("/Accounts").catch(() => []),
-        api.get("/UserProfiles").catch(() => []),
+        api.get("/UserProfiles/learners").catch(() => api.get("/UserProfiles")).catch(() => []),
         api.get("/Departments").catch(() => []),
       ]);
 
@@ -160,11 +189,11 @@ const getStudentDepartments = () => {
       }));
       setDepartments(mappedDepts);
 
-      // Filter ONLY Student role accounts (roleId === 6 per backend DataSeeder, or role name 'Student')
+      // Filter ONLY Student role accounts (roleId === 6 per backend DataSeeder, or role name 'Student' / 'Learner')
       const studentAccs = accs.filter((acc) => {
         const rId = Number(acc.roleId);
         const mappedRole = (ROLE_MAP[acc.roleId] || acc.role || acc.roleName || '').toLowerCase();
-        return rId === 6 || mappedRole === 'student';
+        return rId === 6 || mappedRole === 'student' || mappedRole === 'learner';
       });
 
       const mapped = studentAccs.map((acc) => {
@@ -179,12 +208,14 @@ const getStudentDepartments = () => {
           departmentName: deptObj?.name || (String(acc.departmentId) === '2' ? 'Training' : 'Administration'),
           status: acc.status || 'Active',
           hasProfile: !!profile,
+          profileId: profile?.profileId || profile?.id,
           fullName: profile?.fullName || acc.username || tr('Chưa cập nhật'),
           email: profile?.email || acc.username || '',
           phone: profile?.phone || '',
           gender: profile?.gender || 'Male',
           dateOfBirth: profile?.dateOfBirth || '',
-          userCode: profile?.userCode || `USR-${acc.accountId}`,
+          organization: profile?.organization || 'ETR Aviation',
+          userCode: profile?.userCode || `STU-${String(acc.accountId).padStart(2, '0')}`,
         };
       });
       setLearners(mapped);
@@ -246,6 +277,17 @@ const getStudentDepartments = () => {
       return;
     }
 
+    const lower = trimmedUsername.toLowerCase();
+    const duplicated = learners.some(
+      (u) =>
+        String(u.username || '').toLowerCase() === lower ||
+        String(u.email || '').toLowerCase() === lower,
+    );
+    if (duplicated) {
+      setFormError(tr('Email này đã tồn tại trong hệ thống. Vui lòng chọn email khác.'));
+      return;
+    }
+
     setSubmitting(true);
     try {
       // 1. Create account with Student Role (roleId: 6)
@@ -260,7 +302,7 @@ const getStudentDepartments = () => {
       const accId = newAcc?.accountId || newAcc?.id;
       if (accId) {
         await api.post(`/UserProfiles/${accId}`, {
-          userCode: `USR-${accId}`,
+          userCode: null,
           fullName: trimmedFullName,
           email: trimmedUsername,
           phone: phone.trim() || null,
@@ -321,7 +363,7 @@ const getStudentDepartments = () => {
     setSubmitting(true);
     try {
       await api.post(`/UserProfiles/${profileAcc.accountId}`, {
-        userCode: `USR-${profileAcc.accountId}`,
+        userCode: null,
         fullName: pFullName.trim(),
         email: pEmail.trim() || profileAcc.username,
         phone: pPhone.trim() || null,
@@ -387,15 +429,27 @@ const getStudentDepartments = () => {
 
     setSubmitting(true);
     try {
-      // 1. Update profile info
-      await api.put(`/UserProfiles/${editingUser.accountId}`, {
-        fullName: editFullName.trim(),
-        email: editEmail.trim() || editingUser.username,
-        phone: editPhone.trim() || null,
-        dateOfBirth: new Date(`${editDateOfBirth}T00:00:00`).toISOString(),
-        gender: editGender,
-        organization: "ETR Aviation",
-      });
+      // 1. Update or create profile info
+      if (editingUser.hasProfile) {
+        await api.put(`/UserProfiles/${editingUser.accountId}`, {
+          fullName: editFullName.trim(),
+          email: editEmail.trim() || editingUser.username,
+          phone: editPhone.trim() || null,
+          dateOfBirth: new Date(`${editDateOfBirth}T00:00:00`).toISOString(),
+          gender: editGender,
+          organization: "ETR Aviation",
+        });
+      } else {
+        await api.post(`/UserProfiles/${editingUser.accountId}`, {
+          userCode: null,
+          fullName: editFullName.trim(),
+          email: editEmail.trim() || editingUser.username,
+          phone: editPhone.trim() || null,
+          dateOfBirth: new Date(`${editDateOfBirth}T00:00:00`).toISOString(),
+          gender: editGender,
+          organization: "ETR Aviation",
+        });
+      }
 
       // 2. Update department (role is locked to Student)
       // B7 (giới hạn backend): PUT /Accounts/{id}/department chỉ cho Admin — Academic bị 403,
@@ -430,6 +484,7 @@ const getStudentDepartments = () => {
   // Trước đây trang chỉ có tạo từng học viên thủ công → thiếu tính năng nhập danh sách.
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState(null);
+  const [excelPreview, setExcelPreview] = useState(null);
   const [importValidating, setImportValidating] = useState(false);
   const [importCommitting, setImportCommitting] = useState(false);
   const [importResult, setImportResult] = useState(null);
@@ -438,6 +493,7 @@ const getStudentDepartments = () => {
 
   const handleOpenImport = () => {
     setImportFile(null);
+    setExcelPreview(null);
     setImportResult(null);
     setImportError("");
     setImportOpen(true);
@@ -503,6 +559,62 @@ const getStudentDepartments = () => {
       const result = await api.postFormData("/import/students/commit", fd);
       const imported = result?.imported ?? 0;
       const skipped = result?.skipped ?? 0;
+
+      // Auto-create student profile for any imported student accounts that don't have a profile yet
+      try {
+        const [freshAccounts, freshProfiles] = await Promise.all([
+          api.get("/Accounts").catch(() => []),
+          api.get("/UserProfiles").catch(() => []),
+        ]);
+
+        const accsList = Array.isArray(freshAccounts) ? freshAccounts : [];
+        const profsList = Array.isArray(freshProfiles) ? freshProfiles : [];
+
+        const unprofiledStudents = accsList.filter((acc) => {
+          const isStudent =
+            Number(acc.roleId) === 6 ||
+            (acc.role || acc.roleName || "").toLowerCase() === "student";
+          const hasProf = profsList.some(
+            (p) => String(p.accountId) === String(acc.accountId),
+          );
+          return isStudent && !hasProf;
+        });
+
+        if (unprofiledStudents.length > 0) {
+          await Promise.all(
+            unprofiledStudents.map(async (acc) => {
+              let derivedName = (acc.username || "").split("@")[0] || "";
+              derivedName = derivedName.replace(/[._-]/g, " ").trim();
+              if (derivedName) {
+                derivedName =
+                  derivedName.charAt(0).toUpperCase() + derivedName.slice(1);
+              } else {
+                derivedName = `Học viên ${acc.accountId}`;
+              }
+
+              return api
+                .post(`/UserProfiles/${acc.accountId}`, {
+                  userCode: null,
+                  fullName: derivedName,
+                  email: acc.username,
+                  phone: null,
+                  dateOfBirth: new Date("2000-01-01T00:00:00").toISOString(),
+                  gender: "Male",
+                  organization: "ETR Aviation",
+                })
+                .catch((err) =>
+                  console.warn(
+                    `Failed to auto-create profile for account ${acc.accountId}:`,
+                    err,
+                  ),
+                );
+            }),
+          );
+        }
+      } catch (profSyncErr) {
+        console.warn("Failed to sync profiles after import:", profSyncErr);
+      }
+
       toast.success(
         `${tr("Đã nhập thành công")} ${imported} ${tr("tài khoản học viên")}${
           skipped > 0 ? ` — ${tr("bỏ qua")}: ${skipped}` : ""
@@ -556,7 +668,8 @@ const getStudentDepartments = () => {
       u.username.toLowerCase().includes(q) ||
       u.fullName.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q) ||
-      u.phone.toLowerCase().includes(q)
+      u.phone.toLowerCase().includes(q) ||
+      (u.userCode && u.userCode.toLowerCase().includes(q))
     );
   });
 
@@ -570,10 +683,10 @@ const getStudentDepartments = () => {
       {/* Header Section */}
       <section className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#002147', margin: 0 }}>{tr('Danh sách Học viên (Student Accounts)')}</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#002147', margin: 0 }}>{tr('Quản lý Học viên (Student Management)')}</h1>
           <div className="divider-gold" style={{ width: '40px', height: '3px', background: '#c5a059', margin: '8px 0 12px' }} />
           <p className="header-description" style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-            {tr('Quản lý danh sách tài khoản học viên: Tạo mới, cập nhật hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.')}
+            {tr('Quản lý danh sách và hồ sơ học viên: Xem thông tin, tạo mới, chỉnh sửa hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.')}
           </p>
         </div>
 
@@ -631,7 +744,7 @@ const getStudentDepartments = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
             <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
-              {tr('Tất cả học viên')} ({filteredLearners.length})
+              {tr('Tất cả học viên & hồ sơ')} ({filteredLearners.length})
             </h2>
           </div>
           <input
@@ -655,7 +768,7 @@ const getStudentDepartments = () => {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '80px 160px 180px 200px 160px 130px 90px 100px minmax(180px, 1fr)',
+                gridTemplateColumns: '110px 170px 200px 150px 120px 110px 90px 100px minmax(200px, 1fr)',
                 padding: '12px 16px',
                 background: '#002147',
                 color: '#fff',
@@ -665,12 +778,12 @@ const getStudentDepartments = () => {
                 alignItems: 'center',
               }}
             >
-              <div>{tr('UserID')}</div>
-              <div>{tr('Username / Mã HV')}</div>
+              <div>{tr('Mã học viên')}</div>
               <div>{tr('Họ và tên')}</div>
-              <div>{tr('Email')}</div>
+              <div>{tr('Tên đăng nhập / Email')}</div>
               <div>{tr('Phòng ban')}</div>
               <div>{tr('Số điện thoại')}</div>
+              <div>{tr('Ngày sinh')}</div>
               <div>{tr('Giới tính')}</div>
               <div>{tr('Trạng thái')}</div>
               <div style={{ textAlign: 'right' }}>{tr('Hành động')}</div>
@@ -692,7 +805,7 @@ const getStudentDepartments = () => {
                     key={learner.accountId}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '80px 160px 180px 200px 160px 130px 90px 100px minmax(180px, 1fr)',
+                      gridTemplateColumns: '110px 170px 200px 150px 120px 110px 90px 100px minmax(200px, 1fr)',
                       padding: '12px 16px',
                       borderBottom: '1px solid #f1f5f9',
                       alignItems: 'center',
@@ -700,9 +813,8 @@ const getStudentDepartments = () => {
                       background: '#fff',
                     }}
                   >
-                    <div style={{ fontWeight: '700', color: '#c5a059', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.accountId}</div>
-                    <div style={{ fontWeight: '600', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.username}</div>
-                    <div style={{ color: '#334155', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+                    <div style={{ fontWeight: '700', color: '#c5a059', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.userCode}</div>
+                    <div style={{ color: '#0f172a', fontWeight: '600', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
                       <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.fullName}</span>
                       {!learner.hasProfile && (
                         <span
@@ -723,10 +835,11 @@ const getStudentDepartments = () => {
                         </span>
                       )}
                     </div>
-                    <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={learner.email}>{learner.email}</div>
+                    <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={learner.email || learner.username}>{learner.email || learner.username}</div>
                     <div style={{ color: '#334155', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.departmentName}</div>
                     <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.phone || 'N/A'}</div>
-                    <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.gender || 'N/A'}</div>
+                    <div style={{ color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{learner.dateOfBirth ? formatDate(learner.dateOfBirth, lang) : 'N/A'}</div>
+                    <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(GENDER_LABEL[learner.gender]) || learner.gender || 'N/A'}</div>
                     <div>
                       <span
                         style={{
@@ -741,7 +854,24 @@ const getStudentDepartments = () => {
                         {isInactive ? 'Inactive' : 'Active'}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenViewModal(learner)}
+                        title={tr('Xem chi tiết hồ sơ')}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#f8fafc',
+                          color: '#002147',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {tr('Xem')}
+                      </button>
                       {!learner.hasProfile && (
                         <button
                           type="button"
@@ -774,7 +904,7 @@ const getStudentDepartments = () => {
                           cursor: 'pointer',
                         }}
                       >
-                        Edit
+                        {tr('Sửa')}
                       </button>
                       {isInactive ? (
                         <button
@@ -791,7 +921,7 @@ const getStudentDepartments = () => {
                             fontWeight: '600',
                           }}
                         >
-                          Activate Account
+                          {tr('Kích hoạt')}
                         </button>
                       ) : (
                         <button
@@ -807,7 +937,7 @@ const getStudentDepartments = () => {
                             cursor: 'pointer',
                           }}
                         >
-                          Disable
+                          {tr('Vô hiệu hóa')}
                         </button>
                       )}
                     </div>
@@ -984,7 +1114,7 @@ const getStudentDepartments = () => {
                   onClick={() => setIsCreateOpen(false)}
                   style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
                 >
-                  Hủy
+                  {tr('Hủy')}
                 </button>
                 <button
                   type="submit"
@@ -1115,17 +1245,133 @@ const getStudentDepartments = () => {
                   onClick={() => setIsEditOpen(false)}
                   style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
                 >
-                  Hủy
+                  {tr('Hủy')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
                 >
-                  {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  {submitting ? tr('Đang lưu...') : tr('Lưu thay đổi')}
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* VIEW LEARNER PROFILE MODAL */}
+      {isViewOpen && viewingLearner && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '520px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a', fontWeight: '700' }}>{tr('Hồ sơ học viên')}</h2>
+                <div style={{ width: '32px', height: '3px', background: '#c5a059', marginTop: '6px', borderRadius: '2px' }} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsViewOpen(false)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
+                aria-label={tr('Đóng')}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                { label: tr('Mã học viên'), value: viewingLearner.userCode, highlight: true },
+                { label: tr('ID tài khoản'), value: String(viewingLearner.accountId) },
+                { label: tr('Họ và tên'), value: viewingLearner.fullName },
+                { label: tr('Tên đăng nhập'), value: viewingLearner.username || 'N/A' },
+                { label: tr('Email'), value: viewingLearner.email || 'N/A' },
+                { label: tr('Số điện thoại'), value: viewingLearner.phone || 'N/A' },
+                { label: tr('Ngày sinh'), value: formatDate(viewingLearner.dateOfBirth, lang) },
+                { label: tr('Giới tính'), value: tr(GENDER_LABEL[viewingLearner.gender]) || viewingLearner.gender || 'N/A' },
+                { label: tr('Phòng ban'), value: viewingLearner.departmentName || 'N/A' },
+                { label: tr('Tổ chức'), value: viewingLearner.organization || 'ETR Aviation' },
+                {
+                  label: tr('Trạng thái tài khoản'),
+                  value: (
+                    <span
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        background:
+                          viewingLearner.status?.toLowerCase() === 'inactive' || viewingLearner.status?.toLowerCase() === 'disabled'
+                            ? '#fef2f2'
+                            : '#ecfdf5',
+                        color:
+                          viewingLearner.status?.toLowerCase() === 'inactive' || viewingLearner.status?.toLowerCase() === 'disabled'
+                            ? '#ef4444'
+                            : '#10b981',
+                      }}
+                    >
+                      {viewingLearner.status || 'Active'}
+                    </span>
+                  ),
+                  isCustom: true,
+                },
+              ].map((row) => (
+                <div
+                  key={row.label}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '16px',
+                    padding: '8px 12px',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #f1f5f9',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    {row.label}
+                  </span>
+                  {row.isCustom ? (
+                    row.value
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: row.highlight ? '#c5a059' : '#0f172a',
+                        textAlign: 'right',
+                        wordBreak: 'break-all',
+                      }}
+                    >
+                      {row.value}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button
+                type="button"
+                onClick={() => setIsViewOpen(false)}
+                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer', fontWeight: '600' }}
+              >
+                {tr('Đóng')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = viewingLearner;
+                  setIsViewOpen(false);
+                  handleOpenEditModal(target);
+                }}
+                style={{ padding: '8px 18px', background: '#002147', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
+              >
+                {tr('Chỉnh sửa hồ sơ')}
+              </button>
+            </div>
           </div>
         </div>,
         document.body
@@ -1220,7 +1466,7 @@ const getStudentDepartments = () => {
                   onClick={() => setIsProfileOpen(false)}
                   style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
                 >
-                  Hủy
+                  {tr('Hủy')}
                 </button>
                 <button
                   type="submit"
@@ -1239,7 +1485,7 @@ const getStudentDepartments = () => {
       {/* IMPORT LEARNERS MODAL (Excel bulk import — BE /import/accounts/*) */}
       {importOpen && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '560px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '720px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>{tr('Import danh sách học viên (Excel)')}</h2>
               <button
@@ -1295,11 +1541,7 @@ const getStudentDepartments = () => {
               onDrop={(e) => {
                 e.preventDefault();
                 const f = e.dataTransfer.files?.[0];
-                if (f) {
-                  setImportFile(f);
-                  setImportResult(null);
-                  setImportError("");
-                }
+                if (f) handleFileSelected(f);
               }}
             >
               <input
@@ -1309,9 +1551,7 @@ const getStudentDepartments = () => {
                 style={{ display: 'none' }}
                 onChange={(e) => {
                   const f = e.target.files?.[0] || null;
-                  setImportFile(f);
-                  setImportResult(null);
-                  setImportError("");
+                  handleFileSelected(f);
                 }}
               />
               <label
@@ -1323,6 +1563,16 @@ const getStudentDepartments = () => {
                   : tr('Bấm để chọn file Excel (.xlsx) hoặc kéo-thả vào đây')}
               </label>
             </div>
+
+            {excelPreview && (
+              <div style={{ marginBottom: '14px' }}>
+                <ExcelPreviewTable
+                  headers={excelPreview.headers}
+                  rows={excelPreview.rows}
+                  tr={tr}
+                />
+              </div>
+            )}
 
             {importResult && (
               <div style={{ marginBottom: '14px' }}>
@@ -1338,9 +1588,16 @@ const getStudentDepartments = () => {
                     color: importResult.canCommit ? '#15803d' : '#b91c1c',
                   }}
                 >
-                  {importResult.canCommit
-                    ? tr(`✓ Hợp lệ: ${importResult.validRows}/${importResult.totalRows} dòng. Có thể nhập vào hệ thống.`)
-                    : tr(`✗ Không hợp lệ: ${importResult.errorRows}/${importResult.totalRows} dòng lỗi. Vui lòng sửa file rồi kiểm tra lại.`)}
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '4px' }}>
+                    <span>{tr('Tổng số dòng')}: <strong>{importResult.totalRows ?? 0}</strong></span>
+                    <span style={{ color: '#15803d' }}>{tr('Hợp lệ')}: <strong>{importResult.validRows ?? 0}</strong></span>
+                    <span style={{ color: '#b91c1c' }}>{tr('Lỗi')}: <strong>{importResult.errorRows ?? 0}</strong></span>
+                  </div>
+                  <div>
+                    {importResult.canCommit
+                      ? tr('File hợp lệ — có thể nhập vào hệ thống.')
+                      : tr('File còn lỗi — vui lòng sửa rồi kiểm tra lại.')}
+                  </div>
                 </div>
                 {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
                   <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>

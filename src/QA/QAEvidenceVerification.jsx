@@ -162,9 +162,14 @@ const QAEvidenceVerification = () => {
    */
   const openOrDownloadEvidence = async (row) => {
     if (!row) return;
-    if (row.fileUrl) {
+    let targetUrl = row.fileUrl;
+    if (!targetUrl) {
+      const detail = await api.get(`/Evidences/${row.id}`).catch(() => null);
+      targetUrl = detail?.fileUrl || detail?.FileUrl;
+    }
+    if (targetUrl) {
       try {
-        const res = await fetch(row.fileUrl);
+        const res = await fetch(targetUrl);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
         if (blob && blob.size > 0 && blob.type !== "text/html") {
@@ -173,7 +178,7 @@ const QAEvidenceVerification = () => {
         }
         throw new Error("empty blob");
       } catch {
-        window.open(row.fileUrl, "_blank", "noopener,noreferrer");
+        window.open(targetUrl, "_blank", "noopener,noreferrer");
         return;
       }
     }
@@ -185,12 +190,15 @@ const QAEvidenceVerification = () => {
 
   const loadPreview = async (row) => {
     if (!row) return;
-    // FileUrl Cloudinary có thể dùng trực tiếp cho <img>/<iframe> — không cần fetch blob,
-    // tránh hẳn lỗi CORS của endpoint /download (302 redirect).
-    if (row.fileUrl) {
+    let targetUrl = row.fileUrl;
+    if (!targetUrl) {
+      const detail = await api.get(`/Evidences/${row.id}`).catch(() => null);
+      targetUrl = detail?.fileUrl || detail?.FileUrl;
+    }
+    if (targetUrl) {
       setPreviewUrl((prev) => {
         if (prev && prev.startsWith("blob:")) window.URL.revokeObjectURL(prev);
-        return row.fileUrl;
+        return targetUrl;
       });
       return;
     }
@@ -287,12 +295,22 @@ const QAEvidenceVerification = () => {
     }
   };
 
-  // QA KHÔNG có chức năng xóa evidence (backend DELETE /Evidences/{id} chỉ cho Instructor/Admin/Academic)
-  const pendingCount = evidenceList.filter((e) => e.status === "Pending").length;
+  // Tabs: Chờ duyệt (Pending) vs Đã xử lý (Processed: Verified/Rejected) vs Tất cả
+  const [activeTab, setActiveTab] = useState("PENDING");
+  const pendingEvidences = evidenceList.filter((e) => e.status === "Pending");
+  const processedEvidences = evidenceList.filter((e) => e.status === "Verified" || e.status === "Rejected");
+  const currentDisplayList =
+    activeTab === "PENDING"
+      ? pendingEvidences
+      : activeTab === "PROCESSED"
+        ? processedEvidences
+        : evidenceList;
 
-  const { page, setPage, pageCount, pageItems, total } = usePagination(evidenceList, {
+  const pendingCount = pendingEvidences.length;
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(currentDisplayList, {
     pageSize: 10,
-    resetKey: evidenceList.length,
+    resetKey: `${activeTab}|${evidenceList.length}`,
   });
 
   // Xác minh hàng loạt — PUT /api/Evidences/bulk-verify (khớp BulkVerifyEvidenceRequest BE:
@@ -352,14 +370,24 @@ const QAEvidenceVerification = () => {
       </section>
 
       <section className="qa-table-card">
-        <div className="qa-table-header">
+        <div className="qa-table-header" style={{ flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <h2>{trEn('Pending Evidence')} ({pendingCount})</h2>
+            <h2>
+              {activeTab === "PENDING"
+                ? `${tr("Minh chứng chờ duyệt")} (${pendingCount})`
+                : activeTab === "PROCESSED"
+                  ? `${tr("Minh chứng đã xử lý")} (${processedEvidences.length})`
+                  : `${tr("Tất cả minh chứng")} (${evidenceList.length})`}
+            </h2>
             <p className="qa-page-description">
-              {trEn('All evidence awaiting QA attention appears here in one queue.')}
+              {activeTab === "PENDING"
+                ? tr("Danh sách các minh chứng đào tạo đang chờ QA thẩm định và xác thực.")
+                : activeTab === "PROCESSED"
+                  ? tr("Danh sách các minh chứng đã được xác thực (Verified) hoặc từ chối (Rejected).")
+                  : tr("Toàn bộ minh chứng trong hệ thống ETR.")}
             </p>
           </div>
-          {pendingCount > 0 && (
+          {activeTab === "PENDING" && pendingCount > 0 && (
             <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
               <button
                 className="qa-btn"
@@ -373,6 +401,64 @@ const QAEvidenceVerification = () => {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Tab navigation pills */}
+        <div style={{ display: "flex", gap: "8px", padding: "0 24px 16px", borderBottom: "1px solid #e2e8f0" }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("PENDING")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "20px",
+              border: "1px solid",
+              borderColor: activeTab === "PENDING" ? "#002147" : "#cbd5e1",
+              backgroundColor: activeTab === "PENDING" ? "#002147" : "#f8fafc",
+              color: activeTab === "PENDING" ? "#c5a059" : "#475569",
+              fontWeight: 700,
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {tr("Chờ duyệt")} ({pendingEvidences.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("PROCESSED")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "20px",
+              border: "1px solid",
+              borderColor: activeTab === "PROCESSED" ? "#002147" : "#cbd5e1",
+              backgroundColor: activeTab === "PROCESSED" ? "#002147" : "#f8fafc",
+              color: activeTab === "PROCESSED" ? "#c5a059" : "#475569",
+              fontWeight: 700,
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {tr("Đã xử lý")} ({processedEvidences.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("ALL")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "20px",
+              border: "1px solid",
+              borderColor: activeTab === "ALL" ? "#002147" : "#cbd5e1",
+              backgroundColor: activeTab === "ALL" ? "#002147" : "#f8fafc",
+              color: activeTab === "ALL" ? "#c5a059" : "#475569",
+              fontWeight: 700,
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {tr("Tất cả")} ({evidenceList.length})
+          </button>
         </div>
 
         <div className="qa-list">

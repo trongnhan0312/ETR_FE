@@ -38,6 +38,21 @@ const getCurrentAccountId = () => {
   }
 };
 
+// BE (AttendanceService.RecordAttendanceAsync + BusinessRuleEngine.AttendanceGracePeriodHours = 48)
+// chỉ cho phép Instructor điểm danh bù trong vòng 48h sau ngày học; quá hạn → 400 và yêu cầu
+// liên hệ Academic Staff. Hàm này ở module scope (không gọi Date.now() khi render).
+const ATTENDANCE_GRACE_PERIOD_HOURS = 48;
+const isBeyondAttendanceGrace = (rawSessionDate) => {
+  if (!rawSessionDate) return false;
+  const d = new Date(rawSessionDate);
+  if (Number.isNaN(d.getTime())) return false;
+  // BE tính: sessionDate.Date.AddDays(1).AddHours(48) → hết hạn lúc 00:00 ngày kế tiếp + 48h
+  const expiry =
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() +
+    (24 + ATTENDANCE_GRACE_PERIOD_HOURS) * 60 * 60 * 1000;
+  return Date.now() > expiry;
+};
+
 const InstructorAttendance = () => {
   const { tr } = useLanguage();
   const [classesData, setClassesData] = useState([]);
@@ -200,6 +215,9 @@ const InstructorAttendance = () => {
               subjectId: s.subjectId ?? null,
               stt: String(idx + 1).padStart(2, "0"),
               date: dateStr,
+              // Giữ nguyên mốc thời gian gốc để kiểm tra grace period 48h của BE
+              sessionDate: rawDate || null,
+              graceExpired: isBeyondAttendanceGrace(rawDate),
               name: s.sessionTitle || tr("Buổi học"),
               room: s.location || tr("Phòng học"),
               instructor: getCurrentInstructorName(),
@@ -411,6 +429,12 @@ const InstructorAttendance = () => {
   };
 
   const isClassClosed = isLockedStatus(selectedClass?.status);
+
+  // BE (AttendanceService.RecordAttendanceAsync + BusinessRuleEngine.AttendanceGracePeriodHours = 48)
+  // chỉ cho phép Instructor điểm danh bù trong vòng 48h sau ngày học; quá hạn → 400 và yêu cầu
+  // liên hệ Academic Staff. FE cảnh báo trước (KHÔNG khóa cứng nút, giống cảnh báo lớp đã kết thúc).
+  // Đã tính sẵn ở bước map danh sách buổi (xem fetchSessions) — không gọi Date.now() khi render.
+  const isGraceExpired = selectedSession?.graceExpired === true;
 
   // Nhãn trạng thái lớp hiển thị trong dropdown chọn lớp
   const getClassStatusLabel = (status) => {
@@ -749,6 +773,35 @@ const InstructorAttendance = () => {
           </svg>
           <span className="breadcrumb-item active">{tr(selectedSession.name)}</span>
         </nav>
+
+        {/* Cảnh báo: buổi học đã quá hạn điểm danh bù 48h — BE chặn Instructor ghi điểm danh */}
+        {isGraceExpired && !isConfirmed && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "10px",
+              padding: "12px 18px",
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
+              borderLeft: "4px solid #d97706",
+              borderRadius: "10px",
+              fontSize: "12px",
+              color: "#92400e",
+              lineHeight: 1.5,
+            }}
+          >
+            <span style={{ fontSize: "16px", lineHeight: 1 }}>⏰</span>
+            <div>
+              <strong>
+                {tr("Buổi học đã quá hạn điểm danh bù (48 giờ)")}.
+              </strong>{" "}
+              {tr(
+                "Hệ thống chỉ cho phép giảng viên điểm danh bù trong vòng 48 giờ sau ngày học. Vui lòng liên hệ Academic Staff để xử lý ngoại lệ.",
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Cảnh báo: lớp đã kết thúc/hủy — BE chặn ghi điểm danh (ETR học viên đã khóa) */}
         {isClassClosed && (

@@ -130,7 +130,9 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
       {/* Page Title */}
       <div className="content-header" style={{ marginBottom: '12px' }}>
         <div className="header-left">
-          <h1>{tr('Lịch sử điểm danh chi tiết')}</h1>
+          <h1 style={{ color: '#002147', fontWeight: 800, fontSize: '24px', letterSpacing: '-0.01em' }}>
+            {tr('Lịch sử điểm danh chi tiết')}
+          </h1>
           <div className="divider-gold" />
         </div>
       </div>

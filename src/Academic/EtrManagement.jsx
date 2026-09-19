@@ -9,8 +9,9 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
 import AuditLogDetailModal from "../components/AuditLogDetailModal";
+import { isEtrCompleted } from "../utils/etrStatus";
 
-const EtrManagement = () => {
+const EtrManagement = ({ defaultView = "list" }) => {
   const { tr, trEn } = useLanguage();
   const [etrRecords, setEtrRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -22,7 +23,12 @@ const EtrManagement = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   // Sub-views & Filters
-  const [viewMode, setViewMode] = useState("list"); // 'list' or 'evidence'
+  const [viewMode, setViewMode] = useState(defaultView); // 'list' or 'evidence'
+  useEffect(() => {
+    if (defaultView) {
+      setViewMode(defaultView);
+    }
+  }, [defaultView]);
   const [fileSearchQuery, setFileSearchQuery] = useState("");
   const [fileCategoryFilter, setFileCategoryFilter] = useState("ALL");
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -274,6 +280,11 @@ const EtrManagement = () => {
         ReturnedForCorrection: "RETURNED FOR CORRECTION",
         Reopened: "UNDER REVIEW",
         Completed: "APPROVED",
+        // Giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
+        Pending: "PENDING QA",
+        UnderReview: "UNDER REVIEW",
+        Approved: "APPROVED",
+        Rejected: "RETURNED FOR CORRECTION",
       };
 
       // Evidence liên kết qua SubjectResultId (không có ETR id trực tiếp trên EvidenceFile)
@@ -339,8 +350,8 @@ const EtrManagement = () => {
           results:
             resultsOkMap[etrId] === true ||
             etr.status === "Verified" ||
-            etr.status === "Completed",
-          evidence: etr.status === "Verified" || etr.status === "Completed",
+            isEtrCompleted(etr.status),
+          evidence: etr.status === "Verified" || isEtrCompleted(etr.status),
         },
         evidenceList: etrEvidences,
         // Bước chặn "Evidence phải được QA verify xong Academic mới được Submit ETR":
@@ -457,7 +468,7 @@ const EtrManagement = () => {
       const enrIds = allEnrollments
         .filter((enr) => Number(enr.accountId) === accId)
         .map((enr) => enr.enrollmentId);
-      const matchedEtr = etrs.find((rec) => enrIds.includes(rec.enrollmentId));
+      const matchedEtr = etrRecords.find((rec) => enrIds.includes(rec.enrollmentId));
 
       if (!matchedEtr) {
         toast.warning(
@@ -468,11 +479,11 @@ const EtrManagement = () => {
         return;
       }
 
-      await refreshData();
       setIsCreateOpen(false);
       setNewAccountId("");
+      setSelectedRecord(matchedEtr);
       // Lọc thẳng đến hồ sơ vừa tra cứu
-      setSearchTerm(String(matchedEtr.etrId));
+      setSearchTerm(String(matchedEtr.studentName || matchedEtr.studentCode || matchedEtr.id || ""));
       toast.success(
         tr("Đã tìm thấy hồ sơ ETR của học viên"),
         announce("add", tr("Hồ sơ")),
@@ -637,6 +648,11 @@ const EtrManagement = () => {
       Completed: "APPROVED",
       ReturnedForCorrection: "RETURNED FOR CORRECTION",
       Cancelled: "CANCELLED",
+      // Giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
+      Pending: "PENDING QA",
+      UnderReview: "UNDER REVIEW",
+      Approved: "APPROVED",
+      Rejected: "RETURNED FOR CORRECTION",
     };
     return map[s] || s || "—";
   };
@@ -3376,6 +3392,55 @@ const EtrManagement = () => {
                     />
                   </div>
 
+                  {/* Returned For Correction / Rejection Feedback Notice */}
+                  {(finalViewRecord?.status === "RETURNED FOR CORRECTION" ||
+                    finalViewDetail?.status === "ReturnedForCorrection" ||
+                    finalViewDetail?.status === "Rejected" ||
+                    finalViewDetail?.rejectionReason ||
+                    finalViewDetail?.returnReason ||
+                    finalViewDetail?.comment) && (
+                    <div
+                      style={{
+                        backgroundColor: "#fff1f2",
+                        border: "1px solid #fecdd3",
+                        borderLeft: "4px solid #e11d48",
+                        borderRadius: "8px",
+                        padding: "16px 20px",
+                        marginBottom: "24px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          color: "#be123c",
+                          fontWeight: 700,
+                          fontSize: "13px",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        <span>⚠️ {tr("Ý KIẾN PHẢN HỒI / LÝ DO TRẢ VỀ (RETURN FEEDBACK)")}</span>
+                      </div>
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          fontSize: "14px",
+                          color: "#881337",
+                          lineHeight: "1.6",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {finalViewDetail?.rejectionReason ||
+                          finalViewDetail?.returnReason ||
+                          finalViewDetail?.comment ||
+                          finalViewRecord?.rejectionReason ||
+                          finalViewRecord?.returnReason ||
+                          tr("Hồ sơ đã được thẩm định trả về để chỉnh sửa hoặc bổ sung minh chứng trước khi ký duyệt chính thức.")}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Grid 2 column Info */}
                   <div
                     style={{
@@ -3669,7 +3734,7 @@ const EtrManagement = () => {
                     type="button"
                     onClick={() => setIsFinalViewOpen(false)}
                   >
-                    ĐÓNG HỒ SƠ
+                    {tr('ĐÓNG HỒ SƠ')}
                   </button>
                 </footer>
               </div>
@@ -3753,8 +3818,8 @@ const EtrManagement = () => {
                           fontSize: '10px',
                           fontWeight: 900,
                           whiteSpace: 'nowrap',
-                          backgroundColor: (r.status === 'Completed' || r.status === 'Verified') ? '#dcfce7' : r.status === 'ReturnedForCorrection' ? '#fef3c7' : '#e2e8f0',
-                          color: (r.status === 'Completed' || r.status === 'Verified') ? '#15803d' : r.status === 'ReturnedForCorrection' ? '#d97706' : '#475569',
+                          backgroundColor: (isEtrCompleted(r.status) || r.status === 'Verified') ? '#dcfce7' : (r.status === 'ReturnedForCorrection' || r.status === 'Rejected') ? '#fef3c7' : '#e2e8f0',
+                          color: (isEtrCompleted(r.status) || r.status === 'Verified') ? '#15803d' : (r.status === 'ReturnedForCorrection' || r.status === 'Rejected') ? '#d97706' : '#475569',
                         }}>
                           {etrStatusDisplay(r.status)}
                         </span>

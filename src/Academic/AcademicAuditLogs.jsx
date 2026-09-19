@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
 import AuditLogDetailModal from '../components/AuditLogDetailModal';
+import { filterLogsByScope } from '../utils/auditScope';
 
 const ACADEMIC_ACTION_METAS = {
   INSERT: { label: 'Tạo mới (INSERT)', color: '#2563eb', category: 'CREATE' },
@@ -72,7 +73,9 @@ const AcademicAuditLogs = () => {
         api.get('/Accounts').catch(() => []),
       ]);
 
-      const audits = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+      // Lọc phạm vi: Academic chỉ thấy log thuộc chức năng đào tạo/ghi danh hoặc do chính mình tạo
+      const rawAudits = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+      const audits = filterLogsByScope(rawAudits);
       const accountList = Array.isArray(accounts) ? accounts : Array.isArray(accounts?.items) ? accounts.items : [];
       const accountMap = new Map();
       accountList.forEach((acc) => {
@@ -244,7 +247,7 @@ const AcademicAuditLogs = () => {
                   transition: 'all 0.15s ease',
                 }}
               >
-                {s.label}
+                {tr(s.label)}
               </button>
             ))}
           </div>

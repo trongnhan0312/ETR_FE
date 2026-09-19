@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ApexChart from '../components/ApexChart';
 import { fetchMyDashboard } from '../utils/dashboardApi';
 import { useLanguage } from '../context/LanguageContext';
+import { isEtrCompleted } from '../utils/etrStatus';
 import '../dashboard.scss';
 
 const VALIDITY_LABELS = {
@@ -13,22 +14,33 @@ const VALIDITY_LABELS = {
 
 const STATUS_MAP = {
   'In Progress': 'progress',
+  'InProgress': 'progress',
   'Submitted': 'submitted',
   'Verified': 'verified',
   'Completed': 'completed',
   'Draft': 'draft',
   'Returned': 'returned',
   'ReturnedForCorrection': 'returned',
+  // Giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
+  'Approved': 'completed',
+  'Rejected': 'returned',
+  'Pending': 'submitted',
+  'UnderReview': 'progress',
 };
 
 const STATUS_LABEL = {
   'In Progress': 'Đang đào tạo',
+  'InProgress': 'Đang đào tạo',
   'Submitted': 'Đã nộp',
   'Verified': 'Đã thẩm định',
   'Completed': 'Hoàn thành',
+  'Approved': 'Hoàn thành',
   'Draft': 'Nháp',
   'Returned': 'Trả lại',
   'ReturnedForCorrection': 'Trả lại',
+  'Rejected': 'Trả lại',
+  'Pending': 'Đã nộp',
+  'UnderReview': 'Đang thẩm định',
 };
 
 /** Format an ISO date string → Vietnamese locale, or '--' */
@@ -43,9 +55,16 @@ const formatDate = (d) => {
 
 const statusBucket = (s) => {
   const st = String(s || '').toLowerCase().replace(/[\s_-]/g, '');
-  if (st === 'inprogress' || st === 'draft') return 'progress';
-  if (st === 'submitted' || st === 'verified' || st === 'returnedforcorrection') return 'pending';
-  if (st === 'completed') return 'completed';
+  if (st === 'inprogress' || st === 'draft' || st === 'underreview') return 'progress';
+  if (
+    st === 'submitted' ||
+    st === 'verified' ||
+    st === 'pending' ||
+    st === 'returnedforcorrection' ||
+    st === 'rejected'
+  )
+    return 'pending';
+  if (st === 'completed' || st === 'approved') return 'completed';
   return 'other';
 };
 
@@ -172,7 +191,7 @@ const StudentDashboard = () => {
       ? Math.max(...mapped.map(e => Number(e.percentComplete) || 0))
       : 70;
 
-    const isDone = mapped.some(e => e.status === 'Completed') || currentPct >= 100;
+    const isDone = mapped.some(e => isEtrCompleted(e.status)) || currentPct >= 100;
 
     const m1 = Math.min(100, Math.max(10, Math.round(currentPct * 1.5)));
     const m2 = Math.min(100, Math.max(0, Math.round(currentPct * 1.3)));

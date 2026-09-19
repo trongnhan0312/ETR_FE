@@ -23,13 +23,16 @@ export const LanguageProvider = ({ children }) => {
   /** Dịch chuỗi tĩnh: tự động chuyển sang EN khi lang=en, và VN khi lang=vi, áp dụng cho cả chuỗi nguồn tiếng Việt và tiếng Anh */
   const tr = (text) => {
     if (typeof text !== 'string' || !text) return text;
+    let out;
     if (lang === 'en') {
       const translated = translateVn(text);
-      return translated !== undefined ? translated : text;
+      out = translated !== undefined ? translated : text;
     } else {
       const translated = translateEn(text);
-      return translated !== undefined ? translated : text;
+      out = translated !== undefined ? translated : text;
     }
+    // Gắn dấu * (bắt buộc) vào chữ cuối bằng non-breaking space để không bị xuống dòng riêng
+    return out.replace(/\s+\*$/, '\u00A0*');
   };
 
   /** Dịch chuỗi động theo key + params */

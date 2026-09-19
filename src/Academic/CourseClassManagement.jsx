@@ -2167,10 +2167,41 @@ const CourseClassManagement = () => {
                 </div>
               </div>
 
-              {/* Instructor */}
+              {/* Course & Enrollment Stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{tr('Khóa học')}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#002147' }}>
+                    {courses.find((c) => String(c.courseId) === String(viewingClassDetail.courseId))?.name || viewingClassDetail.courseName || `#${viewingClassDetail.courseId || '—'}`}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{tr('Sĩ số & Chuyên cần')}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                    {viewingClassDetail.enrolledCount ?? viewingClassDetail.studentsCount ?? 0} {tr('học viên')} · {viewingClassDetail.attendanceRate ?? 0}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Instructor / Subject-Instructor Assignments */}
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{tr('Giảng viên')}</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>{viewingClassDetail.instructor || tr('Chưa phân công')}</div>
+                {Array.isArray(viewingClassDetail.instructorAssignments) && viewingClassDetail.instructorAssignments.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                    {viewingClassDetail.instructorAssignments.map((ia, idx) => {
+                      const insObj = instructors.find((i) => String(i.accountId) === String(ia.instructorAccountId));
+                      const subObj = subjects.find((s) => String(s.subjectId) === String(ia.subjectId));
+                      return (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '6px 10px', background: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                          <span style={{ fontWeight: 600, color: '#334155' }}>{subObj ? `[${subObj.subjectCode}] ${subObj.subjectName}` : `${tr('Môn #')}${ia.subjectId}`}</span>
+                          <span style={{ color: insObj ? '#002147' : '#94a3b8', fontWeight: insObj ? 700 : 400 }}>{insObj?.fullName || tr('Chưa phân công')}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>{viewingClassDetail.instructor || tr('Chưa phân công')}</div>
+                )}
               </div>
             </div>
 

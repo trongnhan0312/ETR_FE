@@ -1,4 +1,6 @@
 import { api, getApiBaseLabel, getActiveApiBaseUrl } from "../utils/api";
+import { isEtrCompleted } from "../utils/etrStatus";
+import { filterLogsByScope, isLogVisibleToUser } from "../utils/auditScope";
 
 /**
  * Auditor Compliance API Service Layer
@@ -87,18 +89,22 @@ const accountName = (lookup, accountId) => {
 
 // --- 1. AuditController APIs (Read-Only) ---
 
-/** GET /api/Audit?page=&pageSize= (Danh sách nhật ký hệ thống) */
+/** GET /api/Audit?page=&pageSize= (Danh sách nhật ký hệ thống — đã lọc theo phạm vi role) */
 export const fetchAuditLogs = async (page = 1, pageSize = 50) => {
   const lookup = await loadLookup();
   const data = await api.get(`/Audit?page=${page}&pageSize=${pageSize}`);
-  return extractList(data).map((log) => normalizeAuditLog(log, lookup));
+  // Lọc phạm vi: Auditor không thấy log quản trị hệ thống (Account, Department...) và ADMIN_FORCE_UNLOCK
+  const visibleLogs = filterLogsByScope(extractList(data));
+  return visibleLogs.map((log) => normalizeAuditLog(log, lookup));
 };
 
-/** GET /api/Audit/{id} (Chi tiết một nhật ký) */
+/** GET /api/Audit/{id} (Chi tiết một nhật ký — chỉ khi thuộc phạm vi role) */
 export const fetchAuditLogById = async (id) => {
   const lookup = await loadLookup();
   const data = await api.get(`/Audit/${id}`);
-  return data ? normalizeAuditLog(data, lookup) : null;
+  // Chặn IDOR từ FE: log ngoài phạm vi role thì không trả về
+  if (!isLogVisibleToUser(data)) return null;
+  return normalizeAuditLog(data, lookup);
 };
 
 /**
@@ -115,7 +121,8 @@ export const searchAuditLogs = async (query = "", filterModule = "All", page = 1
   const endpoint = q
     ? `/Audit/search?query=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`
     : `/Audit?page=${page}&pageSize=${pageSize}`;
-  let logs = extractList(await api.get(endpoint)).map((log) => normalizeAuditLog(log, lookup));
+  let logs = filterLogsByScope(extractList(await api.get(endpoint)))
+    .map((log) => normalizeAuditLog(log, lookup));
   if (filterModule && filterModule !== "All") {
     logs = logs.filter((log) =>
       String(log.module || "").toLowerCase().includes(String(filterModule).toLowerCase()),
@@ -348,7 +355,7 @@ export const exportPdf = async (payload = {}) => {
     // Fallback chỉ khi payload KHÔNG nói rõ export hồ sơ nào — tự chọn ETR Completed đầu tiên.
     const etrs = await api.get("/Etr").catch(() => []);
     const firstCompleted = extractList(etrs).find(
-      (etr) => String(etr.status || "").toLowerCase() === "completed",
+      (etr) => isEtrCompleted(etr.status),
     );
     const fallback = extractList(etrs)[0];
     body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);
@@ -368,7 +375,7 @@ export const exportTrainingPackage = async (payload = {}) => {
   if (requestedId == null) {
     const etrs = await api.get("/Etr").catch(() => []);
     const firstCompleted = extractList(etrs).find(
-      (etr) => String(etr.status || "").toLowerCase() === "completed",
+      (etr) => isEtrCompleted(etr.status),
     );
     const fallback = extractList(etrs)[0];
     body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);

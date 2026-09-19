@@ -15,6 +15,7 @@ const STATUS_META = {
 };
 
 const statusMeta = (status) =>
+  STATUS_META[String(status || "")] ||
   STATUS_META[String(status || "").toLowerCase()] || {
     label: status || "—",
     color: "#475569",
@@ -148,10 +149,6 @@ const TrainingManagerAmendments = () => {
               "Giảng viên xin mở khóa một SubjectResult đã ký xác nhận để sửa điểm/đánh giá. Duyệt sẽ đưa SubjectResult về Pending để giảng viên chỉnh sửa; từ chối giữ nguyên trạng thái.",
             )}
           </p>
-        </div>
-        <div className="page-status-box">
-          <strong>{tr("Data source")}</strong>
-          <p>{"GET /api/Amendments · POST /api/Amendments/{id}/approve|reject"}</p>
         </div>
       </section>
 
