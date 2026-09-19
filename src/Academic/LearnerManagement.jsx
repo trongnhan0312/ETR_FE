@@ -443,17 +443,17 @@ const getStudentDepartments = () => {
     setImportOpen(true);
   };
 
-  // Tải template chuẩn từ BE — cột: Username (email)*, Mật khẩu*, Vai trò (Role)*,
-  // Phòng ban (Department)* (2 cột cuối có dropdown lấy từ DB).
+  // Tải template chuẩn học viên từ BE — các cột: Username (email)*, Mật khẩu*,
+  // Phòng ban (Department)*, Họ và tên (FullName)*, Ngày sinh, Giới tính, SĐT, Tổ chức (không cần cột Role).
   const handleDownloadImportTemplate = async () => {
     setImportError("");
     setImportDownloading(true);
     try {
-      const blob = await api.downloadFile("/import/accounts/template", { suppressAuthRedirect: true });
+      const blob = await api.downloadFile("/import/students/template", { suppressAuthRedirect: true });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "bulk_create_accounts.xlsx";
+      link.download = "bulk_create_students.xlsx";
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -477,7 +477,7 @@ const getStudentDepartments = () => {
     try {
       const fd = new FormData();
       fd.append("file", importFile);
-      const result = await api.postFormData("/import/accounts/validate", fd);
+      const result = await api.postFormData("/import/students/validate", fd);
       setImportResult(result);
       if (result?.canCommit) {
         toast.success(tr("File hợp lệ, có thể nhập"));
@@ -500,7 +500,7 @@ const getStudentDepartments = () => {
     try {
       const fd = new FormData();
       fd.append("file", importFile);
-      const result = await api.postFormData("/import/accounts/commit", fd);
+      const result = await api.postFormData("/import/students/commit", fd);
       const imported = result?.imported ?? 0;
       const skipped = result?.skipped ?? 0;
       toast.success(
@@ -1251,7 +1251,7 @@ const getStudentDepartments = () => {
             </div>
 
             <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#64748b' }}>
-              {tr('Tải file mẫu, điền danh sách tài khoản học viên (chỉ role Student; bắt buộc Họ và tên, có thể thêm Ngày sinh, Giới tính, SĐT; Mã học viên được hệ thống tự động sinh), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).')}
+              {tr('Tải file mẫu, điền danh sách học viên (các cột: Username*, Mật khẩu*, Phòng ban*, Họ và tên*, Ngày sinh, Giới tính, SĐT, Tổ chức; vai trò mặc định là Học viên, Mã học viên tự động sinh), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).')}
             </p>
 
             <button
