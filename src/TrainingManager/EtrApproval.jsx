@@ -139,9 +139,13 @@ const EtrApproval = () => {
       const fallbackFromApprovals = etrForbidden && approvalsArr.length > 0;
       setApprovalFallbackActive(fallbackFromApprovals);
 
-      // Chi tiết từng ETR (subjectResults) + toàn bộ evidence — dữ liệu thật cho transcript
+      // Chỉ tải chi tiết cho các hồ sơ cần hiển thị (Verified, Completed, Pending approval)
+      // thay vì gọi API cho toàn bộ hàng trăm hồ sơ cùng lúc gây nghẽn mạng/index lệch.
+      const relevantEtrs = etrsArr.filter(
+        (e) => e.status === "Verified" || isEtrCompleted(e.status) || isEtrPendingApproval(e.status)
+      );
       const detailsArr = await Promise.all(
-        etrsArr.map((e) =>
+        relevantEtrs.map((e) =>
           api.get(`/Etr/${e.etrCourseRecordId || e.eTRCourseRecordId}`).catch(() => null)
         )
       );
@@ -154,19 +158,17 @@ const EtrApproval = () => {
         // CurrentStatus (Pending/Approved/Rejected), SubmittedBy, SubmittedAt, CurrentApproverId, CompletedAt }
         mapped = approvalsArr.map((req) => mapApprovalToEtr(req)).filter(Boolean);
       } else {
-      mapped = etrsArr
-        .filter((e) => e.status === "Verified" || isEtrCompleted(e.status))
-        .map((etr, i) => {
+      mapped = relevantEtrs.map((etr, i) => {
           const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
+          const detail = detailsArr[i];
           const enrollmentLink = resolveEnrollment(etr.enrollmentId);
-          const accountId = enrollmentLink?.accountId;
-          const classId = enrollmentLink?.classId;
+          const accountId = enrollmentLink?.accountId || detail?.accountId;
+          const classId = enrollmentLink?.classId || detail?.classId;
           const profile =
             accountId != null
               ? profilesArr.find((p) => p.accountId === accountId)
               : null;
           const classInfo = classId != null ? classMap[classId] : null;
-          const detail = detailsArr[i];
           const subjectResults = (detail?.subjectResults || []).map((sr) => sr);
           const subjectResultIds = subjectResults.map((sr) => sr.subjectResultId);
           // Evidence đầy đủ (fileSize/verificationStatus) từ GET /Evidences.
@@ -202,9 +204,10 @@ const EtrApproval = () => {
             : 0;
           const approval = approvalsArr.find(
             (r) =>
-              (r.etrCourseRecordId ?? r.eTRCourseRecordId) === Number(etrId) &&
-              r.currentStatus === "Approved",
+              (r.etrCourseRecordId ?? r.eTRCourseRecordId) === Number(etrId),
           );
+          const isApproved = isEtrCompleted(etr.status) || approval?.currentStatus === "Approved";
+          const isReturned = isEtrReturned(etr.status) || approval?.currentStatus === "Rejected" || approval?.currentStatus === "Returned";
           return {
             id: `#ETR-${String(etrId).padStart(4, "0")}`,
             etrId,
@@ -224,9 +227,9 @@ const EtrApproval = () => {
             submissionDate: etr.submittedAt
               ? new Date(etr.submittedAt).toISOString().split("T")[0]
               : "",
-            status: isEtrCompleted(etr.status) ? "APPROVED" : "PENDING",
-            approvedBy: approval?.approvedByAccountId
-              ? `Account #${approval.approvedByAccountId}`
+            status: isApproved ? "APPROVED" : isReturned ? "RETURNED" : "PENDING",
+            approvedBy: approval?.currentApproverId
+              ? `Account #${approval.currentApproverId}`
               : "",
             approvalDate: etr.completedAt
               ? new Date(etr.completedAt).toISOString().split("T")[0]

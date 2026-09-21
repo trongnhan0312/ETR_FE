@@ -346,11 +346,12 @@ const InstructorClasses = () => {
     resetKey: sessionSearch,
   });
 
-  // Assessments for the selected subject that are not already signed to another session.
+  // Assessments for the selected subject and course that are not already assigned to another session.
   // While editing, keep the currently assigned assessment selectable.
   const availableAssessments = useMemo(() => {
     const subjectId = Number(sessionForm.subjectId);
     const selectedSubjectId = Number(selectedClass?.subjectId || 1);
+    const courseId = Number(selectedClass?.raw?.courseId || selectedClass?.courseKey || 0);
     const usedAssessmentIds = new Set(
       sessions
         .filter(
@@ -362,21 +363,27 @@ const InstructorClasses = () => {
     );
     return (assessmentsList || []).filter((a) => {
       const aSubject = Number(a.subjectId);
+      const aCourse = Number(a.courseId);
       const matchesSubject =
         subjectId > 0 ? aSubject === subjectId : aSubject === selectedSubjectId;
-      return matchesSubject && !usedAssessmentIds.has(Number(a.assessmentId));
+      const matchesCourse = courseId > 0 ? aCourse === courseId : true;
+      return matchesCourse && matchesSubject && !usedAssessmentIds.has(Number(a.assessmentId));
     });
   }, [assessmentsList, sessions, sessionForm.subjectId, selectedClass, editingSessionId]);
 
-  // Practical checklists scoped to the selected subject
+  // Practical checklists scoped to the selected subject and course
   const subjectPracticalChecklists = useMemo(() => {
     const subjectId = Number(sessionForm.subjectId);
     const selectedSubjectId = Number(selectedClass?.subjectId || 1);
+    const courseId = Number(selectedClass?.raw?.courseId || selectedClass?.courseKey || 0);
     return (practicalChecklistsList || []).filter((pc) => {
       const pcSubject = Number(pc.subjectId);
-      return subjectId > 0
+      const pcCourse = Number(pc.courseId);
+      const matchesSubject = subjectId > 0
         ? pcSubject === subjectId
         : pcSubject === selectedSubjectId;
+      const matchesCourse = courseId > 0 ? pcCourse === courseId : true;
+      return matchesCourse && matchesSubject;
     });
   }, [practicalChecklistsList, sessionForm.subjectId, selectedClass]);
 
@@ -1140,20 +1147,26 @@ const InstructorClasses = () => {
                     }}
                   >
                     <option value="">{tr('Không chọn assessment')}</option>
-                    {availableAssessments.map((assessment) => (
-                      <option
-                        key={assessment.assessmentId}
-                        value={assessment.assessmentId}
-                      >
-                        {assessment.componentName ||
-                          assessment.assessmentName ||
-                          assessment.name ||
-                          `Assessment ${assessment.assessmentId}`}
-                        {assessment.assessmentType
-                          ? ` (${assessment.assessmentType})`
-                          : ""}
-                      </option>
-                    ))}
+                    {availableAssessments.map((assessment) => {
+                      const name =
+                        assessment.title ||
+                        assessment.componentName ||
+                        assessment.assessmentName ||
+                        assessment.itemName ||
+                        assessment.name ||
+                        `Assessment #${assessment.assessmentId}`;
+                      const type = assessment.assessmentType ? ` (${assessment.assessmentType})` : "";
+                      const passScore = assessment.passingScore != null ? ` · Đạt: ${assessment.passingScore}đ` : "";
+                      const weight = assessment.weight != null ? ` · Trọng số: ${assessment.weight}%` : "";
+                      return (
+                        <option
+                          key={assessment.assessmentId}
+                          value={assessment.assessmentId}
+                        >
+                          [#{assessment.assessmentId}] {name}{type}{passScore}{weight}
+                        </option>
+                      );
+                    })}
                   </select>
                   {availableAssessments.length === 0 && (
                     <div
@@ -1204,16 +1217,22 @@ const InstructorClasses = () => {
                     <option value="">
                       {tr('Không yêu cầu kiểm tra thực hành')}
                     </option>
-                    {subjectPracticalChecklists.map((pc) => (
-                      <option
-                        key={pc.practicalChecklistId}
-                        value={pc.practicalChecklistId}
-                      >
-                        {pc.itemName ||
-                          pc.name ||
-                          `Practical Checklist ${pc.practicalChecklistId}`}
-                      </option>
-                    ))}
+                    {subjectPracticalChecklists.map((pc) => {
+                      const name =
+                        pc.itemName ||
+                        pc.name ||
+                        `Practical Checklist #${pc.practicalChecklistId}`;
+                      const passScore = pc.passingScore != null ? ` · Đạt: ${pc.passingScore}đ` : "";
+                      const req = pc.isRequired ? ` · Bắt buộc` : "";
+                      return (
+                        <option
+                          key={pc.practicalChecklistId}
+                          value={pc.practicalChecklistId}
+                        >
+                          [#{pc.practicalChecklistId}] {name}{passScore}{req}
+                        </option>
+                      );
+                    })}
                   </select>
                   {subjectPracticalChecklists.length === 0 && (
                     <div
