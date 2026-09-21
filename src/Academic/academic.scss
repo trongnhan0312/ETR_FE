@@ -750,6 +750,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* Cha của footer thường là flex column + items-start (ví dụ section danh sách
+     ETR), khi đó footer co về bằng nội dung và `space-between` hết tác dụng →
+     phân trang bị dồn về bên trái. width: 100% giữ footer luôn giãn hết bề
+     ngang (ở ngữ cảnh block thông thường, giá trị này tương đương auto). */
+  width: 100%;
   padding: 14px 20px;
   background: linear-gradient(180deg, #f9fbff 0%, #f4f7fb 100%);
   border-top: 1px solid #e0e4e8;
@@ -1152,6 +1157,9 @@
 }
 
 // Edit Learner Page Styles
+// Breadcrumb nằm trực tiếp trên nền gradient navy đậm phía trên của .academic-page
+// (135deg: #031126 → #06284f chiếm nửa trên) → item phải màu SÁNG, không dùng navy đậm
+// (trước đây rgba(0,33,71,0.6) chìm vào nền, khó đọc ở mọi trang).
 .breadcrumb-nav {
   display: flex;
   align-items: center;
@@ -1161,19 +1169,19 @@
   .breadcrumb-item {
     font-size: 11px;
     font-weight: 700;
-    color: rgba(0, 33, 71, 0.6);
+    color: rgba(255, 255, 255, 0.78);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 
     &.active {
-      color: #c5a059;
+      color: #e8c87a;
     }
   }
 
   svg {
     fill: currentColor;
     opacity: 0.6;
-    color: #002147;
+    color: rgba(255, 255, 255, 0.55);
   }
 }
 

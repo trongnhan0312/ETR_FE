@@ -523,6 +523,24 @@ const getStudentDepartments = () => {
     }
   };
 
+  // Xử lý file được chọn qua nút bấm hoặc kéo-thả vào dropzone của modal import
+  const handleFileSelected = async (file) => {
+    setImportFile(file);
+    setImportResult(null);
+    setImportError("");
+    if (file) {
+      try {
+        const preview = await parseExcelPreview(file);
+        setExcelPreview(preview);
+      } catch (err) {
+        console.error("Lỗi đọc file Excel:", err);
+        setExcelPreview(null);
+      }
+    } else {
+      setExcelPreview(null);
+    }
+  };
+
   const handleValidateImport = async () => {
     setImportError("");
     if (!importFile) {

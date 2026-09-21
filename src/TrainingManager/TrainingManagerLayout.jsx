@@ -3,6 +3,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import NotificationsDropdown from '../components/NotificationsDropdown';
 import { useLanguage } from '../context/LanguageContext';
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import RouteErrorBoundary from '../components/RouteErrorBoundary';
 import '../Academic/academic.scss';
 
 const iconDocument = (
@@ -191,7 +192,10 @@ const TrainingManagerLayout = () => {
 
         {/* Content Body */}
         <main className="academic-content">
-          <Outlet context={{ searchQuery }} />
+          {/* Lỗi ở 1 trang/modal chỉ thay vùng nội dung, sidebar vẫn dùng được */}
+          <RouteErrorBoundary>
+            <Outlet context={{ searchQuery }} />
+          </RouteErrorBoundary>
         </main>
       </div>
 

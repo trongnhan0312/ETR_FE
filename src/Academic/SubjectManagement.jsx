@@ -401,7 +401,7 @@ const SubjectManagement = () => {
                   <div className="form-group">
                     <label htmlFor="subj-type">{tr('Loại môn học')}</label>
                     <select id="subj-type" value={cSubjectType} onChange={(e) => setCSubjectType(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}>
-                      {SUBJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      {SUBJECT_TYPES.map((t) => <option key={t} value={t}>{tr(t)}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -423,13 +423,13 @@ const SubjectManagement = () => {
                   <div className="form-group">
                     <label htmlFor="subj-assess">{tr('Phương pháp đánh giá')}</label>
                     <select id="subj-assess" value={cAssessmentMethod} onChange={(e) => setCAssessmentMethod(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}>
-                      {ASSESSMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+                      {ASSESSMENT_METHODS.map((m) => <option key={m} value={m}>{tr(m)}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
                     <label htmlFor="subj-status">{tr('Trạng thái')}</label>
                     <select id="subj-status" value={cStatus} onChange={(e) => setCStatus(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}>
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {STATUSES.map((s) => <option key={s} value={s}>{tr(s)}</option>)}
                     </select>
                   </div>
                 </div>
@@ -473,7 +473,7 @@ const SubjectManagement = () => {
                   <div className="form-group">
                     <label htmlFor="esubj-type">{tr('Loại môn học')}</label>
                     <select id="esubj-type" value={eSubjectType} onChange={(e) => setESubjectType(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}>
-                      {SUBJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      {SUBJECT_TYPES.map((t) => <option key={t} value={t}>{tr(t)}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -495,13 +495,13 @@ const SubjectManagement = () => {
                   <div className="form-group">
                     <label htmlFor="esubj-assess">{tr('Phương pháp đánh giá')}</label>
                     <select id="esubj-assess" value={eAssessmentMethod} onChange={(e) => setEAssessmentMethod(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}>
-                      {ASSESSMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+                      {ASSESSMENT_METHODS.map((m) => <option key={m} value={m}>{tr(m)}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
                     <label htmlFor="esubj-status">{tr('Trạng thái')}</label>
                     <select id="esubj-status" value={eStatus} onChange={(e) => setEStatus(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}>
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {STATUSES.map((s) => <option key={s} value={s}>{tr(s)}</option>)}
                     </select>
                   </div>
                 </div>

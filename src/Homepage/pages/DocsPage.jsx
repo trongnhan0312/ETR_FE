@@ -117,7 +117,7 @@ const DocsPage = () => {
                         <td>{tr('Cannot self-verify QA evidence')}</td>
                       </tr>
                       <tr>
-                        <td className="font-bold text-white">Academic Staff</td>
+                        <td className="font-bold text-white">{tr('Academic Staff')}</td>
                         <td>{tr('Manage courses, classes, student profiles, subject assignments')}</td>
                         <td>{tr('Cannot sign off practical evaluations')}</td>
                       </tr>
@@ -127,12 +127,12 @@ const DocsPage = () => {
                         <td>{tr('Cannot finalize QA review')}</td>
                       </tr>
                       <tr>
-                        <td className="font-bold text-white">QA Officer</td>
+                        <td className="font-bold text-white">{tr('QA Officer')}</td>
                         <td>{tr('Audit evidence packages, approve/reject ETRs, search audit trails')}</td>
                         <td>{tr('Cannot edit student scores directly')}</td>
                       </tr>
                       <tr>
-                        <td className="font-bold text-white">Training Manager</td>
+                        <td className="font-bold text-white">{tr('Training Manager')}</td>
                         <td>{tr('Final ETR approval, class completion lock, reopening authorized ETRs')}</td>
                         <td>{tr('Requires QA review prior to signoff')}</td>
                       </tr>

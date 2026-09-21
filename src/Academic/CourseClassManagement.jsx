@@ -15,6 +15,10 @@ import { downloadExportFile } from "../Auditor/auditorApi";
 import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
+import {
+  findClassSessionShortfall,
+  findSubjectsWithoutSessionConfig,
+} from "../utils/classSessions";
 
 const CourseClassManagement = () => {
   const toast = useToast();
@@ -582,6 +586,24 @@ const CourseClassManagement = () => {
             ? "Planned"
             : "Completed";
 
+      // Cảnh báo sớm: môn chưa đặt "Số buổi yêu cầu" thì BE chỉ sinh 1 buổi/môn
+      const unconfiguredSubjects = await findSubjectsWithoutSessionConfig({
+        api,
+        courseId: parsedCourseId,
+        subjectNameById,
+      }).catch(() => []);
+      if (unconfiguredSubjects.length > 0) {
+        toast.warning(
+          tr("Một số môn chưa cấu hình 'Số buổi yêu cầu'"),
+          tr(
+            "Lớp sẽ chỉ có 1 buổi cho các môn: {subjects}. Vào Khóa học → Sửa khóa để đặt số buổi nếu cần nhiều buổi hơn.",
+          ).replace(
+            "{subjects}",
+            unconfiguredSubjects.map((s) => s.subjectName).join(", "),
+          ),
+        );
+      }
+
       const created = await api.post("/Classes", {
         courseId: parsedCourseId,
         classCode: cleanCode,
@@ -612,48 +634,29 @@ const CourseClassManagement = () => {
         } catch {}
       }
 
-      // Tự động sinh Buổi học (Sessions) ban đầu cho các môn học của lớp nếu có
+      // Buổi học của lớp do BE tự sinh theo "Số buổi yêu cầu" của từng môn trong
+      // khóa học (CourseSubject.RequiredSessions → BE tạo Buổi 1..N cho mỗi môn).
+      // BE KHÔNG cho tạo buổi thủ công (POST /Sessions → NotSupported), nên FE không
+      // tự bù buổi được; thay vào đó kiểm tra lại và báo rõ nếu lớp bị thiếu buổi do
+      // môn chưa cấu hình số buổi (khi đó BE lấy mặc định 1 buổi/môn).
       if (newCreatedClassId) {
-        const subjectsToProvision =
-          instructorAssignments.length > 0
-            ? instructorAssignments
-            : [{ subjectId: 1, instructorAccountId: primaryInstructorId }];
+        const shortfall = await findClassSessionShortfall({
+          api,
+          classId: newCreatedClassId,
+          courseId: parsedCourseId,
+          subjectNameById,
+        }).catch(() => []);
 
-        for (let i = 0; i < subjectsToProvision.length; i++) {
-          const item = subjectsToProvision[i];
-          const subInfo = allSubjects.find(
-            (s) => Number(s.subjectId) === Number(item.subjectId),
+        if (shortfall.length > 0) {
+          const missing = shortfall
+            .map((r) => `${r.subjectName} (${r.actual}/${r.required})`)
+            .join(", ");
+          toast.warning(
+            tr("Một số môn chưa có đủ số buổi"),
+            tr(
+              "Lớp chưa đủ buổi ở: {subjects}. Vào Khóa học → Sửa khóa để đặt 'Số buổi yêu cầu' cho từng môn, sau đó tạo lại lớp.",
+            ).replace("{subjects}", missing),
           );
-          const subTitle = subInfo?.subjectName || subInfo?.subjectCode || `Môn học #${item.subjectId}`;
-          const sessionDateIso = new Date(
-            new Date(startIso).getTime() + i * 2 * 24 * 60 * 60 * 1000,
-          ).toISOString();
-
-          try {
-            await api
-              .post("/sessions", {
-                classId: Number(newCreatedClassId),
-                subjectId: Number(item.subjectId || 1),
-                sessionTitle: `Buổi ${i + 1}: ${subTitle}`,
-                sessionDate: sessionDateIso,
-                location: newClass.location || "Phòng Sim A320",
-                instructorAccountId: item.instructorAccountId || primaryInstructorId,
-                assessmentId: null,
-                isAssessmentRequired: false,
-                isChecklistRequired: false,
-                practicalChecklistId: null,
-              })
-              .catch(async () => {
-                return await api.post("/Sessions", {
-                  classId: Number(newCreatedClassId),
-                  subjectId: Number(item.subjectId || 1),
-                  sessionTitle: `Buổi ${i + 1}: ${subTitle}`,
-                  sessionDate: sessionDateIso,
-                  location: newClass.location || "Phòng Sim A320",
-                  instructorAccountId: item.instructorAccountId || primaryInstructorId,
-                }).catch(() => {});
-              });
-          } catch {}
         }
       }
 
@@ -1016,6 +1019,15 @@ const CourseClassManagement = () => {
   } = usePagination(orphanClasses, {
     pageSize: 10,
   });
+
+  // Tra tên môn theo subjectId (dùng cho cảnh báo cấu hình buổi học khi tạo lớp)
+  const subjectNameById = useMemo(() => {
+    const map = {};
+    (Array.isArray(allSubjects) ? allSubjects : []).forEach((s) => {
+      if (s?.subjectId != null) map[s.subjectId] = s.subjectName || s.subjectCode;
+    });
+    return map;
+  }, [allSubjects]);
 
   // Statistics calculation
   const totalClasses = courses.reduce(
@@ -2189,8 +2201,8 @@ const CourseClassManagement = () => {
                 {Array.isArray(viewingClassDetail.instructorAssignments) && viewingClassDetail.instructorAssignments.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
                     {viewingClassDetail.instructorAssignments.map((ia, idx) => {
-                      const insObj = instructors.find((i) => String(i.accountId) === String(ia.instructorAccountId));
-                      const subObj = subjects.find((s) => String(s.subjectId) === String(ia.subjectId));
+                      const insObj = instructorsList.find((i) => String(i.accountId) === String(ia.instructorAccountId));
+                      const subObj = allSubjects.find((s) => String(s.subjectId) === String(ia.subjectId));
                       return (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '6px 10px', background: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                           <span style={{ fontWeight: 600, color: '#334155' }}>{subObj ? `[${subObj.subjectCode}] ${subObj.subjectName}` : `${tr('Môn #')}${ia.subjectId}`}</span>

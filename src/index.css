@@ -129,6 +129,14 @@ code {
   gap: 12px;
   flex-wrap: wrap;
   padding: 12px 4px 4px;
+  /* Nút phân trang luôn nằm BÊN PHẢI footer.
+     — Ở trang thường, .etr-pagination là block nên tự giãn hết bề ngang và
+       `space-between` cho ra: "Showing x–y of z" bên trái, nút trang bên phải.
+     — Trong .table-footer (display: flex) nó trở thành flex item co theo nội dung,
+       `space-between` vì thế không có tác dụng → cả dòng bị dồn về bên trái.
+       `flex: 1 1 auto` cho nó giãn hết phần còn lại để nút trang về sát mép phải,
+       giống các trang khác. */
+  flex: 1 1 auto;
 }
 .etr-pagination-info {
   font-size: 12px;

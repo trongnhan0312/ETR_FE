@@ -349,7 +349,7 @@ const Login = () => {
         </div>
         <div className="logo-section login-logo">
           <div className="logo-text">
-            <span className="brand-name">ETR Aviation Training</span>
+            <span className="brand-name">{tr('ETR Aviation Training')}</span>
             <span className="brand-sub">{tr('Electronic Training Record Portal')}</span>
           </div>
         </div>
