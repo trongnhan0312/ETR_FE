@@ -24,11 +24,31 @@ export const ALLOWED_EXTENSIONS = [
 
 export const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
+  "image/pjpeg",
   "image/png",
+  "image/x-png",
   "image/gif",
   "image/webp",
   "application/pdf",
 ]);
+
+export const EXT_TO_MIME = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".pdf": "application/pdf",
+};
+
+export const resolveEvidenceMimeType = (file) => {
+  if (file?.type && ALLOWED_MIME_TYPES.has(file.type.toLowerCase())) {
+    return file.type.toLowerCase();
+  }
+  const dot = file?.name ? file.name.lastIndexOf(".") : -1;
+  const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : "";
+  return EXT_TO_MIME[ext] || file?.type || "application/octet-stream";
+};
 
 export const EVIDENCE_ACCEPT_ATTR = ".jpg,.jpeg,.png,.gif,.webp,.pdf";
 
@@ -96,7 +116,7 @@ export async function uploadToCloudinary(file) {
     fileUrl: secureUrl,
     publicId: data.public_id || "",
     fileName: file.name,
-    mimeType: file.type || "",
+    mimeType: resolveEvidenceMimeType(file),
     fileSize: typeof file.size === "number" ? file.size : null,
   };
 }
