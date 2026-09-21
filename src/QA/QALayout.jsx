@@ -3,6 +3,7 @@ import { useState } from 'react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NotificationsDropdown from '../components/NotificationsDropdown';
 import { useLanguage } from '../context/LanguageContext';
+import RouteErrorBoundary from '../components/RouteErrorBoundary';
 import '../Academic/academic.scss';
 import './qa.scss';
 
@@ -196,7 +197,10 @@ const QALayout = () => {
 
         {/* Content Body */}
         <main className="academic-content">
-          <Outlet context={{ searchQuery }} />
+          {/* Lỗi ở 1 trang/modal chỉ thay vùng nội dung, sidebar vẫn dùng được */}
+          <RouteErrorBoundary>
+            <Outlet context={{ searchQuery }} />
+          </RouteErrorBoundary>
         </main>
       </div>
     </div>

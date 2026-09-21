@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
+import { daysUntilExpiry, toExpiringStudents } from '../utils/expiringStudents';
 import Pagination from '../components/Pagination';
 
 const STATUS_CONFIG = {
@@ -21,6 +22,14 @@ const STATUS_CONFIG = {
     bg: '#fef2f2',
     border: '#fecaca',
   },
+  Valid: {
+    label: 'Còn hiệu lực',
+    icon: '✓',
+    className: 'valid',
+    color: '#15803d',
+    bg: '#f0fdf4',
+    border: '#bbf7d0',
+  },
 };
 
 const formatDate = (d) => {
@@ -29,14 +38,12 @@ const formatDate = (d) => {
   catch { return '--'; }
 };
 
-const formatRemaining = (expiryDate) => {
-  if (!expiryDate) return null;
-  const now = new Date();
-  const expiry = new Date(expiryDate);
-  const diff = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return `Overdue by ${Math.abs(diff)} days`;
-  if (diff === 0) return 'Expires today';
-  return `${diff} days left`;
+const formatRemaining = (expiryDate, tr) => {
+  const diff = daysUntilExpiry(expiryDate);
+  if (diff === null) return '--';
+  if (diff < 0) return `${tr('Quá hạn')} ${Math.abs(diff)} ${tr('ngày')}`;
+  if (diff === 0) return tr('Hết hạn hôm nay');
+  return `${diff} ${tr('ngày còn lại')}`;
 };
 
 const ExpiringStudents = () => {
@@ -76,7 +83,7 @@ const ExpiringStudents = () => {
       const data = await api
         .get(`/Etr/expiring-students?courseId=${selectedCourseId}&daysThreshold=${daysThreshold}`)
         .catch(() => []);
-      setStudents(Array.isArray(data) ? data : []);
+      setStudents(toExpiringStudents(data, { thresholdDays: daysThreshold }));
     } catch (err) {
       console.error('Error loading expiring students:', err);
       setStudents([]);
@@ -89,11 +96,11 @@ const ExpiringStudents = () => {
   const filteredStudents = students.filter((s) => {
     const matchesSearch =
       !searchTerm.trim() ||
-      (s.FullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (s.Email || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (s.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.email || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     if (statusFilter === 'ALL') return matchesSearch;
-    return matchesSearch && s.ValidityStatus === statusFilter;
+    return matchesSearch && s.validityStatus === statusFilter;
   });
 
   const { page, setPage, pageCount, pageItems, total } = usePagination(filteredStudents, {
@@ -102,8 +109,8 @@ const ExpiringStudents = () => {
   });
 
   const stats = {
-    expiringSoon: students.filter((s) => s.ValidityStatus === 'ExpiringSoon').length,
-    expired: students.filter((s) => s.ValidityStatus === 'Expired').length,
+    expiringSoon: students.filter((s) => s.validityStatus === 'ExpiringSoon').length,
+    expired: students.filter((s) => s.validityStatus === 'Expired').length,
   };
 
   return (
@@ -280,29 +287,34 @@ const ExpiringStudents = () => {
               <div className="student-table-cell student-table-cell--header student-table-cell--end">{tr('Trạng thái')}</div>
 
               {pageItems.map((s, idx) => {
-                const config = STATUS_CONFIG[s.ValidityStatus] || STATUS_CONFIG.ExpiringSoon;
+                // Không đoán bừa trạng thái: chỉ hiện badge khi BE trả về giá trị đã biết.
+                const config = STATUS_CONFIG[s.validityStatus];
                 return (
-                  <div className="student-table-row" key={s.ETRCourseRecordId || idx}>
+                  <div className="student-table-row" key={s.etrCourseRecordId || idx}>
                     <div className="student-table-cell student-table-cell--index">{idx + 1}</div>
                     <div className="student-table-cell student-table-cell--strong">
-                      {s.FullName || `${tr('Học viên')} #${s.AccountId}`}
+                      {s.fullName || `${tr('Học viên')} #${s.accountId ?? '--'}`}
                     </div>
-                    <div className="student-table-cell">{s.Email || '--'}</div>
-                    <div className="student-table-cell">#{s.ETRCourseRecordId}</div>
-                    <div className="student-table-cell">{formatDate(s.ExpiryDate)}</div>
-                    <div className="student-table-cell" style={{ color: config.color, fontWeight: 600 }}>
-                      {formatRemaining(s.ExpiryDate)}
+                    <div className="student-table-cell">{s.email || '--'}</div>
+                    <div className="student-table-cell">{s.etrCourseRecordId != null ? `#${s.etrCourseRecordId}` : '--'}</div>
+                    <div className="student-table-cell">{formatDate(s.expiryDate)}</div>
+                    <div className="student-table-cell" style={{ color: config?.color, fontWeight: 600 }}>
+                      {formatRemaining(s.expiryDate, tr)}
                     </div>
                     <div className="student-table-cell student-table-cell--end">
-                      <span className={`student-badge student-badge--${config.className}`}
-                        style={{
-                          background: config.bg,
-                          color: config.color,
-                          border: `1px solid ${config.border}`
-                        }}
-                      >
-                        {config.icon} {tr(config.label)}
-                      </span>
+                      {config ? (
+                        <span className={`student-badge student-badge--${config.className}`}
+                          style={{
+                            background: config.bg,
+                            color: config.color,
+                            border: `1px solid ${config.border}`
+                          }}
+                        >
+                          {config.icon} {tr(config.label)}
+                        </span>
+                      ) : (
+                        '--'
+                      )}
                     </div>
                   </div>
                 );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { Fragment, useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
@@ -11,6 +11,10 @@ import { protectExcelTemplate } from "../utils/excelTemplateProtect";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { useLanguage } from "../context/LanguageContext";
+import {
+  groupSessionsBySubject,
+  sessionGroupsBySubjectId,
+} from "../utils/attendanceSessions";
 import "./instructor.scss";
 
 // Status constants enforced by the backend (RegularExpression "^(Present|Absent)$")
@@ -36,6 +40,20 @@ const getCurrentAccountId = () => {
   } catch {
     return null;
   }
+};
+
+// Lớp ĐÃ KẾT THÚC / BỊ HỦY → ETR học viên thường đã Completed/Locked → BE chặn mọi thay đổi
+// điểm danh (ImmutabilityValidator: "Cannot modify ... because the related ETRCourseRecord
+// is Completed or Locked"). Đặt ở module scope để fetchClasses dùng được trong useEffect([]).
+const isLockedStatus = (status) => {
+  const st = String(status || "").toLowerCase();
+  return (
+    st === "completed" ||
+    st === "đã kết thúc" ||
+    st === "cancelled" ||
+    st === "đã hủy" ||
+    st === "closed"
+  );
 };
 
 // BE (AttendanceService.RecordAttendanceAsync + BusinessRuleEngine.AttendanceGracePeriodHours = 48)
@@ -147,10 +165,14 @@ const InstructorAttendance = () => {
             assignments: resolvedAssignments,
           };
         });
-        setClassesData(mapped);
+        // Bỏ lớp đã khóa (Completed/Cancelled/Closed) khỏi màn điểm danh — lớp này chỉ
+        // đọc (BE chặn ghi điểm danh qua ImmutabilityValidator + grace period) nên không
+        // thể điểm danh/sửa. Dropdown chỉ còn các lớp có thể thao tác.
+        const activeClasses = mapped.filter((c) => !isLockedStatus(c.status));
+        setClassesData(activeClasses);
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
-        if (mapped.length > 0) {
-          setSelectedClassId(mapped[0].classId);
+        if (activeClasses.length > 0) {
+          setSelectedClassId(activeClasses[0].classId);
         }
       } catch (err) {
         console.error("Lỗi khi tải danh sách lớp học:", err);
@@ -411,22 +433,6 @@ const InstructorAttendance = () => {
   const selectedClass = useMemo(() => {
     return classesData.find((c) => c.classId === parseInt(selectedClassId));
   }, [classesData, selectedClassId]);
-
-  // Lớp ĐÃ KẾT THÚC / BỊ HỦY → ETR học viên thường đã Completed/Locked → BE chặn mọi thay đổi
-  // điểm danh (ImmutabilityValidator: "Cannot modify ... because the related ETRCourseRecord
-  // is Completed or Locked"). Hiển thị cảnh báo, KHÔNG khóa cứng nút — vì sau khi dữ liệu/trạng
-  // thái được sửa (lớp mở lại / ETR mở khóa) luồng import phải chạy được ngay.
-  // Lớp đã kết thúc/hủy → ETR học viên thường đã Completed/Locked → BE chặn ghi điểm danh
-  const isLockedStatus = (status) => {
-    const st = String(status || "").toLowerCase();
-    return (
-      st === "completed" ||
-      st === "đã kết thúc" ||
-      st === "cancelled" ||
-      st === "đã hủy" ||
-      st === "closed"
-    );
-  };
 
   const isClassClosed = isLockedStatus(selectedClass?.status);
 
@@ -738,11 +744,30 @@ const InstructorAttendance = () => {
       .sort((a, b) => a.subjectId - b.subjectId);
   }, [sessions, subjectsList]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Đánh số buổi TRONG TỪNG MÔN (Buổi 1..N) trên toàn bộ danh sách — tính trước
+  // khi lọc để lọc 1 môn thì số buổi vẫn đúng.
+  const numberedSessions = useMemo(
+    () => groupSessionsBySubject(sessions).flatMap((group) => group.sessions),
+    [sessions],
+  );
+
   // Buổi hiển thị theo bộ lọc môn (trống = tất cả)
   const visibleSessions = useMemo(() => {
-    if (!subjectFilter) return sessions;
-    return sessions.filter((s) => String(s.subjectId) === subjectFilter);
-  }, [sessions, subjectFilter]);
+    if (!subjectFilter) return numberedSessions;
+    return numberedSessions.filter(
+      (s) => String(s.subjectId) === subjectFilter,
+    );
+  }, [numberedSessions, subjectFilter]);
+
+  // Gom theo môn: mỗi môn 1 nhóm + số buổi/đã chốt của môn đó
+  const sessionGroups = useMemo(
+    () => groupSessionsBySubject(visibleSessions),
+    [visibleSessions],
+  );
+  const sessionGroupBySubjectId = useMemo(
+    () => sessionGroupsBySubjectId(sessionGroups),
+    [sessionGroups],
+  );
 
   const sessionPager = usePagination(visibleSessions, {
     pageSize: 10,
@@ -1718,7 +1743,6 @@ const InstructorAttendance = () => {
         >
           {classesData.map((c) => (
             <option key={c.classId} value={c.classId}>
-              {isLockedStatus(c.status) ? "🔒 " : ""}
               {c.name} ({c.code}) — {getClassStatusLabel(c.status)}
             </option>
           ))}
@@ -1800,9 +1824,81 @@ const InstructorAttendance = () => {
               {tr("Không tìm thấy buổi học nào cho lớp học hiện tại.")}
             </div>
           ) : (
-            sessionPager.pageItems.map((session) => (
+            sessionPager.pageItems.map((session, rowIndex) => {
+              // Buổi đầu của mỗi môn trên trang này → in tiêu đề nhóm môn
+              const previous =
+                rowIndex > 0 ? sessionPager.pageItems[rowIndex - 1] : null;
+              const startsGroup =
+                !previous ||
+                String(previous.subjectId) !== String(session.subjectId);
+              const continuesFromPreviousPage =
+                startsGroup && rowIndex === 0 && sessionPager.page > 1;
+              const group = sessionGroupBySubjectId.get(
+                String(session.subjectId),
+              );
+
+              return (
+                <Fragment key={session.sessionId}>
+                  {startsGroup && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                        padding: "10px 20px",
+                        background: "rgba(197, 160, 89, 0.08)",
+                        borderTop: "1px solid #e5e7eb",
+                        borderBottom: "1px solid #e5e7eb",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: "800",
+                            letterSpacing: "0.05em",
+                            textTransform: "uppercase",
+                            color: "#c5a059",
+                          }}
+                        >
+                          {tr("Môn học")}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: "700",
+                            color: "#002147",
+                          }}
+                        >
+                          {getSubjectName(session.subjectId) || tr("Môn học")}
+                          {continuesFromPreviousPage
+                            ? ` (${tr("tiếp theo")})`
+                            : ""}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: "rgba(0,33,71,0.65)",
+                        }}
+                      >
+                        {`${group?.count ?? 1} ${tr("buổi")}`}
+                        {group
+                          ? ` · ${group.confirmedCount}/${group.count} ${tr("đã chốt")}`
+                          : ""}
+                      </span>
+                    </div>
+                  )}
               <div
-                key={session.sessionId}
                 className="table-row"
                 style={{
                   display: "grid",
@@ -1820,7 +1916,7 @@ const InstructorAttendance = () => {
                     textAlign: "center",
                   }}
                 >
-                  {session.stt}
+                  {String(session.indexInSubject ?? 0).padStart(2, "0")}
                 </span>
                 <span
                   style={{
@@ -1839,20 +1935,6 @@ const InstructorAttendance = () => {
                   }}
                 >
                   {tr(session.name)}
-                  {session.subjectId != null &&
-                    getSubjectName(session.subjectId) && (
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: "11px",
-                          fontWeight: "600",
-                          color: "rgba(0,33,71,0.5)",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {getSubjectName(session.subjectId)}
-                      </span>
-                    )}
                 </span>
                 <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
                   {session.room}
@@ -1897,7 +1979,9 @@ const InstructorAttendance = () => {
                   </button>
                 </div>
               </div>
-            ))
+                </Fragment>
+              );
+            })
           )}
         </div>
 

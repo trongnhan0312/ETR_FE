@@ -253,12 +253,16 @@ const EtrApproval = () => {
       const approvedList = mapped.filter(
         (e) => e.status === "APPROVED" && e.submittedAt && e.completedAt,
       );
-      const avgProcessing = approvedList.length
-        ? approvedList.reduce(
-            (acc, e) => acc + (new Date(e.completedAt) - new Date(e.submittedAt)),
-            0,
-          ) /
-          approvedList.length /
+      // Chỉ tính thời gian xử lý HỢP LỆ (completedAt >= submittedAt). Dữ liệu seed có
+      // bản ghi completedAt TRƯỚC submittedAt (hoàn thành trước khi nộp — vô lý, lệch tới
+      // ~2 năm) khiến phép trừ ra số âm rất lớn → Avg Processing Time -3744.8h.
+      // Loại các bản ghi lệch này khỏi trung bình; không còn bản ghi hợp lệ → "—".
+      const validDurations = approvedList
+        .map((e) => new Date(e.completedAt) - new Date(e.submittedAt))
+        .filter((ms) => ms >= 0);
+      const avgProcessing = validDurations.length
+        ? validDurations.reduce((acc, ms) => acc + ms, 0) /
+          validDurations.length /
           3600000
         : null;
       const activeClasses = new Set(

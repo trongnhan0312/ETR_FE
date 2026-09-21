@@ -51,6 +51,9 @@ const InstructorAssessments = () => {
   // khi giảng viên không được phân công môn nào (thay vì nhầm tưởng "chưa có Assessment").
   const [classHasAssignments, setClassHasAssignments] = useState(false);
   const [myAssignedSubjectCount, setMyAssignedSubjectCount] = useState(0);
+  // Số buổi học (Session) của lớp đang chọn — dùng để phân biệt nguyên nhân "không thấy
+  // Assessment": lớp chưa có buổi nào vs. có buổi nhưng chưa gắn bài kiểm tra.
+  const [classSessionCount, setClassSessionCount] = useState(0);
 
   // Grading sheets state
   const [selectedAssessmentType, setSelectedAssessmentType] =
@@ -186,7 +189,10 @@ const InstructorAssessments = () => {
             assignments: resolvedAssignments,
           };
         });
-        setClassesData(mapped);
+        // Bỏ lớp đã khóa (Completed/Cancelled/Closed) khỏi màn nhập điểm — lớp này chỉ
+        // đọc (BE chặn mọi thay đổi điểm qua ImmutabilityValidator) nên không thể nhập/sửa.
+        const activeClasses = mapped.filter((c) => !isLockedStatus(c.status));
+        setClassesData(activeClasses);
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
         if (mapped.length > 0) {
@@ -234,11 +240,14 @@ const InstructorAssessments = () => {
         const classHasAssignments =
           (selectedClassInfo?.assignments || []).length > 0;
 
-        const classSessions = (Array.isArray(apiSessions) ? apiSessions : [])
-          .filter((s) => Number(s.classId) === classId)
-          .filter((s) => mySubjectIds.has(s.subjectId));
+        const allClassSessions = (Array.isArray(apiSessions) ? apiSessions : [])
+          .filter((s) => Number(s.classId) === classId);
+        const classSessions = allClassSessions.filter((s) =>
+          mySubjectIds.has(s.subjectId),
+        );
         setClassHasAssignments(classHasAssignments);
         setMyAssignedSubjectCount(mySubjectIds.size);
+        setClassSessionCount(allClassSessions.length);
 
         // Assessments/Checklists signed to sessions of this class — MỖI (buổi, đánh giá) là 1 dòng riêng.
         // Tự động nhận diện Assessment Type từ buổi đã tạo: có bài kiểm tra (assessmentId) và/hoặc bảng
@@ -287,6 +296,9 @@ const InstructorAssessments = () => {
             isRequired: detail?.isRequired,
             displayOrder: detail?.displayOrder,
             sessionId: s.sessionId,
+            // Nguồn entry: "session" = gắn vào buổi học cụ thể; "course" = fallback nhập
+            // trực tiếp theo môn của Course (không gắn buổi).
+            source: "session",
             sessionTitle: s.sessionTitle || `Buổi ${s.sessionId}`,
             // SessionDate có thể null (buổi nháp chưa xếp lịch) → hiển thị TBA
             sessionDate: s.sessionDate
@@ -294,6 +306,45 @@ const InstructorAssessments = () => {
               : "TBA",
           };
         });
+        // FALLBACK — nhập điểm trực tiếp theo môn của Course (không bắt buộc xếp lịch/tạo
+        // Session trước): khi KHÔNG có buổi nào được gắn assessment/checklist, kiểm tra
+        // Course của lớp còn Assessment nào thuộc môn giảng viên đang phụ trách không.
+        // Có → hiển thị danh sách để giảng viên chọn và nhập điểm luôn (sessionId = null).
+        if (entries.length === 0) {
+          const classCourseId = selectedClassInfo?.courseId ?? null;
+          const courseAssessments = (assessmentsList || []).filter((a) => {
+            const matchCourse =
+              classCourseId == null ||
+              a.courseId == null ||
+              String(a.courseId) === String(classCourseId);
+            const matchMySubject =
+              a.subjectId == null || mySubjectIds.has(a.subjectId);
+            return matchCourse && matchMySubject;
+          });
+          const fallbackEntries = courseAssessments.map((a) => ({
+            assessmentId: Number(a.assessmentId),
+            practicalChecklistId: null,
+            subjectId: a.subjectId,
+            courseId: a.courseId ?? classCourseId,
+            componentName:
+              a.componentName ||
+              a.assessmentName ||
+              `Assessment ${a.assessmentId}`,
+            // Fallback chỉ nhập điểm lý thuyết theo Assessment của Course — buổi không
+            // tồn tại nên không có bảng kiểm thực hành gắn kèm.
+            assessmentType: "assessment",
+            weight: a.weight,
+            passingScore: a.passingScore,
+            isRequired: a.isRequired,
+            displayOrder: a.displayOrder,
+            sessionId: null,
+            source: "course",
+            sessionTitle: tr("Nhập trực tiếp"),
+            sessionDate: "TBA",
+          }));
+          setAssessmentsForClass(fallbackEntries);
+          return;
+        }
         setAssessmentsForClass(entries);
       } catch (err) {
         console.error("Lỗi khi tải danh sách assessment:", err);
@@ -447,7 +498,9 @@ const InstructorAssessments = () => {
 
       // [DIAG] Nếu buổi đang chọn KHÔNG có sessionId → backend sẽ coi mọi buổi là 1 buổi duy nhất
       // (sessionId=null), ghi đè chung 1 dòng và dễ kẹt lỗi 400 retake. Cảnh báo thật to để lộ ngay.
-      if (assessment?.sessionId == null) {
+      // Entry fallback (source="course") chủ đích không gắn buổi (sessionId=null) →
+      // KHÔNG phải lỗi dữ liệu, không cảnh báo.
+      if (assessment?.sessionId == null && assessment?.source !== "course") {
         console.warn(
           `[DIAG] ⚠️ CRITICAL: selectedAssessment KHÔNG có sessionId (assessmentId=${assessment?.assessmentId}, componentName=${assessment?.componentName}). ` +
             `Backend sẽ coi mọi buổi là sessionId=null → ghi đè chung 1 dòng trong DB + lỗi 400 retake. ` +
@@ -757,7 +810,8 @@ const InstructorAssessments = () => {
       } else {
         const sessionId = selectedAssessment?.sessionId ?? null;
         // [DIAG] Cảnh báo nếu sessionId trống — payload lúc này sẽ bị backend coi là sessionId=null.
-        if (sessionId == null) {
+        // Fallback "course" chủ đích gửi sessionId=null → không phải lỗi dữ liệu.
+        if (sessionId == null && selectedAssessment?.source !== "course") {
           console.warn(
             `[DIAG] ⚠️ CRITICAL: POST /AssessmentResults/record gửi sessionId = null (selectedAssessment.sessionId trống, buổi ${selectedAssessment?.sessionTitle || "?"}). ` +
               `Hậu quả: mọi buổi bị backend ghi chung 1 dòng duy nhất → "lay chung 1 diem" + lỗi 400 retake khi dòng đó đã chốt.`,
@@ -1718,7 +1772,8 @@ const InstructorAssessments = () => {
   const displayScores = isEditingScores ? editingScores : studentScores;
   const scorePager = usePagination(selectedAssessment ? displayScores : [], {
     pageSize: 10,
-    resetKey: selectedAssessment?.sessionId,
+    resetKey:
+      selectedAssessment?.sessionId ?? selectedAssessment?.assessmentId,
   });
 
   if (selectedAssessment) {
@@ -1758,8 +1813,10 @@ const InstructorAssessments = () => {
                {selectedAssessment.assessmentId
                  ? `Assessment: ${selectedAssessment.componentName}`
                  : selectedAssessment.componentName}{" "}
-               · {tr('Buổi: ')}{" "}
-               {tr(selectedAssessment.sessionTitle)}
+               ·{" "}
+               {selectedAssessment.source === "course"
+                 ? tr("Nhập trực tiếp (không gắn buổi học)")
+                 : `${tr('Buổi: ')} ${tr(selectedAssessment.sessionTitle)}`}
                {selectedAssessment.sessionDate
                  ? ` (${selectedAssessment.sessionDate})`
                  : " (TBA)"}{" "}
@@ -3043,8 +3100,7 @@ const InstructorAssessments = () => {
         >
           {classesData.map((c) => (
             <option key={c.classId} value={c.classId}>
-              {isLockedStatus(c.status) ? "🔒 " : ""}
-              {c.name} ({c.code}) — {getClassStatusLabel(c.status)}
+              {c.name} ({c.code}) · {c.subName} — {getClassStatusLabel(c.status)}
             </option>
           ))}
         </select>
@@ -3134,9 +3190,53 @@ const InstructorAssessments = () => {
                     )}
                   </div>
                 </div>
+              ) : classSessionCount === 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                    padding: "12px 18px",
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderLeft: "4px solid #3b82f6",
+                    borderRadius: "10px",
+                    fontSize: "12px",
+                    color: "#1e40af",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <span style={{ fontSize: "16px", lineHeight: 1 }}>📅</span>
+                  <div>
+                    <strong>{tr("Lớp này chưa có buổi học (Session) nào.")}</strong>{" "}
+                    {tr(
+                      "Và Course của lớp cũng chưa có Assessment phù hợp cho môn bạn phụ trách. Hãy liên hệ Academic để xếp lịch buổi học hoặc tạo Assessment Structure.",
+                    )}
+                  </div>
+                </div>
               ) : (
-                <div style={{ color: "rgba(0,33,71,0.5)", fontStyle: "italic" }}>
-                  {tr('Chưa có Assessment nào được tạo cho môn học này.')}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                    padding: "12px 18px",
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderLeft: "4px solid #3b82f6",
+                    borderRadius: "10px",
+                    fontSize: "12px",
+                    color: "#1e40af",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <span style={{ fontSize: "16px", lineHeight: 1 }}>📋</span>
+                  <div>
+                    <strong>{tr("Các buổi học của lớp chưa được gắn bài kiểm tra nào.")}</strong>{" "}
+                    {tr(
+                      "Và Course của lớp cũng chưa có Assessment phù hợp cho môn bạn phụ trách. Hãy gán Assessment vào buổi học ở màn Assessment Structure hoặc liên hệ Academic.",
+                    )}
+                  </div>
                 </div>
               )
             ) : (
@@ -3186,17 +3286,37 @@ const InstructorAssessments = () => {
                             {getSubjectName(assessment.subjectId)}
                           </p>
                         )}
-                        <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
-                          {tr('Buổi: ')}{tr(assessment.sessionTitle)}
-                          {assessment.sessionDate
-                            ? ` (${assessment.sessionDate})`
-                            : " (TBA)"}{" "}
-                          · {getAssessmentTypeLabel(assessment.assessmentType)}
-                          {assessment.assessmentId
-                            ? ` · ${tr('Trọng số')}: ${assessment.weight}% · ${tr('Điểm đạt')}: ${assessment.passingScore}`
-                            : ""}
-                          {assessment.isRequired ? ` · ${tr('Bắt buộc')}` : ""}
-                        </p>
+                        {assessment.source === "course" ? (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              margin: "0 0 6px",
+                              padding: "3px 10px",
+                              borderRadius: "999px",
+                              background: "#ecfdf5",
+                              border: "1px solid #a7f3d0",
+                              color: "#047857",
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
+                            }}
+                          >
+                            {tr("Nhập điểm trực tiếp (chưa gắn buổi học)")}
+                          </span>
+                        ) : (
+                          <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
+                            {tr('Buổi: ')}{tr(assessment.sessionTitle)}
+                            {assessment.sessionDate
+                              ? ` (${assessment.sessionDate})`
+                              : " (TBA)"}{" "}
+                            · {getAssessmentTypeLabel(assessment.assessmentType)}
+                            {assessment.assessmentId
+                              ? ` · ${tr('Trọng số')}: ${assessment.weight}% · ${tr('Điểm đạt')}: ${assessment.passingScore}`
+                              : ""}
+                            {assessment.isRequired ? ` · ${tr('Bắt buộc')}` : ""}
+                          </p>
+                        )}
                       </div>
                       <button
                         onClick={() => handleOpenGradingSheet(assessment)}

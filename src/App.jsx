@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 import Homepage from './Homepage/homepage';
 import Login from './Homepage/login';
 import PublicLayout from './Homepage/PublicLayout';
@@ -141,11 +142,11 @@ function App() {
 	return (
 		<BrowserRouter>
 			<Routes>
-				<Route path="/" element={<Homepage />} />
-				<Route path="/login" element={<Login />} />
+				<Route path="/" element={<RouteErrorBoundary><Homepage /></RouteErrorBoundary>} />
+				<Route path="/login" element={<RouteErrorBoundary><Login /></RouteErrorBoundary>} />
 
 				{/* Public Footer Routes */}
-				<Route element={<PublicLayout />}>
+				<Route element={<RouteErrorBoundary><PublicLayout /></RouteErrorBoundary>}>
 					<Route path="/records" element={<RecordsPage />} />
 					<Route path="/competency" element={<CompetencyPage />} />
 					<Route path="/compliance" element={<CompliancePage />} />
@@ -167,7 +168,7 @@ function App() {
 
 				{/* Protected Admin Routes */}
 				<Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
-					<Route path="/admin" element={<AdminLayout />}>
+					<Route path="/admin" element={<RouteErrorBoundary><AdminLayout /></RouteErrorBoundary>}>
 						<Route index element={<Dashboard />} />
 						<Route path="users" element={<UserManagement />} />
 
@@ -183,7 +184,7 @@ function App() {
 						<ProtectedRoute allowedRoles={["Academic", "AcademicStaff"]} />
 					}
 				>
-					<Route path="/academic" element={<AcademicLayout />}>
+					<Route path="/academic" element={<RouteErrorBoundary><AcademicLayout /></RouteErrorBoundary>}>
 						<Route index element={<AcademicDashboard />} />
 						<Route path="learners" element={<LearnerManagement />} />
 						<Route path="profiles" element={<Navigate to="/academic/learners" replace />} />
@@ -198,7 +199,7 @@ function App() {
 
 				{/* Protected Instructor Routes */}
 				<Route element={<ProtectedRoute allowedRoles={['Instructor']} />}>
-					<Route path="/instructor" element={<InstructorLayout />}>
+					<Route path="/instructor" element={<RouteErrorBoundary><InstructorLayout /></RouteErrorBoundary>}>
 						<Route index element={<InstructorDashboard />} />
 						<Route path="classes" element={<InstructorClasses />} />
 						<Route path="attendance" element={<InstructorAttendance />} />
@@ -211,7 +212,7 @@ function App() {
 
 				{/* Protected QA Routes */}
 				<Route element={<ProtectedRoute allowedRoles={['QA', 'QualityAssurance']} />}>
-					<Route path="/qa" element={<QALayout />}>
+					<Route path="/qa" element={<RouteErrorBoundary><QALayout /></RouteErrorBoundary>}>
 						<Route index element={<QADashboard />} />
 						<Route path="evidence" element={<QAEvidenceVerification />} />
 						<Route path="reviews" element={<QARETRReviewQueue />} />
@@ -232,7 +233,7 @@ function App() {
 
 				{/* Protected Training Manager Routes (Admin cũng được vào để duyệt/Reopen ETR) */}
 				<Route element={<ProtectedRoute allowedRoles={["TrainingManager", "Admin"]} />}>
-					<Route path="/trainingmanager" element={<TrainingManagerLayout />}>
+					<Route path="/trainingmanager" element={<RouteErrorBoundary><TrainingManagerLayout /></RouteErrorBoundary>}>
 						<Route index element={<TrainingManagerDashboard />} />
 						<Route path="classes" element={<ClassStatus />} />
 						<Route path="etr-approval" element={<EtrApproval />} />
@@ -243,7 +244,7 @@ function App() {
 
 				{/* Protected Student Routes */}
 				<Route element={<ProtectedRoute allowedRoles={["Student", "Learner"]} />}>
-					<Route path="/student" element={<StudentLayout />}>
+					<Route path="/student" element={<RouteErrorBoundary><StudentLayout /></RouteErrorBoundary>}>
 						<Route index element={<StudentDashboard />} />
 						<Route path="etr" element={<StudentMyETR />} />
 						<Route path="certificates" element={<StudentCertificateStatus />} />
@@ -253,7 +254,7 @@ function App() {
 
 				{/* Protected Auditor Routes */}
 				<Route element={<ProtectedRoute allowedRoles={["Auditor", "Audit"]} />}>
-					<Route path="/auditor" element={<AuditorLayout />}>
+					<Route path="/auditor" element={<RouteErrorBoundary><AuditorLayout /></RouteErrorBoundary>}>
 						<Route index element={<AuditorDashboard />} />
 						<Route path="etrs" element={<AuditorLockedETRs />} />
 						<Route path="search" element={<AuditorAdvancedSearch />} />

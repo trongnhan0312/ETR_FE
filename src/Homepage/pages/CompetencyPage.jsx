@@ -46,8 +46,8 @@ const CompetencyPage = () => {
             <div className="competency-demo-box">
               <div className="comp-row">
                 <div className="comp-name">
-                  <strong>EWIS Wiring Harness Splicing</strong>
-                  <span>Module 04 • Task #EW-102</span>
+                  <strong>{tr('EWIS Wiring Harness Splicing')}</strong>
+                  <span>{tr('Module 04 • Task #EW-102')}</span>
                 </div>
                 <div className="comp-score">
                   <span className="badge-pass font-bold">{tr('100% PASS')}</span>
@@ -56,8 +56,8 @@ const CompetencyPage = () => {
 
               <div className="comp-row">
                 <div className="comp-name">
-                  <strong>Avionics Bus Connector Pinning</strong>
-                  <span>Module 07 • Task #AV-401</span>
+                  <strong>{tr('Avionics Bus Connector Pinning')}</strong>
+                  <span>{tr('Module 07 • Task #AV-401')}</span>
                 </div>
                 <div className="comp-score">
                   <span className="badge-pass font-bold">{tr('95% PASS')}</span>

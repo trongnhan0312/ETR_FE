@@ -3,6 +3,7 @@ import { useState } from "react";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import NotificationsDropdown from "../components/NotificationsDropdown";
 import { useLanguage } from "../context/LanguageContext";
+import RouteErrorBoundary from "../components/RouteErrorBoundary";
 import "./auditor.scss";
 
 const navigationItems = [
@@ -291,7 +292,10 @@ const AuditorLayout = () => {
 
         {/* Content Body */}
         <main className="academic-content">
-          <Outlet />
+          {/* Lỗi ở 1 trang/modal chỉ thay vùng nội dung, sidebar vẫn dùng được */}
+          <RouteErrorBoundary>
+            <Outlet />
+          </RouteErrorBoundary>
         </main>
       </div>
     </div>

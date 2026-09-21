@@ -1,11 +1,15 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
-import { isEtrCompleted, isEtrReturned } from "../utils/etrStatus";
+import {
+  isEtrCompleted,
+  isEtrReturned,
+  subjectStatusBadge,
+} from "../utils/etrStatus";
 
 // Nhãn hiển thị cho status enum trả về từ GET /api/Search/etrs (EtrStatus BE):
 // Draft | InProgress | Submitted | Verified | Completed | ReturnedForCorrection | Cancelled
@@ -63,24 +67,54 @@ const QASearchExport = () => {
 
   const canExport = EXPORT_ROLES.includes(getCurrentRole());
 
+  // `overrideQuery` chỉ nhận CHUỖI (hoặc null = dùng ô tìm kiếm hiện tại).
+  // Lưu ý: KHÔNG gán trực tiếp `onClick={handleSearch}` vì React sẽ truyền event
+  // vào tham số này → `q.trim()` ném lỗi và kết quả bị xoá sạch.
   const handleSearch = async (overrideQuery = null) => {
-    const q = overrideQuery !== null ? overrideQuery : searchQuery;
+    const q =
+      typeof overrideQuery === "string" ? overrideQuery : searchQuery;
     setSearching(true);
     try {
       // Try GET /Search/etrs?query= or fallback to /Etr
       let data = null;
+      let usedFallback = false;
       if (q && q.trim()) {
         data = await api.get(`/Search/etrs?query=${encodeURIComponent(q.trim())}`).catch(() => null);
       }
       if (!data || (Array.isArray(data) && data.length === 0)) {
         data = await api.get('/Etr').catch(() => []);
+        usedFallback = true;
       }
 
-      const rows = Array.isArray(data)
+      const allRows = Array.isArray(data)
         ? data
         : data && Array.isArray(data.items)
           ? data.items
           : [];
+
+      // /Search/etrs không được phép cho một số vai trò (ví dụ QA read-only) nên
+      // phải rơi về /Etr — khi đó tự lọc theo từ khoá để ô tìm kiếm vẫn có tác dụng.
+      const needle = q.trim().toLowerCase();
+      const rows =
+        usedFallback && needle
+          ? allRows.filter((r) => {
+              const idNum = r.etrCourseRecordId ?? r.eTRCourseRecordId;
+              const haystack = [
+                r.studentName,
+                r.studentCode,
+                r.courseName,
+                r.courseCode,
+                r.className,
+                r.classCode,
+                r.status,
+                idNum != null ? `#etr-${String(idNum).padStart(4, "0")}` : "",
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+              return haystack.includes(needle) || String(idNum ?? "").includes(needle);
+            })
+          : allRows;
 
       // Lọc trạng thái phía client — backend không hỗ trợ tham số status.
       const norm = (v) => String(v || "").toLowerCase().replace(/[\s_-]/g, "");
@@ -236,7 +270,7 @@ const QASearchExport = () => {
           <button
             className="qa-btn"
             type="button"
-            onClick={handleSearch}
+            onClick={() => handleSearch()}
             disabled={searching}
           >
             {searching ? trEn('Searching...') : trEn('Search ETR Records')}
@@ -502,7 +536,17 @@ const QASearchExport = () => {
                           {detail.subjectResults.map((sr, i) => (
                             <tr key={sr.subjectResultId ?? i} style={{ borderTop: "1px solid #e2e8f0" }}>
                               <td style={{ padding: "8px" }}>#{sr.subjectId ?? "—"}</td>
-                              <td style={{ padding: "8px" }}>{sr.status ?? "—"}</td>
+                              {/* Nhãn/màu trạng thái môn dùng chung với Academic + QA (utils/etrStatus.js),
+                                  không hiển thị enum thô (Pending/Passed/...). */}
+                              <td
+                                style={{
+                                  padding: "8px",
+                                  fontWeight: 700,
+                                  color: subjectStatusBadge(sr).color,
+                                }}
+                              >
+                                {trEn(subjectStatusBadge(sr).label)}
+                              </td>
                               <td style={{ padding: "8px" }}>
                                 {sr.score != null ? `${sr.score}%` : "—"}
                               </td>

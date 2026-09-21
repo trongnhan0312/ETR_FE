@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { createPortal } from "react-dom";
@@ -9,10 +10,23 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
 import AuditLogDetailModal from "../components/AuditLogDetailModal";
-import { isEtrCompleted } from "../utils/etrStatus";
+import {
+  isEtrCompleted,
+  areAllAttendanceRatesOk,
+  areSubjectScoresFinalized,
+  hasVerifiedEvidence,
+  subjectStatusBadge,
+} from "../utils/etrStatus";
+import {
+  evidenceCategoryFromMime,
+  evidenceCategoryFromTypeName,
+  formatEvidenceSize,
+} from "../utils/evidenceFiles";
 
 const EtrManagement = ({ defaultView = "list" }) => {
   const { tr, trEn } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [etrRecords, setEtrRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [auditTrail, setAuditTrail] = useState([]);
@@ -24,11 +38,29 @@ const EtrManagement = ({ defaultView = "list" }) => {
 
   // Sub-views & Filters
   const [viewMode, setViewMode] = useState(defaultView); // 'list' or 'evidence'
+  // View Evidence là view con của trang này chứ không phải route riêng: mỗi lần
+  // mở nó ta đẩy thêm 1 history entry cùng path, đánh dấu bằng state
+  // `etrEvidenceId` (xem handleOpenEvidence). Effect dưới đây giữ view khớp với
+  // history để nút Back (topbar + trình duyệt) trở về đúng màn hình:
+  //  - entry có đánh dấu   → mở view Evidence của đúng hồ sơ đó
+  //  - entry không đánh dấu → đóng view, quay về danh sách ETR
   useEffect(() => {
-    if (defaultView) {
-      setViewMode(defaultView);
+    const evidenceId = location.state?.etrEvidenceId;
+    if (!evidenceId) {
+      // Entry không đánh dấu → đóng view Evidence, quay về danh sách ETR
+      setViewMode("list");
+      return;
     }
-  }, [defaultView]);
+    // Entry có đánh dấu (vừa mở, hoặc Back/Forward/reload vào lại) → mở view của
+    // đúng hồ sơ đó. Chờ danh sách ETR load xong mới có record để mở.
+    const record = etrRecords.find(
+      (item) => String(item.etrId) === String(evidenceId),
+    );
+    if (record) {
+      setSelectedRecord(record);
+      setViewMode("evidence");
+    }
+  }, [location.key, location.state, etrRecords]);
   const [fileSearchQuery, setFileSearchQuery] = useState("");
   const [fileCategoryFilter, setFileCategoryFilter] = useState("ALL");
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -122,6 +154,14 @@ const EtrManagement = ({ defaultView = "list" }) => {
 
         const etrsArr = extractList(etrs);
         const evfsArr = extractList(evfs);
+        const evidenceTypeList = Array.isArray(evidenceTypes)
+          ? evidenceTypes
+          : [];
+        const evidenceTypeNameById = {};
+        evidenceTypeList.forEach((t) => {
+          const id = t.evidenceTypeId ?? t.EvidenceTypeId;
+          if (id != null) evidenceTypeNameById[id] = t.typeName ?? t.TypeName ?? "";
+        });
         const accountsArr = extractList(accounts);
         const profilesArr = extractList(profiles);
         const enrollmentsArr = extractList(enrollments);
@@ -153,18 +193,11 @@ const EtrManagement = ({ defaultView = "list" }) => {
           const id = e.etrCourseRecordId || e.eTRCourseRecordId;
           const srs = detailsArr[i]?.subjectResults || [];
           srMap[id] = srs.map((sr) => sr.subjectResultId);
-          attendanceOkMap[id] =
-            srs.length > 0 && srs.every((sr) => (sr.attendanceRate ?? 0) >= 80);
-          resultsOkMap[id] =
-            srs.length > 0 &&
-            srs.every((sr) => {
-              const all = [
-                ...(sr.assessmentResults || []),
-                ...(sr.practicalChecklistResults || []),
-              ];
-              if (sr.status === "Exempted" || all.length === 0) return true;
-              return all.every((r) => r.isPublished === true);
-            });
+          // Bước 2 & 3 — logic dùng chung ở utils/etrStatus.js (xem unit test
+          // src/test/EtrWorkflowSteps.test.jsx): mọi môn >= 80% chuyên cần và mọi
+          // kết quả đã CHỐT ĐIỂM thì mới "✓ ĐÃ XÁC THỰC".
+          attendanceOkMap[id] = areAllAttendanceRatesOk(srs);
+          resultsOkMap[id] = areSubjectScoresFinalized(srs);
         });
         setSubjectResultIdsByEtr(srMap);
 
@@ -178,6 +211,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
           srMap,
           attendanceOkMap,
           resultsOkMap,
+          evidenceTypeNameById,
         );
         setEtrRecords(merged);
         if (merged.length > 0) {
@@ -256,6 +290,10 @@ const EtrManagement = ({ defaultView = "list" }) => {
     subjectResultIdsByEtr = {},
     attendanceOkMap = {},
     resultsOkMap = {},
+    // Map evidenceTypeId → typeName (nạp từ GET /EvidenceTypes) — dùng để phân loại
+    // minh chứng khi BE thiếu mimeType. Truyền tường minh để không phụ thuộc state
+    // (state update là bất đồng bộ, lần load đầu sẽ bị rỗng nếu đọc trực tiếp).
+    evidenceTypeNameById = {},
   ) => {
     const evfsArr = Array.isArray(evidenceFiles) ? evidenceFiles : [];
 
@@ -291,35 +329,55 @@ const EtrManagement = ({ defaultView = "list" }) => {
       const subjectResultIds = subjectResultIdsByEtr[etrId] || [];
       const etrEvidences = evfsArr
         .filter((ev) => subjectResultIds.includes(ev.subjectResultId))
-        .map((ev) => ({
-          id: ev.evidenceFileId,
-          name: ev.fileName || `evidence-${ev.evidenceFileId}`,
-          type:
-            ev.mimeType === "application/pdf"
-              ? "PDF DOC"
-              : ev.mimeType?.startsWith("image/")
-                ? "PHOTO"
-                : "SIGNATURE",
-          tag: ev.fileExtension?.toUpperCase() || "DOCUMENT",
-          date: ev.uploadedAt
-            ? new Date(ev.uploadedAt).toLocaleDateString("vi-VN")
-            : "",
-          size: ev.fileSize
-            ? `${(ev.fileSize / (1024 * 1024)).toFixed(1)} MB`
-            : "0 MB",
-          status:
-            ev.verificationStatus === "Verified"
-              ? "Verified"
-              : ev.verificationStatus === "Rejected"
-                ? "Rejected"
-                : "Pending QA",
-          rejectReason: ev.verificationComment || "",
-          mimeType: ev.mimeType || "",
-          fileExtension: ev.fileExtension || "",
-          // BE đã đổi FilePath → FileUrl (lưu trữ Cloudinary)
-          filePath: ev.fileUrl || ev.filePath || "",
-          fileUrl: ev.fileUrl || ev.filePath || "",
-        }));
+        .map((ev) => {
+          // Phân loại: ưu tiên mimeType, khi thiếu dùng tên loại minh chứng (evidenceTypeId).
+          const typeName = evidenceTypeNameById[ev.evidenceTypeId] || "";
+          const category =
+            evidenceCategoryFromMime(ev.mimeType) ||
+            evidenceCategoryFromTypeName(typeName);
+          const url = ev.fileUrl || ev.filePath || "";
+          const ext = (String(ev.fileName || "").match(/\.([a-z0-9]+)$/i) || [
+            "",
+          ])[1];
+
+          return {
+            id: ev.evidenceFileId,
+            // BE chưa trả tên file (thiếu dữ liệu Attachment) → đặt nhãn trung tính,
+            // KHÔNG bịa ra "evidence-<id>" như tên tệp thật nữa.
+            name: ev.fileName || `${tr("Minh chứng")} #${ev.evidenceFileId}`,
+            type: category || "UNKNOWN",
+            // Nhãn hiển thị ở cột PHÂN LOẠI: tên loại thật từ /EvidenceTypes
+            typeLabel:
+              typeName ||
+              (category === "PHOTO"
+                ? tr("HÌNH ẢNH")
+                : category === "PDF DOC"
+                  ? tr("TÀI LIỆU PDF")
+                  : category === "SIGNATURE"
+                    ? tr("CHỮ KÝ SỐ")
+                    : "—"),
+            tag: (ext || "").toUpperCase(),
+            date: ev.uploadedAt
+              ? new Date(ev.uploadedAt).toLocaleDateString("vi-VN")
+              : "",
+            // Rỗng khi BE không có dữ liệu (trước đây luôn hiện "0 MB").
+            size: formatEvidenceSize(ev.fileSize),
+            status:
+              ev.verificationStatus === "Verified"
+                ? "Verified"
+                : ev.verificationStatus === "Rejected"
+                  ? "Rejected"
+                  : "Pending QA",
+            rejectReason: ev.verificationComment || "",
+            mimeType: ev.mimeType || "",
+            fileExtension: ev.fileExtension || ext || "",
+            // BE đã đổi FilePath → FileUrl (lưu trữ Cloudinary)
+            filePath: url,
+            fileUrl: url,
+            // Không có URL → không thể xem/tải: nút thao tác sẽ bị vô hiệu hóa.
+            hasFile: !!url,
+          };
+        });
 
       return {
         id: `#ETR-${String(etrId).padStart(4, "0")}`,
@@ -345,13 +403,16 @@ const EtrManagement = ({ defaultView = "list" }) => {
           // môn (backend tự tính khi Instructor điểm danh) — mọi môn >= 80% mới đạt.
           attendance: attendanceOkMap[etrId] === true,
           // Bước 3: "đã chốt điểm" khi MỌI kết quả đánh giá của mọi môn đều isPublished = true
-          // (giảng viên bấm "CHỐT ĐIỂM"). Không gắn vào ETR status Verified/Completed nữa nên
-          // đã chốt điểm mà ETR chưa được QA duyệt vẫn hiển thị "✓ ĐÃ XÁC THỰC" đúng.
+          // (giảng viên bấm "CHỐT ĐIỂM") → đã chốt điểm mà ETR chưa được QA duyệt vẫn hiển thị
+          // "✓ ĐÃ XÁC THỰC" đúng. Vẫn giữ fallback theo trạng thái ETR đã duyệt/hoàn thành vì
+          // hồ sơ submit được thì buộc mọi môn đã Passed/Exempted (tức đã có điểm).
           results:
             resultsOkMap[etrId] === true ||
             etr.status === "Verified" ||
             isEtrCompleted(etr.status),
-          evidence: etr.status === "Verified" || isEtrCompleted(etr.status),
+          // Bước 4: có ít nhất 1 minh chứng và tất cả đã được QA verify (hoặc ETR đã
+          // Verified/Completed). Hồ sơ mới chưa có minh chứng nào → "⌛ ĐANG CHỜ".
+          evidence: hasVerifiedEvidence(etrEvidences, etr.status),
         },
         evidenceList: etrEvidences,
         // Bước chặn "Evidence phải được QA verify xong Academic mới được Submit ETR":
@@ -366,7 +427,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
 
   const refreshData = async () => {
     try {
-      const [etrs, evfs, audits] = await Promise.all([
+      const [etrs, evfs, audits, evidenceTypes] = await Promise.all([
         api.get("/Etr").catch(() => []),
         api.get("/Evidences").catch((err) => {
           if (
@@ -379,8 +440,16 @@ const EtrManagement = ({ defaultView = "list" }) => {
           return [];
         }),
         api.get("/Audit?page=1&pageSize=50").catch(() => []),
+        // Cần map evidenceTypeId → typeName để phân loại minh chứng sau mỗi lần refresh
+        api.get("/EvidenceTypes").catch(() => []),
       ]);
       const etrsArr = Array.isArray(etrs) ? etrs : [];
+      const evidenceTypeNameById = {};
+      (Array.isArray(evidenceTypes) ? evidenceTypes : []).forEach((t) => {
+        const typeId = t.evidenceTypeId ?? t.EvidenceTypeId;
+        if (typeId != null)
+          evidenceTypeNameById[typeId] = t.typeName ?? t.TypeName ?? "";
+      });
 
       // Cập nhật lại bản đồ SubjectResultId (có thể thay đổi sau khi tải thêm evidence)
       const detailsArr = await Promise.all(
@@ -399,19 +468,9 @@ const EtrManagement = ({ defaultView = "list" }) => {
         srMap[id] = srs.map((sr) => sr.subjectResultId);
         // Điểm danh/Chuyên cần chỉ "đạt" khi MỌI môn đã có AttendanceRate >= 80 (khớp quy tắc
         // backend khi Submit ETR). ETR mới chưa điểm danh → attendanceRate null → false.
-        attendanceOkMap[id] =
-          srs.length > 0 && srs.every((sr) => (sr.attendanceRate ?? 0) >= 80);
+        attendanceOkMap[id] = areAllAttendanceRatesOk(srs);
         // Bước 3 "Điểm số kết quả kiểm tra" tính từ dữ liệu thật (isPublished sau khi CHỐT ĐIỂM).
-        resultsOkMap[id] =
-          srs.length > 0 &&
-          srs.every((sr) => {
-            const all = [
-              ...(sr.assessmentResults || []),
-              ...(sr.practicalChecklistResults || []),
-            ];
-            if (sr.status === "Exempted" || all.length === 0) return true;
-            return all.every((r) => r.isPublished === true);
-          });
+        resultsOkMap[id] = areSubjectScoresFinalized(srs);
       });
       setSubjectResultIdsByEtr(srMap);
 
@@ -424,6 +483,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
         srMap,
         attendanceOkMap,
         resultsOkMap,
+        evidenceTypeNameById,
       );
       setEtrRecords(merged);
       const auditsArr = Array.isArray(audits)
@@ -501,6 +561,22 @@ const EtrManagement = ({ defaultView = "list" }) => {
     setFileSearchQuery("");
     setFileCategoryFilter("ALL");
     setSelectedFiles([]);
+    // Trước đây view Evidence chỉ là state nên nút Back (topbar + trình duyệt)
+    // thoát thẳng ra route đã truy cập trước đó (thường là trang Student).
+    if (!location.state?.etrEvidenceId) {
+      navigate(location.pathname, {
+        state: { ...(location.state || {}), etrEvidenceId: record.etrId },
+      });
+    }
+  };
+
+  // Đóng view Evidence để quay về danh sách ETR (breadcrumb / nút quay lại)
+  const handleBackToList = () => {
+    setViewMode("list");
+    if (location.state?.etrEvidenceId) {
+      // Trả lại history entry đã đẩy khi mở view, tránh để lại entry mồ côi
+      navigate(-1);
+    }
   };
 
   const handleUploadEvidence = async (e) => {
@@ -596,6 +672,9 @@ const EtrManagement = ({ defaultView = "list" }) => {
     const name = sub.subjectName || sub.SubjectName || "";
     return code ? `[${code}] ${name}` : name;
   };
+
+  // Nhãn + màu cột "Trạng thái" của bảng điểm chi tiết từng môn — dùng chung với trang QA
+  // qua utils/etrStatus.js (subjectStatusBadge), chỉ cần bọc `tr(...)` cho nhãn.
 
   // ── Tra cứu ETR (GET /api/Search/etrs?query=) ────────────────────────────
   // Nút "Tra cứu ETR" trước đây không có handler (không làm gì khi bấm) → cảm giác
@@ -881,7 +960,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
 
                     <p
                       className="text-[10px] font-bold text-left uppercase text-white cursor-pointer hover:text-[#c5a059]"
-                      onClick={() => setViewMode("list")}
+                      onClick={handleBackToList}
                       style={{ margin: 0 }}
                     >
                       {tr("ETR LOGS")}
@@ -1252,7 +1331,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
                                 )}
                               </div>
                               <span className="text-xs font-bold text-[#002147]">
-                                {file.type}
+                                {file.typeLabel || file.type}
                               </span>
                             </div>
 
@@ -1264,9 +1343,14 @@ const EtrManagement = ({ defaultView = "list" }) => {
                               >
                                 {file.name}
                               </span>
-                              <span className="text-[10px] font-semibold text-[#002147]/40 uppercase truncate">
-                                {file.size} • {file.tag}
-                              </span>
+                              {/* Chỉ hiện phần nào BE thực sự có dữ liệu (trước đây luôn "0 MB • DOCUMENT") */}
+                              {[file.size, file.tag].filter(Boolean).length > 0 && (
+                                <span className="text-[10px] font-semibold text-[#002147]/40 uppercase truncate">
+                                  {[file.size, file.tag]
+                                    .filter(Boolean)
+                                    .join(" • ")}
+                                </span>
+                              )}
                             </div>
 
                             {/* Date Uploaded */}
@@ -1362,9 +1446,19 @@ const EtrManagement = ({ defaultView = "list" }) => {
                             <div className="flex justify-end items-center gap-3 pr-6">
                               <button
                                 type="button"
+                                disabled={!file.hasFile}
                                 className="p-2 rounded-lg bg-[#f5f7fa] border border-slate-200 text-[#002147] hover:bg-slate-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
-                                onClick={() => setPreviewFile(file)}
-                                title={tr("Xem chi tiết")}
+                                style={
+                                  file.hasFile
+                                    ? undefined
+                                    : { opacity: 0.4, cursor: "not-allowed" }
+                                }
+                                onClick={() => file.hasFile && setPreviewFile(file)}
+                                title={
+                                  file.hasFile
+                                    ? tr("Xem chi tiết")
+                                    : tr("Chưa có tệp để xem.")
+                                }
                               >
                                 <svg
                                   width={15}
@@ -1381,11 +1475,22 @@ const EtrManagement = ({ defaultView = "list" }) => {
                               </button>
                               <button
                                 type="button"
+                                disabled={!file.hasFile}
                                 className="p-2 rounded-lg bg-[#f5f7fa] border border-slate-200 text-[#002147] hover:bg-slate-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
+                                style={
+                                  file.hasFile
+                                    ? undefined
+                                    : { opacity: 0.4, cursor: "not-allowed" }
+                                }
                                 onClick={() =>
+                                  file.hasFile &&
                                   handleDownloadFile(file.id, file.name)
                                 }
-                                title={tr("Tải xuống")}
+                                title={
+                                  file.hasFile
+                                    ? tr("Tải xuống")
+                                    : tr("Chưa có tệp để tải.")
+                                }
                               >
                                 <svg
                                   width={14}
@@ -1478,9 +1583,13 @@ const EtrManagement = ({ defaultView = "list" }) => {
                           backgroundColor: "#ffffff",
                         }}
                       >
-                        {tr(
-                          "Không tìm thấy tập tin minh chứng nào khớp với bộ lọc.",
-                        )}
+                        {/* Phân biệt rõ: hồ sơ KHÔNG có minh chứng nào (như ETR mới) với
+                            trường hợp có minh chứng nhưng không khớp ô tìm kiếm/bộ lọc. */}
+                        {totalCount === 0
+                          ? tr("Chưa có minh chứng.")
+                          : tr(
+                              "Không tìm thấy tập tin minh chứng nào khớp với bộ lọc.",
+                            )}
                       </div>
                     )}
                   </div>
@@ -1675,7 +1784,9 @@ const EtrManagement = ({ defaultView = "list" }) => {
                           className="text-xs font-bold text-[#002147]"
                           style={{ margin: 0 }}
                         >
-                          {previewFile.type} • {previewFile.tag}
+                          {[previewFile.typeLabel || previewFile.type, previewFile.tag]
+                            .filter(Boolean)
+                            .join(" • ")}
                         </span>
                       </div>
                       <div className="flex justify-between items-center gap-3">
@@ -1689,7 +1800,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
                           className="text-xs font-bold text-[#002147]"
                           style={{ margin: 0 }}
                         >
-                          {previewFile.size}
+                          {previewFile.size || "—"}
                         </span>
                       </div>
                       <div className="flex justify-between items-center gap-3">
@@ -1779,7 +1890,9 @@ const EtrManagement = ({ defaultView = "list" }) => {
                         className="text-xs text-[#002147]/60 font-semibold uppercase mt-0.5"
                         style={{ margin: 0 }}
                       >
-                        {previewFile.size} • {previewFile.tag}
+                        {[previewFile.size, previewFile.tag]
+                          .filter(Boolean)
+                          .join(" • ") || "—"}
                       </p>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -2255,7 +2368,14 @@ const EtrManagement = ({ defaultView = "list" }) => {
                   <button
                     className="modal-submit-btn"
                     type="button"
+                    disabled={!previewFile.hasFile}
+                    style={
+                      previewFile.hasFile
+                        ? undefined
+                        : { opacity: 0.5, cursor: "not-allowed" }
+                    }
                     onClick={() => {
+                      if (!previewFile.hasFile) return;
                       handleDownloadFile(previewFile.id, previewFile.name);
                       setPreviewFile(null);
                     }}
@@ -3666,19 +3786,23 @@ const EtrManagement = ({ defaultView = "list" }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {finalViewDetail.subjectResults.map((sr, idx) => (
+                          {finalViewDetail.subjectResults.map((sr, idx) => {
+                            const badge = subjectStatusBadge(sr);
+                            const badgeLabel = tr(badge.label);
+                            return (
                             <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                               <td style={{ padding: '8px 6px', fontWeight: 600, color: '#334155' }}>
                                 {lookupSubjectName(sr) || sr.subjectName || sr.subjectCode || `${tr('Môn #')}${sr.subjectId}`}
                               </td>
                               <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, color: '#002147' }}>{sr.score != null ? sr.score : '—'}</td>
                               <td style={{ padding: '8px 6px', textAlign: 'center' }}>
-                                <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, backgroundColor: sr.isPassed ? '#dcfce7' : '#fef2f2', color: sr.isPassed ? '#15803d' : '#b91c1c' }}>
-                                  {sr.isPassed ? tr('Đạt') : tr('Chưa đạt')}
+                                <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, backgroundColor: badge.bg, color: badge.color }}>
+                                  {badgeLabel}
                                 </span>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

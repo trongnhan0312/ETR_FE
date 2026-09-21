@@ -8,7 +8,12 @@ import { useLanguage } from '../context/LanguageContext';
 import ApprovalHistory from "../components/ApprovalHistory";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
-import { isEtrCompleted } from "../utils/etrStatus";
+import {
+  isEtrCompleted,
+  areAllAttendanceRatesOk,
+  areSubjectScoresFinalized,
+  subjectStatusBadge,
+} from "../utils/etrStatus";
 
 // Dòng hiển thị 1 bước kiểm duyệt trong modal chi tiết ETR
 const StepStatusRow = ({ label, ok }) => {
@@ -267,19 +272,10 @@ const QARETRReviewQueue = () => {
   const detailSubjectResults = Array.isArray(etrDetail?.subjectResults)
     ? etrDetail.subjectResults
     : [];
-  const detailAttendanceOk =
-    detailSubjectResults.length > 0 &&
-    detailSubjectResults.every((sr) => (sr.attendanceRate ?? 0) >= 80);
-  const detailResultsOk =
-    detailSubjectResults.length > 0 &&
-    detailSubjectResults.every((sr) => {
-      const all = [
-        ...(sr.assessmentResults || []),
-        ...(sr.practicalChecklistResults || []),
-      ];
-      if (sr.status === "Exempted" || all.length === 0) return true;
-      return all.every((r) => r.isPublished === true);
-    });
+  // Logic dùng chung với trang Academic — xem utils/etrStatus.js +
+  // src/test/EtrWorkflowSteps.test.jsx (ETR mới: chưa điểm danh/chưa chốt điểm → ⌛).
+  const detailAttendanceOk = areAllAttendanceRatesOk(detailSubjectResults);
+  const detailResultsOk = areSubjectScoresFinalized(detailSubjectResults);
   const detailEvidenceTotal = detailSubjectResults.reduce(
     (n, sr) => n + (evidenceBySrId[sr.subjectResultId]?.length || 0),
     0
@@ -963,17 +959,15 @@ const QARETRReviewQueue = () => {
                                   }}
                                 >
                                   {tr('Trạng thái')}:{" "}
+                                  {/* Nhãn/màu dùng chung với trang Academic (utils/etrStatus.js)
+                                      để không hiển thị enum thô (Pending/Passed/...) ở đây nữa. */}
                                   <span
                                     style={{
-                                      color:
-                                        sr.status === "Passed"
-                                          ? "#15803d"
-                                          : sr.status === "Failed"
-                                            ? "#b91c1c"
-                                            : "#b45309",
+                                      color: subjectStatusBadge(sr).color,
+                                      fontWeight: 700,
                                     }}
                                   >
-                                    {sr.status}
+                                    {tr(subjectStatusBadge(sr).label)}
                                   </span>
                                   {" "}
                                   · {tr('Chuyên cần')}:{" "}

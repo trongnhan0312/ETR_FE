@@ -17,55 +17,77 @@ export const VN_TO_EN = {
   "Đang tải...": "Loading...",
   "Đang tải danh sách phòng ban...": "Loading department list...",
   "Đang tải danh sách tài khoản...": "Loading account list...",
-  "Hủy": "Cancel",
+  Hủy: "Cancel",
   "Hủy bỏ": "Cancel",
   "HỦY BỎ": "CANCEL",
   "Đã nhập thành công": "Successfully imported",
   "tài khoản học viên": "student accounts",
   "bỏ qua": "skipped",
-  "Tải template chuẩn, điền danh sách tài khoản rồi kiểm tra và nhập hàng loạt.": "Download the standard template, fill in the accounts, then validate and import in bulk.",
+  "Tải template chuẩn, điền danh sách tài khoản rồi kiểm tra và nhập hàng loạt.":
+    "Download the standard template, fill in the accounts, then validate and import in bulk.",
   "Bước 1 — Tải file mẫu": "Step 1 — Download template",
-  "Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*": "Columns: Username (email)*, Password*, Role*, Department*",
-  "Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*, Họ và tên*, Ngày sinh, Giới tính, SĐT, Tổ chức": "Columns: Username (email)*, Password*, Role*, Department*, Full Name*, DOB, Gender, Phone, Organization",
+  "Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*":
+    "Columns: Username (email)*, Password*, Role*, Department*",
+  "Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*, Họ và tên*, Ngày sinh, Giới tính, SĐT, Tổ chức":
+    "Columns: Username (email)*, Password*, Role*, Department*, Full Name*, DOB, Gender, Phone, Organization",
   "Tải template": "Download template",
-  "Bước 2 — Chọn file Excel & kiểm tra": "Step 2 — Choose Excel file & validate",
+  "Bước 2 — Chọn file Excel & kiểm tra":
+    "Step 2 — Choose Excel file & validate",
   "Kiểm tra file (Validate)": "Validate file",
   "Tổng số dòng": "Total rows",
   "Hợp lệ": "Valid",
-  "Dòng": "Row",
-  "Cột": "Column",
+  Dòng: "Row",
+  Cột: "Column",
   "File hợp lệ — có thể nhập vào hệ thống.": "File is valid — ready to import.",
-  "File còn lỗi — vui lòng sửa rồi kiểm tra lại.": "File has errors — please fix and re-validate.",
+  "File còn lỗi — vui lòng sửa rồi kiểm tra lại.":
+    "File has errors — please fix and re-validate.",
   "Nhập vào hệ thống": "Import into system",
   "Đang nhập...": "Importing...",
   "Đang kiểm tra...": "Validating...",
-  "Vui lòng chọn file Excel trước khi kiểm tra.": "Please select an Excel file before validating.",
+  "Vui lòng chọn file Excel trước khi kiểm tra.":
+    "Please select an Excel file before validating.",
   "File hợp lệ, có thể nhập": "File is valid and ready to import",
-  "File có lỗi, cần sửa trước khi nhập": "File has errors, please fix them before importing",
-  "Email này đã tồn tại trong hệ thống. Vui lòng chọn email khác.": "This email already exists in the system. Please choose another email.",
+  "File có lỗi, cần sửa trước khi nhập":
+    "File has errors, please fix them before importing",
+  "Email này đã tồn tại trong hệ thống. Vui lòng chọn email khác.":
+    "This email already exists in the system. Please choose another email.",
   "Nhập danh sách tài khoản thất bại.": "Failed to import the account list.",
-  "Tài khoản với email này đã tồn tại trong hệ thống. Vui lòng chọn email khác.": "An account with this email already exists. Please choose another email.",
-  "Hồ sơ đã được QA thẩm định và đang chờ phê duyệt cuối cùng.": "This record has been QA-verified and is awaiting final approval.",
-  "Hồ sơ đã được nộp và đang chờ QA thẩm định.": "This record has been submitted and is awaiting QA verification.",
-  "Hồ sơ đã bị trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.": "This record was returned for correction. Please check the feedback.",
-  "Hồ sơ đang ở dạng nháp, chưa được nộp.": "This record is a draft and has not been submitted yet.",
+  "Tài khoản với email này đã tồn tại trong hệ thống. Vui lòng chọn email khác.":
+    "An account with this email already exists. Please choose another email.",
+  "Hồ sơ đã được QA thẩm định và đang chờ phê duyệt cuối cùng.":
+    "This record has been QA-verified and is awaiting final approval.",
+  "Hồ sơ đã được nộp và đang chờ QA thẩm định.":
+    "This record has been submitted and is awaiting QA verification.",
+  "Hồ sơ đã bị trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.":
+    "This record was returned for correction. Please check the feedback.",
+  "Hồ sơ đang ở dạng nháp, chưa được nộp.":
+    "This record is a draft and has not been submitted yet.",
   "Hồ sơ đã được KHÓA (Locked)!": "This record is LOCKED!",
-  "Kết quả môn học sẽ hiển thị khi hồ sơ được thẩm định xong.": "Subject results will appear once the record has been verified.",
+  "Kết quả môn học sẽ hiển thị khi hồ sơ được thẩm định xong.":
+    "Subject results will appear once the record has been verified.",
   "Trả lại để chỉnh sửa": "Returned for Correction",
   "Không tải được chi tiết": "Could not load details",
-  "Không xác định được hồ sơ ETR để xuất.": "Could not determine the ETR record to export.",
+  "Không xác định được hồ sơ ETR để xuất.":
+    "Could not determine the ETR record to export.",
   "Đã tạo yêu cầu xuất gói.": "Export package request created.",
   "Xuất gói thất bại": "Package export failed",
   "Đã tạo yêu cầu xuất Audit Trail.": "Audit Trail export request created.",
   "Xuất Audit Trail thất bại": "Audit Trail export failed",
-  "Tài khoản QA không có quyền xuất gói. Vui lòng dùng tài khoản Admin/Audit/Academic.": "The QA account cannot export packages. Please use an Admin/Audit/Academic account.",
-  "Tài khoản QA không có quyền xuất Audit Trail. Vui lòng dùng tài khoản Admin/Audit.": "The QA account cannot export the Audit Trail. Please use an Admin/Audit account.",
-  "Yêu cầu quyền Admin / Audit / Academic.": "Requires Admin / Audit / Academic role.",
-  "Tài khoản QA chỉ có quyền tra cứu/xem chi tiết.": "The QA account is read-only (search and view details).",
-  "Chức năng Export Training Package và Download Audit Trail yêu cầu quyền Admin / Audit / Academic.": "Export Training Package and Download Audit Trail require Admin / Audit / Academic role.",
+  "Tài khoản QA không có quyền xuất gói. Vui lòng dùng tài khoản Admin/Audit/Academic.":
+    "The QA account cannot export packages. Please use an Admin/Audit/Academic account.",
+  "Tài khoản QA không có quyền xuất Audit Trail. Vui lòng dùng tài khoản Admin/Audit.":
+    "The QA account cannot export the Audit Trail. Please use an Admin/Audit account.",
+  "Yêu cầu quyền Admin / Audit / Academic.":
+    "Requires Admin / Audit / Academic role.",
+  "Tài khoản QA chỉ có quyền tra cứu/xem chi tiết.":
+    "The QA account is read-only (search and view details).",
+  "Chức năng Export Training Package và Download Audit Trail yêu cầu quyền Admin / Audit / Academic.":
+    "Export Training Package and Download Audit Trail require Admin / Audit / Academic role.",
   "Yêu cầu quyền Admin / Audit.": "Requires Admin / Audit role.",
-  "Không có quyền xuất (cần Admin/Audit/Academic)": "No export permission (requires Admin/Audit/Academic)",
-  "Không có quyền xuất (cần Admin/Audit)": "No export permission (requires Admin/Audit)",
+  "Không có quyền xuất (cần Admin/Audit/Academic)":
+    "No export permission (requires Admin/Audit/Academic)",
+  "Không có quyền xuất (cần Admin/Audit)":
+    "No export permission (requires Admin/Audit)",
   "Đang tải chi tiết...": "Loading details...",
   "Chưa có minh chứng.": "No evidence yet.",
   "Chưa có lịch sử phê duyệt.": "No approval history yet.",
@@ -73,10 +95,10 @@ export const VN_TO_EN = {
   "Vô hiệu hóa thành công": "Disabled successfully",
   "Kích hoạt thành công": "Activation successful",
   "Lưu thay đổi": "Save changes",
-  "Lưu": "Save",
-  "Xóa": "Delete",
-  "Sửa": "Edit",
-  "Xoá": "Delete",
+  Lưu: "Save",
+  Xóa: "Delete",
+  Sửa: "Edit",
+  Xoá: "Delete",
   "Tạo mới": "Create",
   "Cập nhật": "Update",
   "Tìm kiếm": "Search",
@@ -85,7 +107,7 @@ export const VN_TO_EN = {
   "Thao tác thất bại. Vui lòng thử lại.": "Operation failed. Please try again.",
   "Tài khoản đã tồn tại": "Account already exists",
   "thành công": "success",
-  "Đóng": "Close",
+  Đóng: "Close",
   "Xác nhận": "Confirm",
   "Hành động": "Actions",
   "THEO DÕI": "MONITORING",
@@ -142,8 +164,8 @@ export const VN_TO_EN = {
   "Hồ sơ cá nhân (UserProfile)": "User Profile (UserProfile)",
   "Hệ thống (System / Admin)": "System (System / Admin)",
   "Hệ thống": "System",
-  "Cũ": "Old",
-  "Mới": "New",
+  Cũ: "Old",
+  Mới: "New",
   "Sự Kiện Nhật Ký Kiểm Toán Gần Đây": "Recent Audit Trail Events",
   "Hồ Sơ Đã Khóa Gần Đây": "Recently Locked Records",
   "Lịch Sử Xuất Dữ Liệu Gần Đây": "Recent Export History",
@@ -154,7 +176,8 @@ export const VN_TO_EN = {
   "Hoàn thành khóa học": "Course Completion",
   "Cần đôn đốc / Sắp hết hạn": "Action Needed / Expiring",
   "Tiến trình hồ sơ đào tạo": "Training Progress",
-  "Biểu đồ đường cong giai đoạn đào tạo ETR.": "ETR Training progression stage curve chart.",
+  "Biểu đồ đường cong giai đoạn đào tạo ETR.":
+    "ETR Training progression stage curve chart.",
   "Số lượng hồ sơ": "Number of records",
   "Điểm danh (%)": "Attendance (%)",
   "Tỉ lệ điểm danh trung bình (%)": "Average attendance rate (%)",
@@ -187,18 +210,23 @@ export const VN_TO_EN = {
   "Đang đào tạo (In Progress)": "In-Progress Training",
   "Đã hoàn thành & Khóa (Locked)": "Completed & Locked",
   "Trả lại / Cần điều chỉnh (Returned)": "Returned / Needs Correction",
-  "AUDIT TRAIL (LỊCH SỬ THAO TÁC HỒ SƠ ETR)": "AUDIT TRAIL (ETR RECORD OPERATION LOGS)",
-  "Chưa có lịch sử thao tác nào cho hồ sơ ETR này.": "No audit trail logs found for this ETR record.",
+  "AUDIT TRAIL (LỊCH SỬ THAO TÁC HỒ SƠ ETR)":
+    "AUDIT TRAIL (ETR RECORD OPERATION LOGS)",
+  "Chưa có lịch sử thao tác nào cho hồ sơ ETR này.":
+    "No audit trail logs found for this ETR record.",
   "NHẬT KÝ KIỂM TOÁN": "AUDIT LOGS",
-  "Nhật ký Hoạt động Hệ thống (System Audit Trail)": "System Activity Audit Trail",
-  "Theo dõi toàn bộ vận hành, can thiệp kỹ thuật và bảo mật. Lưu trữ bất biến mọi thao tác CRUD (Tạo mới, Cập nhật, Xóa, Phê duyệt, Bảo mật).": "Monitor all system operations, technical interventions, and security. Immutably logs all CRUD operations (Create, Update, Delete, Approval, Security).",
+  "Nhật ký Hoạt động Hệ thống (System Audit Trail)":
+    "System Activity Audit Trail",
+  "Theo dõi toàn bộ vận hành, can thiệp kỹ thuật và bảo mật. Lưu trữ bất biến mọi thao tác CRUD (Tạo mới, Cập nhật, Xóa, Phê duyệt, Bảo mật).":
+    "Monitor all system operations, technical interventions, and security. Immutably logs all CRUD operations (Create, Update, Delete, Approval, Security).",
   "Thao tác CRUD:": "CRUD Operations:",
   "Tạo mới (CREATE)": "Create (CREATE)",
   "Bảo mật & Hệ thống": "Security & System",
   "Phân hệ (Module):": "Module:",
   "Tất cả Module": "All Modules",
   "Nhật ký chi tiết": "Detailed Audit Logs",
-  "Nhấp vào bất kỳ dòng nào để mở cửa sổ xem toàn bộ chi tiết thay đổi và cấu trúc dữ liệu JSON.": "Click on any row to open the modal and inspect change details and raw JSON payload.",
+  "Nhấp vào bất kỳ dòng nào để mở cửa sổ xem toàn bộ chi tiết thay đổi và cấu trúc dữ liệu JSON.":
+    "Click on any row to open the modal and inspect change details and raw JSON payload.",
   "Log ID": "Log ID",
   "Mô tả thay đổi": "Change Description",
   "Chi tiết ›": "Details ›",
@@ -211,62 +239,78 @@ export const VN_TO_EN = {
   "Giá trị cũ / Old Value": "Old Value",
   "Giá trị mới / New Value": "New Value",
   "Xem dữ liệu thô (Raw JSON Payload)": "View Raw JSON Payload",
-  "Nhật ký Điều chỉnh Giáo vụ (Academic Audit Trail)": "Academic Adjustment Audit Trail",
-  "Kiểm tra các log điều chỉnh liên quan đến việc xếp lớp, phân công giảng viên, lịch học hoặc thông tin hồ sơ học viên. Xem chi tiết mọi thao tác CRUD.": "Inspect logs related to class scheduling, instructor assignments, timetables, and student profiles. View all CRUD details.",
+  "Nhật ký Điều chỉnh Giáo vụ (Academic Audit Trail)":
+    "Academic Adjustment Audit Trail",
+  "Kiểm tra các log điều chỉnh liên quan đến việc xếp lớp, phân công giảng viên, lịch học hoặc thông tin hồ sơ học viên. Xem chi tiết mọi thao tác CRUD.":
+    "Inspect logs related to class scheduling, instructor assignments, timetables, and student profiles. View all CRUD details.",
   "Lọc nghiệp vụ:": "Business Scope:",
   "Xếp lớp & Giảng viên": "Classes & Instructors",
   "Học viên & Ghi danh": "Learners & Enrollments",
   "Khóa học & Môn": "Courses & Subjects",
   "Hồ sơ ETR": "ETR Records",
   "Danh sách Nhật ký Điều chỉnh": "Adjustment Audit Trail List",
-  "Nhấp vào dòng bất kỳ để mở cửa sổ đối chiếu thay đổi trước/sau và xem cấu trúc JSON.": "Click on any row to compare before/after changes and view JSON structure.",
+  "Nhấp vào dòng bất kỳ để mở cửa sổ đối chiếu thay đổi trước/sau và xem cấu trúc JSON.":
+    "Click on any row to compare before/after changes and view JSON structure.",
   "Đối tượng": "Target Entity",
   "Mô tả chi tiết": "Detailed Description",
   "+ Tạo tài khoản học viên": "+ Create Student Account",
   "Tất cả học viên": "All students",
   "Tìm theo tên, email, mã HV...": "Search by name, email, student code...",
-  "UserID": "UserID",
+  UserID: "UserID",
   "Username / Mã HV": "Username / Student Code",
   "Chưa có hồ sơ": "No profile",
   "Số điện thoại": "Phone number",
   "Giới tính": "Gender",
   "Hồ sơ Học viên (User Profiles)": "Student Profiles (User Profiles)",
-  "Quản lý hồ sơ học viên: Xem, tạo mới và cập nhật thông tin hồ sơ cho từng tài khoản học viên.": "Manage student profiles: view, create and update profile information for each student account.",
+  "Quản lý hồ sơ học viên: Xem, tạo mới và cập nhật thông tin hồ sơ cho từng tài khoản học viên.":
+    "Manage student profiles: view, create and update profile information for each student account.",
   "Ngày sinh": "Date of Birth",
   "Tổ chức": "Organization",
   "Đang tải danh sách hồ sơ học viên...": "Loading student profiles...",
   "Không tìm thấy hồ sơ phù hợp.": "No matching profiles found.",
-  "Chưa có hồ sơ học viên nào trong hệ thống.": "No student profiles in the system yet.",
-  "Học viên có tỉ lệ điểm danh dưới ngưỡng cần nhắc nhở.": "Classes you teach and students with attendance below threshold requiring reminder.",
-  "Các lớp bạn phụ trách và danh sách học viên có tỉ lệ điểm danh dưới ngưỡng cần nhắc nhở.": "The classes you are assigned to teach and the list of students whose attendance rate is below the threshold and need a reminder.",
+  "Chưa có hồ sơ học viên nào trong hệ thống.":
+    "No student profiles in the system yet.",
+  "Học viên có tỉ lệ điểm danh dưới ngưỡng cần nhắc nhở.":
+    "Classes you teach and students with attendance below threshold requiring reminder.",
+  "Các lớp bạn phụ trách và danh sách học viên có tỉ lệ điểm danh dưới ngưỡng cần nhắc nhở.":
+    "The classes you are assigned to teach and the list of students whose attendance rate is below the threshold and need a reminder.",
   "HỌC VIÊN THEO LỚP": "STUDENTS BY CLASS",
-  "Số học viên hiện tại của từng lớp bạn phụ trách.": "Current number of students in each assigned class.",
+  "Số học viên hiện tại của từng lớp bạn phụ trách.":
+    "Current number of students in each assigned class.",
   "TỈ LỆ ĐIỂM DANH THEO LỚP": "ATTENDANCE RATE BY CLASS",
-  "Biểu đồ đường cong điểm danh & phân bổ học viên.": "Attendance trend curve & student distribution chart.",
+  "Biểu đồ đường cong điểm danh & phân bổ học viên.":
+    "Attendance trend curve & student distribution chart.",
   "BUỔI HỌC HÔM NAY": "TODAY'S SESSIONS",
-  "Các buổi học của lớp bạn diễn ra hôm nay.": "Class sessions taking place today.",
-  "buổi": "sessions",
+  "Các buổi học của lớp bạn diễn ra hôm nay.":
+    "Class sessions taking place today.",
+  buổi: "sessions",
   "LỚP CỦA TÔI": "MY CLASSES",
-  "Các lớp được phân công giảng dạy.": "Classes assigned to you for instruction.",
+  "Các lớp được phân công giảng dạy.":
+    "Classes assigned to you for instruction.",
   "Bạn chưa được phân công lớp nào.": "You have not been assigned any classes.",
   "CẢNH BÁO ĐIỂM DANH THẤP": "LOW ATTENDANCE WARNING",
-  "Học viên có tỉ lệ điểm danh dưới ngưỡng tối thiểu.": "Students with attendance rate below the minimum threshold.",
-  "Không có học viên nào dưới ngưỡng điểm danh.": "No students are below the attendance threshold.",
+  "Học viên có tỉ lệ điểm danh dưới ngưỡng tối thiểu.":
+    "Students with attendance rate below the minimum threshold.",
+  "Không có học viên nào dưới ngưỡng điểm danh.":
+    "No students are below the attendance threshold.",
   "Danh sách buổi học": "Session List",
   " buổi đã tạo": " sessions created",
   "Tìm buổi học...": "Search sessions...",
   "Ngày học": "Session Date",
   "Tên buổi học": "Session Title",
   "Phòng học": "Room",
-  "Chỉ hiển thị lớp đã sắp xếp lịch dạy": "Show only classes with a teaching schedule",
+  "Chỉ hiển thị lớp đã sắp xếp lịch dạy":
+    "Show only classes with a teaching schedule",
   "Tên khóa học / chuyên đề": "Course / Subject",
   "Khóa ": "Batch ",
   "Sĩ số": "Enrollment",
   "Chưa sắp lịch": "Not scheduled",
   "Xem chi tiết": "View Details",
   "Xóa buổi học": "Delete Session",
-  "Bạn có chắc chắn muốn xóa buổi học này?": "Are you sure you want to delete this session?",
-  "Lịch sử điểm danh của buổi học này cũng sẽ bị xóa theo.": "The attendance history of this session will also be deleted.",
+  "Bạn có chắc chắn muốn xóa buổi học này?":
+    "Are you sure you want to delete this session?",
+  "Lịch sử điểm danh của buổi học này cũng sẽ bị xóa theo.":
+    "The attendance history of this session will also be deleted.",
   "Điểm danh ≥ 80%": "Attendance ≥ 80%",
   "Điểm lý thuyết ≥ Pass": "Theory Score ≥ Pass",
   "Thực hành bắt buộc đạt": "Mandatory Practical Passed",
@@ -274,8 +318,8 @@ export const VN_TO_EN = {
   "Đủ ĐK": "Eligible",
   "Bắt buộc": "Mandatory",
   "Xác thực": "Verified",
-  "Đạt": "Passed",
-  "Chưa": "Not Yet",
+  Đạt: "Passed",
+  Chưa: "Not Yet",
   "Mã HV": "Student ID",
   "Điểm số (0-100)": "Score (0-100)",
   "Nhận xét chuyên môn": "Professional Remarks",
@@ -290,10 +334,12 @@ export const VN_TO_EN = {
   "Nhập nhận xét Practical...": "Enter practical remarks...",
   "— Chưa có nhận xét Assessment": "— No assessment remarks",
   "— Chưa có nhận xét Practical": "— No practical remarks",
-  "Xin mở khóa để sửa điểm — Training Manager sẽ duyệt qua Yêu cầu mở khóa": "Request unlock to edit scores — Training Manager will review the request",
+  "Xin mở khóa để sửa điểm — Training Manager sẽ duyệt qua Yêu cầu mở khóa":
+    "Request unlock to edit scores — Training Manager will review the request",
   "Chưa đủ điều kiện ký xác nhận!": "Not eligible for sign-off!",
   "Không có môn học để ký!": "No subjects available for sign-off!",
-  "Đã hoàn thành đánh giá và ký xác nhận chuyên đề.": "Completed evaluation and signed off subject topic.",
+  "Đã hoàn thành đánh giá và ký xác nhận chuyên đề.":
+    "Completed evaluation and signed off subject topic.",
   "DANH SÁCH HỒ SƠ ĐÀO TẠO ĐIỆN TỬ": "ELECTRONIC TRAINING RECORD LIST",
   "HỒ SƠ": "DOSSIERS",
   "LỌC: ": "FILTER: ",
@@ -305,7 +351,7 @@ export const VN_TO_EN = {
   "CẬP NHẬT": "UPDATED",
   "THAO TÁC": "ACTIONS",
   "Tìm ETR, học viên...": "Search ETR, student...",
-  "📝 GHI DANH HỌC VIÊN": "📝 ENROLL LEARNER",
+  "📝 GHI DANH HỌC VIÊN": "📝 ENROLL STUDENT",
   "THỐNG KÊ ĐÀO TẠO": "TRAINING STATISTICS",
   "MÃ KHÓA/LỚP": "COURSE/CLASS CODE",
   "TÊN KHÓA HỌC/LỚP": "COURSE/CLASS NAME",
@@ -313,7 +359,7 @@ export const VN_TO_EN = {
   "CHI TIẾT CẤU TRÚC / TRẠNG THÁI": "STRUCTURE / STATUS",
   "GIẢNG VIÊN": "INSTRUCTOR",
   "THAO TÁC KHÓA / LỚP": "COURSE / CLASS ACTIONS",
-  "Giờ": "hrs",
+  Giờ: "hrs",
   "Báo cáo điểm danh": "Attendance Report",
   "Báo cáo đánh giá": "Assessment Report",
   "Tổng hợp lớp học": "Class Summary Report",
@@ -321,7 +367,8 @@ export const VN_TO_EN = {
   "Mô tả / Mã phòng ban": "Description / Department code",
   "Tên phòng ban (Department Name) *": "Department Name *",
   "Mô tả / Thông tin thêm": "Description / Additional info",
-  "Nhập mô tả cho phòng ban này...": "Enter a description for this department...",
+  "Nhập mô tả cho phòng ban này...":
+    "Enter a description for this department...",
   "TỔNG SỐ PHÒNG BAN": "TOTAL DEPARTMENTS",
   "DANH SÁCH PHÒNG BAN": "DEPARTMENT LIST",
   "Tất cả phòng ban": "All departments",
@@ -329,15 +376,16 @@ export const VN_TO_EN = {
   "Thêm phòng ban mới": "Add new department",
   "Cập nhật phòng ban": "Update department",
   "Xác nhận xoá phòng ban": "Confirm delete department",
-  "Bạn có chắc chắn muốn xoá phòng ban": "Are you sure you want to delete the department",
+  "Bạn có chắc chắn muốn xoá phòng ban":
+    "Are you sure you want to delete the department",
   "Xoá phòng ban": "Delete department",
-  "SubjectResult": "SubjectResult",
+  SubjectResult: "SubjectResult",
   "Người yêu cầu": "Requested By",
   "Lý do": "Reason",
   "Giá trị cũ": "Old Value",
   "Giá trị mới": "New Value",
   "Chưa có yêu cầu mở khóa nào.": "No unlock requests found.",
-  "STT": "NO.",
+  STT: "NO.",
   "Sự kiện": "Event",
   "Đang tải bảng điểm...": "Loading score sheet...",
   "Mã học viên": "Student Code",
@@ -345,7 +393,7 @@ export const VN_TO_EN = {
   "Đánh giá nhận xét": "Remarks & Evaluation",
   "Mã môn": "Subject Code",
   "Tên môn": "Subject Name",
-  "Loại": "Type",
+  Loại: "Type",
   "Trọng số": "Weight",
   "Điểm đạt": "Pass Score",
   "Thứ tự": "Order",
@@ -370,24 +418,33 @@ export const VN_TO_EN = {
   "Ghi nhớ đăng nhập": "Remember me",
   "Quên mật khẩu?": "Forgot password?",
   "Đang đăng nhập...": "Signing in...",
-  "Vui lòng đăng nhập để truy cập hệ thống ETR": "Please sign in to access the ETR system",
+  "Vui lòng đăng nhập để truy cập hệ thống ETR":
+    "Please sign in to access the ETR system",
   "Vui lòng nhập tên đăng nhập.": "Please enter your username.",
-  "Tên đăng nhập phải có ít nhất 3 ký tự.": "Username must be at least 3 characters.",
+  "Tên đăng nhập phải có ít nhất 3 ký tự.":
+    "Username must be at least 3 characters.",
   "Vui lòng nhập mật khẩu.": "Please enter your password.",
-  "Mật khẩu phải có ít nhất 6 ký tự.": "Password must be at least 6 characters.",
-  "Đăng nhập thất bại. Vui lòng kiểm tra lại tên đăng nhập hoặc mật khẩu.": "Login failed. Please check your username or password.",
-  "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.": "Cannot connect to the server. Please check your network connection and try again later.",
+  "Mật khẩu phải có ít nhất 6 ký tự.":
+    "Password must be at least 6 characters.",
+  "Đăng nhập thất bại. Vui lòng kiểm tra lại tên đăng nhập hoặc mật khẩu.":
+    "Login failed. Please check your username or password.",
+  "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.":
+    "Cannot connect to the server. Please check your network connection and try again later.",
   "Quên mật khẩu": "Forgot password",
-  "Nhập email của bạn để nhận hướng dẫn đặt lại mật khẩu": "Enter your email to receive password reset instructions",
+  "Nhập email của bạn để nhận hướng dẫn đặt lại mật khẩu":
+    "Enter your email to receive password reset instructions",
   "Email của bạn": "Your email",
   "Nhập địa chỉ email": "Enter your email address",
   "Gửi yêu cầu": "Send request",
   "Đang gửi...": "Sending...",
   "Quay lại đăng nhập": "Back to login",
-  "Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.": "Password reset request has been sent to your email. Please check your inbox.",
+  "Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.":
+    "Password reset request has been sent to your email. Please check your inbox.",
   "Vui lòng nhập email.": "Please enter your email.",
-  "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.": "Cannot connect to the server. Please check your network connection.",
-  "Phản hồi từ máy chủ không hợp lệ. Vui lòng thử lại sau.": "Invalid response from the server. Please try again later.",
+  "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.":
+    "Cannot connect to the server. Please check your network connection.",
+  "Phản hồi từ máy chủ không hợp lệ. Vui lòng thử lại sau.":
+    "Invalid response from the server. Please try again later.",
   "Khóa & Lớp học": "Courses & Classes",
   "TẠO KHÓA HỌC": "CREATE COURSE",
   "TẠO LỚP HỌC": "CREATE CLASS",
@@ -406,8 +463,10 @@ export const VN_TO_EN = {
   "Cập nhật lớp học thất bại": "Failed to update class",
   "Xóa khóa học thất bại": "Failed to delete course",
   "Xóa lớp học thất bại": "Failed to delete class",
-  "Khóa học mới đã được thêm vào hệ thống cùng môn học đã cấu hình.": "The new course has been added to the system with its configured subjects.",
-  "Lớp học mới đã được tạo và sẵn sàng cho ghi danh.": "The new class has been created and is ready for enrollment.",
+  "Khóa học mới đã được thêm vào hệ thống cùng môn học đã cấu hình.":
+    "The new course has been added to the system with its configured subjects.",
+  "Lớp học mới đã được tạo và sẵn sàng cho ghi danh.":
+    "The new class has been created and is ready for enrollment.",
   "Mã lớp học (Tối đa 20 ký tự) *": "Class Code (max 20 characters) *",
   "Tên lớp học *": "Class Name *",
   "Giảng viên giảng dạy": "Instructor",
@@ -427,21 +486,28 @@ export const VN_TO_EN = {
   "THÔNG TIN LỚP HỌC": "CLASS INFORMATION",
   "THỜI GIAN ĐÀO TẠO": "TRAINING PERIOD",
   "Ví dụ: JET-2024-Q3": "Example: JET-2024-Q3",
-  "Ví dụ: Lớp Động cơ Jet - Khóa 3/2024": "Example: Jet Engine Class - Batch 3/2024",
+  "Ví dụ: Lớp Động cơ Jet - Khóa 3/2024":
+    "Example: Jet Engine Class - Batch 3/2024",
   "Chưa có khóa học nào trong CSDL": "No courses in the database",
   "Vui lòng chọn một Khóa học hợp lệ.": "Please select a valid course.",
   "Mã lớp học không được để trống.": "Class code must not be empty.",
   "Vui lòng chọn Khóa học đào tạo.": "Please select a training course.",
-  "Tạo lớp học thành công! Lớp học mới đã được tạo.": "Class created successfully! The new class has been created.",
-  "Khóa học được chọn không tồn tại trong hệ thống. Vui lòng chọn lại Khóa học.": "The selected course does not exist in the system. Please choose another course.",
-  "Lớp học mới đã được thêm vào hệ thống.": "The new class has been added to the system.",
+  "Tạo lớp học thành công! Lớp học mới đã được tạo.":
+    "Class created successfully! The new class has been created.",
+  "Khóa học được chọn không tồn tại trong hệ thống. Vui lòng chọn lại Khóa học.":
+    "The selected course does not exist in the system. Please choose another course.",
+  "Lớp học mới đã được thêm vào hệ thống.":
+    "The new class has been added to the system.",
   "LỚP HỌC": "CLASS",
   "KHÓA HỌC / LỚP HỌC": "COURSE / CLASS",
   "Đang tuyển sinh": "Recruiting",
-  "Không tìm thấy khóa học hoặc lớp học nào phù hợp.": "No matching courses or classes found.",
-  "Không có lớp học nào phù hợp bộ lọc hiện tại.": "No classes match the current filter.",
-  "Tìm khóa học, lớp học hoặc giảng viên...": "Search course, class or instructor...",
-  "Lớp": "Classes",
+  "Không tìm thấy khóa học hoặc lớp học nào phù hợp.":
+    "No matching courses or classes found.",
+  "Không có lớp học nào phù hợp bộ lọc hiện tại.":
+    "No classes match the current filter.",
+  "Tìm khóa học, lớp học hoặc giảng viên...":
+    "Search course, class or instructor...",
+  Lớp: "Classes",
   "Đã tồn tại": "already exists",
   "Tạo tài khoản thất bại.": "Failed to create account.",
   "Lỗi khi tạo phòng ban mới": "Error creating department",
@@ -449,8 +515,10 @@ export const VN_TO_EN = {
   "Lỗi khi xoá phòng ban": "Error deleting department",
   "Vui lòng nhập tên phòng ban": "Please enter department name",
   "Quản lý phòng ban (Departments)": "Department Management",
-  "Quản lý danh sách phòng ban trong hệ thống ETR Management.": "Manage the list of departments in the ETR Management system.",
-  "Quản lý danh sách phòng ban trong hệ thống ETR Management: Thêm, sửa, xoá phòng ban.": "Manage department list in ETR Management system: create, edit, and delete departments.",
+  "Quản lý danh sách phòng ban trong hệ thống ETR Management.":
+    "Manage the list of departments in the ETR Management system.",
+  "Quản lý danh sách phòng ban trong hệ thống ETR Management: Thêm, sửa, xoá phòng ban.":
+    "Manage department list in ETR Management system: create, edit, and delete departments.",
   "Đang tạo...": "Creating...",
   "Đang lưu...": "Saving...",
   "Đang xoá...": "Deleting...",
@@ -463,7 +531,8 @@ export const VN_TO_EN = {
   "Tài khoản hệ thống (System Accounts)": "System Accounts",
   "Cập nhật tài khoản thành công!": "Account updated successfully!",
   "User Management": "User Management",
-  "Quản lý tài khoản hệ thống: Tạo mới, cập nhật hồ sơ, đổi vai trò (Role), phòng ban (Department), vô hiệu hóa (Soft Delete) và kích hoạt lại tài khoản.": "Manage system accounts: create new, update profile, change role, department, soft-delete and reactivate accounts.",
+  "Quản lý tài khoản hệ thống: Tạo mới, cập nhật hồ sơ, đổi vai trò (Role), phòng ban (Department), vô hiệu hóa (Soft Delete) và kích hoạt lại tài khoản.":
+    "Manage system accounts: create new, update profile, change role, department, soft-delete and reactivate accounts.",
   "+ Create User": "+ Create User",
   "Tạo tài khoản mới": "Create new account",
   "Tên đăng nhập (Email / Username) *": "Username (Email) *",
@@ -474,8 +543,10 @@ export const VN_TO_EN = {
   "Tạo tài khoản thành công!": "Account created successfully!",
   "Ví dụ: user@domain.com": "Example: user@domain.com",
   "Ví dụ: Nguyễn Văn A": "Example: John Doe",
-  "Vui lòng nhập Username, Password và Họ tên.": "Please enter username, password and full name.",
-  "Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).": "Username must be a valid email address (e.g. user@domain.com).",
+  "Vui lòng nhập Username, Password và Họ tên.":
+    "Please enter username, password and full name.",
+  "Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).":
+    "Username must be a valid email address (e.g. user@domain.com).",
   "Nam (Male)": "Male",
   "Nữ (Female)": "Female",
   "Khác (Other)": "Other",
@@ -486,16 +557,18 @@ export const VN_TO_EN = {
   "Tìm theo username, tên, email...": "Search by username, name, email...",
   "Hệ thống tài khoản": "System accounts",
   "Hồ sơ ETR của tôi": "My ETR Records",
-  "Danh sách các hồ sơ đào tạo điện tử (ETR) của bạn.": "List of your Electronic Training Records (ETR).",
+  "Danh sách các hồ sơ đào tạo điện tử (ETR) của bạn.":
+    "List of your Electronic Training Records (ETR).",
   "hồ sơ": "record",
   "hoàn thành": "completed",
   "Danh sách ETR": "ETR List",
   "Lịch sử đào tạo": "Training History",
   "Toàn bộ quá trình đào tạo": "Full training history",
-  "Tìm kiếm theo mã hồ sơ, mã ghi danh...": "Search by record ID, enrollment ID...",
+  "Tìm kiếm theo mã hồ sơ, mã ghi danh...":
+    "Search by record ID, enrollment ID...",
   "Bạn chưa có hồ sơ ETR nào.": "You have no ETR records yet.",
   "Ghi danh": "Enrollment",
-  "Ngày": "Date",
+  Ngày: "Date",
   "Trạng thái": "Status",
   "Quay lại danh sách": "Back to list",
   "Mã ghi danh:": "Enrollment ID:",
@@ -506,10 +579,20 @@ export const VN_TO_EN = {
   "Kết quả môn học": "Subject results",
   "Kết quả": "Results",
   "Môn học": "Subject",
+  "buổi": "sessions",
+  "đã chốt": "confirmed",
+  "tiếp theo": "continued",
+  "Một số môn chưa cấu hình 'Số buổi yêu cầu'":
+    "Some subjects have no 'required sessions' configured",
+  "Lớp sẽ chỉ có 1 buổi cho các môn: {subjects}. Vào Khóa học → Sửa khóa để đặt số buổi nếu cần nhiều buổi hơn.":
+    "The class will have only 1 session for: {subjects}. Go to Courses → Edit course to set the number of sessions if you need more.",
+  "Một số môn chưa có đủ số buổi": "Some subjects do not have all their sessions",
+  "Lớp chưa đủ buổi ở: {subjects}. Vào Khóa học → Sửa khóa để đặt 'Số buổi yêu cầu' cho từng môn, sau đó tạo lại lớp.":
+    "The class is missing sessions for: {subjects}. Go to Courses → Edit course to set 'required sessions' per subject, then create the class again.",
   "Điểm LT": "Theory Score",
   "Điểm TH": "Practical Score",
   "Chuyên cần": "Attendance",
-  "ĐẠT": "PASS",
+  ĐẠT: "PASS",
   "KHÔNG ĐẠT": "FAIL",
   "Không có dữ liệu kết quả môn học.": "No subject result data.",
   "Minh chứng": "Evidence",
@@ -520,7 +603,8 @@ export const VN_TO_EN = {
   "Chứng chỉ hiện tại": "Current certificate",
   "Student Portal": "Student Portal",
   "Search and Export": "Search and Export",
-  "Search historical and active ETRs, then export training packages for audit or management review.": "Search historical and active ETRs, then export training packages for audit or management review.",
+  "Search historical and active ETRs, then export training packages for audit or management review.":
+    "Search historical and active ETRs, then export training packages for audit or management review.",
   "Thiếu từ khóa": "Missing keyword",
   "Vui lòng nhập từ khóa tìm kiếm.": "Please enter a search keyword.",
   "Tìm kiếm hoàn tất": "Search completed",
@@ -530,11 +614,14 @@ export const VN_TO_EN = {
   "Không tìm thấy kết quả nào.": "No results found.",
   "Tìm kiếm thất bại": "Search failed",
   "Không có quyền xuất": "No export permission",
-  "Tài khoản QA không có quyền xuất Training Package (chỉ Admin/Audit/Academic).": "QA accounts cannot export Training Packages (only Admin/Audit/Academic).",
-  "Tài khoản QA không có quyền xuất Audit Trail (chỉ Admin/Audit/Academic).": "QA accounts cannot export Audit Trails (only Admin/Audit/Academic).",
+  "Tài khoản QA không có quyền xuất Training Package (chỉ Admin/Audit/Academic).":
+    "QA accounts cannot export Training Packages (only Admin/Audit/Academic).",
+  "Tài khoản QA không có quyền xuất Audit Trail (chỉ Admin/Audit/Academic).":
+    "QA accounts cannot export Audit Trails (only Admin/Audit/Academic).",
   "Không tìm thấy bản ghi nào.": "No records found.",
   "Audit Log": "Audit Log",
-  "View audit entries, search by activity, and filter by user or date. Logs are read-only and cannot be edited or deleted.": "View audit entries, search by activity, and filter by user or date. Logs are read-only and cannot be edited or deleted.",
+  "View audit entries, search by activity, and filter by user or date. Logs are read-only and cannot be edited or deleted.":
+    "View audit entries, search by activity, and filter by user or date. Logs are read-only and cannot be edited or deleted.",
   "Recent activity": "Recent activity",
   "Immutable log trail": "Immutable log trail",
   "Chưa có bản ghi audit nào.": "No audit records yet.",
@@ -554,6 +641,11 @@ export const VN_TO_EN = {
   "Thông báo": "Notifications",
   "Hiện tại không có thông báo mới.": "No new notifications at the moment.",
   "Quay lại": "Back",
+  "Không thể hiển thị nội dung này": "Unable to display this content",
+  "Đã xảy ra lỗi khi hiển thị trang. Bạn có thể thử lại hoặc quay về trang trước.":
+    "Something went wrong while rendering this page. You can try again or go back to the previous page.",
+  "Thử lại": "Try again",
+  "Chi tiết kỹ thuật": "Technical details",
   "Tìm kiếm học viên theo tên hoặc mã...": "Search students by name or code...",
   "Tìm kiếm người dùng, vai trò...": "Search users, roles...",
   "Tìm kiếm lớp học, buổi học...": "Search classes, sessions...",
@@ -561,7 +653,7 @@ export const VN_TO_EN = {
   "Tìm kiếm trạng thái lớp, phê duyệt...": "Search class status, approvals...",
   "Tìm kiếm hồ sơ đóng băng, nhật ký...": "Search locked records, logs...",
   "Tìm kiếm tài khoản, phòng ban...": "Search accounts, departments...",
-  "DASHBOARD": "DASHBOARD",
+  DASHBOARD: "DASHBOARD",
   "HỌC VIÊN & KHÓA HỌC": "STUDENTS & COURSES",
   "QUẢN LÝ HỒ SƠ": "RECORD MANAGEMENT",
   "XEM LỊCH SỬ": "VIEW HISTORY",
@@ -589,16 +681,19 @@ export const VN_TO_EN = {
   "Đang có thông báo mới": "You have new notifications",
   "Nhập tên đăng nhập hoặc email": "Enter username or email",
   "Nhập mật khẩu": "Enter password",
-  "Không thể gửi yêu cầu. Vui lòng thử lại sau.": "Unable to send the request. Please try again later.",
+  "Không thể gửi yêu cầu. Vui lòng thử lại sau.":
+    "Unable to send the request. Please try again later.",
   "không? Hành động này không thể hoàn tác.": "? This action cannot be undone.",
-  "ID": "ID",
+  ID: "ID",
   "Không tìm thấy phòng ban phù hợp.": "No matching departments found.",
   "Chưa có phòng ban nào trong hệ thống.": "No departments in the system yet.",
-  "Quản lý danh mục đào tạo, cấu hình môn học, ghi danh học viên và lịch trình giảng dạy.": "Manage the training catalog, subject configuration, student enrollment and teaching schedules.",
+  "Quản lý danh mục đào tạo, cấu hình môn học, ghi danh học viên và lịch trình giảng dạy.":
+    "Manage the training catalog, subject configuration, student enrollment and teaching schedules.",
   "MÔN HỌC": "SUBJECTS",
   "Kỹ thuật Bảo trì Tàu bay A320": "A320 Aircraft Maintenance Engineering",
   "ĐANG TUYỂN SINH": "NOW ENROLLING",
-  "Chương trình đào tạo chuyên sâu về hệ thống cơ khí, thủy lực và điện tử hàng không dành cho dòng tàu bay phản lực Airbus A320.": "In-depth training program on mechanical, hydraulic and avionics systems for the Airbus A320 family.",
+  "Chương trình đào tạo chuyên sâu về hệ thống cơ khí, thủy lực và điện tử hàng không dành cho dòng tàu bay phản lực Airbus A320.":
+    "In-depth training program on mechanical, hydraulic and avionics systems for the Airbus A320 family.",
   "TIÊU BIỂU": "FEATURED",
   "➕ Tạo Lớp": "➕ Create Class",
   "✏️ Sửa Khóa": "✏️ Edit Course",
@@ -608,18 +703,26 @@ export const VN_TO_EN = {
   "➕ Ghi danh": "➕ Enroll",
   "🗑️ Xóa Lớp": "🗑️ Delete Class",
   "GV:": "Instructor:",
-  "Tạo lớp học thành công! Lớp học mới đã được tạo và sẵn sàng cho ghi danh.": "Class created successfully! The new class has been created and is ready for enrollment.",
-  "Thông tin khóa học và cấu hình môn học đã được lưu.": "Course information and subject configuration have been saved.",
-  "Trạng thái và thông tin lớp học đã được lưu.": "Class status and information have been saved.",
+  "Tạo lớp học thành công! Lớp học mới đã được tạo và sẵn sàng cho ghi danh.":
+    "Class created successfully! The new class has been created and is ready for enrollment.",
+  "Thông tin khóa học và cấu hình môn học đã được lưu.":
+    "Course information and subject configuration have been saved.",
+  "Trạng thái và thông tin lớp học đã được lưu.":
+    "Class status and information have been saved.",
   "Lớp học mới đã được tạo.": "The new class has been created.",
-  "Hệ thống ETR đã tự động kích hoạt tạo hồ sơ ETR_Course_Record (In Progress).": "The ETR system has automatically activated an ETR_Course_Record (In Progress).",
+  "Hệ thống ETR đã tự động kích hoạt tạo hồ sơ ETR_Course_Record (In Progress).":
+    "The ETR system has automatically activated an ETR_Course_Record (In Progress).",
   "Ghi danh học viên thành công!": "Student enrolled successfully!",
   "XÁC NHẬN XÓA KHÓA HỌC": "CONFIRM DELETE COURSE",
   "XÁC NHẬN XÓA LỚP HỌC": "CONFIRM DELETE CLASS",
-  "Bạn có chắc chắn muốn xóa Khóa học": "Are you sure you want to delete the course",
-  "Bạn có chắc chắn muốn xóa Lớp học": "Are you sure you want to delete the class",
-  "Hành động xóa khóa học sẽ xóa mềm bản ghi khóa học khỏi hệ thống. Thao tác này không thể hoàn tác trực tiếp.": "Deleting a course soft-deletes the record from the system. This action cannot be directly undone.",
-  "Lớp học bị xóa sẽ được xóa khỏi hệ thống. Mọi điểm danh và hồ sơ liên quan đến lớp học này sẽ tạm dừng.": "The deleted class will be removed from the system. Related attendance and records will be suspended.",
+  "Bạn có chắc chắn muốn xóa Khóa học":
+    "Are you sure you want to delete the course",
+  "Bạn có chắc chắn muốn xóa Lớp học":
+    "Are you sure you want to delete the class",
+  "Hành động xóa khóa học sẽ xóa mềm bản ghi khóa học khỏi hệ thống. Thao tác này không thể hoàn tác trực tiếp.":
+    "Deleting a course soft-deletes the record from the system. This action cannot be directly undone.",
+  "Lớp học bị xóa sẽ được xóa khỏi hệ thống. Mọi điểm danh và hồ sơ liên quan đến lớp học này sẽ tạm dừng.":
+    "The deleted class will be removed from the system. Related attendance and records will be suspended.",
   "XÓA KHÓA HỌC": "DELETE COURSE",
   "XÓA LỚP HỌC": "DELETE CLASS",
   "Vui lòng chọn khóa học": "Please select a course",
@@ -628,21 +731,24 @@ export const VN_TO_EN = {
   "Trạng thái lớp": "Class status",
   "Số lượng học viên": "Number of students",
   "⚠️ Khóa học": "⚠️ Course",
-  "chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.": "has no Subject configured. Per ETR regulations, a course must have subjects configured before opening Classes & Enrollment.",
+  "chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.":
+    "has no Subject configured. Per ETR regulations, a course must have subjects configured before opening Classes & Enrollment.",
   "⚠️ Lớp học": "⚠️ Class",
   "Tạo Lớp học mới cho Khóa này": "Create a new Class for this Course",
   "Sửa thông tin Khóa học": "Edit Course information",
   "Xóa Khóa học": "Delete Course",
   "Cập nhật trạng thái & thông tin lớp": "Update class status & information",
   "Xóa Lớp học này": "Delete this Class",
-  "Lớp học đã kết thúc/bị hủy — không thể ghi danh mới": "Class is Completed/Cancelled — cannot enroll new students",
+  "Lớp học đã kết thúc/bị hủy — không thể ghi danh mới":
+    "Class is Completed/Cancelled — cannot enroll new students",
   "Ghi danh học viên mới vào lớp": "Enroll a new student into the class",
   "Đang cập nhật": "Updating",
   "Phòng Sim A320": "A320 Sim Room",
   "Họ và tên": "Full name",
-  "Email": "Email",
+  Email: "Email",
   "Vai trò": "Role",
-  "phải là một địa chỉ email hợp lệ (Ví dụ: name@company.com).": "must be a valid email address (e.g. name@company.com).",
+  "phải là một địa chỉ email hợp lệ (Ví dụ: name@company.com).":
+    "must be a valid email address (e.g. name@company.com).",
   "Tài khoản": "Account",
   "đã được tạo.": "has been created.",
   "Click để toggle Active/Inactive": "Click to toggle Active/Inactive",
@@ -650,8 +756,10 @@ export const VN_TO_EN = {
   "Phòng ban (Department)": "Department",
   "Training (Trung tâm Đào tạo)": "Training (Training Center)",
   "Tài khoản đã được tạo.": "Account has been created.",
-  "* Các vai trò Instructor, QA, Academic, Training Manager, Audit bắt buộc thuộc phòng Training (Trung tâm Đào tạo).": "* Instructor, QA, Academic, Training Manager and Audit roles must belong to the Training department (Training Center).",
-  "* Học viên (Student) có thể phân bổ sang các phòng ban khác (loại trừ phòng Training).": "* Students can be assigned to other departments (excluding the Training department).",
+  "* Các vai trò Instructor, QA, Academic, Training Manager, Audit bắt buộc thuộc phòng Training (Trung tâm Đào tạo).":
+    "* Instructor, QA, Academic, Training Manager and Audit roles must belong to the Training department (Training Center).",
+  "* Học viên (Student) có thể phân bổ sang các phòng ban khác (loại trừ phòng Training).":
+    "* Students can be assigned to other departments (excluding the Training department).",
   "Cập nhật hồ sơ thất bại.": "Failed to update profile.",
   "Không thể đổi phòng ban.": "Unable to change department.",
   "Cập nhật phòng ban thất bại": "Failed to update department",
@@ -664,74 +772,100 @@ export const VN_TO_EN = {
   "Soft Delete tài khoản": "Soft Delete account",
   "Đổi trạng thái tài khoản": "Change account status",
   "Kích hoạt tài khoản": "Activate account",
-  "Bạn có chắc chắn muốn chuyển tài khoản": "Are you sure you want to set account",
+  "Bạn có chắc chắn muốn chuyển tài khoản":
+    "Are you sure you want to set account",
   "sang trạng thái Inactive (Soft Delete)?": "to Inactive (Soft Delete)?",
-  "Bạn có muốn đổi trạng thái tài khoản": "Do you want to change the status of account",
-  "Bạn có chắc chắn muốn kích hoạt lại tài khoản": "Are you sure you want to reactivate account",
+  "Bạn có muốn đổi trạng thái tài khoản":
+    "Do you want to change the status of account",
+  "Bạn có chắc chắn muốn kích hoạt lại tài khoản":
+    "Are you sure you want to reactivate account",
   "thành Active?": "to Active?",
   "SOFT DELETE": "SOFT DELETE",
   "ĐỔI TRẠNG THÁI": "CHANGE STATUS",
   "KÍCH HOẠT": "ACTIVATE",
-  "Tài khoản sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo và lịch sử kiểm toán vẫn được giữ nguyên.": "The account will not be able to log in, but all training records and audit history will be preserved.",
-  "Thay đổi trạng thái sẽ được áp dụng ngay và ghi nhận vào Audit Log.": "The status change will be applied immediately and recorded in the Audit Log.",
+  "Tài khoản sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo và lịch sử kiểm toán vẫn được giữ nguyên.":
+    "The account will not be able to log in, but all training records and audit history will be preserved.",
+  "Thay đổi trạng thái sẽ được áp dụng ngay và ghi nhận vào Audit Log.":
+    "The status change will be applied immediately and recorded in the Audit Log.",
   "Không tìm thấy tài khoản nào.": "No accounts found.",
   "Hồ sơ chưa cập nhật": "Profile not updated",
-  "Bạn có chắc chắn muốn đổi trạng thái tài khoản": "Are you sure you want to change the status of account",
+  "Bạn có chắc chắn muốn đổi trạng thái tài khoản":
+    "Are you sure you want to change the status of account",
   "Cập nhật tài khoản thất bại": "Failed to update account",
   "Thao tác thất bại.": "Operation failed.",
-  "phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).": "must be a valid email address (e.g. student@domain.com).",
-  "Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).": "Username must be a valid email address (e.g. student@domain.com).",
-  "Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).": "Full name must not contain numbers or special characters (!@#$%&*()_+).",
-  "Số điện thoại phải gồm 10 hoặc 11 chữ số.": "Phone number must contain 10 or 11 digits.",
-  "Ngày sinh bắt buộc và phải trước năm 2007.": "Date of birth is required and must be before 2007.",
+  "phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).":
+    "must be a valid email address (e.g. student@domain.com).",
+  "Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).":
+    "Username must be a valid email address (e.g. student@domain.com).",
+  "Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).":
+    "Full name must not contain numbers or special characters (!@#$%&*()_+).",
+  "Số điện thoại phải gồm 10 hoặc 11 chữ số.":
+    "Phone number must contain 10 or 11 digits.",
+  "Ngày sinh bắt buộc và phải trước năm 2007.":
+    "Date of birth is required and must be before 2007.",
   "Tạo học viên thất bại.": "Failed to create student.",
   "Vui lòng nhập Họ và tên.": "Please enter full name.",
   "Tạo hồ sơ học viên thất bại.": "Failed to create student profile.",
   "Đổi phòng ban thất bại": "Failed to change department",
-  "Hồ sơ học viên đã được lưu, nhưng tài khoản của bạn chưa được backend cho phép đổi phòng ban (chỉ Admin). Vui lòng liên hệ Admin.": "Student profile has been saved, but your account is not authorized to change departments (Admin only). Please contact an Admin.",
-  "Hồ sơ học viên đã được lưu, nhưng đổi phòng ban thất bại: ": "Student profile has been saved, but changing the department failed: ",
+  "Hồ sơ học viên đã được lưu, nhưng tài khoản của bạn chưa được backend cho phép đổi phòng ban (chỉ Admin). Vui lòng liên hệ Admin.":
+    "Student profile has been saved, but your account is not authorized to change departments (Admin only). Please contact an Admin.",
+  "Hồ sơ học viên đã được lưu, nhưng đổi phòng ban thất bại: ":
+    "Student profile has been saved, but changing the department failed: ",
   "lỗi không xác định": "unknown error",
   "Cập nhật hồ sơ học viên thất bại.": "Failed to update student profile.",
   "Vô hiệu hóa tài khoản thất bại": "Failed to disable account",
   "Danh sách Học viên (Student Accounts)": "Student List (Student Accounts)",
-  "Quản lý danh sách tài khoản học viên: Tạo mới, cập nhật hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.": "Manage student accounts: create new, update profiles, change departments, disable and reactivate accounts.",
+  "Quản lý danh sách tài khoản học viên: Tạo mới, cập nhật hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.":
+    "Manage student accounts: create new, update profiles, change departments, disable and reactivate accounts.",
   "Đang tải danh sách học viên...": "Loading student list...",
   "Không tìm thấy học viên phù hợp.": "No matching students found.",
-  "Chưa có tài khoản học viên nào trong hệ thống.": "No student accounts in the system yet.",
+  "Chưa có tài khoản học viên nào trong hệ thống.":
+    "No student accounts in the system yet.",
   "Tạo hồ sơ cho học viên này": "Create profile for this student",
   "+ Tạo hồ sơ": "+ Create Profile",
-  "Tạo tài khoản học viên (Student Role)": "Create Student Account (Student Role)",
+  "Tạo tài khoản học viên (Student Role)":
+    "Create Student Account (Student Role)",
   "Ví dụ: student@domain.com": "Example: student@domain.com",
   "Ngày sinh (phải trước năm 2007) *": "Date of Birth (must be before 2007) *",
   "Tổ chức (khóa)": "Organization (batch)",
   "Tạo học viên": "Create Student",
   "Chỉnh sửa hồ sơ học viên": "Edit Student Profile",
-  "* Không thể sửa vai trò của học viên.": "* The student role cannot be changed.",
+  "* Không thể sửa vai trò của học viên.":
+    "* The student role cannot be changed.",
   "Tạo hồ sơ học viên": "Create Student Profile",
   "Tạo hồ sơ": "Create Profile",
   "Vô hiệu hóa tài khoản": "Disable Account",
   "VÔ HIỆU HÓA": "DISABLE",
-  "Học viên sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo vẫn được giữ nguyên để phục vụ kiểm toán.": "The student will not be able to log in, but all training records will be preserved for audit purposes.",
-  "Tài khoản sẽ được kích hoạt trở lại, học viên có thể đăng nhập và tiếp tục theo dõi hồ sơ đào tạo.": "The account will be reactivated; the student can log in and continue tracking their training records.",
-  "Nam": "Male",
-  "Nữ": "Female",
-  "Khác": "Other",
+  "Học viên sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo vẫn được giữ nguyên để phục vụ kiểm toán.":
+    "The student will not be able to log in, but all training records will be preserved for audit purposes.",
+  "Tài khoản sẽ được kích hoạt trở lại, học viên có thể đăng nhập và tiếp tục theo dõi hồ sơ đào tạo.":
+    "The account will be reactivated; the student can log in and continue tracking their training records.",
+  Nam: "Male",
+  Nữ: "Female",
+  Khác: "Other",
   "Vui lòng nhập Tên đăng nhập (Username).": "Please enter a username.",
   "Vui lòng nhập Mật khẩu.": "Please enter your password.",
-  "Tạo tài khoản thành công nhưng không nhận được accountId từ hệ thống.": "Account created successfully but no accountId was returned by the system.",
+  "Tạo tài khoản thành công nhưng không nhận được accountId từ hệ thống.":
+    "Account created successfully but no accountId was returned by the system.",
   "Tạo tài khoản học viên thất bại.": "Failed to create student account.",
-  "Thiếu accountId. Vui lòng quay lại Bước 1 để tạo tài khoản.": "Missing accountId. Please go back to Step 1 to create the account.",
-  "Email phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).": "Email must be a valid email address (e.g. student@domain.com).",
+  "Thiếu accountId. Vui lòng quay lại Bước 1 để tạo tài khoản.":
+    "Missing accountId. Please go back to Step 1 to create the account.",
+  "Email phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).":
+    "Email must be a valid email address (e.g. student@domain.com).",
   "+ Tạo hồ sơ học viên": "+ Create Student Profile",
   "Tất cả hồ sơ": "All profiles",
-  "Tìm theo mã HV, tên, email, SĐT...": "Search by student code, name, email, phone...",
-  "Xem": "View",
+  "Tìm theo mã HV, tên, email, SĐT...":
+    "Search by student code, name, email, phone...",
+  Xem: "View",
   "Bước 1: Tạo Account": "Step 1: Create Account",
   "Bước 2: Tạo Profile": "Step 2: Create Profile",
   "Tạo tài khoản học viên": "Create Student Account",
-  "Bước 1/2: Tạo tài khoản mới với vai trò Student (RoleId = 6).": "Step 1/2: Create a new account with the Student role (RoleId = 6).",
-  "Bước 2/2: Nhập thông tin hồ sơ. Backend sẽ tự móc nối vào Account đã tạo ở Bước 1.": "Step 2/2: Enter profile information. The backend will link it to the Account created in Step 1.",
-  "* Academic chỉ được tạo tài khoản Student.": "* Academic can only create Student accounts.",
+  "Bước 1/2: Tạo tài khoản mới với vai trò Student (RoleId = 6).":
+    "Step 1/2: Create a new account with the Student role (RoleId = 6).",
+  "Bước 2/2: Nhập thông tin hồ sơ. Backend sẽ tự móc nối vào Account đã tạo ở Bước 1.":
+    "Step 2/2: Enter profile information. The backend will link it to the Account created in Step 1.",
+  "* Academic chỉ được tạo tài khoản Student.":
+    "* Academic can only create Student accounts.",
   "Phòng ban (Department) *": "Department *",
   "Đang tạo Account...": "Creating Account...",
   "Tạo Account (Bước 1)": "Create Account (Step 1)",
@@ -750,27 +884,34 @@ export const VN_TO_EN = {
   "Khóa học #": "Course #",
   "Cập nhật hồ sơ": "Update record",
   "Không tìm thấy ghi danh": "Enrollment not found",
-  "Không tìm thấy thông tin ghi danh của học viên này. Vui lòng ghi danh trước.": "No enrollment information found for this student. Please enroll them first.",
+  "Không tìm thấy thông tin ghi danh của học viên này. Vui lòng ghi danh trước.":
+    "No enrollment information found for this student. Please enroll them first.",
   "ETR tự động tạo": "ETR auto-created",
-  "ETR được tự động tạo khi ghi danh. Vui lòng kiểm tra lại danh sách hoặc tạo Enrollment mới.": "ETR is automatically created on enrollment. Please check the list again or create a new Enrollment.",
-  "Lỗi": "Error",
+  "ETR được tự động tạo khi ghi danh. Vui lòng kiểm tra lại danh sách hoặc tạo Enrollment mới.":
+    "ETR is automatically created on enrollment. Please check the list again or create a new Enrollment.",
+  Lỗi: "Error",
   "Lỗi không xác định": "Unknown error",
   "Thiếu tệp tin": "Missing file",
-  "Vui lòng chọn tệp tin trước khi tải lên.": "Please select a file before uploading.",
+  "Vui lòng chọn tệp tin trước khi tải lên.":
+    "Please select a file before uploading.",
   "Thiếu loại minh chứng": "Missing evidence type",
   "Vui lòng chọn loại minh chứng.": "Please select an evidence type.",
   "Chưa có kết quả môn học": "No subject result",
-  "ETR chưa có kết quả môn học nào để gắn minh chứng. Vui lòng nhập điểm đánh giá trước.": "This ETR has no subject results to attach evidence to. Please enter assessment scores first.",
+  "ETR chưa có kết quả môn học nào để gắn minh chứng. Vui lòng nhập điểm đánh giá trước.":
+    "This ETR has no subject results to attach evidence to. Please enter assessment scores first.",
   "Thiếu thông tin học viên": "Missing student info",
-  "Không tìm thấy AccountId của học viên (thiếu enrollment hợp lệ). Vui lòng kiểm tra ghi danh.": "No AccountId found for the student (missing valid enrollment). Please check the enrollment.",
+  "Không tìm thấy AccountId của học viên (thiếu enrollment hợp lệ). Vui lòng kiểm tra ghi danh.":
+    "No AccountId found for the student (missing valid enrollment). Please check the enrollment.",
   "Tải lên thành công": "Upload successful",
   "Đã tải lên minh chứng: ": "Evidence uploaded: ",
-  " (danh sách minh chứng có thể chưa hiển thị vì tài khoản của bạn chưa có quyền đọc danh sách minh chứng trên backend hiện tại).": " (the evidence list may not be displayed because your account is not authorized to read the evidence list on the current backend).",
+  " (danh sách minh chứng có thể chưa hiển thị vì tài khoản của bạn chưa có quyền đọc danh sách minh chứng trên backend hiện tại).":
+    " (the evidence list may not be displayed because your account is not authorized to read the evidence list on the current backend).",
   "Tải lên thất bại": "Upload failed",
   "Gửi ETR thành công": "ETR submitted successfully",
   "đã được gửi lên QA thành công!": "has been submitted to QA successfully!",
   "Gửi ETR thất bại": "Failed to submit ETR",
-  "Tài khoản của bạn chưa được backend cho phép Submit ETR (hiện chỉ dành cho Instructor/Admin). Vui lòng dùng tài khoản có quyền hoặc liên hệ Admin.": "Your account is not authorized to submit ETRs (currently Instructor/Admin only). Please use an authorized account or contact an Admin.",
+  "Tài khoản của bạn chưa được backend cho phép Submit ETR (hiện chỉ dành cho Instructor/Admin). Vui lòng dùng tài khoản có quyền hoặc liên hệ Admin.":
+    "Your account is not authorized to submit ETRs (currently Instructor/Admin only). Please use an authorized account or contact an Admin.",
   "Tải xuống thất bại": "Download failed",
   "Xóa thành công": "Deleted successfully",
   "Đã xóa minh chứng ": "Evidence deleted: ",
@@ -780,22 +921,31 @@ export const VN_TO_EN = {
   "Lý do: ": "Reason: ",
   "Tập tin không đạt yêu cầu.": "The file does not meet the requirements.",
   "Tải xuống": "Download",
+  "Chưa có tệp để xem.": "No file to view.",
+  "Chưa có tệp để tải.": "No file to download.",
   "Xóa minh chứng": "Delete evidence",
-  "Không tìm thấy tập tin minh chứng nào khớp với bộ lọc.": "No evidence files match the current filter.",
+  "Không tìm thấy tập tin minh chứng nào khớp với bộ lọc.":
+    "No evidence files match the current filter.",
   "Lý do từ chối (QA Rejection Reason)": "QA Rejection Reason",
-  "Hình ảnh mờ, không rõ chữ ký hoặc thông tin không trùng khớp.": "Blurry image, unclear signature or mismatched information.",
+  "Hình ảnh mờ, không rõ chữ ký hoặc thông tin không trùng khớp.":
+    "Blurry image, unclear signature or mismatched information.",
   "Học viên: ": "Student: ",
   "Mã: ": "Code: ",
   "Tải Xuống Minh Chứng": "Download Evidence",
-  "Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này.": "The evidence will be soft-deleted and cannot be restored in this interface.",
-  "Trạng thái kiểm duyệt hồ sơ đào tạo hiện hành của học viên": "Current training record review status of student",
+  "Minh chứng sẽ được xóa mềm (soft delete) và không thể khôi phục trong giao diện này.":
+    "The evidence will be soft-deleted and cannot be restored in this interface.",
+  "Trạng thái kiểm duyệt hồ sơ đào tạo hiện hành của học viên":
+    "Current training record review status of student",
   "Mở minh chứng": "Open evidence",
-  "Tài khoản TrainingManager chưa được backend cấp quyền tải minh chứng (GET /Evidences/{id}/download đang chặn role này). Vui lòng liên hệ Admin để mở quyền đọc/tải minh chứng.": "The TrainingManager account is not authorized by the backend to download evidence (GET /Evidences/{id}/download currently blocks this role). Please contact an Admin to grant evidence read/download access.",
+  "Tài khoản TrainingManager chưa được backend cấp quyền tải minh chứng (GET /Evidences/{id}/download đang chặn role này). Vui lòng liên hệ Admin để mở quyền đọc/tải minh chứng.":
+    "The TrainingManager account is not authorized by the backend to download evidence (GET /Evidences/{id}/download currently blocks this role). Please contact an Admin to grant evidence read/download access.",
   "Gửi ETR": "Submit ETR",
   "Xác nhận gửi ETR": "Confirm ETR Submission",
   "Chưa thể gửi ETR": "Cannot submit ETR yet",
-  "Minh chứng chưa được QA xác thực. Vui lòng chờ QA duyệt minh chứng trước khi gửi ETR.": "Evidence has not been verified by QA yet. Please wait for QA to verify the evidence before submitting the ETR.",
-  "Sau khi gửi, QA sẽ thẩm định và bạn không thể chỉnh sửa hồ sơ cho đến khi QA trả lại.": "After submission, QA will review it and you cannot edit the record until QA returns it.",
+  "Minh chứng chưa được QA xác thực. Vui lòng chờ QA duyệt minh chứng trước khi gửi ETR.":
+    "Evidence has not been verified by QA yet. Please wait for QA to verify the evidence before submitting the ETR.",
+  "Sau khi gửi, QA sẽ thẩm định và bạn không thể chỉnh sửa hồ sơ cho đến khi QA trả lại.":
+    "After submission, QA will review it and you cannot edit the record until QA returns it.",
   "Tạo mới ETR": "Create New ETR",
   "Tên học viên": "Student Name",
   "Ví dụ: Nguyễn Văn Bình": "Example: John Doe",
@@ -814,8 +964,10 @@ export const VN_TO_EN = {
   "ACADEMIC PORTAL": "ACADEMIC PORTAL",
   "EVIDENCE MANAGEMENT": "EVIDENCE MANAGEMENT",
   "Bạn có chắc chắn muốn gửi hồ sơ ": "Are you sure you want to submit record ",
-  " lên QA để xác thực? Sau khi gửi, bạn không thể chỉnh sửa hồ sơ này nữa.": " to QA for verification? After submission, you cannot edit this record anymore.",
-  "Bạn có chắc chắn muốn xóa minh chứng ": "Are you sure you want to delete evidence ",
+  " lên QA để xác thực? Sau khi gửi, bạn không thể chỉnh sửa hồ sơ này nữa.":
+    " to QA for verification? After submission, you cannot edit this record anymore.",
+  "Bạn có chắc chắn muốn xóa minh chứng ":
+    "Are you sure you want to delete evidence ",
   "?": "?",
   "Khởi tạo ETR": "Initialize ETR",
   "Tải lên Minh chứng mới": "Upload New Evidence",
@@ -832,9 +984,11 @@ export const VN_TO_EN = {
   "Cán bộ quản lý QA": "QA Manager",
   "Đã ký số": "Digitally signed",
   "Chưa ký duyệt": "Not signed",
-  "Tài khoản của bạn chưa được backend cho phép": "Your account is not authorized by the backend to",
-  "đọc": "read",
-  "danh sách minh chứng (GET /Evidences hiện chỉ cho Instructor/QA/Admin) — danh sách bên dưới có thể trống. Bạn vẫn có thể tải lên và xóa minh chứng; danh sách sẽ hiển thị đầy đủ khi quyền đọc được cấp ở backend.": "the evidence list (GET /Evidences is currently Instructor/QA/Admin only) — the list below may be empty. You can still upload and delete evidence; the list will be fully displayed once read access is granted by the backend.",
+  "Tài khoản của bạn chưa được backend cho phép":
+    "Your account is not authorized by the backend to",
+  đọc: "read",
+  "danh sách minh chứng (GET /Evidences hiện chỉ cho Instructor/QA/Admin) — danh sách bên dưới có thể trống. Bạn vẫn có thể tải lên và xóa minh chứng; danh sách sẽ hiển thị đầy đủ khi quyền đọc được cấp ở backend.":
+    "the evidence list (GET /Evidences is currently Instructor/QA/Admin only) — the list below may be empty. You can still upload and delete evidence; the list will be fully displayed once read access is granted by the backend.",
   "Tất cả": "All",
   "Lớp đào tạo": "Training Class",
   "Chuyên đề huấn luyện": "Training Subject",
@@ -856,7 +1010,8 @@ export const VN_TO_EN = {
   "Tên môn học": "Subject",
   "Mô tả:": "Description:",
   "Lớp học được phân công": "Assigned Classes",
-  "Danh sách các lớp huấn luyện hàng không mà bạn được phân công giảng dạy.": "List of aviation training classes assigned to you.",
+  "Danh sách các lớp huấn luyện hàng không mà bạn được phân công giảng dạy.":
+    "List of aviation training classes assigned to you.",
   "Tìm lớp theo mã hoặc tên...": "Search class by code or name...",
   "Bộ lọc nâng cao": "Advanced Filters",
   "Chọn Khóa Học": "Select Course",
@@ -866,17 +1021,20 @@ export const VN_TO_EN = {
   "Khóa 25": "Batch 25",
   "Khóa 26": "Batch 26",
   "Mã lớp": "Class Code",
-  "Khóa": "Batch",
+  Khóa: "Batch",
   "Thao tác": "Actions",
-  "Không tìm thấy lớp học nào khớp với bộ lọc hiện tại.": "No classes match the current filter.",
+  "Không tìm thấy lớp học nào khớp với bộ lọc hiện tại.":
+    "No classes match the current filter.",
   " lớp": " classes",
-  "Vui lòng nhập đầy đủ tên buổi học và phòng học.": "Please fill in both the session title and room.",
+  "Vui lòng nhập đầy đủ tên buổi học và phòng học.":
+    "Please fill in both the session title and room.",
   "Không thể lưu buổi học.": "Unable to save the session.",
   "Đã xóa buổi học.": "Session deleted.",
   "Xóa buổi học thất bại": "Failed to delete session",
   "Không thể xóa buổi học.": "Unable to delete the session.",
   "Học viên sắp hết hạn chứng chỉ": "Students with Expiring Certificates",
-  "Theo dõi và quản lý các học viên có chứng chỉ đào tạo sắp hết hạn hoặc đã hết hạn.": "Track and manage students whose training certificates are about to expire or have expired.",
+  "Theo dõi và quản lý các học viên có chứng chỉ đào tạo sắp hết hạn hoặc đã hết hạn.":
+    "Track and manage students whose training certificates are about to expire or have expired.",
   "Làm mới": "Refresh",
   "Ngưỡng (ngày)": "Threshold (days)",
   "15 ngày": "15 days",
@@ -888,19 +1046,23 @@ export const VN_TO_EN = {
   "Tổng học viên": "Total Students",
   "Sắp hết hạn": "Expiring Soon",
   "Đã hết hạn": "Expired",
-  "Không có học viên nào sắp hết hạn hoặc đã hết hạn chứng chỉ cho khóa học này.": "No students have expiring or expired certificates for this course.",
+  "Không có học viên nào sắp hết hạn hoặc đã hết hạn chứng chỉ cho khóa học này.":
+    "No students have expiring or expired certificates for this course.",
   "Mã ETR": "ETR ID",
   "Còn lại": "Remaining",
   "Quá hạn ": "Overdue by ",
   " ngày": " days",
   "Hết hạn hôm nay": "Expires today",
   "Còn ": "In ",
-  "Quá hạn": "Overdue",
+  "Quá hạn": "Overdue by",
+  "ngày": "days",
+  "ngày còn lại": "days left",
   "Sắp hết hạn ({n})": "Expiring Soon ({n})",
   "Đã hết hạn ({n})": "Expired ({n})",
   "Cập nhật hồ sơ & Trạng thái học viên": "Update Student Profile & Status",
   "THÔNG TIN CƠ BẢN": "BASIC INFORMATION",
-  "Định danh học viên trong hệ thống ETR": "Student identification in the ETR system",
+  "Định danh học viên trong hệ thống ETR":
+    "Student identification in the ETR system",
   "STUDENT CODE": "STUDENT CODE",
   "Email học viên": "Student Email",
   "Cơ quan / Tổ chức": "Organization",
@@ -909,10 +1071,12 @@ export const VN_TO_EN = {
   "Tên khóa học": "Course Name",
   "Xóa ghi danh thất bại": "Failed to remove enrollment",
   "Không còn lớp khả dụng": "No available classes",
-  "Học viên đã được ghi danh vào tất cả các lớp hiện có.": "The student is already enrolled in all existing classes.",
+  "Học viên đã được ghi danh vào tất cả các lớp hiện có.":
+    "The student is already enrolled in all existing classes.",
   "Ghi danh thất bại": "Enrollment failed",
   "Xóa lớp học": "Delete class",
-  "Chưa phân bổ lớp học nào cho học viên này.": "No classes allocated to this student yet.",
+  "Chưa phân bổ lớp học nào cho học viên này.":
+    "No classes allocated to this student yet.",
   "ĐĂNG KÝ THÊM LỚP HỌC MỚI": "REGISTER FOR ANOTHER CLASS",
   "QUẢN LÝ TRẠNG THÁI": "STATUS MANAGEMENT",
   "ĐANG HỌC": "ACTIVE",
@@ -927,12 +1091,13 @@ export const VN_TO_EN = {
   "NGHỈ HỌC": "DROPPED",
   "(DROPPED)": "(DROPPED)",
   "Dừng học vĩnh viễn": "Permanently discontinued",
-  "CURRENT": "CURRENT",
+  CURRENT: "CURRENT",
   "Lý do thay đổi trạng thái": "Reason for status change",
-  "Nhập ghi chú chi tiết lý do thay đổi...": "Enter detailed notes on the reason for the change...",
+  "Nhập ghi chú chi tiết lý do thay đổi...":
+    "Enter detailed notes on the reason for the change...",
   "HỦY THAY ĐỔI": "CANCEL CHANGES",
   "LƯU HỒ SƠ HỌC VIÊN": "SAVE STUDENT PROFILE",
-  "LEARNERS": "LEARNERS",
+  LEARNERS: "LEARNERS",
   "UPDATE PROFILE": "UPDATE PROFILE",
   "GHI DANH HỌC VIÊN VÀO LỚP HỌC": "ENROLL STUDENT INTO CLASS",
   "Thông báo từ Hệ thống ETR:": "Notice from the ETR System:",
@@ -943,62 +1108,87 @@ export const VN_TO_EN = {
   " học viên hợp lệ": " eligible students",
   "⚠️ Tất cả học viên đã ghi danh": "⚠️ All students already enrolled",
   "Đang tải & lọc danh sách học viên...": "Loading & filtering student list...",
-  "Không có học viên nào khả dụng trong hệ thống": "No students available in the system",
+  "Không có học viên nào khả dụng trong hệ thống":
+    "No students available in the system",
   "⛔ [ĐÃ CÓ HỒ SƠ ETR ĐANG HỌC]": "⛔ [HAS ONGOING ETR RECORD]",
   "Thông tin học viên được chọn": "Selected Student Info",
   "⛔ ĐÃ CÓ ETR ĐANG HỌC": "⛔ HAS ONGOING ETR",
-  "Ghi danh thất bại. Vui lòng thử lại.": "Enrollment failed. Please try again.",
-  "Vui lòng chọn đầy đủ Lớp học và Học viên khả dụng.": "Please select both a Class and an available Student.",
+  "Ghi danh thất bại. Vui lòng thử lại.":
+    "Enrollment failed. Please try again.",
+  "Vui lòng chọn đầy đủ Lớp học và Học viên khả dụng.":
+    "Please select both a Class and an available Student.",
   "Đang ghi danh...": "Enrolling...",
   "GHI DANH": "ENROLL",
   "đã kết thúc": "completed",
   "đã hủy": "cancelled",
-  "Có": "Yes",
+  Có: "Yes",
   "học viên hợp lệ": "eligible students",
   "Tài khoản ID": "Account ID",
-  "hoặc": "or",
+  hoặc: "or",
   "Lớp học ở trạng thái": "Classes in",
   "mới được ghi danh.": "status are eligible for enrollment.",
-  "Quy tắc nghiệp vụ ghi danh ETR bắt buộc (Compliance Rules):": "Mandatory ETR enrollment compliance rules:",
-  "Khóa học phải có ít nhất 1 môn học (Subject) được cấu hình trước khi ghi danh.": "A course must have at least 1 Subject configured before enrollment.",
-  "Một Học viên chỉ có 01 Hồ sơ ETR đang học (InProgress) cho 01 Khóa học tại một thời điểm. Các học viên đã có ETR chưa đóng bằng sẽ bị khóa lựa chọn.": "A student can only have 01 in-progress ETR record per course at any time. Students with an unfinished ETR will be locked from selection.",
+  "Quy tắc nghiệp vụ ghi danh ETR bắt buộc (Compliance Rules):":
+    "Mandatory ETR enrollment compliance rules:",
+  "Khóa học phải có ít nhất 1 môn học (Subject) được cấu hình trước khi ghi danh.":
+    "A course must have at least 1 Subject configured before enrollment.",
+  "Một Học viên chỉ có 01 Hồ sơ ETR đang học (InProgress) cho 01 Khóa học tại một thời điểm. Các học viên đã có ETR chưa đóng bằng sẽ bị khóa lựa chọn.":
+    "A student can only have 01 in-progress ETR record per course at any time. Students with an unfinished ETR will be locked from selection.",
   "ĐANG GHI DANH...": "ENROLLING...",
   "XÁC NHẬN GHI DANH": "CONFIRM ENROLLMENT",
-  "❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học": "❌ Business Rule Violation: Course",
-  "chưa được cấu hình môn học (Subject). Theo quy định ETR hàng không, Khóa học phải có ít nhất 1 môn học trước khi mở ghi danh. Vui lòng chọn Khóa học đã cấu hình môn học.": "has no Subjects configured. Per ETR aviation regulations, a course must have at least 1 subject before opening enrollment. Please choose a course with subjects configured.",
-  "chưa được cấu hình môn học (Subject). Theo quy tắc nghiệp vụ ETR, không thể ghi danh vào khóa chưa có môn học.": "has no Subjects configured. Per ETR business rules, enrollment into a course without subjects is not allowed.",
-  "❌ Quy tắc nghiệp vụ: Lớp học đã kết thúc không được phép ghi danh mới.": "❌ Business rule: enrollment into a completed class is not allowed.",
-  "ℹ️ Thao tác ghi danh bị hủy do ngắt kết nối giữa chừng hoặc chuyển trang. Vui lòng thực hiện lại.": "ℹ️ The enrollment was cancelled due to a connection drop or page navigation. Please try again.",
-  "❌ Quy tắc tuân thủ ETR Hàng không (Business Rule Violation): Học viên này đã được ghi danh vào một Lớp học thuộc Khóa học này và đang có Hồ sơ ETR chưa hoàn thành (InProgress). Theo quy định ETR, mỗi học viên chỉ được có 01 Hồ sơ ETR đang diễn ra cho 01 Khóa học tại một thời điểm. Vui lòng chọn Học viên khác.": "❌ ETR Aviation Compliance Rule Violation: This student is already enrolled in a Class of this Course and has an unfinished ETR record (InProgress). Per ETR regulations, each student may only have 01 in-progress ETR record per course at a time. Please select another student.",
-  "❌ Quy tắc nghiệp vụ: Lớp học ở trạng thái \"Đã kết thúc\" hoặc \"Đã hủy\" KHÔNG được phép ghi danh học viên mới.": "❌ Business rule: classes in \"Completed\" or \"Cancelled\" status CANNOT enroll new students.",
-  "❌ Quy tắc tuân thủ ETR: Học viên này đang có Hồ sơ ETR chưa đóng bằng (InProgress) cho Khóa học này. Vui lòng chọn Học viên chưa có ETR đang diễn ra.": "❌ ETR compliance rule: This student has an unfinished (InProgress) ETR record for this course. Please select a student without an ongoing ETR.",
-  "⛔ Lớp học này ở trạng thái Đã kết thúc / Đã hủy — Không thể ghi danh.": "⛔ This class is Completed / Cancelled — enrollment is not possible.",
+  "❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học":
+    "❌ Business Rule Violation: Course",
+  "chưa được cấu hình môn học (Subject). Theo quy định ETR hàng không, Khóa học phải có ít nhất 1 môn học trước khi mở ghi danh. Vui lòng chọn Khóa học đã cấu hình môn học.":
+    "has no Subjects configured. Per ETR aviation regulations, a course must have at least 1 subject before opening enrollment. Please choose a course with subjects configured.",
+  "chưa được cấu hình môn học (Subject). Theo quy tắc nghiệp vụ ETR, không thể ghi danh vào khóa chưa có môn học.":
+    "has no Subjects configured. Per ETR business rules, enrollment into a course without subjects is not allowed.",
+  "❌ Quy tắc nghiệp vụ: Lớp học đã kết thúc không được phép ghi danh mới.":
+    "❌ Business rule: enrollment into a completed class is not allowed.",
+  "ℹ️ Thao tác ghi danh bị hủy do ngắt kết nối giữa chừng hoặc chuyển trang. Vui lòng thực hiện lại.":
+    "ℹ️ The enrollment was cancelled due to a connection drop or page navigation. Please try again.",
+  "❌ Quy tắc tuân thủ ETR Hàng không (Business Rule Violation): Học viên này đã được ghi danh vào một Lớp học thuộc Khóa học này và đang có Hồ sơ ETR chưa hoàn thành (InProgress). Theo quy định ETR, mỗi học viên chỉ được có 01 Hồ sơ ETR đang diễn ra cho 01 Khóa học tại một thời điểm. Vui lòng chọn Học viên khác.":
+    "❌ ETR Aviation Compliance Rule Violation: This student is already enrolled in a Class of this Course and has an unfinished ETR record (InProgress). Per ETR regulations, each student may only have 01 in-progress ETR record per course at a time. Please select another student.",
+  '❌ Quy tắc nghiệp vụ: Lớp học ở trạng thái "Đã kết thúc" hoặc "Đã hủy" KHÔNG được phép ghi danh học viên mới.':
+    '❌ Business rule: classes in "Completed" or "Cancelled" status CANNOT enroll new students.',
+  "❌ Quy tắc tuân thủ ETR: Học viên này đang có Hồ sơ ETR chưa đóng bằng (InProgress) cho Khóa học này. Vui lòng chọn Học viên chưa có ETR đang diễn ra.":
+    "❌ ETR compliance rule: This student has an unfinished (InProgress) ETR record for this course. Please select a student without an ongoing ETR.",
+  "⛔ Lớp học này ở trạng thái Đã kết thúc / Đã hủy — Không thể ghi danh.":
+    "⛔ This class is Completed / Cancelled — enrollment is not possible.",
   "Trọng số không hợp lệ": "Invalid weight",
-  "Tổng trọng số điểm đánh giá phải bằng 100%!": "Total assessment weight must equal 100%!",
+  "Tổng trọng số điểm đánh giá phải bằng 100%!":
+    "Total assessment weight must equal 100%!",
   "Quy tắc tuân thủ (Business Rule)": "Business Rule Violation",
-  "Một Khóa học (COURSE) phải có ít nhất một Môn học (SUBJECT) được cấu hình trước khi mở ghi danh!": "A course (COURSE) must have at least one Subject (SUBJECT) configured before opening enrollment!",
-  "TẠO KHÓA HỌC MỚI (CẤU HÌNH MÔN HỌC BẮT BUỘC)": "CREATE NEW COURSE (SUBJECT CONFIGURATION REQUIRED)",
-  "Quy tắc nghiệp vụ ETR bắt buộc (Section 3 - Business Rules):": "Mandatory ETR business rules (Section 3 - Business Rules):",
-  "\"Một Khóa học (COURSE) phải có ít nhất một Môn học (SUBJECT) được cấu hình trong COURSE_SUBJECT trước khi mở ghi danh (Enrollment).\"": "\"A course (COURSE) must have at least one Subject (SUBJECT) configured in COURSE_SUBJECT before opening enrollment.\"",
+  "Một Khóa học (COURSE) phải có ít nhất một Môn học (SUBJECT) được cấu hình trước khi mở ghi danh!":
+    "A course (COURSE) must have at least one Subject (SUBJECT) configured before opening enrollment!",
+  "TẠO KHÓA HỌC MỚI (CẤU HÌNH MÔN HỌC BẮT BUỘC)":
+    "CREATE NEW COURSE (SUBJECT CONFIGURATION REQUIRED)",
+  "Quy tắc nghiệp vụ ETR bắt buộc (Section 3 - Business Rules):":
+    "Mandatory ETR business rules (Section 3 - Business Rules):",
+  '"Một Khóa học (COURSE) phải có ít nhất một Môn học (SUBJECT) được cấu hình trong COURSE_SUBJECT trước khi mở ghi danh (Enrollment)."':
+    '"A course (COURSE) must have at least one Subject (SUBJECT) configured in COURSE_SUBJECT before opening enrollment."',
   "THÔNG TIN CƠ BẢN KHÓA HỌC": "COURSE BASIC INFORMATION",
   "Mã khóa học *": "Course Code *",
   "Ví dụ: AV-MNT-102": "Example: AV-MNT-102",
   "Thời lượng (Giờ) *": "Duration (Hours) *",
   "Ví dụ: 120": "Example: 120",
   "Tên khóa học *": "Course Name *",
-  "Nhập tên chương trình khóa học đào tạo (Ví dụ: Kỹ thuật Bảo trì Hệ thống Tàu bay)": "Enter the training program name (e.g. Aircraft Systems Maintenance Engineering)",
+  "Nhập tên chương trình khóa học đào tạo (Ví dụ: Kỹ thuật Bảo trì Hệ thống Tàu bay)":
+    "Enter the training program name (e.g. Aircraft Systems Maintenance Engineering)",
   "Mô tả khóa học": "Course Description",
-  "Nhập tóm tắt nội dung chương trình đào tạo...": "Enter a summary of the training program...",
-  "CẤU HÌNH MÔN HỌC KHÓA (COURSE_SUBJECTS) *": "COURSE SUBJECT CONFIGURATION (COURSE_SUBJECTS) *",
+  "Nhập tóm tắt nội dung chương trình đào tạo...":
+    "Enter a summary of the training program...",
+  "CẤU HÌNH MÔN HỌC KHÓA (COURSE_SUBJECTS) *":
+    "COURSE SUBJECT CONFIGURATION (COURSE_SUBJECTS) *",
   "✓ Đã chọn": "✓ Selected",
   "môn học (Đạt điều kiện)": "subjects (Condition met)",
   "❌ Chọn ít nhất 1 môn học": "❌ Select at least 1 subject",
   "Đang tải danh sách môn học...": "Loading subject list...",
   "Thời lượng:": "Duration:",
-  "giờ": "hours",
+  giờ: "hours",
   "Hình thức:": "Method:",
-  "⚠️ Bắt buộc phải chọn ít nhất 1 môn học. Khóa học không có môn học sẽ bị Backend chặn tuyệt đối khi Ghi danh.": "⚠️ You must select at least 1 subject. A course without subjects will be strictly blocked by the Backend during Enrollment.",
-  "CẤU TRÚC ĐIỂM ĐÁNH GIÁ (TỔNG = 100%)": "ASSESSMENT GRADE STRUCTURE (TOTAL = 100%)",
+  "⚠️ Bắt buộc phải chọn ít nhất 1 môn học. Khóa học không có môn học sẽ bị Backend chặn tuyệt đối khi Ghi danh.":
+    "⚠️ You must select at least 1 subject. A course without subjects will be strictly blocked by the Backend during Enrollment.",
+  "CẤU TRÚC ĐIỂM ĐÁNH GIÁ (TỔNG = 100%)":
+    "ASSESSMENT GRADE STRUCTURE (TOTAL = 100%)",
   "Lý thuyết (%)": "Theory (%)",
   "Thực hành (%)": "Practical (%)",
   "Assignment (%)": "Assignment (%)",
@@ -1007,7 +1197,8 @@ export const VN_TO_EN = {
   "Hợp lệ (100%)": "Valid (100%)",
   "Trọng số phải bằng 100%": "Weight must equal 100%",
   "TRẠNG THÁI HOẠT ĐỘNG": "OPERATING STATUS",
-  "Hoạt động (Sẵn sàng mở lớp & ghi danh)": "Active (Ready to open classes & enrollments)",
+  "Hoạt động (Sẵn sàng mở lớp & ghi danh)":
+    "Active (Ready to open classes & enrollments)",
   "Tạm dừng (Chưa mở ghi danh)": "Paused (Enrollment not opened)",
   "Lớp học": "Class",
   "LỊCH SỬ ĐIỂM DANH": "ATTENDANCE HISTORY",
@@ -1030,7 +1221,7 @@ export const VN_TO_EN = {
   " | Sĩ số: ": " | Enrollment: ",
   "DANH SÁCH ĐIỂM DANH HỌC VIÊN": "STUDENT ATTENDANCE LIST",
   "Có mặt": "Present",
-  "Vắng": "Absent",
+  Vắng: "Absent",
   "Chọn file Excel (.xlsx / .xls)": "Choose Excel file (.xlsx / .xls)",
   "Bấm để chọn file khác": "Click to choose another file",
   "Chọn tệp để kiểm tra và nhập dữ liệu": "Pick a file to validate and import",
@@ -1038,12 +1229,17 @@ export const VN_TO_EN = {
   "Gỡ file": "Remove file",
   "Import điểm danh Excel": "Import Attendance from Excel",
   "Import điểm Excel": "Import Scores from Excel",
-  "Tải template, điền điểm số (0-100) cho từng học viên, sau đó kiểm tra và nhập dữ liệu.": "Download the template, fill in the score (0-100) for each student, then validate and import the data.",
+  "Tải template, điền điểm số (0-100) cho từng học viên, sau đó kiểm tra và nhập dữ liệu.":
+    "Download the template, fill in the score (0-100) for each student, then validate and import the data.",
   "Import điểm thành công!": "Scores import succeeded!",
-  "Assessment này không có mã đánh giá để tải template.": "This assessment has no assessment ID to download the template.",
-  "Tải template, điền trạng thái (Present/Absent) cho từng học viên, sau đó kiểm tra và nhập dữ liệu.": "Download the template, fill in the status (Present/Absent) for each student, then validate and import the data.",
-  "Import hoàn tất nhưng có dòng bị bỏ qua.": "Import completed but some rows were skipped.",
-  "Tải template Excel (đã pre-fill học viên)": "Download Excel template (students pre-filled)",
+  "Assessment này không có mã đánh giá để tải template.":
+    "This assessment has no assessment ID to download the template.",
+  "Tải template, điền trạng thái (Present/Absent) cho từng học viên, sau đó kiểm tra và nhập dữ liệu.":
+    "Download the template, fill in the status (Present/Absent) for each student, then validate and import the data.",
+  "Import hoàn tất nhưng có dòng bị bỏ qua.":
+    "Import completed but some rows were skipped.",
+  "Tải template Excel (đã pre-fill học viên)":
+    "Download Excel template (students pre-filled)",
   "Kiểm tra file": "Validate file",
   "Đang nhập dữ liệu...": "Importing data...",
   "✅ Nhập dữ liệu (Commit)": "✅ Import Data (Commit)",
@@ -1051,28 +1247,35 @@ export const VN_TO_EN = {
   "Đã nhập": "Imported",
   "Bỏ qua": "Skipped",
   "Đã cập nhật": "Updated",
-  "📌 Lưu ý: hệ thống sẽ từ chối nếu lớp vẫn còn buổi học chưa được confirm. Hãy confirm toàn bộ buổi học trước khi hoàn thành lớp.": "📌 Note: the system will reject if the class still has unconfirmed sessions. Confirm all sessions before completing the class.",
+  "📌 Lưu ý: hệ thống sẽ từ chối nếu lớp vẫn còn buổi học chưa được confirm. Hãy confirm toàn bộ buổi học trước khi hoàn thành lớp.":
+    "📌 Note: the system will reject if the class still has unconfirmed sessions. Confirm all sessions before completing the class.",
   "Tải template thành công!": "Template downloaded successfully!",
   "Tải template thất bại.": "Failed to download template.",
   "Kiểm tra file thất bại.": "File validation failed.",
   "Import danh sách học viên (Excel)": "Import Student List (Excel)",
-  "Tải file mẫu, điền danh sách tài khoản học viên (chỉ role Student), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).": "Download the template, fill in the student account list (Student role only), validate, then commit. The whole file must be valid to be imported (all-or-nothing).",
+  "Tải file mẫu, điền danh sách tài khoản học viên (chỉ role Student), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).":
+    "Download the template, fill in the student account list (Student role only), validate, then commit. The whole file must be valid to be imported (all-or-nothing).",
   "⬇ Tải file mẫu (.xlsx)": "⬇ Download template (.xlsx)",
-  "Bấm để chọn file Excel (.xlsx) hoặc kéo-thả vào đây": "Click to choose an Excel file (.xlsx) or drag & drop it here",
+  "Bấm để chọn file Excel (.xlsx) hoặc kéo-thả vào đây":
+    "Click to choose an Excel file (.xlsx) or drag & drop it here",
   "Nhập danh sách học viên thất bại.": "Failed to import the student list.",
   "Tra cứu ETR": "ETR Lookup",
-  "Nhập mã ETR (số), tên học viên hoặc trạng thái (VD: Completed) để tra cứu trên toàn hệ thống.": "Enter an ETR ID (number), student name, or status (e.g. Completed) to search across the whole system.",
+  "Nhập mã ETR (số), tên học viên hoặc trạng thái (VD: Completed) để tra cứu trên toàn hệ thống.":
+    "Enter an ETR ID (number), student name, or status (e.g. Completed) to search across the whole system.",
   "VD: 42, Nguyễn Văn A, Completed...": "e.g. 42, Nguyen Van A, Completed...",
   "Đang tra cứu...": "Searching...",
   "Tra cứu thất bại": "Lookup failed",
   "Lỗi không xác định từ máy chủ": "Unknown server error",
   "Không tìm thấy hồ sơ ETR phù hợp.": "No matching ETR records found.",
-  "Chưa có dữ liệu điểm danh thực tế. Dữ liệu sẽ hiển thị sau khi giảng viên điểm danh các buổi học.": "No real attendance data yet. Data will appear after instructors mark the sessions.",
+  "Chưa có dữ liệu điểm danh thực tế. Dữ liệu sẽ hiển thị sau khi giảng viên điểm danh các buổi học.":
+    "No real attendance data yet. Data will appear after instructors mark the sessions.",
   "Import điểm danh thành công!": "Attendance import succeeded!",
   "Import thất bại.": "Import failed.",
   "NHẬP DỮ LIỆU EXCEL": "IMPORT EXCEL",
-  "* Chọn tài khoản học viên để tiến hành tạo hoặc cập nhật hồ sơ.": "* Select a student account to create or update the profile.",
-  "Nhập thông tin tài khoản và hồ sơ học viên (Vai trò: Student).": "Enter student account and profile information (Role: Student).",
+  "* Chọn tài khoản học viên để tiến hành tạo hoặc cập nhật hồ sơ.":
+    "* Select a student account to create or update the profile.",
+  "Nhập thông tin tài khoản và hồ sơ học viên (Vai trò: Student).":
+    "Enter student account and profile information (Role: Student).",
   "Chọn tài khoản (Student Account) *": "Select Account (Student Account) *",
   "Vui lòng chọn tài khoản học viên.": "Please select a student account.",
   "Tạo tài khoản & hồ sơ học viên": "Create Student Account & Profile",
@@ -1092,37 +1295,47 @@ export const VN_TO_EN = {
   "Chưa có thao tác nào.": "No operations yet.",
   "Vắng không phép": "Unexcused",
   "Chưa điểm danh": "Not marked",
-  "Không có dữ liệu chi tiết học viên cho buổi học này.": "No student detail data for this session.",
-  "ĐÓNG": "CLOSE",
+  "Không có dữ liệu chi tiết học viên cho buổi học này.":
+    "No student detail data for this session.",
+  ĐÓNG: "CLOSE",
   "BUỔI ": "SESSION ",
   "CHI TIẾT ĐIỂM DANH": "ATTENDANCE DETAILS",
-  "Cập nhật trạng thái lớp học thất bại. Vui lòng thử lại.": "Failed to update class status. Please try again.",
+  "Cập nhật trạng thái lớp học thất bại. Vui lòng thử lại.":
+    "Failed to update class status. Please try again.",
   "CẬP NHẬT TRẠNG THÁI LỚP #": "UPDATE STATUS OF CLASS #",
   "Lỗi Cập Nhật: ": "Update Error: ",
   "Thông tin cơ bản lớp học": "Class Basic Information",
   "Mã lớp học *": "Class Code *",
   "Trạng thái hoạt động lớp": "Class Operating Status",
   "Chọn trạng thái *": "Select status *",
-  "🟢 InProgress (Đang diễn ra - Cho phép Ghi danh)": "🟢 In Progress (Ongoing - Enrollment allowed)",
-  "🟡 Planned (Sắp diễn ra - Cho phép Ghi danh)": "🟡 Planned (Scheduled - Enrollment allowed)",
-  "🔴 Completed (Đã kết thúc - Khóa ghi danh mới)": "🔴 Completed (Finished - New enrollments locked)",
+  "🟢 InProgress (Đang diễn ra - Cho phép Ghi danh)":
+    "🟢 In Progress (Ongoing - Enrollment allowed)",
+  "🟡 Planned (Sắp diễn ra - Cho phép Ghi danh)":
+    "🟡 Planned (Scheduled - Enrollment allowed)",
+  "🔴 Completed (Đã kết thúc - Khóa ghi danh mới)":
+    "🔴 Completed (Finished - New enrollments locked)",
   "⚫ Cancelled (Đã hủy - Khóa lớp)": "⚫ Cancelled (Canceled - Class locked)",
   "⚠️ Khi chuyển sang": "⚠️ When switching to",
   "Completed (Đã kết thúc)": "Completed",
-  ", nút ➕ Ghi danh của lớp học này sẽ tự động chuyển thành": ", the ➕ Enroll button of this class will automatically become",
-  "để khóa ghi danh học viên mới theo quy định tuân thủ ETR.": "to lock new student enrollment per ETR compliance rules.",
+  ", nút ➕ Ghi danh của lớp học này sẽ tự động chuyển thành":
+    ", the ➕ Enroll button of this class will automatically become",
+  "để khóa ghi danh học viên mới theo quy định tuân thủ ETR.":
+    "to lock new student enrollment per ETR compliance rules.",
   "Thời gian lịch trình": "Schedule Period",
   "Ngày bắt đầu": "Start Date",
   "Ngày kết thúc": "End Date",
   "ĐANG LƯU...": "SAVING...",
   "LƯU THAY ĐỔI TRẠNG THÁI": "SAVE STATUS CHANGES",
-  "❌ Quy tắc tuân thủ (Business Rule): Khóa học bắt buộc phải được cấu hình ít nhất 1 Môn học (Subject).": "❌ Business Rule Violation: A course must have at least 1 Subject configured.",
-  "Cập nhật khóa học thất bại. Vui lòng thử lại.": "Failed to update course. Please try again.",
+  "❌ Quy tắc tuân thủ (Business Rule): Khóa học bắt buộc phải được cấu hình ít nhất 1 Môn học (Subject).":
+    "❌ Business Rule Violation: A course must have at least 1 Subject configured.",
+  "Cập nhật khóa học thất bại. Vui lòng thử lại.":
+    "Failed to update course. Please try again.",
   "CẬP NHẬT THÔNG TIN KHÓA HỌC #": "UPDATE COURSE INFORMATION #",
   "Thông tin khóa học": "Course Information",
   "Mô tả chương trình": "Program Description",
-  "Cấu hình Môn học (COURSE_SUBJECTS) *": "Subject Configuration (COURSE_SUBJECTS) *",
-  "môn": "subjects",
+  "Cấu hình Môn học (COURSE_SUBJECTS) *":
+    "Subject Configuration (COURSE_SUBJECTS) *",
+  môn: "subjects",
   "❌ Chọn ít nhất 1 môn": "❌ Select at least 1 subject",
   "Trạng thái Khóa học *": "Course Status *",
   "🟢 Active (Hoạt động)": "🟢 Active",
@@ -1133,16 +1346,20 @@ export const VN_TO_EN = {
   "đã được xác thực.": "has been verified.",
   "Xác thực ETR thất bại": "ETR verification failed",
   "Cần nêu lý do": "Reason required",
-  "Vui lòng nhập lý do trả lại ETR.": "Please enter the reason for returning the ETR.",
+  "Vui lòng nhập lý do trả lại ETR.":
+    "Please enter the reason for returning the ETR.",
   "Đã trả lại ETR": "ETR returned",
   "đã trả lại để chỉnh sửa.": "has been returned for correction.",
   "Trả lại ETR thất bại": "Failed to return ETR",
-  "Chưa có ETR nào được gửi để xác thực.": "No ETRs have been submitted for verification yet.",
+  "Chưa có ETR nào được gửi để xác thực.":
+    "No ETRs have been submitted for verification yet.",
   "Xác thực ETR": "Verify ETR",
   "XÁC THỰC": "VERIFY",
-  "Sau khi xác thực, hồ sơ sẽ chuyển sang bước phê duyệt của Training Manager.": "After verification, the record will move to the Training Manager approval step.",
+  "Sau khi xác thực, hồ sơ sẽ chuyển sang bước phê duyệt của Training Manager.":
+    "After verification, the record will move to the Training Manager approval step.",
   "Trả lại ETR": "Return ETR",
-  "Học viên/giảng viên sẽ nhận được lý do để chỉnh sửa hồ sơ.": "The student/instructor will receive the reason to correct the record.",
+  "Học viên/giảng viên sẽ nhận được lý do để chỉnh sửa hồ sơ.":
+    "The student/instructor will receive the reason to correct the record.",
   "Nhập lý do trả lại ETR...": "Enter the reason for returning the ETR...",
   "TRẢ LẠI": "RETURN",
   "Trả lại thất bại": "Failed to return",
@@ -1150,12 +1367,15 @@ export const VN_TO_EN = {
   "Thiếu lý do": "Missing reason",
   "Vui lòng nhập lý do trả lại.": "Please enter the reason for returning.",
   "Chưa có ETR nào.": "No ETRs yet.",
-  "Tìm kiếm theo mã ETR, học viên, khóa học, trạng thái...": "Search by ETR code, learner, course, status...",
-  "Không tìm thấy ETR phù hợp với từ khóa.": "No ETRs match your search keyword.",
+  "Tìm kiếm theo mã ETR, học viên, khóa học, trạng thái...":
+    "Search by ETR code, learner, course, status...",
+  "Không tìm thấy ETR phù hợp với từ khóa.":
+    "No ETRs match your search keyword.",
   "Xác nhận xác thực": "Confirm verification of",
   "Trả lại": "Return",
   "để chỉnh sửa?": "for correction?",
-  "Học viên/giảng viên sẽ nhận được yêu cầu chỉnh sửa kèm lý do của bạn.": "The student/instructor will receive a correction request with your reason.",
+  "Học viên/giảng viên sẽ nhận được yêu cầu chỉnh sửa kèm lý do của bạn.":
+    "The student/instructor will receive a correction request with your reason.",
   "Đã xác thực": "Verified",
   "evidence.": "evidence items.",
   "Đã từ chối": "Rejected",
@@ -1163,14 +1383,16 @@ export const VN_TO_EN = {
   "Chọn tất cả": "Select all",
   "Chưa có evidence nào cần xác thực.": "No evidence awaiting verification.",
   "Từ chối Evidence": "Reject Evidence",
-  "Lý do từ chối sẽ được lưu vào hồ sơ minh chứng để học viên/giảng viên biết cách chỉnh sửa.": "The rejection reason will be saved to the evidence record so the student/instructor knows how to correct it.",
+  "Lý do từ chối sẽ được lưu vào hồ sơ minh chứng để học viên/giảng viên biết cách chỉnh sửa.":
+    "The rejection reason will be saved to the evidence record so the student/instructor knows how to correct it.",
   "Nhập lý do từ chối...": "Enter rejection reason...",
   "TỪ CHỐI": "REJECT",
   "Chưa chọn ETR": "No ETR selected",
   "Vui lòng chọn ETR để trả lại.": "Please select an ETR to return.",
   "đã được trả lại.": "has been returned.",
   "Không có ETR nào để trả lại.": "No ETRs to return.",
-  "Tài khoản của bạn không có quyền xem Audit Log hệ thống.": "Your account does not have permission to view the system Audit Log.",
+  "Tài khoản của bạn không có quyền xem Audit Log hệ thống.":
+    "Your account does not have permission to view the system Audit Log.",
   "Không thể tải audit log.": "Unable to load audit log.",
   "Chưa có bản ghi retake nào.": "No retake records yet.",
   "Thiếu thông tin": "Missing information",
@@ -1187,19 +1409,26 @@ export const VN_TO_EN = {
   "Tải xuống thất bại:": "Download failed:",
   "Cần nêu lý do để mở lại ETR.": "A reason is required to reopen the ETR.",
   "Đã mở lại ETR": "ETR reopened",
-  "đã được mở khóa — audit trail đã được cập nhật.": "has been unlocked — the audit trail has been updated.",
+  "đã được mở khóa — audit trail đã được cập nhật.":
+    "has been unlocked — the audit trail has been updated.",
   "Mở lại ETR thất bại": "Failed to reopen ETR",
   "Chuyên đề": "Subject",
   "Chưa có dữ liệu": "No data",
-  "Academic Staff gửi hồ sơ chờ QA thẩm định": "Academic Staff submits the record awaiting QA review",
-  "QA Staff xác thực hồ sơ và toàn bộ minh chứng": "QA Staff verifies the record and all evidence",
-  "Phê duyệt cuối cùng — hồ sơ chuyển trạng thái Completed": "Final approval — the record moves to Completed status",
+  "Academic Staff gửi hồ sơ chờ QA thẩm định":
+    "Academic Staff submits the record awaiting QA review",
+  "QA Staff xác thực hồ sơ và toàn bộ minh chứng":
+    "QA Staff verifies the record and all evidence",
+  "Phê duyệt cuối cùng — hồ sơ chuyển trạng thái Completed":
+    "Final approval — the record moves to Completed status",
   "Chưa có minh chứng": "No evidence",
-  "Tài khoản Training Manager chưa được backend cho phép đọc danh sách ETR (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR được cấp ở backend.": "Your Training Manager account is not authorized to read the ETR list (GET /Etr returns 403) — the approval queue is being built from the Approval Requests list. Score/evidence details will appear once read access is granted on the backend.",
+  "Tài khoản Training Manager chưa được backend cho phép đọc danh sách ETR (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR được cấp ở backend.":
+    "Your Training Manager account is not authorized to read the ETR list (GET /Etr returns 403) — the approval queue is being built from the Approval Requests list. Score/evidence details will appear once read access is granted on the backend.",
   "Mở lại (Reopen)": "Reopen",
-  "Việc mở lại hồ sơ sẽ được ghi nhận vào Audit Trail. Vui lòng nêu rõ lý do.": "Reopening the record will be recorded in the Audit Trail. Please state the reason clearly.",
+  "Việc mở lại hồ sơ sẽ được ghi nhận vào Audit Trail. Vui lòng nêu rõ lý do.":
+    "Reopening the record will be recorded in the Audit Trail. Please state the reason clearly.",
   "Nhập lý do mở lại ETR...": "Enter the reason to reopen the ETR...",
-  "Một số dữ liệu (danh sách ETR / Enrollment) hiện bị backend giới hạn quyền đọc với tài khoản Training Manager (trả 403) — các chỉ số tương ứng đang hiển thị giá trị mặc định. Thống kê Dashboard & Report vẫn hoạt động bình thường.": "Some data (ETR list / Enrollments) is currently restricted on the backend for Training Manager accounts (returns 403) — the corresponding metrics are showing default values. Dashboard & Report statistics still work normally.",
+  "Một số dữ liệu (danh sách ETR / Enrollment) hiện bị backend giới hạn quyền đọc với tài khoản Training Manager (trả 403) — các chỉ số tương ứng đang hiển thị giá trị mặc định. Thống kê Dashboard & Report vẫn hoạt động bình thường.":
+    "Some data (ETR list / Enrollments) is currently restricted on the backend for Training Manager accounts (returns 403) — the corresponding metrics are showing default values. Dashboard & Report statistics still work normally.",
   "THEO DÕI TRẠNG THÁI LỚP HỌC": "CLASS STATUS MONITORING",
   "CẬP NHẬT TRỰC TIẾP": "LIVE UPDATE",
   "KHÓA HỌC ĐANG DIỄN RA": "ONGOING COURSES",
@@ -1207,38 +1436,55 @@ export const VN_TO_EN = {
   "QUÁ TẢI": "OVERLOADED",
   "ỔN ĐỊNH": "STABLE",
   "Không thể tải lịch sử phê duyệt: ": "Unable to load approval history: ",
-  "Chọn một ETR để xem lịch sử phê duyệt.": "Select an ETR to view its approval history.",
-  "Chưa có hoạt động phê duyệt nào cho ETR này.": "No approval activity for this ETR yet.",
+  "Chọn một ETR để xem lịch sử phê duyệt.":
+    "Select an ETR to view its approval history.",
+  "Chưa có hoạt động phê duyệt nào cho ETR này.":
+    "No approval activity for this ETR yet.",
   "Vui lòng nhập nội dung (bắt buộc).": "Please enter content (required).",
-  "Sau khi chốt, dữ liệu sẽ được khóa và không thể chỉnh sửa.": "After confirming, the data will be locked and cannot be edited.",
+  "Sau khi chốt, dữ liệu sẽ được khóa và không thể chỉnh sửa.":
+    "After confirming, the data will be locked and cannot be edited.",
   "ĐANG XỬ LÝ...": "PROCESSING...",
   "Tổng tài khoản": "Total Accounts",
   "Đang hoạt động": "Active",
   "Tất cả vai trò": "All Roles",
-  "Tìm kiếm username, vai trò, phòng ban...": "Search username, role, department...",
-  "Tạo": "Create",
+  "Tìm kiếm username, vai trò, phòng ban...":
+    "Search username, role, department...",
+  Tạo: "Create",
   "Gán quyền": "Assign",
   "Cấu hình": "Configure",
   "Tài khoản theo vai trò": "Accounts by Role",
   "Không tìm thấy tài khoản phù hợp.": "No matching accounts found.",
   "Xuất PDF thành công": "PDF exported successfully",
-  "Hồ sơ tuân thủ đã được xuất ra Training Package.": "The compliance dossier has been exported to a Training Package.",
+  "Hồ sơ tuân thủ đã được xuất ra Training Package.":
+    "The compliance dossier has been exported to a Training Package.",
   "Xuất PDF thất bại": "PDF export failed",
-  "Tạo file PDF thất bại. Vui lòng thử lại sau.": "Failed to generate the PDF file. Please try again later.",
-  "❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học chưa được cấu hình Môn học (Subject). Bắt buộc chọn Khóa đã có môn học trước khi mở ghi danh.": "❌ Business Rule Violation: The course has no Subject configured. You must select a course with subjects before opening enrollment.",
-  "❌ Lỗi CSDL (Trùng mã bản ghi): Mã Khóa học, Mã Lớp học hoặc Tên dữ liệu này đã tồn tại trong CSDL. Vui lòng nhập một Mã mới duy nhất.": "❌ Database error (Duplicate record): This Course Code, Class Code or data name already exists in the database. Please enter a unique new code.",
-  "❌ Lỗi lưu dữ liệu (DbUpdateException): Không thể lưu bản ghi vào CSDL. Vui lòng kiểm tra lại thông tin (Mã lớp trùng, Khóa học/Giảng viên không hợp lệ) và thử lại.": "❌ Save error (DbUpdateException): Unable to save the record to the database. Please re-check the information (duplicate class code, invalid course/instructor) and try again.",
-  "❌ Lỗi Ràng buộc CSDL (Foreign Key Constraint): Không thể lưu/xóa dữ liệu này vì Khóa học hoặc Giảng viên được chọn không tồn tại, hoặc dữ liệu đang được liên kết bởi bản ghi khác.": "❌ Database constraint error (Foreign Key Constraint): Unable to save/delete this data because the selected course or instructor does not exist, or the data is referenced by another record.",
-  "❌ Quy tắc kiểm toán: Không thể trích xuất Training Package. Hồ sơ ETR chưa được Trưởng phòng phê duyệt và đóng bằng (Completed).": "❌ Audit rule: Unable to export the Training Package. The ETR record has not been approved and frozen (Completed) yet.",
-  "❌ Quy tắc QA: Bạn không thể thẩm định tệp minh chứng do chính tài khoản của bạn tải lên.": "❌ QA rule: You cannot verify an evidence file uploaded by your own account.",
-  "❌ Quy tắc chấm điểm: Kết quả Bảng kiểm thực hành này đã được công bố, không thể chỉnh sửa.": "❌ Grading rule: This practical checklist result has already been published and cannot be edited.",
-  "🔒 Quy tắc an toàn dữ liệu: Hồ sơ ETR này đã bị đóng bằng vĩnh viễn (Freeze Data). Không thể chỉnh sửa.": "🔒 Data safety rule: This ETR record has been permanently frozen (Freeze Data). It cannot be edited.",
-  "ℹ️ Thao tác xử lý đã bị hủy do kết nối mạng gián đoạn hoặc chuyển trang trong lúc đang lưu. Vui lòng thử lại.": "ℹ️ The operation was cancelled due to a network interruption or page navigation while saving. Please try again.",
+  "Tạo file PDF thất bại. Vui lòng thử lại sau.":
+    "Failed to generate the PDF file. Please try again later.",
+  "❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học chưa được cấu hình Môn học (Subject). Bắt buộc chọn Khóa đã có môn học trước khi mở ghi danh.":
+    "❌ Business Rule Violation: The course has no Subject configured. You must select a course with subjects before opening enrollment.",
+  "❌ Lỗi CSDL (Trùng mã bản ghi): Mã Khóa học, Mã Lớp học hoặc Tên dữ liệu này đã tồn tại trong CSDL. Vui lòng nhập một Mã mới duy nhất.":
+    "❌ Database error (Duplicate record): This Course Code, Class Code or data name already exists in the database. Please enter a unique new code.",
+  "❌ Lỗi lưu dữ liệu (DbUpdateException): Không thể lưu bản ghi vào CSDL. Vui lòng kiểm tra lại thông tin (Mã lớp trùng, Khóa học/Giảng viên không hợp lệ) và thử lại.":
+    "❌ Save error (DbUpdateException): Unable to save the record to the database. Please re-check the information (duplicate class code, invalid course/instructor) and try again.",
+  "❌ Lỗi Ràng buộc CSDL (Foreign Key Constraint): Không thể lưu/xóa dữ liệu này vì Khóa học hoặc Giảng viên được chọn không tồn tại, hoặc dữ liệu đang được liên kết bởi bản ghi khác.":
+    "❌ Database constraint error (Foreign Key Constraint): Unable to save/delete this data because the selected course or instructor does not exist, or the data is referenced by another record.",
+  "❌ Quy tắc kiểm toán: Không thể trích xuất Training Package. Hồ sơ ETR chưa được Trưởng phòng phê duyệt và đóng bằng (Completed).":
+    "❌ Audit rule: Unable to export the Training Package. The ETR record has not been approved and frozen (Completed) yet.",
+  "❌ Quy tắc QA: Bạn không thể thẩm định tệp minh chứng do chính tài khoản của bạn tải lên.":
+    "❌ QA rule: You cannot verify an evidence file uploaded by your own account.",
+  "❌ Quy tắc chấm điểm: Kết quả Bảng kiểm thực hành này đã được công bố, không thể chỉnh sửa.":
+    "❌ Grading rule: This practical checklist result has already been published and cannot be edited.",
+  "🔒 Quy tắc an toàn dữ liệu: Hồ sơ ETR này đã bị đóng bằng vĩnh viễn (Freeze Data). Không thể chỉnh sửa.":
+    "🔒 Data safety rule: This ETR record has been permanently frozen (Freeze Data). It cannot be edited.",
+  "ℹ️ Thao tác xử lý đã bị hủy do kết nối mạng gián đoạn hoặc chuyển trang trong lúc đang lưu. Vui lòng thử lại.":
+    "ℹ️ The operation was cancelled due to a network interruption or page navigation while saving. Please try again.",
   "TẠO MỚI KHÓA HỌC": "CREATE NEW COURSE",
   "THÔNG TIN KHÓA HỌC": "COURSE INFORMATION",
   "Ví dụ: AM-A320-2024": "Example: AM-A320-2024",
-  "Ví dụ: Kỹ thuật Bảo trì Tàu bay A320": "Example: A320 Aircraft Maintenance Engineering",
-  "Nhập mô tả chi tiết về khóa học...": "Enter a detailed course description...",
+  "Ví dụ: Kỹ thuật Bảo trì Tàu bay A320":
+    "Example: A320 Aircraft Maintenance Engineering",
+  "Nhập mô tả chi tiết về khóa học...":
+    "Enter a detailed course description...",
   "CẤU HÌNH MÔN HỌC": "SUBJECT CONFIGURATION",
   "Thêm môn học": "Add Subject",
   "Tên môn học *": "Subject Name *",
@@ -1264,22 +1510,30 @@ export const VN_TO_EN = {
   "Cập nhật mật khẩu thất bại": "Password update failed",
   "PHÂN CÔNG GIẢNG VIÊN THEO MÔN HỌC": "ASSIGN INSTRUCTORS PER SUBJECT",
   "Phân công giảng viên theo môn học": "Assign instructors per subject",
-  "Khóa học này chưa có môn học. Vui lòng cấu hình môn học cho khóa trước khi phân công giảng viên.": "This course has no subjects yet. Please configure subjects for the course before assigning instructors.",
-  "Khóa học này chưa có môn học được cấu hình.": "This course has no configured subjects.",
-  "Giảng viên được phân công theo từng Môn học (ClassSubjects) tại màn hình Khóa & Lớp học (Academic).": "Instructors are assigned per Subject (ClassSubjects) in the Courses & Classes screen (Academic).",
+  "Khóa học này chưa có môn học. Vui lòng cấu hình môn học cho khóa trước khi phân công giảng viên.":
+    "This course has no subjects yet. Please configure subjects for the course before assigning instructors.",
+  "Khóa học này chưa có môn học được cấu hình.":
+    "This course has no configured subjects.",
+  "Giảng viên được phân công theo từng Môn học (ClassSubjects) tại màn hình Khóa & Lớp học (Academic).":
+    "Instructors are assigned per Subject (ClassSubjects) in the Courses & Classes screen (Academic).",
   "Số buổi yêu cầu": "Required sessions",
   "Số buổi tối thiểu (MinSessions) *": "Minimum sessions (MinSessions) *",
   "Số buổi tối đa (MaxSessions) *": "Maximum sessions (MaxSessions) *",
-  "Số buổi tối thiểu phải >= 1 và không được lớn hơn số buổi tối đa.": "Minimum sessions must be >= 1 and cannot exceed the maximum sessions.",
-  "Vui lòng chọn Ngày học trước khi lưu buổi học (buổi nháp hiển thị TBA cho đến khi có ngày).": "Please select a Session Date before saving (draft sessions show TBA until a date is set).",
-  "Không thể tạo buổi học mới — hệ thống tự sinh buổi học khi tạo Lớp.": "Cannot create new sessions — sessions are auto-generated when a Class is created.",
-  "(trống = TBA — bắt buộc chọn trước khi lưu)": "(empty = TBA — required before saving)",
+  "Số buổi tối thiểu phải >= 1 và không được lớn hơn số buổi tối đa.":
+    "Minimum sessions must be >= 1 and cannot exceed the maximum sessions.",
+  "Vui lòng chọn Ngày học trước khi lưu buổi học (buổi nháp hiển thị TBA cho đến khi có ngày).":
+    "Please select a Session Date before saving (draft sessions show TBA until a date is set).",
+  "Không thể tạo buổi học mới — hệ thống tự sinh buổi học khi tạo Lớp.":
+    "Cannot create new sessions — sessions are auto-generated when a Class is created.",
+  "(trống = TBA — bắt buộc chọn trước khi lưu)":
+    "(empty = TBA — required before saving)",
   "Buổi học chưa xếp lịch (TBA)": "Unscheduled sessions (TBA)",
   "Tỷ lệ hoàn thành": "Completion rate",
   "Chờ phê duyệt": "Pending approval",
   "Bị từ chối": "Rejected",
   "Thiếu minh chứng": "Missing evidence",
-  "Tổng quan đào tạo: tiến độ ETR, kênh trạng thái và danh sách hồ sơ cần đôn đốc.": "Training overview: ETR progress, status funnel and the list of records needing follow-up.",
+  "Tổng quan đào tạo: tiến độ ETR, kênh trạng thái và danh sách hồ sơ cần đôn đốc.":
+    "Training overview: ETR progress, status funnel and the list of records needing follow-up.",
   "Kênh trạng thái ETR": "ETR status funnel",
   "Đôn đốc xử lý": "Follow-up",
   "Xem danh sách ETR": "View ETR list",
@@ -1287,26 +1541,32 @@ export const VN_TO_EN = {
   "HỌC VIÊN ĐIỂM DANH THẤP": "LOW ATTENDANCE STUDENTS",
   "Tên lớp": "Class name",
   "Tỉ lệ điểm danh": "Attendance rate",
-  "ngưỡng": "threshold",
-  "Không có dữ liệu thống kê công khai từ API.": "No public analytics data available from the API.",
-  "Không gửi được đơn. Vui lòng thử lại sau.": "Unable to submit the application. Please try again later.",
-  "Không gửi được tin nhắn. Vui lòng thử lại sau.": "Unable to send the message. Please try again later.",
+  ngưỡng: "threshold",
+  "Không có dữ liệu thống kê công khai từ API.":
+    "No public analytics data available from the API.",
+  "Không gửi được đơn. Vui lòng thử lại sau.":
+    "Unable to submit the application. Please try again later.",
+  "Không gửi được tin nhắn. Vui lòng thử lại sau.":
+    "Unable to send the message. Please try again later.",
   "Xem trước / Review": "Preview / Review",
   "Chọn môn:": "Subject:",
   "Tất cả môn học": "All subjects",
   "Dữ liệu trong file Excel": "Data in the Excel file",
   "File không có dòng dữ liệu nào.": "The file has no data rows.",
-  "dòng": "rows",
-  "còn": "remaining",
+  dòng: "rows",
+  còn: "remaining",
   "dòng nữa (xem trong file Excel)": "more rows (see in the Excel file)",
-  "Tìm kiếm theo ID, mã lớp, học viên, môn học...": "Search by ID, class code, student, subject...",
+  "Tìm kiếm theo ID, mã lớp, học viên, môn học...":
+    "Search by ID, class code, student, subject...",
   "Hành động (CRUD)": "Actions (CRUD)",
   "Đang tải dữ liệu audit giáo vụ...": "Loading academic audit data...",
   "Chưa có bản ghi audit nào phù hợp.": "No matching audit records found.",
   "Sắp hết hạn (30 ngày)": "Expiring soon (30 days)",
-  "Học viên có tỉ lệ điểm danh dưới ngưỡng tối thiểu (toàn hệ thống).": "Students with attendance rate below minimum threshold (system-wide).",
+  "Học viên có tỉ lệ điểm danh dưới ngưỡng tối thiểu (toàn hệ thống).":
+    "Students with attendance rate below minimum threshold (system-wide).",
   "Import lớp học & học viên thành công!": "Class & student import successful!",
-  "IMPORT LỚP HỌC & DANH SÁCH HỌC VIÊN (EXCEL)": "IMPORT CLASSES & STUDENT ROSTER (EXCEL)",
+  "IMPORT LỚP HỌC & DANH SÁCH HỌC VIÊN (EXCEL)":
+    "IMPORT CLASSES & STUDENT ROSTER (EXCEL)",
   "Tải template Excel": "Download Excel template",
   "Báo cáo": "Reports",
   "IMPORT EXCEL (LỚP + HỌC VIÊN)": "IMPORT EXCEL (CLASS + STUDENTS)",
@@ -1315,11 +1575,13 @@ export const VN_TO_EN = {
   "Xóa ghi danh thành công": "Enrollment deleted successfully",
   "Ghi danh thành công": "Enrolled successfully",
   "Không tìm thấy học viên": "Student not found",
-  "Học viên chưa có hồ sơ ETR. Hồ sơ sẽ tự động tạo khi có ghi danh mới.": "Student does not have an ETR record yet. The record will be created automatically upon new enrollment.",
+  "Học viên chưa có hồ sơ ETR. Hồ sơ sẽ tự động tạo khi có ghi danh mới.":
+    "Student does not have an ETR record yet. The record will be created automatically upon new enrollment.",
   "Đã tìm thấy hồ sơ ETR của học viên": "Found student's ETR record",
   "✗ Bị từ chối": "✗ Rejected",
   "Chờ xác thực": "Pending Verification",
-  "Vui lòng nhập từ khóa: mã ETR, tên học viên hoặc trạng thái.": "Please enter keyword: ETR code, student name, or status.",
+  "Vui lòng nhập từ khóa: mã ETR, tên học viên hoặc trạng thái.":
+    "Please enter keyword: ETR code, student name, or status.",
   "Đang tải dữ liệu lịch sử thao tác...": "Loading operation history data...",
   "Chưa có lịch sử thao tác nào.": "No operation history yet.",
   "TRA CỨU HỒ SƠ ETR": "ETR RECORD LOOKUP",
@@ -1327,20 +1589,28 @@ export const VN_TO_EN = {
   "Tra cứu hồ sơ": "Lookup Record",
   "BẢNG ĐIỂM CHI TIẾT TỪNG MÔN": "DETAILED SUBJECT GRADE ROSTER",
   "Chưa đạt": "Not Passed",
+  "Được miễn": "Exempted",
+  "Chưa chấm điểm": "Not Graded",
   "TRẠNG THÁI ĐIỂM DANH TỪNG MÔN": "SUBJECT ATTENDANCE STATUS",
   "MINH CHỨNG ĐÀO TẠO ĐÃ UPLOAD": "UPLOADED TRAINING EVIDENCE",
   "TRA CỨU": "SEARCH",
-  "Tên đăng nhập (Email) này đã tồn tại trong hệ thống. Vui lòng chọn email khác.": "This username (email) already exists in the system. Please choose another email.",
-  "đã tồn tại. Vui lòng chọn giá trị khác.": "already exists. Please choose a different value.",
+  "Tên đăng nhập (Email) này đã tồn tại trong hệ thống. Vui lòng chọn email khác.":
+    "This username (email) already exists in the system. Please choose another email.",
+  "đã tồn tại. Vui lòng chọn giá trị khác.":
+    "already exists. Please choose a different value.",
   "Tạo học viên thành công!": "Student created successfully!",
   "Tạo hồ sơ học viên thành công!": "Student profile created successfully!",
-  "Cập nhật hồ sơ học viên thành công!": "Student profile updated successfully!",
+  "Cập nhật hồ sơ học viên thành công!":
+    "Student profile updated successfully!",
   "1. Thông tin Tài khoản": "1. Account Information",
-  "Quản trị viên hệ thống / Admin Portal": "System Administrator / Admin Portal",
-  "Tìm theo ID, người thực hiện, mô tả...": "Search by ID, actor, description...",
+  "Quản trị viên hệ thống / Admin Portal":
+    "System Administrator / Admin Portal",
+  "Tìm theo ID, người thực hiện, mô tả...":
+    "Search by ID, actor, description...",
   "Phân hệ": "Module",
   "Đang tải dữ liệu audit...": "Loading audit data...",
-  "Không tìm thấy bản ghi nhật ký nào phù hợp.": "No matching log records found.",
+  "Không tìm thấy bản ghi nhật ký nào phù hợp.":
+    "No matching log records found.",
   "Ghi danh / Nhập môn": "Enrollment / Intake",
   "Nộp thẩm định QA": "Submit for QA Verification",
   "Phê duyệt & Khóa": "Approve & Lock",
@@ -1348,29 +1618,39 @@ export const VN_TO_EN = {
   "Tiến độ quy trình (%)": "Workflow Progress (%)",
   "Tiến độ (%)": "Progress (%)",
   "Tên phòng ban": "Department Name",
-  "Mật khẩu phải có ít nhất 6 ký tự để đảm bảo bảo mật và đăng nhập được.": "Password must be at least 6 characters for security and login.",
-  "Bạn không thể tự xóa tài khoản của chính mình (cả xóa mềm lẫn xóa cứng)!": "You cannot delete your own account (neither soft nor hard delete)!",
-  "Bạn không thể tự vô hiệu hóa tài khoản của chính mình!": "You cannot deactivate your own account!",
+  "Mật khẩu phải có ít nhất 6 ký tự để đảm bảo bảo mật và đăng nhập được.":
+    "Password must be at least 6 characters for security and login.",
+  "Bạn không thể tự xóa tài khoản của chính mình (cả xóa mềm lẫn xóa cứng)!":
+    "You cannot delete your own account (neither soft nor hard delete)!",
+  "Bạn không thể tự vô hiệu hóa tài khoản của chính mình!":
+    "You cannot deactivate your own account!",
   "Thao tác thất bại": "Action failed",
   "(Bạn)": "(You)",
   "Xóa tài khoản": "Delete Account",
-  "Phục vụ công tác thanh tra, rà soát tính toàn vẹn của hồ sơ huấn luyện. Theo dõi toàn bộ lịch sử CRUD, phê duyệt, thẩm định và khóa hồ sơ.": "Supports audit inspection and review of training record integrity. Tracks full history of CRUD, approvals, verifications, and record locking.",
+  "Phục vụ công tác thanh tra, rà soát tính toàn vẹn của hồ sơ huấn luyện. Theo dõi toàn bộ lịch sử CRUD, phê duyệt, thẩm định và khóa hồ sơ.":
+    "Supports audit inspection and review of training record integrity. Tracks full history of CRUD, approvals, verifications, and record locking.",
   "Số lượng bản ghi / sự kiện": "Number of records / events",
   "Tuân thủ (%)": "Compliance (%)",
-  "mục": "items",
-  "Chưa có học viên nào để tạo template điểm. Hãy kiểm tra ghi danh của lớp.": "No students found to generate score template. Please verify class enrollment.",
-  "Bạn chưa được phân công giảng dạy môn nào trong lớp này.": "You are not assigned to teach any subjects in this class.",
+  mục: "items",
+  "Chưa có học viên nào để tạo template điểm. Hãy kiểm tra ghi danh của lớp.":
+    "No students found to generate score template. Please verify class enrollment.",
+  "Bạn chưa được phân công giảng dạy môn nào trong lớp này.":
+    "You are not assigned to teach any subjects in this class.",
   "Cập nhật Assessment": "Update Assessment",
   "Tạo Assessment": "Create Assessment",
   "Tổng trọng số các assessment = 100%": "Total weight of assessments = 100%",
   "Cập nhật Mục thực hành": "Update Practical Item",
   "Tạo Mục thực hành": "Create Practical Item",
-  "Lớp chưa có học viên nào để tạo template điểm danh. Hãy kiểm tra ghi danh của lớp.": "No students found to generate attendance template. Please verify class enrollment.",
-  "Vui lòng chọn lớp học trước khi tạo buổi học": "Please select a class before creating a session",
-  "Vui lòng chọn Ngày học trước khi lưu buổi học.": "Please select a session date before saving.",
+  "Lớp chưa có học viên nào để tạo template điểm danh. Hãy kiểm tra ghi danh của lớp.":
+    "No students found to generate attendance template. Please verify class enrollment.",
+  "Vui lòng chọn lớp học trước khi tạo buổi học":
+    "Please select a class before creating a session",
+  "Vui lòng chọn Ngày học trước khi lưu buổi học.":
+    "Please select a session date before saving.",
   "Cập nhật buổi học thành công!": "Session updated successfully!",
   "Tạo buổi học thành công!": "Session created successfully!",
-  "Buổi học được tự động tạo khi lớp được thiết lập": "Sessions are automatically generated when the class is scheduled",
+  "Buổi học được tự động tạo khi lớp được thiết lập":
+    "Sessions are automatically generated when the class is scheduled",
   "Tạo buổi học": "Create Session",
   "Chưa có lớp": "No class selected",
   "Tỉ lệ điểm danh (%)": "Attendance Rate (%)",
@@ -1381,19 +1661,26 @@ export const VN_TO_EN = {
   "Chưa xác nhận": "Unconfirmed",
   "Số buổi": "Number of Sessions",
   "QA Audit Trail (Nhật ký Thẩm định)": "QA Audit Trail",
-  "Rà soát các thay đổi về bằng chứng, điểm số, điểm danh và phê duyệt phục vụ nguyên tắc thẩm định Maker-Checker. Kiểm tra đầy đủ mọi thao tác CRUD và điều chỉnh.": "Reviews changes to evidence, scores, attendance, and approvals upholding Maker-Checker principles. Thoroughly audits all CRUD operations and modifications.",
+  "Rà soát các thay đổi về bằng chứng, điểm số, điểm danh và phê duyệt phục vụ nguyên tắc thẩm định Maker-Checker. Kiểm tra đầy đủ mọi thao tác CRUD và điều chỉnh.":
+    "Reviews changes to evidence, scores, attendance, and approvals upholding Maker-Checker principles. Thoroughly audits all CRUD operations and modifications.",
   "Evidence Files (Minh chứng)": "Evidence Files",
   "Số lượng mục / hồ sơ": "Number of items / records",
   "Chất lượng (%)": "Quality (%)",
-  "Dữ liệu từ GET /api/Dashboard/my-dashboard (myEtrs).": "Data from GET /api/Dashboard/my-dashboard (myEtrs).",
+  "Dữ liệu từ GET /api/Dashboard/my-dashboard (myEtrs).":
+    "Data from GET /api/Dashboard/my-dashboard (myEtrs).",
   "Tiến độ hoàn thành hồ sơ": "Record Completion Progress",
-  "Biểu đồ đường cong tiến độ đào tạo các hồ sơ ETR.": "Progression curve chart of ETR training records.",
-  "Tổng": "Total",
-  "Mã lớp học đã tồn tại. Vui lòng nhập một Mã lớp khác.": "Class code already exists. Please enter a different Class code.",
+  "Biểu đồ đường cong tiến độ đào tạo các hồ sơ ETR.":
+    "Progression curve chart of ETR training records.",
+  Tổng: "Total",
+  "Mã lớp học đã tồn tại. Vui lòng nhập một Mã lớp khác.":
+    "Class code already exists. Please enter a different Class code.",
   "(Quản trị gốc)": "(Root Administrator)",
-  "(Tự động tính từ các môn học đã chọn)": "(Automatically calculated from selected subjects)",
-  "* Các vai trò Instructor, QA, Academic, Training Manager, Audit có thể chọn phòng Training hoặc Administration.": "* Roles Instructor, QA, Academic, Training Manager, and Audit can select Training or Administration department.",
-  "* Học viên (Student) chỉ được phân bổ vào các phòng ban khác Training và Administration.": "* Students can only be assigned to departments other than Training and Administration.",
+  "(Tự động tính từ các môn học đã chọn)":
+    "(Automatically calculated from selected subjects)",
+  "* Các vai trò Instructor, QA, Academic, Training Manager, Audit có thể chọn phòng Training hoặc Administration.":
+    "* Roles Instructor, QA, Academic, Training Manager, and Audit can select Training or Administration department.",
+  "* Học viên (Student) chỉ được phân bổ vào các phòng ban khác Training và Administration.":
+    "* Students can only be assigned to departments other than Training and Administration.",
   "+ Tạo Assessment": "+ Create Assessment",
   "+ Tạo Mục thực hành": "+ Create Practical Item",
   "Assessment (Lý thuyết)": "Assessment (Theory)",
@@ -1404,15 +1691,22 @@ export const VN_TO_EN = {
   "BUỔI 11": "SESSION 11",
   "BUỔI 12": "SESSION 12",
   "BUỔI HỌC (10-12)": "SESSIONS (10-12)",
-  "Buổi học đã quá hạn điểm danh bù (48 giờ)": "Session has passed the 48-hour back-dated attendance deadline",
+  "Buổi học đã quá hạn điểm danh bù (48 giờ)":
+    "Session has passed the 48-hour back-dated attendance deadline",
   "Buổi này không có bài lý thuyết.": "This session has no theory assessment.",
-  "Buổi này không có bài thực hành.": "This session has no practical assessment.",
+  "Buổi này không có bài thực hành.":
+    "This session has no practical assessment.",
   "Buổi:": "Session:",
-  "Bạn chưa có chứng chỉ đào tạo nào.": "You have no training certificates yet.",
-  "Bạn có chắc chắn muốn chốt và khóa bảng điểm danh này?": "Are you sure you want to finalize and lock this attendance sheet?",
-  "Bạn có chắc chắn muốn chốt và khóa bảng điểm này?": "Are you sure you want to finalize and lock this grade sheet?",
-  "Bạn có chắc chắn muốn ký xác nhận (Subject Signoff) cho tất cả môn học trong buổi này? Sau khi ký, hệ thống sẽ tự động đánh giá Pass/Fail.": "Are you sure you want to perform Subject Sign-off for all subjects in this session? After sign-off, the system will automatically evaluate Pass/Fail.",
-  "Bạn có chắc chắn muốn xóa tệp minh chứng này?": "Are you sure you want to delete this evidence file?",
+  "Bạn chưa có chứng chỉ đào tạo nào.":
+    "You have no training certificates yet.",
+  "Bạn có chắc chắn muốn chốt và khóa bảng điểm danh này?":
+    "Are you sure you want to finalize and lock this attendance sheet?",
+  "Bạn có chắc chắn muốn chốt và khóa bảng điểm này?":
+    "Are you sure you want to finalize and lock this grade sheet?",
+  "Bạn có chắc chắn muốn ký xác nhận (Subject Signoff) cho tất cả môn học trong buổi này? Sau khi ký, hệ thống sẽ tự động đánh giá Pass/Fail.":
+    "Are you sure you want to perform Subject Sign-off for all subjects in this session? After sign-off, the system will automatically evaluate Pass/Fail.",
+  "Bạn có chắc chắn muốn xóa tệp minh chứng này?":
+    "Are you sure you want to delete this evidence file?",
   "BẢNG KIỂM THỰC HÀNH (PRACTICAL)": "PRACTICAL CHECKLIST",
   "Bắt buộc (IsRequired)": "Mandatory (IsRequired)",
   "Bắt buộc Pass": "Mandatory Pass",
@@ -1422,34 +1716,53 @@ export const VN_TO_EN = {
   "CHI TIẾT KIỂM DUYỆT CÁC BƯỚC HỒ SƠ": "RECORD WORKFLOW VERIFICATION DETAILS",
   "CHỐT ĐIỂM": "FINALIZE SCORES",
   "Chuyên đề / Buổi học": "Topic / Session",
-  "Chưa có Assessment nào cho môn này.": "No assessments created for this subject yet.",
-  "Chưa có Assessment nào được tạo cho môn học này.": "No assessments created for this subject yet.",
-  "Chưa có dữ liệu. Hãy nhập điểm & ấn Lưu để tính điều kiện ký xác nhận.": "No data available. Please enter scores and click Save to calculate sign-off eligibility.",
+  "Chưa có Assessment nào cho môn này.":
+    "No assessments created for this subject yet.",
+  "Chưa có Assessment nào được tạo cho môn học này.":
+    "No assessments created for this subject yet.",
+  "Chưa có dữ liệu. Hãy nhập điểm & ấn Lưu để tính điều kiện ký xác nhận.":
+    "No data available. Please enter scores and click Save to calculate sign-off eligibility.",
   "Chưa có kết quả môn học.": "No subject results yet.",
   "Chưa có lý do chi tiết.": "No detailed reason provided.",
   "Chưa có môn học nào trong hệ thống.": "No subjects exist in the system yet.",
-  "Chưa có mục thực hành cho môn này.": "No practical checklist items for this subject yet.",
-  "Chưa có mục thực hành nào cho môn này.": "No practical checklist items for this subject yet.",
-  "Chưa có tệp minh chứng nào cho học viên này.": "No evidence files uploaded for this student yet.",
-  "Chưa có tệp minh chứng nào được tải lên cho lớp này.": "No evidence files uploaded for this class yet.",
+  "Chưa có mục thực hành cho môn này.":
+    "No practical checklist items for this subject yet.",
+  "Chưa có mục thực hành nào cho môn này.":
+    "No practical checklist items for this subject yet.",
+  "Chưa có tệp minh chứng nào cho học viên này.":
+    "No evidence files uploaded for this student yet.",
+  "Chưa có tệp minh chứng nào được tải lên cho lớp này.":
+    "No evidence files uploaded for this class yet.",
   "Chỉnh sửa": "Edit",
   "Chỉnh sửa môn học": "Edit Subject",
   "Chọn buổi học": "Select Session",
-  "Chọn học viên khác hoặc tải lên minh chứng mới ở khung bên phải.": "Select another student or upload new evidence in the right panel.",
+  "Chọn học viên khác hoặc tải lên minh chứng mới ở khung bên phải.":
+    "Select another student or upload new evidence in the right panel.",
   "Chọn khóa đào tạo...": "Select training course...",
   "Chọn lớp học": "Select Class",
-  "Chọn lớp học và assessment để nhập điểm cho học viên.": "Select a class and assessment to enter scores for students.",
+  "Chọn lớp học và assessment để nhập điểm cho học viên.":
+    "Select a class and assessment to enter scores for students.",
   "Chọn lớp:": "Select class:",
+  "Lớp của tôi": "My Classes",
+  "Chọn lớp": "Select class",
+  "Chọn môn": "Select subject",
+  "Bạn chưa được phân công môn nào trong lớp này": "You are not assigned to any subject in this class",
+  "Bạn chưa được phân công môn nào trong lớp này. Liên hệ Academic để được phân công.":
+    "You are not assigned to any subject in this class. Contact Academic to be assigned.",
+  "Chọn lớp của bạn để cấu hình Assessments & Practical Checklists.":
+    "Select your class to configure Assessments & Practical Checklists.",
   "Chọn môn (tùy chọn)": "Select subject (optional)",
   "Chọn tệp từ máy": "Choose file from device",
   "Chốt điểm danh thành công!": "Attendance finalized successfully!",
   "Chốt điểm danh thất bại!": "Failed to finalize attendance!",
   "Chốt điểm thành công!": "Scores finalized successfully!",
   "Chốt điểm thất bại!": "Failed to finalize scores!",
-  "Chốt điểm: có học viên bị lỗi!": "Score finalization: some students encountered errors!",
+  "Chốt điểm: có học viên bị lỗi!":
+    "Score finalization: some students encountered errors!",
   "Chủ đề môn học": "Subject Topic",
   "Các minh chứng đã tải lên": "Uploaded Evidence Files",
-  "Các mục thực hành bắt buộc / tự chọn": "Mandatory / Elective Practical Items",
+  "Các mục thực hành bắt buộc / tự chọn":
+    "Mandatory / Elective Practical Items",
   "Còn 1 ngày": "1 day left",
   "Còn 1 tháng": "1 month left",
   "Còn hiệu lực": "Valid",
@@ -1468,11 +1781,12 @@ export const VN_TO_EN = {
   "Danh sách ETR gần đây": "Recent ETR Records",
   "Danh sách kiểm tra thực hành (Practical Checklist)": "Practical Checklist",
   "Danh sách lớp học (Active & Upcoming)": "Class List (Active & Upcoming)",
-  "Duyệt": "Approve",
+  Duyệt: "Approve",
   "Duyệt yêu cầu mở khóa": "Approve Unlock Request",
   "Duyệt yêu cầu thất bại!": "Failed to approve request!",
   "ETR trước": "Previous ETR",
-  "File xuất chưa hoàn thành. Vui lòng thử lại sau.": "Export file is not ready yet. Please try again later.",
+  "File xuất chưa hoàn thành. Vui lòng thử lại sau.":
+    "Export file is not ready yet. Please try again later.",
   "GIỮ NGUYÊN": "RETAINED",
   "Ghi chú nhận xét": "Remarks / Comments",
   "Gửi yêu cầu mở khóa thất bại!": "Failed to send unlock request!",
@@ -1481,20 +1795,27 @@ export const VN_TO_EN = {
   "HỌC VIÊN VẮNG NHIỀU": "FREQUENTLY ABSENT STUDENTS",
   "HỌC VIÊN ĐÀO TẠO": "TRAINING LEARNERS",
   "Học viên dưới ngưỡng điểm danh": "Students below attendance threshold",
-  "Học viên phải thỏa mãn cả 4 điều kiện": "Student must satisfy all 4 criteria",
+  "Học viên phải thỏa mãn cả 4 điều kiện":
+    "Student must satisfy all 4 criteria",
   "HỒ SƠ CÁ NHÂN": "PERSONAL PROFILE",
-  "HỒ SƠ ĐÀO TẠO ĐIỆN TỬ HOÀN CHỈNH (ETR FINAL SHEET)": "ELECTRONIC TRAINING RECORD FINAL SHEET (ETR)",
-  "Hồ sơ ETR liên quan đã hoàn tất và bị khóa nên minh chứng này không thể xác thực hoặc từ chối.": "The associated ETR is completed and locked; this evidence cannot be verified or rejected.",
-  "Hồ sơ ETR liên quan đã hoàn tất/khóa nên không thể thay đổi minh chứng này.": "The associated ETR is completed and locked; this evidence cannot be modified.",
+  "HỒ SƠ ĐÀO TẠO ĐIỆN TỬ HOÀN CHỈNH (ETR FINAL SHEET)":
+    "ELECTRONIC TRAINING RECORD FINAL SHEET (ETR)",
+  "Hồ sơ ETR liên quan đã hoàn tất và bị khóa nên minh chứng này không thể xác thực hoặc từ chối.":
+    "The associated ETR is completed and locked; this evidence cannot be verified or rejected.",
+  "Hồ sơ ETR liên quan đã hoàn tất/khóa nên không thể thay đổi minh chứng này.":
+    "The associated ETR is completed and locked; this evidence cannot be modified.",
   "Hồ sơ minh chứng đào tạo": "Training Evidence Portfolio",
   "Hồ sơ theo nhóm tuân thủ.": "Records by compliance group.",
-  "Hồ sơ đã hoàn tất và bị khóa — không thể thay đổi dữ liệu.": "Record is completed and locked — data cannot be modified.",
-  "Hỗ trợ PDF, PNG, JPG, GIF, WEBP — lưu trữ trên Cloudinary": "Supports PDF, PNG, JPG, GIF, WEBP — hosted on Cloudinary",
+  "Hồ sơ đã hoàn tất và bị khóa — không thể thay đổi dữ liệu.":
+    "Record is completed and locked — data cannot be modified.",
+  "Hỗ trợ PDF, PNG, JPG, GIF, WEBP — lưu trữ trên Cloudinary":
+    "Supports PDF, PNG, JPG, GIF, WEBP — hosted on Cloudinary",
   "KHÓA ĐÀO TẠO": "TRAINING COURSE",
   "KHÓA ĐÀO TẠO (Bắt buộc) *": "TRAINING COURSE (Mandatory) *",
   "Không chọn assessment": "No assessment selected",
   "Không có ETR nào.": "No ETR records found.",
-  "Không có assessment chưa được chọn cho môn này.": "No unselected assessments for this subject.",
+  "Không có assessment chưa được chọn cho môn này.":
+    "No unselected assessments for this subject.",
   "Không có chứng chỉ nào ở trạng thái này.": "No certificates in this status.",
   "Không có dữ liệu": "No data available",
   "Không có giờ dạy": "No teaching hours",
@@ -1505,19 +1826,28 @@ export const VN_TO_EN = {
   "Không có quyền xuất dữ liệu": "No export data permission",
   "Không có thay đổi!": "No changes detected!",
   "Không thể tải chi tiết ETR.": "Unable to load ETR details.",
-  "Không thể tải trạng thái chứng chỉ. Vui lòng thử lại sau.": "Unable to load certificate status. Please try again later.",
-  "Không thể tự vô hiệu hóa/xóa tài khoản của chính mình": "You cannot deactivate or delete your own account",
-  "Không thể vô hiệu hóa hoặc xóa tài khoản Quản trị viên hệ thống gốc (ID: 1).": "Cannot deactivate or delete the root System Administrator account (ID: 1).",
-  "Không thể xác thực người dùng. Vui lòng đăng nhập lại.": "User authentication failed. Please log in again.",
+  "Không thể tải trạng thái chứng chỉ. Vui lòng thử lại sau.":
+    "Unable to load certificate status. Please try again later.",
+  "Không thể tự vô hiệu hóa/xóa tài khoản của chính mình":
+    "You cannot deactivate or delete your own account",
+  "Không thể vô hiệu hóa hoặc xóa tài khoản Quản trị viên hệ thống gốc (ID: 1).":
+    "Cannot deactivate or delete the root System Administrator account (ID: 1).",
+  "Không thể xác thực người dùng. Vui lòng đăng nhập lại.":
+    "User authentication failed. Please log in again.",
   "Không thể xóa": "Cannot delete",
-  "Không tìm thấy buổi học nào cho lớp học hiện tại.": "No sessions found for current class.",
+  "Không tìm thấy buổi học nào cho lớp học hiện tại.":
+    "No sessions found for current class.",
   "Không tìm thấy học viên nào.": "No students found.",
-  "Không tìm thấy lớp học phù hợp với bộ lọc tìm kiếm.": "No classes match the search filters.",
-  "Không tìm thấy môn học (SubjectResult) trong ETR của học viên để gắn minh chứng. Vui lòng kiểm tra ghi danh/ETR của học viên.": "SubjectResult not found in student's ETR to attach evidence. Please verify student enrollment/ETR.",
+  "Không tìm thấy lớp học phù hợp với bộ lọc tìm kiếm.":
+    "No classes match the search filters.",
+  "Không tìm thấy môn học (SubjectResult) trong ETR của học viên để gắn minh chứng. Vui lòng kiểm tra ghi danh/ETR của học viên.":
+    "SubjectResult not found in student's ETR to attach evidence. Please verify student enrollment/ETR.",
   "Không tìm thấy môn học phù hợp.": "No matching subjects found.",
   "Không tải được bản xem trước": "Unable to load preview",
-  "Không tải được bản xem trước — dùng nút Tải xuống để mở tệp.": "Unable to load preview — use Download button to open file.",
-  "Không tải được danh sách yêu cầu mở khóa.": "Unable to load unlock requests list.",
+  "Không tải được bản xem trước — dùng nút Tải xuống để mở tệp.":
+    "Unable to load preview — use Download button to open file.",
+  "Không tải được danh sách yêu cầu mở khóa.":
+    "Unable to load unlock requests list.",
   "Không yêu cầu kiểm tra thực hành": "Practical checklist not required",
   "Kiểm tra dữ liệu điểm danh": "Check attendance data",
   "Kéo thả tệp minh chứng vào đây": "Drag & drop evidence files here",
@@ -1528,29 +1858,36 @@ export const VN_TO_EN = {
   "LOẠI TẬP TIN": "FILE TYPE",
   "Loại bằng chứng:": "Evidence Type:",
   "Loại môn học": "Subject Type",
-  "Loại tệp này không xem trước được trong trình duyệt.": "This file type cannot be previewed in the browser.",
+  "Loại tệp này không xem trước được trong trình duyệt.":
+    "This file type cannot be previewed in the browser.",
   "Loại đánh giá": "Assessment Type",
   "Lý do từ chối": "Rejection Reason",
   "LƯU ĐIỂM": "SAVE SCORES",
   "Lưu thông tin": "Save Information",
   "Lưu điểm thành công!": "Scores saved successfully!",
   "Lưu điểm thất bại!": "Failed to save scores!",
-  "Lưu điểm: có học viên bị lỗi!": "Save scores: some students encountered errors!",
-  "Lần": "Attempt",
+  "Lưu điểm: có học viên bị lỗi!":
+    "Save scores: some students encountered errors!",
+  Lần: "Attempt",
   "LỊCH TRÌNH": "SCHEDULE",
   "Lịch biểu Tuần học hiện tại": "Current Week Schedule",
   "Lịch giảng dạy trong tuần": "Weekly Teaching Schedule",
-  "Lịch trình giảng dạy chi tiết của giảng viên theo từng ngày trong tuần.": "Detailed weekly teaching schedule for instructor.",
+  "Lịch trình giảng dạy chi tiết của giảng viên theo từng ngày trong tuần.":
+    "Detailed weekly teaching schedule for instructor.",
   "Lỗi xác thực": "Validation Error",
   "LỚP KHÔNG THUỘC KHÓA HỌC": "CLASS DOES NOT BELONG TO COURSE",
   "Lớp #": "Class #",
-  "Lớp chưa có học viên nào để gắn minh chứng. Vui lòng kiểm tra danh sách học viên của lớp.": "Class has no enrolled students to attach evidence. Please check class roster.",
+  "Lớp chưa có học viên nào để gắn minh chứng. Vui lòng kiểm tra danh sách học viên của lớp.":
+    "Class has no enrolled students to attach evidence. Please check class roster.",
   "Lớp học đã kết thúc / bị hủy": "Class has ended or was cancelled",
   "Lớp được khởi tạo.": "Class initialized.",
   "Minh chứng của học viên:": "Evidence of student:",
-  "Minh chứng mới sẽ chuyển về trạng thái Pending để QA duyệt lại.": "New evidence will be set to Pending status for QA review.",
-  "Minh chứng tải lên sẽ được gắn cho học viên này.": "Uploaded evidence will be linked to this student.",
-  "Minh chứng đã được QA xác thực, không thể xóa.": "Evidence has been QA-verified and cannot be deleted.",
+  "Minh chứng mới sẽ chuyển về trạng thái Pending để QA duyệt lại.":
+    "New evidence will be set to Pending status for QA review.",
+  "Minh chứng tải lên sẽ được gắn cho học viên này.":
+    "Uploaded evidence will be linked to this student.",
+  "Minh chứng đã được QA xác thực, không thể xóa.":
+    "Evidence has been QA-verified and cannot be deleted.",
   "MÃ ETR HỒ SƠ": "ETR RECORD ID",
   "MÃ LỚP (Bắt buộc) *": "CLASS CODE (Mandatory) *",
   "MÃ SỐ HỌC VIÊN": "STUDENT ID",
@@ -1560,21 +1897,24 @@ export const VN_TO_EN = {
   "Mô tả": "Description",
   "Mô tả (Description)": "Description",
   "Mô tả môn học (tùy chọn)": "Subject description (optional)",
-  "Mô tả yêu cầu / tiêu chí đánh giá": "Requirement description / grading criteria",
+  "Mô tả yêu cầu / tiêu chí đánh giá":
+    "Requirement description / grading criteria",
   "Môn #": "Subject #",
   "Mật khẩu quá ngắn": "Password too short",
   "MỞ LẠI ETR": "REOPEN ETR",
-  "Mở": "Open",
+  Mở: "Open",
   "Mở khóa": "Unlock",
   "Mục bắt buộc (bắt buộc Pass)": "Mandatory Item (must pass)",
-  "Mục này sẽ bị xóa vĩnh viễn. Bạn chắc chắn chứ?": "This item will be permanently deleted. Are you sure?",
+  "Mục này sẽ bị xóa vĩnh viễn. Bạn chắc chắn chứ?":
+    "This item will be permanently deleted. Are you sure?",
   "NHẬP ĐIỂM": "ENTER GRADES",
   "NHẬP ĐIỂM ĐÁNH GIÁ": "ENTER ASSESSMENT SCORES",
   "Nhập ghi chú (tùy chọn)...": "Enter notes (optional)...",
   "Nhập ghi chú nhận xét về học viên...": "Enter remarks about student...",
   "Nhập lý do mở khóa...": "Enter unlock reason...",
   "Nhập lại mật khẩu mới": "Confirm new password",
-  "Nhập mật khẩu mới (ít nhất 6 ký tự)": "Enter new password (at least 6 characters)",
+  "Nhập mật khẩu mới (ít nhất 6 ký tự)":
+    "Enter new password (at least 6 characters)",
   "Nhập số điện thoại": "Enter phone number",
   "Nhập điểm đánh giá": "Enter assessment score",
   "NỘI DUNG THAY ĐỔI": "CHANGED CONTENT",
@@ -1589,17 +1929,23 @@ export const VN_TO_EN = {
   "Practical Checklists (Thực hành)": "Practical Checklists",
   "QA-verified ETRs ≥85% hoàn thành": "QA-verified ETRs ≥85% complete",
   "QUẢN LÝ TỔ CHỨC / ADMIN": "ORGANIZATION MANAGEMENT / ADMIN",
-  "Quản lý danh sách môn học: tạo mới, cập nhật thông tin và xóa mềm.": "Manage subject list: create, update, and soft-delete.",
+  "Quản lý danh sách môn học: tạo mới, cập nhật thông tin và xóa mềm.":
+    "Manage subject list: create, update, and soft-delete.",
   "Quản lý hồ sơ cá nhân": "Manage Personal Profile",
-  "Quản lý thông tin cá nhân, ngày sinh, số điện thoại và mật khẩu.": "Manage personal information, birthdate, phone number, and password.",
-  "Quản lý và giám sát tiến độ các lớp đào tạo hàng không": "Manage and monitor aviation training classes progress",
+  "Quản lý thông tin cá nhân, ngày sinh, số điện thoại và mật khẩu.":
+    "Manage personal information, birthdate, phone number, and password.",
+  "Quản lý và giám sát tiến độ các lớp đào tạo hàng không":
+    "Manage and monitor aviation training classes progress",
   "SỐ BUỔI ĐÃ HỌC": "COMPLETED SESSIONS",
   "Số giờ": "Hours",
   "Số giờ cần học": "Required Hours",
   "Số giờ mặc định": "Default Hours",
-  "Theo dõi tiến độ đào tạo, kết quả học tập và hồ sơ ETR của bạn.": "Track your training progress, grades, and ETR records.",
-  "Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo của bạn.": "Track validity status of your training certificates.",
-  "Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo và kiểm tra ngày hết hạn.": "Track validity of training certificates and check expiry dates.",
+  "Theo dõi tiến độ đào tạo, kết quả học tập và hồ sơ ETR của bạn.":
+    "Track your training progress, grades, and ETR records.",
+  "Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo của bạn.":
+    "Track validity status of your training certificates.",
+  "Theo dõi tình trạng hiệu lực của các chứng chỉ đào tạo và kiểm tra ngày hết hạn.":
+    "Track validity of training certificates and check expiry dates.",
   "Thiếu loại bằng chứng": "Missing evidence type",
   "Thiếu thông tin bắt buộc": "Missing required information",
   "Thêm Note": "Add Note",
@@ -1614,20 +1960,25 @@ export const VN_TO_EN = {
   "Trọng số (%)": "Weight (%)",
   "Tuần này": "This Week",
   "TÊN LỚP (Bắt buộc) *": "CLASS NAME (Mandatory) *",
-  "Tài khoản hiện tại chưa được backend cho phép đọc danh sách ETR (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR được cấp ở backend.": "Current account is not authorized by backend to read ETRs (GET /Etr returned 403) — approval queue shows Approval Requests. Score/evidence details will display once ETR read permission is granted.",
-  "Tên khóa học không được chứa ký tự đặc biệt.": "Course name cannot contain special characters.",
+  "Tài khoản hiện tại chưa được backend cho phép đọc danh sách ETR (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR được cấp ở backend.":
+    "Current account is not authorized by backend to read ETRs (GET /Etr returned 403) — approval queue shows Approval Requests. Score/evidence details will display once ETR read permission is granted.",
+  "Tên khóa học không được chứa ký tự đặc biệt.":
+    "Course name cannot contain special characters.",
   "Tên mục thực hành (ItemName)": "Practical Item Name",
   "Tên đánh giá (ComponentName)": "Assessment Component Name",
   "Tìm kiếm học viên hoặc ID...": "Search students or ID...",
   "Tìm theo mã, tên, mô tả...": "Search by code, name, description...",
-  "Tạo Assessments & Practical Checklists cho từng môn": "Create Assessments & Practical Checklists for each subject",
+  "Tạo Assessments & Practical Checklists cho từng môn":
+    "Create Assessments & Practical Checklists for each subject",
   "Tạo lớp": "Create Class",
   "Tạo môn học": "Create Subject",
   "Tạo môn học thành công!": "Subject created successfully!",
   "Tạo môn học thất bại.": "Failed to create subject.",
   "Tạo mới môn học": "Create New Subject",
-  "Tải lên và lưu trữ các tệp bằng chứng thực hành/điểm danh để phục vụ QA và báo cáo.": "Upload and store practical/attendance evidence files for QA and auditing.",
-  "Tải lại minh chứng ở khung bên phải để gửi lại cho QA duyệt.": "Re-upload evidence in the right panel to re-submit for QA approval.",
+  "Tải lên và lưu trữ các tệp bằng chứng thực hành/điểm danh để phục vụ QA và báo cáo.":
+    "Upload and store practical/attendance evidence files for QA and auditing.",
+  "Tải lại minh chứng ở khung bên phải để gửi lại cho QA duyệt.":
+    "Re-upload evidence in the right panel to re-submit for QA approval.",
   "Tất cả lớp học": "All Classes",
   "Tệp #": "File #",
   "Tổng số chứng chỉ": "Total Certificates",
@@ -1638,10 +1989,13 @@ export const VN_TO_EN = {
   "Tự chọn": "Elective",
   "TỶ LỆ THAM DỰ CHUNG": "OVERALL ATTENDANCE RATE",
   "TỶ LỆ TỔNG": "OVERALL RATE",
-  "VD: Ghi nhận và xử lý thông số chuyến bay": "e.g., Record and analyze flight parameters",
+  "VD: Ghi nhận và xử lý thông số chuyến bay":
+    "e.g., Record and analyze flight parameters",
   "VD: Kiểm tra cuối kỳ LT": "e.g., Final Theory Exam",
-  "Vui lòng chọn lớp để xem danh sách Assessment.": "Please select a class to view assessment list.",
-  "Vui lòng nhập Mã môn học và Tên môn học.": "Please enter Subject Code and Subject Name.",
+  "Vui lòng chọn lớp để xem danh sách Assessment.":
+    "Please select a class to view assessment list.",
+  "Vui lòng nhập Mã môn học và Tên môn học.":
+    "Please enter Subject Code and Subject Name.",
   "Vui lòng nhập lý do mở khóa.": "Please enter unlock reason.",
   "Vui lòng nhập lý do từ chối.": "Please enter rejection reason.",
   "Ví dụ: Aviation Regulations": "e.g., Aviation Regulations",
@@ -1650,8 +2004,10 @@ export const VN_TO_EN = {
   "XEM TRƯỚC TÀI LIỆU MINH CHỨNG": "EVIDENCE DOCUMENT PREVIEW",
   "XUẤT BÁO CÁO": "EXPORT REPORT",
   "Xem chi tiết hồ sơ": "View Record Details",
-  "Xem thông tin cá nhân và thay đổi mật khẩu đăng nhập.": "View personal info and change login password.",
-  "Xem toàn bộ hồ sơ đào tạo, điểm danh, điểm số và minh chứng của bạn.": "View your complete training records, attendance, grades, and evidence.",
+  "Xem thông tin cá nhân và thay đổi mật khẩu đăng nhập.":
+    "View personal info and change login password.",
+  "Xem toàn bộ hồ sơ đào tạo, điểm danh, điểm số và minh chứng của bạn.":
+    "View your complete training records, attendance, grades, and evidence.",
   "Xin chào,": "Hello,",
   "Xin mở khóa để sửa điểm": "Request unlock to update scores",
   "Xuất báo cáo": "Export Report",
@@ -1664,15 +2020,18 @@ export const VN_TO_EN = {
   "Xác nhận ký xác nhận môn học": "Confirm Subject Sign-off",
   "Xác nhận xóa": "Confirm Delete",
   "Xác thực hàng loạt thất bại!": "Batch verification failed!",
-  "Xác thực tất cả minh chứng đang chờ (chưa khóa)": "Verify all pending evidence (unlocked)",
+  "Xác thực tất cả minh chứng đang chờ (chưa khóa)":
+    "Verify all pending evidence (unlocked)",
   "Xóa bỏ": "Delete",
   "Xóa môn học thành công!": "Subject deleted successfully!",
   "Xóa môn học thất bại.": "Failed to delete subject.",
   "YÊU CẦU MỞ KHÓA MÔN HỌC": "SUBJECT UNLOCK REQUEST",
   "minh chứng thất bại": "evidence failed",
-  "môn chưa Pass phải học/thi lại trong kỳ này": "unpassed subjects must be retaken this term",
-  "môn đã Pass/Exempted được giữ kết quả từ lần học trước": "passed/exempted subjects retain results from previous term",
-  "tháng": "months",
+  "môn chưa Pass phải học/thi lại trong kỳ này":
+    "unpassed subjects must be retaken this term",
+  "môn đã Pass/Exempted được giữ kết quả từ lần học trước":
+    "passed/exempted subjects retain results from previous term",
+  tháng: "months",
   "tệp tài liệu lưu trữ": "archived files",
   "ĐIỀU KIỆN KÝ XÁC NHẬN (SUBJECT SIGNOFF)": "SUBJECT SIGN-OFF CRITERIA",
   "ĐIỂM KIỂM TRA (ASSESSMENT)": "ASSESSMENT SCORES",
@@ -1683,8 +2042,9 @@ export const VN_TO_EN = {
   "Đang tải loại bằng chứng...": "Loading evidence types...",
   "Đang tải tệp lên máy chủ:": "Uploading file to server:",
   "Đang xuất...": "Exporting...",
-  "Điền thông tin chi tiết cho lớp đào tạo hàng không mới": "Enter details for new aviation training class",
-  "Điểm": "Score",
+  "Điền thông tin chi tiết cho lớp đào tạo hàng không mới":
+    "Enter details for new aviation training class",
+  Điểm: "Score",
   "Điểm danh lớp học": "Class Attendance",
   "Điểm đạt (PassingScore)": "Passing Score",
   "Điểm để pass": "Score to pass",
@@ -1696,7 +2056,8 @@ export const VN_TO_EN = {
   "Đánh giá theo Assessment": "Evaluate by Assessment",
   "Đánh giá thực hành (Practical)": "Practical Evaluation",
   "Đã duyệt yêu cầu mở khóa!": "Unlock request approved!",
-  "Đã gửi yêu cầu mở khóa cho Training Manager!": "Unlock request sent to Training Manager!",
+  "Đã gửi yêu cầu mở khóa cho Training Manager!":
+    "Unlock request sent to Training Manager!",
   "Đã hoàn thành đánh giá chuyên đề.": "Topic evaluation completed.",
   "Đã lên lịch": "Scheduled",
   "Đã thẩm định": "Verified",
@@ -1706,52 +2067,182 @@ export const VN_TO_EN = {
   "Địa điểm / Phòng": "Location / Room",
   "Đổi mật khẩu thành công": "Password changed successfully",
   "⌛ ĐANG CHỜ": "⌛ PENDING",
-  "⚙️ Tiêu chí từng môn học (Thời gian học, Điểm đạt, Bắt buộc)": "⚙️ Subject Criteria (Duration, Passing Score, Mandatory)",
+  "⚙️ Tiêu chí từng môn học (Thời gian học, Điểm đạt, Bắt buộc)":
+    "⚙️ Subject Criteria (Duration, Passing Score, Mandatory)",
   "⛔ ĐÃ GHI DANH LỚP NÀY": "⛔ ALREADY ENROLLED IN THIS CLASS",
   "✓ ĐÃ XÁC THỰC": "✓ VERIFIED",
   "✓ Đã xác thực": "✓ Verified",
-  "❌ Quy tắc nghiệp vụ: Học viên này đã được ghi danh vào đúng Lớp học này. Không cho phép ghi danh trùng lặp.": "❌ Business rule: This student is already enrolled in this class. Duplicate enrollment is not allowed.",
-  "❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học này chưa được cấu hình môn học (Subject). Theo quy định ETR hàng không, Khóa học phải có ít nhất 1 môn học trước khi mở ghi danh.": "❌ Compliance rule violation: This course has no configured subjects. Under aviation ETR regulations, a course must have at least 1 subject before enrollment opens.",
-  "Tải template Excel (2 sheet: Classes tạo lớp mới, Students ghi danh học viên vào lớp). Học viên phải là tài khoản Student đã tồn tại. Sau đó kiểm tra và nhập — toàn bộ file sẽ thành công hoặc không có gì được ghi nếu có bất kỳ dòng lỗi.": "Download the Excel template (2 sheets: Classes creates new classes, Students enrolls learners into classes). Learners must be existing Student accounts. Then validate and commit — all rows succeed or nothing is recorded if any row has an error.",
-  "Xuất báo cáo điểm danh / đánh giá / tổng hợp lớp": "Export attendance / assessment / class summary reports",
-  "Các lớp này có CourseId không khớp với khóa học nào đang tồn tại (khóa học có thể đã bị xóa hoặc lớp được tạo với khóa học không hợp lệ). Bạn có thể cập nhật trạng thái, ghi danh học viên, xem chi tiết hoặc xóa lớp không dùng.": "These classes have a CourseId that does not match any existing course (the course may have been deleted or the class was created with an invalid course). You can update status, enroll students, view details, or delete unused classes.",
-  "Chọn loại báo cáo — hệ thống sẽ sinh file và tải về máy.": "Select report type — the system will generate the file and download it to your device.",
+  "❌ Quy tắc nghiệp vụ: Học viên này đã được ghi danh vào đúng Lớp học này. Không cho phép ghi danh trùng lặp.":
+    "❌ Business rule: This student is already enrolled in this class. Duplicate enrollment is not allowed.",
+  "❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học này chưa được cấu hình môn học (Subject). Theo quy định ETR hàng không, Khóa học phải có ít nhất 1 môn học trước khi mở ghi danh.":
+    "❌ Compliance rule violation: This course has no configured subjects. Under aviation ETR regulations, a course must have at least 1 subject before enrollment opens.",
+  "Tải template Excel (2 sheet: Classes tạo lớp mới, Students ghi danh học viên vào lớp). Học viên phải là tài khoản Student đã tồn tại. Sau đó kiểm tra và nhập — toàn bộ file sẽ thành công hoặc không có gì được ghi nếu có bất kỳ dòng lỗi.":
+    "Download the Excel template (2 sheets: Classes creates new classes, Students enrolls learners into classes). Learners must be existing Student accounts. Then validate and commit — all rows succeed or nothing is recorded if any row has an error.",
+  "Xuất báo cáo điểm danh / đánh giá / tổng hợp lớp":
+    "Export attendance / assessment / class summary reports",
+  "Các lớp này có CourseId không khớp với khóa học nào đang tồn tại (khóa học có thể đã bị xóa hoặc lớp được tạo với khóa học không hợp lệ). Bạn có thể cập nhật trạng thái, ghi danh học viên, xem chi tiết hoặc xóa lớp không dùng.":
+    "These classes have a CourseId that does not match any existing course (the course may have been deleted or the class was created with an invalid course). You can update status, enroll students, view details, or delete unused classes.",
+  "Chọn loại báo cáo — hệ thống sẽ sinh file và tải về máy.":
+    "Select report type — the system will generate the file and download it to your device.",
   "Sĩ số & Chuyên cần": "Enrollment & Attendance",
   "Không có lớp học nào đang mở": "No classes currently open",
-  "ETR được hệ thống tự động tạo khi học viên được ghi danh vào lớp. Chọn học viên để tra cứu hồ sơ hiện có.": "ETR is automatically created when a student is enrolled in a class. Select a student to look up existing records.",
-  "Ý KIẾN PHẢN HỒI / LÝ DO TRẢ VỀ (RETURN FEEDBACK)": "RETURN FEEDBACK / REASON FOR RETURN",
-  "Hồ sơ đã được thẩm định trả về để chỉnh sửa hoặc bổ sung minh chứng trước khi ký duyệt chính thức.": "The record was returned for correction or additional evidence before official sign-off.",
+  "ETR được hệ thống tự động tạo khi học viên được ghi danh vào lớp. Chọn học viên để tra cứu hồ sơ hiện có.":
+    "ETR is automatically created when a student is enrolled in a class. Select a student to look up existing records.",
+  "Ý KIẾN PHẢN HỒI / LÝ DO TRẢ VỀ (RETURN FEEDBACK)":
+    "RETURN FEEDBACK / REASON FOR RETURN",
+  "Hồ sơ đã được thẩm định trả về để chỉnh sửa hoặc bổ sung minh chứng trước khi ký duyệt chính thức.":
+    "The record was returned for correction or additional evidence before official sign-off.",
   "ĐÓNG HỒ SƠ": "CLOSE RECORD",
-  "File không có dòng dữ liệu hợp lệ nào được import. Vui lòng dùng lại template tải từ hệ thống.": "The file contains no valid data rows to import. Please use the template downloaded from the system.",
+  "File không có dòng dữ liệu hợp lệ nào được import. Vui lòng dùng lại template tải từ hệ thống.":
+    "The file contains no valid data rows to import. Please use the template downloaded from the system.",
   "Đủ điều kiện: ": "Eligible: ",
-  "Điểm đã chốt không sửa trực tiếp được. Gửi yêu cầu mở khóa cho Training Manager — khi được duyệt, SubjectResult về Pending để bạn chỉnh sửa và ký lại.": "Published scores cannot be edited directly. Submit an unlock request to the Training Manager — upon approval, the SubjectResult returns to Pending for modification and re-signoff.",
-  "Lớp đã phân công giảng viên theo môn học nhưng không có môn nào thuộc về tài khoản của bạn. Hãy liên hệ Academic để được phân công đúng môn.": "The class has assigned instructors by subject, but none are assigned to your account. Please contact Academic Staff for assignment.",
+  "Điểm đã chốt không sửa trực tiếp được. Gửi yêu cầu mở khóa cho Training Manager — khi được duyệt, SubjectResult về Pending để bạn chỉnh sửa và ký lại.":
+    "Published scores cannot be edited directly. Submit an unlock request to the Training Manager — upon approval, the SubjectResult returns to Pending for modification and re-signoff.",
+  "Lớp đã phân công giảng viên theo môn học nhưng không có môn nào thuộc về tài khoản của bạn. Hãy liên hệ Academic để được phân công đúng môn.":
+    "The class has assigned instructors by subject, but none are assigned to your account. Please contact Academic Staff for assignment.",
   "Vui lòng nhập tên đánh giá.": "Please enter the assessment name.",
-  "Trọng số phải nằm trong khoảng 0 – 100.": "Weight must be between 0 and 100.",
-  "Chọn môn học để cấu hình Assessments & Practical Checklists cho môn đó.": "Select a subject to configure Assessments & Practical Checklists for that subject.",
-  "Hệ thống chỉ cho phép giảng viên điểm danh bù trong vòng 48 giờ sau ngày học. Vui lòng liên hệ Academic Staff để xử lý ngoại lệ.": "The system only allows instructors to submit makeup attendance within 48 hours after the session date. Please contact Academic Staff for exceptions.",
-  "Nếu hồ sơ ETR của học viên đã hoàn tất và bị khóa, hệ thống sẽ từ chối khi lưu / chốt / import điểm danh cho các buổi của lớp này. Hãy kiểm tra trạng thái lớp và ETR của học viên.": "If the student's ETR record is completed and locked, the system will reject saving / confirming / importing attendance for this class's sessions. Please verify class and student ETR status.",
-  "Chọn lớp học và buổi học cụ thể để thực hiện điểm danh học viên.": "Select a class and specific session to record student attendance.",
+  "Trọng số phải nằm trong khoảng 0 – 100.":
+    "Weight must be between 0 and 100.",
+  "Chọn môn học để cấu hình Assessments & Practical Checklists cho môn đó.":
+    "Select a subject to configure Assessments & Practical Checklists for that subject.",
+  "Hệ thống chỉ cho phép giảng viên điểm danh bù trong vòng 48 giờ sau ngày học. Vui lòng liên hệ Academic Staff để xử lý ngoại lệ.":
+    "The system only allows instructors to submit makeup attendance within 48 hours after the session date. Please contact Academic Staff for exceptions.",
+  "Nếu hồ sơ ETR của học viên đã hoàn tất và bị khóa, hệ thống sẽ từ chối khi lưu / chốt / import điểm danh cho các buổi của lớp này. Hãy kiểm tra trạng thái lớp và ETR của học viên.":
+    "If the student's ETR record is completed and locked, the system will reject saving / confirming / importing attendance for this class's sessions. Please verify class and student ETR status.",
+  "Chọn lớp học và buổi học cụ thể để thực hiện điểm danh học viên.":
+    "Select a class and specific session to record student attendance.",
   "Minh chứng chờ duyệt": "Pending Evidence",
   "Minh chứng đã xử lý": "Processed Evidence",
   "Tất cả minh chứng": "All Evidence",
-  "Danh sách các minh chứng đào tạo đang chờ QA thẩm định và xác thực.": "List of training evidence files awaiting QA verification.",
-  "Danh sách các minh chứng đã được xác thực (Verified) hoặc từ chối (Rejected).": "List of evidence files that have been Verified or Rejected.",
-  "Toàn bộ minh chứng trong hệ thống ETR.": "All evidence files in the ETR system.",
+  "Danh sách các minh chứng đào tạo đang chờ QA thẩm định và xác thực.":
+    "List of training evidence files awaiting QA verification.",
+  "Danh sách các minh chứng đã được xác thực (Verified) hoặc từ chối (Rejected).":
+    "List of evidence files that have been Verified or Rejected.",
+  "Toàn bộ minh chứng trong hệ thống ETR.":
+    "All evidence files in the ETR system.",
   "Đã xử lý": "Processed",
-  "Giảng viên xin mở khóa một SubjectResult đã ký xác nhận để sửa điểm/đánh giá. Duyệt sẽ đưa SubjectResult về Pending để giảng viên chỉnh sửa; từ chối giữ nguyên trạng thái.": "Instructor requested to unlock a signed-off SubjectResult to edit scores/evaluations. Approving will return the SubjectResult to Pending for editing; rejecting keeps its status.",
-  "SubjectResult sẽ được đưa về Pending để giảng viên chỉnh sửa; chữ ký cũ bị vô hiệu hóa. Có thể ghi chú quyết định (không bắt buộc).": "SubjectResult will be returned to Pending for editing; the previous signature is invalidated. You may optionally add decision notes.",
-  "Yêu cầu sẽ bị từ chối và SubjectResult giữ nguyên trạng thái đã ký. Bắt buộc nêu lý do từ chối.": "The request will be rejected and the SubjectResult retains its signed-off status. Rejection reason is required.",
+  "Giảng viên xin mở khóa một SubjectResult đã ký xác nhận để sửa điểm/đánh giá. Duyệt sẽ đưa SubjectResult về Pending để giảng viên chỉnh sửa; từ chối giữ nguyên trạng thái.":
+    "Instructor requested to unlock a signed-off SubjectResult to edit scores/evaluations. Approving will return the SubjectResult to Pending for editing; rejecting keeps its status.",
+  "SubjectResult sẽ được đưa về Pending để giảng viên chỉnh sửa; chữ ký cũ bị vô hiệu hóa. Có thể ghi chú quyết định (không bắt buộc).":
+    "SubjectResult will be returned to Pending for editing; the previous signature is invalidated. You may optionally add decision notes.",
+  "Yêu cầu sẽ bị từ chối và SubjectResult giữ nguyên trạng thái đã ký. Bắt buộc nêu lý do từ chối.":
+    "The request will be rejected and the SubjectResult retains its signed-off status. Rejection reason is required.",
   "MINH CHỨNG": "EVIDENCE",
   "Kích hoạt": "Activate",
   "Vô hiệu hóa": "Disable",
   "Xem chi tiết hồ sơ": "View profile details",
   "Trạng thái tài khoản": "Account Status",
   "Quản lý Học viên (Student Management)": "Student Management",
-  "Quản lý danh sách và hồ sơ học viên: Xem thông tin, tạo mới, chỉnh sửa hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.": "Manage student list and profiles: view details, create new, edit profiles, switch department, disable and reactivate accounts.",
+  "Quản lý danh sách và hồ sơ học viên: Xem thông tin, tạo mới, chỉnh sửa hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.":
+    "Manage student list and profiles: view details, create new, edit profiles, switch department, disable and reactivate accounts.",
   "Tất cả học viên & hồ sơ": "All Students & Profiles",
   "Hồ sơ chi tiết học viên": "Student Profile Details",
   "Chỉnh sửa hồ sơ": "Edit Profile",
+  // ── Bổ sung đợt rà soát i18n (đảm bảo 100% chuỗi UI dịch được 2 chiều) ──
+  "Người thực hiện": "Performed by",
+  "Tổng hồ sơ ETR": "Total ETR records",
+  "Đã hoàn thành": "Completed",
+  "Hồ sơ đào tạo": "Training records",
+  "Tổng quan tuân thủ": "Compliance overview",
+  "Tổng quan": "Overview",
+  "buổi học": "session(s)",
+  "HIỂN THỊ": "SHOWING",
+  "BUỔI HỌC": "SESSIONS",
+  "Ngày học:": "Session date:",
+  "| Giảng viên:": "| Instructor:",
+  "| Sĩ số:": "| Capacity:",
+  "MÃ LỚP": "CLASS CODE",
+  "TÊN LỚP HỌC": "CLASS NAME",
+  "học viên": "student(s)",
+  "Hồ sơ": "Profile",
+  "Trạng thái: ": "Status: ",
+  "KẾT QUẢ": "RESULT",
+  "THỜI GIAN": "TIME",
+  "NGƯỜI THỰC HIỆN": "PERFORMED BY",
+  "HÀNH ĐỘNG": "ACTION",
+  "Mã môn học": "Subject code",
+  "Đánh giá": "Assessment",
+  "Đang đào tạo": "In training",
+  "tài khoản": "account(s)",
+  "Nhập trực tiếp": "Direct entry",
+  "Nhập trực tiếp (không gắn buổi học)": "Direct entry (no session)",
+  "Buổi: ": "Session: ",
+  "Lớp: ": "Class: ",
+  "KÝ XÁC NHẬN": "SIGN-OFF",
+  "GỬI YÊU CẦU": "SEND REQUEST",
+  "Danh sách Assessment cho lớp ": "Assessment list for class ",
+  "Lớp này chưa có buổi học (Session) nào.": "This class has no sessions yet.",
+  "Và Course của lớp cũng chưa có Assessment phù hợp cho môn bạn phụ trách. Hãy liên hệ Academic để xếp lịch buổi học hoặc tạo Assessment Structure.":
+    "And the class's Course has no Assessment matching your assigned subject yet. Contact Academic to schedule sessions or create the Assessment Structure.",
+  "Các buổi học của lớp chưa được gắn bài kiểm tra nào.": "The class sessions have no assessment assigned yet.",
+  "Và Course của lớp cũng chưa có Assessment phù hợp cho môn bạn phụ trách. Hãy gán Assessment vào buổi học ở màn Assessment Structure hoặc liên hệ Academic.":
+    "And the class's Course has no Assessment matching your assigned subject yet. Assign an assessment to a session in the Assessment Structure screen or contact Academic.",
+  "Nhập điểm trực tiếp (chưa gắn buổi học)": "Direct score entry (no session assigned)",
+  "Tên": "Name",
+  "Tổng lớp phụ trách": "Assigned classes",
+  "Học viên điểm danh thấp": "Low-attendance students",
+  "Buổi học hôm nay": "Today's sessions",
+  "Xem tất cả": "View all",
+  "Môn": "Subject",
+  "tệp": "file(s)",
+  "Tải lên minh chứng mới": "Upload new evidence",
+  "Học viên:": "Student:",
+  "Đang tải tệp lên máy chủ: ": "Uploading file to server: ",
+  "minh chứng": "evidence",
+  "Chờ duyệt": "Pending review",
+  "ĐÃ CHỐT": "LOCKED",
+  "CHƯA CHỐT": "UNLOCKED",
+  "LỊCH SỬ PHÊ DUYỆT": "APPROVAL HISTORY",
+  "Ngày cấp": "Issue date",
+  "Chờ xử lý": "Pending",
+  "Xin chào, ": "Hello, ",
+  "Hết hạn: ": "Expires: ",
+  "Chứng chỉ": "Certificates",
+  "Mã GD: ": "Record ID: ",
+  "Bảo mật": "Security",
+  "Đổi mật khẩu": "Change password",
+  "Mật khẩu hiện tại": "Current password",
+  "Nhập mật khẩu hiện tại": "Enter current password",
+  "Mật khẩu mới": "New password",
+  "Xác nhận mật khẩu mới": "Confirm new password",
+  "Cập nhật mật khẩu": "Update password",
+  "Theo dõi trạng thái lớp học": "Track class status",
+  "Tạo lớp học mới": "Create new class",
+  "Tạo Lớp Học Mới": "CREATE NEW CLASS",
+  "Từ chối": "Reject",
+  "Bởi": "By",
+  "Tải template thất bại.": "Failed to download template.",
+  "Kiểm tra file thất bại.": "Failed to validate file.",
+  "Import thất bại.": "Import failed.",
+  "Không có lớp học nào phù hợp bộ lọc hiện tại.": "No classes match the current filter.",
+  "Cập nhật trạng thái & thông tin lớp": "Update class status & info",
+  "Lớp học đã kết thúc/bị hủy — không thể ghi danh mới": "Class completed/cancelled — new enrollments are not allowed",
+  "Ghi danh học viên mới vào lớp": "Enroll new students into class",
+  "Xuất báo cáo điểm danh / đánh giá / tổng hợp lớp": "Export attendance / assessment / class summary report",
+  "Phòng Sim A320": "A320 Sim Room",
+  "Buổi học": "Session",
+  "Nữ": "Female",
+  "Khác": "Other",
+  "Tham gia học tập đầy đủ": "Full participation",
+  "Tạm dừng có thời hạn": "Temporary suspension",
+  "HOẠT ĐỘNG": "ACTIVE",
+  "TẠM DỪNG": "SUSPENDED",
+  "ĐANG HỌC": "STUDYING",
+  "BẢO LƯU": "SUSPENDED",
+  "TỐT NGHIỆP": "GRADUATED",
+  "Đang cập nhật": "Updating",
+  "Vắng không phép": "Unexcused",
+  "Xin chào,": "Hello,",
+  // ── Bổ sung đợt rà soát i18n #2: modal defaults & import hints ──
+  "Nhập thông tin": "Enter information",
+  "Nhập nội dung...": "Enter content...",
+  "Bạn có chắc chắn muốn thực hiện thao tác này?": "Are you sure you want to perform this action?",
+  "XÁC NHẬN": "CONFIRM",
+  "Cột bắt buộc: Username*, Mật khẩu*, Vai trò*, Phòng ban*, Họ và tên* | Cột tùy chọn: Ngày sinh, Giới tính, SĐT, Tổ chức (Mã định danh được hệ thống tự động tạo)":
+    "Required columns: Username*, Password*, Role*, Department*, Full Name* | Optional columns: DOB, Gender, Phone, Organization (ID is auto-generated by the system)",
+  "Tải file mẫu, điền danh sách học viên (các cột: Username*, Mật khẩu*, Phòng ban*, Họ và tên*, Ngày sinh, Giới tính, SĐT, Tổ chức; vai trò mặc định là Học viên, Mã học viên tự động sinh), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).":
+    "Download the template, fill in the student list (columns: Username*, Password*, Department*, Full Name*, DOB, Gender, Phone, Organization; default role is Student, student code is auto-generated), validate then import. The whole file must be valid to import (all-or-nothing).",
+  // ── EN→VN cho các chuỗi EN nguồn chưa có chiều ngược ──
 };
 
 export const REVERSE_VN_TO_EN = {};
@@ -1763,27 +2254,27 @@ export const EXTRA_VN_TO_EN = {};
 export const initReverseDictionaries = () => {
   if (Object.keys(REVERSE_VN_TO_EN).length > 0) return;
 
-  if (typeof VN_TO_EN !== 'undefined') {
+  if (typeof VN_TO_EN !== "undefined") {
     Object.entries(VN_TO_EN).forEach(([vn, en]) => {
-      if (vn && en && typeof en === 'string') {
+      if (vn && en && typeof en === "string") {
         REVERSE_VN_TO_EN[en] = vn;
         LOWER_VN_TO_EN[vn.trim().toLowerCase()] = en;
         LOWER_EN_TO_VN[en.trim().toLowerCase()] = vn;
       }
     });
   }
-  if (typeof EXTRA_VN_TO_EN !== 'undefined') {
+  if (typeof EXTRA_VN_TO_EN !== "undefined") {
     Object.entries(EXTRA_VN_TO_EN).forEach(([vn, en]) => {
-      if (vn && en && typeof en === 'string') {
+      if (vn && en && typeof en === "string") {
         REVERSE_VN_TO_EN[en] = vn;
         LOWER_VN_TO_EN[vn.trim().toLowerCase()] = en;
         LOWER_EN_TO_VN[en.trim().toLowerCase()] = vn;
       }
     });
   }
-  if (typeof EN_TO_VN !== 'undefined') {
+  if (typeof EN_TO_VN !== "undefined") {
     Object.entries(EN_TO_VN).forEach(([en, vn]) => {
-      if (en && vn && typeof vn === 'string') {
+      if (en && vn && typeof vn === "string") {
         REVERSE_EN_TO_VN[vn] = en;
         LOWER_EN_TO_VN[en.trim().toLowerCase()] = vn;
         LOWER_VN_TO_EN[vn.trim().toLowerCase()] = en;
@@ -1796,11 +2287,15 @@ export const initReverseDictionaries = () => {
  * Dịch một chuỗi tĩnh VN → EN.
  */
 export const translateVn = (text) => {
-  if (typeof text !== 'string' || !text) return text;
+  if (typeof text !== "string" || !text) return text;
   initReverseDictionaries();
   const trimmed = text.trim();
   if (VN_TO_EN[trimmed] !== undefined) return VN_TO_EN[trimmed];
-  if (typeof EXTRA_VN_TO_EN !== 'undefined' && EXTRA_VN_TO_EN[trimmed] !== undefined) return EXTRA_VN_TO_EN[trimmed];
+  if (
+    typeof EXTRA_VN_TO_EN !== "undefined" &&
+    EXTRA_VN_TO_EN[trimmed] !== undefined
+  )
+    return EXTRA_VN_TO_EN[trimmed];
   if (REVERSE_EN_TO_VN[trimmed] !== undefined) return REVERSE_EN_TO_VN[trimmed];
 
   const lowerKey = trimmed.toLowerCase();
@@ -1813,7 +2308,7 @@ export const translateVn = (text) => {
 
 /** Dịch chuỗi nguồn tiếng Anh → tiếng Việt. */
 export const translateEn = (text) => {
-  if (typeof text !== 'string' || !text) return text;
+  if (typeof text !== "string" || !text) return text;
   initReverseDictionaries();
   const trimmed = text.trim();
   if (EN_TO_VN[trimmed] !== undefined) return EN_TO_VN[trimmed];
@@ -1833,24 +2328,24 @@ export const translateEn = (text) => {
  * sẽ được dịch sang tiếng Việt. Khi lang = 'en' giữ nguyên tiếng Anh.
  */
 export const EN_TO_VN = {
-  "STT": "STT",
+  STT: "STT",
   "Ghi danh": "Ghi danh",
   "GV:": "GV:",
   "➕ Ghi danh": "➕ Ghi danh",
-  "Xem": "Xem",
-  "Nam": "Nam",
+  Xem: "Xem",
+  Nam: "Nam",
   "ISO 200 • 1/120s • f/4.0": "ISO 200 • 1/120s • f/4.0",
-  "Email": "Email",
+  Email: "Email",
   "Email *": "Email *",
-  "ID": "ID",
-  "QA": "QA",
+  ID: "ID",
+  QA: "QA",
   "SOC 2 Type II": "SOC 2 Type II",
   "— SOLUTIONS": "— GIẢI PHÁP",
   "/": "/",
-  "HV": "HV",
+  HV: "HV",
   "MINH CHỨNG": "MINH CHỨNG",
-  "EVIDENCE": "MINH CHỨNG",
-  "DASHBOARD": "TỔNG QUAN",
+  EVIDENCE: "MINH CHỨNG",
+  DASHBOARD: "TỔNG QUAN",
   "LOCKED ETR RECORDS": "HỒ SƠ ETR ĐÓNG BĂNG",
   "ADVANCED SEARCH": "TÌM KIẾM NÂNG CAO",
   "ETR DETAILS": "CHI TIẾT ETR",
@@ -1861,11 +2356,14 @@ export const EN_TO_VN = {
   "Auditor Portal": "Cổng Kiểm Toán",
   "Auditor Officer": "Cán Bộ Kiểm Toán",
   "Read-Only Compliance": "Giám Sát Tuân Thủ Chỉ Đọc",
-  "Inspect locked records by ID, learner, course...": "Kiểm tra hồ sơ đã khóa theo ID, học viên, khóa học...",
-  "AeroMetric Aviation Systems / Auditor Space": "Hệ Thống Hàng Không AeroMetric / Không Gian Kiểm Toán",
-  "Notifications": "Thông báo",
+  "Inspect locked records by ID, learner, course...":
+    "Kiểm tra hồ sơ đã khóa theo ID, học viên, khóa học...",
+  "AeroMetric Aviation Systems / Auditor Space":
+    "Hệ Thống Hàng Không AeroMetric / Không Gian Kiểm Toán",
+  Notifications: "Thông báo",
   "Independent Auditor Portal": "Cổng Kiểm Toán Độc Lập",
-  "Read-only regulatory compliance inspection and automated record integrity verification.": "Kiểm tra tuân thủ quy định chỉ đọc và xác minh tính toàn vẹn hồ sơ tự động.",
+  "Read-only regulatory compliance inspection and automated record integrity verification.":
+    "Kiểm tra tuân thủ quy định chỉ đọc và xác minh tính toàn vẹn hồ sơ tự động.",
   "Search Locked Records": "Tìm Hồ Sơ Đã Khóa",
   "Export Package": "Xuất Hồ Sơ",
   "View Audit Logs": "Xem Nhật Ký Kiểm Toán",
@@ -1877,74 +2375,85 @@ export const EN_TO_VN = {
   "Scheduled Inspections": "Cuộc Kiểm Tra Đã Lên Lịch",
   "Audit Packages Exported": "Gói Hồ Sơ Kiểm Toán Đã Xuất",
   "Regulatory Archives": "Lưu Trữ Quy Định",
-  "Recently Locked Records (Finalized ETRs)": "Hồ sơ đã khóa gần đây (ETR hoàn tất)",
+  "Recently Locked Records (Finalized ETRs)":
+    "Hồ sơ đã khóa gần đây (ETR hoàn tất)",
   "View All": "Xem Tất Cả",
   "ETR ID": "Mã ETR",
-  "Evidence": "Minh chứng",
-  "Learner": "Học viên",
-  "Course": "Khóa học",
-  "Completion": "Hoàn thành",
+  Evidence: "Minh chứng",
+  Learner: "Học viên",
+  Course: "Khóa học",
+  Completion: "Hoàn thành",
   "Locked Date": "Ngày khóa",
   "Approved By": "Phê duyệt bởi",
-  "Status": "Trạng thái",
-  "Actions": "Hành động",
+  Status: "Trạng thái",
+  Actions: "Hành động",
   "Loading locked records...": "Đang tải hồ sơ đã khóa...",
   "No locked ETR records available.": "Không có hồ sơ ETR đã khóa nào.",
-  "Locked": "Đã khóa",
+  Locked: "Đã khóa",
   "View Details": "Xem chi tiết",
-  "Export": "Xuất",
+  Export: "Xuất",
   "Recent Audit Trail Events": "Sự kiện nhật ký kiểm toán gần đây",
   "View All Logs": "Xem tất cả nhật ký",
   "Recent Export History": "Lịch sử xuất dữ liệu gần đây",
   "Export Center": "Trung Tâm Xuất Hồ Sơ",
-  "Verified": "Đã xác minh",
+  Verified: "Đã xác minh",
   "In Progress": "Đang thực hiện",
-  "InProgress": "Đang thực hiện",
-  "Submitted": "Đã gửi",
-  "Completed": "Đã hoàn thành",
-  "Pending": "Chờ xử lý",
-  "Approved": "Đã phê duyệt",
-  "Rejected": "Đã từ chối",
-  "Returned": "Đã trả lại",
-  "ReturnedForCorrection": "Trả về để chỉnh sửa",
+  InProgress: "Đang thực hiện",
+  Submitted: "Đã gửi",
+  Completed: "Đã hoàn thành",
+  Pending: "Chờ xử lý",
+  Approved: "Đã phê duyệt",
+  Rejected: "Đã từ chối",
+  Returned: "Đã trả lại",
+  ReturnedForCorrection: "Trả về để chỉnh sửa",
   "Locked & Compliant": "Đã khóa & tuân thủ",
-  "Archived": "Đã lưu trữ",
+  Archived: "Đã lưu trữ",
   "All Locked States": "Tất cả trạng thái khóa",
-  "Cancelled": "Đã hủy",
+  Cancelled: "Đã hủy",
   "Returned For Correction": "Trả về để chỉnh sửa",
-  "records": "hồ sơ",
+  records: "hồ sơ",
   "Pending Approval": "Chờ phê duyệt",
   "Missing Evidence": "Thiếu minh chứng",
   "Completion Rate": "Tỷ lệ hoàn thành",
   "Compliance Overview": "Tổng quan tuân thủ",
   "ETR Status Funnel": "Phễu trạng thái ETR",
-  "ETR records distribution by status (Draft → Completed).": "Phân bố hồ sơ ETR theo trạng thái (Draft → Completed).",
-  "Percentage of ETR records completed out of the total.": "Tỷ lệ hồ sơ ETR đã hoàn tất trên tổng số.",
-  "Records by compliance group (completed, pending approval, returned, rejected, missing evidence).": "Hồ sơ theo nhóm tuân thủ (hoàn thành, chờ phê duyệt, trả lại, từ chối, thiếu minh chứng).",
+  "ETR records distribution by status (Draft → Completed).":
+    "Phân bố hồ sơ ETR theo trạng thái (Draft → Completed).",
+  "Percentage of ETR records completed out of the total.":
+    "Tỷ lệ hồ sơ ETR đã hoàn tất trên tổng số.",
+  "Records by compliance group (completed, pending approval, returned, rejected, missing evidence).":
+    "Hồ sơ theo nhóm tuân thủ (hoàn thành, chờ phê duyệt, trả lại, từ chối, thiếu minh chứng).",
   "Locked ETR Records": "Hồ Sơ ETR Đã Khóa",
-  "Searchable repository of finalized and cryptographically locked Electronic Training Records (IsLocked = true).": "Kho lưu trữ tìm kiếm các Hồ sơ Đào tạo Điện tử (ETR) đã hoàn tất và được khóa mật mã (IsLocked = true).",
-  "Search locked ETR by ID, learner name, course...": "Tìm hồ sơ ETR đã khóa theo ID, tên học viên, khóa học...",
-  "All": "Tất cả",
+  "Searchable repository of finalized and cryptographically locked Electronic Training Records (IsLocked = true).":
+    "Kho lưu trữ tìm kiếm các Hồ sơ Đào tạo Điện tử (ETR) đã hoàn tất và được khóa mật mã (IsLocked = true).",
+  "Search locked ETR by ID, learner name, course...":
+    "Tìm hồ sơ ETR đã khóa theo ID, tên học viên, khóa học...",
+  All: "Tất cả",
   "Line Maintenance": "Bảo trì tuyến",
   "Flight Operations": "Khai thác bay",
   "Quality Assurance": "Đảm bảo chất lượng",
   "Base Maintenance": "Bảo trì cơ bản",
   "Completion Date": "Ngày hoàn thành",
-  "No locked ETR records found matching your search criteria.": "Không tìm thấy hồ sơ ETR đã khóa nào khớp với tiêu chí tìm kiếm.",
+  "No locked ETR records found matching your search criteria.":
+    "Không tìm thấy hồ sơ ETR đã khóa nào khớp với tiêu chí tìm kiếm.",
   "Approval History": "Lịch sử phê duyệt",
   "Hide Approval History": "Ẩn lịch sử phê duyệt",
-  "All ETRs with their approval or rejection status. Click Approval History to view the full review timeline.": "Tất cả các ETR kèm trạng thái duyệt hoặc từ chối. Nhấn Lịch sử phê duyệt để xem toàn bộ mốc thời gian kiểm duyệt.",
-  "Showing": "Hiển thị",
-  "of": "trên",
+  "All ETRs with their approval or rejection status. Click Approval History to view the full review timeline.":
+    "Tất cả các ETR kèm trạng thái duyệt hoặc từ chối. Nhấn Lịch sử phê duyệt để xem toàn bộ mốc thời gian kiểm duyệt.",
+  Showing: "Hiển thị",
+  of: "trên",
   "Previous page": "Trang trước",
   "Next page": "Trang sau",
   "Locked Records Trend": "Xu hướng hồ sơ đã khóa",
-  "Records locked per month over the last 8 months (smooth curve).": "Số hồ sơ đã khóa theo tháng trong 8 tháng gần nhất (đường cong trơn).",
+  "Records locked per month over the last 8 months (smooth curve).":
+    "Số hồ sơ đã khóa theo tháng trong 8 tháng gần nhất (đường cong trơn).",
   "Locked vs Returned Trend": "Xu hướng Hồ sơ đã khóa vs Trả lại",
-  "Records locked vs records returned by QA, per month over the last 8 months (smooth curves).": "Hồ sơ đã khóa so với hồ sơ bị QA trả lại theo tháng trong 8 tháng gần nhất (đường cong).",
+  "Records locked vs records returned by QA, per month over the last 8 months (smooth curves).":
+    "Hồ sơ đã khóa so với hồ sơ bị QA trả lại theo tháng trong 8 tháng gần nhất (đường cong).",
   "locked records": "hồ sơ đã khóa",
   "Advanced Compliance Search": "Tìm Kiếm Tuân Thủ Nâng Cao",
-  "Multi-parametric compliance inspection tool for regulatory auditing of locked training records.": "Công cụ kiểm tra tuân thủ đa tham số phục vụ kiểm toán quy định đối với hồ sơ đào tạo đã khóa.",
+  "Multi-parametric compliance inspection tool for regulatory auditing of locked training records.":
+    "Công cụ kiểm tra tuân thủ đa tham số phục vụ kiểm toán quy định đối với hồ sơ đào tạo đã khóa.",
   "Learner Name / ID": "Tên học viên / ID",
   "e.g. Nguyen Van An, HV-8801": "VD: Nguyễn Văn An, HV-8801",
   "Course Name / Code": "Tên khóa học / Mã",
@@ -1960,9 +2469,10 @@ export const EN_TO_VN = {
   "Search Results": "Kết quả tìm kiếm",
   "records matching": "bản ghi khớp",
   "Searching records...": "Đang tìm kiếm bản ghi...",
-  "No matching records found for the applied filter parameters.": "Không tìm thấy bản ghi nào khớp với các tham số bộ lọc.",
+  "No matching records found for the applied filter parameters.":
+    "Không tìm thấy bản ghi nào khớp với các tham số bộ lọc.",
   "Learner Information": "Thông tin học viên",
-  "Attendance": "Điểm danh",
+  Attendance: "Điểm danh",
   "Assessment Results": "Kết quả đánh giá",
   "Training Evidence": "Minh chứng đào tạo",
   "Audit Trail": "Nhật ký kiểm toán",
@@ -1978,25 +2488,26 @@ export const EN_TO_VN = {
   "Full Name": "Họ và tên",
   "Learner ID": "Mã học viên",
   "Role / Designation": "Vai trò / Chức danh",
-  "Department": "Phòng ban",
+  Department: "Phòng ban",
   "Course Code & Name": "Mã & tên khóa học",
   "Class ID": "Mã lớp",
   "Session Attendance Record": "Bảng điểm danh các buổi học",
   "Attendance Rate:": "Tỷ lệ chuyên cần:",
-  "Sessions": "buổi học",
-  "Session": "Buổi học",
-  "Date": "Ngày",
+  Sessions: "buổi học",
+  Session: "Buổi học",
+  Date: "Ngày",
   "Topic / Module": "Chủ đề / Mô-đun",
-  "Duration": "Thời lượng",
+  Duration: "Thời lượng",
   "Subject & Module Grades": "Điểm môn học & mô-đun",
   "Overall Score:": "Điểm tổng:",
   "Subject Code": "Mã môn học",
   "Subject Name": "Tên môn học",
   "Passing Score": "Điểm đạt",
   "Score Achieved": "Điểm đạt được",
-  "Result": "Kết quả",
-  "Instructor": "Giảng viên",
-  "Training Evidence & Artifact Integrity": "Minh chứng đào tạo & tính toàn vẹn tệp tin",
+  Result: "Kết quả",
+  Instructor: "Giảng viên",
+  "Training Evidence & Artifact Integrity":
+    "Minh chứng đào tạo & tính toàn vẹn tệp tin",
   "Evidence ID": "Mã minh chứng",
   "File Name": "Tên tệp",
   "File Size": "Kích thước tệp",
@@ -2007,15 +2518,18 @@ export const EN_TO_VN = {
   "Approval Workflow Timeline": "Dòng thời gian quy trình phê duyệt",
   "Hash:": "Mã băm:",
   "System Audit Logs for": "Nhật ký kiểm toán hệ thống cho",
-  "Timestamp": "Thời điểm",
-  "User": "Người dùng",
-  "Role": "Vai trò",
-  "Action": "Thao tác",
-  "Details": "Chi tiết",
-  "Approval History & Workflow Verification": "Lịch Sử Phê Duyệt & Xác Minh Quy Trình",
-  "Audit inspection of multi-stage approval workflows, personnel authorizations, timestamps, and cryptographic lock state.": "Kiểm toán các quy trình phê duyệt nhiều giai đoạn, ủy quyền nhân sự, thời điểm và trạng thái khóa mật mã.",
+  Timestamp: "Thời điểm",
+  User: "Người dùng",
+  Role: "Vai trò",
+  Action: "Thao tác",
+  Details: "Chi tiết",
+  "Approval History & Workflow Verification":
+    "Lịch Sử Phê Duyệt & Xác Minh Quy Trình",
+  "Audit inspection of multi-stage approval workflows, personnel authorizations, timestamps, and cryptographic lock state.":
+    "Kiểm toán các quy trình phê duyệt nhiều giai đoạn, ủy quyền nhân sự, thời điểm và trạng thái khóa mật mã.",
   "Select Locked ETR": "Chọn ETR đã khóa",
-  "Mandatory Aviation Approval Sequence Flow": "Quy Trình Phê Duyệt Hàng Không Bắt Buộc",
+  "Mandatory Aviation Approval Sequence Flow":
+    "Quy Trình Phê Duyệt Hàng Không Bắt Buộc",
   "Step 1": "Bước 1",
   "Academic Staff": "Cán bộ học vụ",
   "Step 2": "Bước 2",
@@ -2025,7 +2539,7 @@ export const EN_TO_VN = {
   "Step 4": "Bước 4",
   "System Locked": "Hệ thống khóa",
   "Step 5": "Bước 5",
-  "Audited": "Đã kiểm toán",
+  Audited: "Đã kiểm toán",
   "Detailed Execution Log for": "Nhật ký thực thi chi tiết cho",
   "Loading approval history...": "Đang tải lịch sử phê duyệt...",
   "User:": "Người dùng:",
@@ -2033,44 +2547,53 @@ export const EN_TO_VN = {
   "Action Executed:": "Thao tác đã thực hiện:",
   "Cryptographic Signature:": "Chữ ký mật mã:",
   "System Audit Logs": "Nhật Ký Kiểm Toán Hệ Thống",
-  "Complete, immutable audit trail of system interactions, access verifications, and compliance enforcement events.": "Nhật ký kiểm toán đầy đủ, không thể thay đổi về các tương tác hệ thống, xác minh truy cập và sự kiện thực thi tuân thủ.",
-  "Search audit logs by user, action, details, ID...": "Tìm nhật ký kiểm toán theo người dùng, thao tác, chi tiết, ID...",
+  "Complete, immutable audit trail of system interactions, access verifications, and compliance enforcement events.":
+    "Nhật ký kiểm toán đầy đủ, không thể thay đổi về các tương tác hệ thống, xác minh truy cập và sự kiện thực thi tuân thủ.",
+  "Search audit logs by user, action, details, ID...":
+    "Tìm nhật ký kiểm toán theo người dùng, thao tác, chi tiết, ID...",
   "ETR Inspection": "Kiểm tra ETR",
   "Export Packages": "Gói xuất hồ sơ",
   "Security Enforcer": "Thực thi bảo mật",
   "ETR Workflow": "Quy trình ETR",
   "Advanced Search": "Tìm kiếm nâng cao",
-  "Module": "Mô-đun",
+  Module: "Mô-đun",
   "Loading audit logs...": "Đang tải nhật ký kiểm toán...",
-  "No audit logs found matching criteria.": "Không tìm thấy nhật ký kiểm toán nào khớp tiêu chí.",
+  "No audit logs found matching criteria.":
+    "Không tìm thấy nhật ký kiểm toán nào khớp tiêu chí.",
   "audit trail events": "sự kiện nhật ký kiểm toán",
   "Export Packages & Regulatory Dossiers": "Xuất Hồ Sơ & Bộ Tài Liệu Quy Định",
-  "Generate cryptographically signed compliance export packages, PDF transcripts, and complete evidence archives for CAA / EASA inspections.": "Tạo các gói xuất tuân thủ có chữ ký mật mã, bảng điểm PDF và kho lưu trữ minh chứng đầy đủ phục vụ kiểm tra CAA / EASA.",
+  "Generate cryptographically signed compliance export packages, PDF transcripts, and complete evidence archives for CAA / EASA inspections.":
+    "Tạo các gói xuất tuân thủ có chữ ký mật mã, bảng điểm PDF và kho lưu trữ minh chứng đầy đủ phục vụ kiểm tra CAA / EASA.",
   "Export PDF": "Xuất PDF",
-  "Generate official single or multi-ETR summary compliance dossier PDF with watermark.": "Tạo hồ sơ tuân thủ tóm tắt PDF chính thức cho một hoặc nhiều ETR kèm hình mờ.",
+  "Generate official single or multi-ETR summary compliance dossier PDF with watermark.":
+    "Tạo hồ sơ tuân thủ tóm tắt PDF chính thức cho một hoặc nhiều ETR kèm hình mờ.",
   "Generate PDF Dossier": "Tạo hồ sơ PDF",
   "Export ZIP": "Xuất ZIP",
-  "Archive all uploaded practical evidence, simulator logs, and certificates into a encrypted ZIP file.": "Lưu trữ toàn bộ minh chứng thực hành, nhật ký mô phỏng và chứng chỉ vào tệp ZIP được mã hóa.",
+  "Archive all uploaded practical evidence, simulator logs, and certificates into a encrypted ZIP file.":
+    "Lưu trữ toàn bộ minh chứng thực hành, nhật ký mô phỏng và chứng chỉ vào tệp ZIP được mã hóa.",
   "Generating Evidence ZIP...": "Đang tạo ZIP minh chứng...",
   "Generate Evidence ZIP": "Tạo ZIP minh chứng",
   "Compliance Package": "Gói Tuân Thủ",
-  "Comprehensive regulatory inspection package with CAA / EASA compliance matrix.": "Gói kiểm tra quy định toàn diện kèm ma trận tuân thủ CAA / EASA.",
+  "Comprehensive regulatory inspection package with CAA / EASA compliance matrix.":
+    "Gói kiểm tra quy định toàn diện kèm ma trận tuân thủ CAA / EASA.",
   "Generating Package...": "Đang tạo gói...",
   "Generate Regulatory Package": "Tạo gói quy định",
   "Digital Signature Package": "Gói Chữ Ký Số",
-  "Public-key cryptographic certificate manifest verifying zero alteration of locked records.": "Bản kê chứng chỉ mật mã khóa công khai xác minh không có thay đổi nào đối với hồ sơ đã khóa.",
+  "Public-key cryptographic certificate manifest verifying zero alteration of locked records.":
+    "Bản kê chứng chỉ mật mã khóa công khai xác minh không có thay đổi nào đối với hồ sơ đã khóa.",
   "Generating Manifest...": "Đang tạo bản kê...",
   "Generate Signature Manifest": "Tạo bản kê chữ ký",
   "Generated Export History": "Lịch Sử Xuất Đã Tạo",
-  "packages": "gói",
+  packages: "gói",
   "Package ID": "Mã gói",
   "Package Name": "Tên gói",
-  "Type": "Loại",
+  Type: "Loại",
   "Generated Date": "Ngày tạo",
   "Generated By": "Người tạo",
-  "Download": "Tải xuống",
+  Download: "Tải xuống",
   "Auditor Profile & Account Settings": "Hồ Sơ Kiểm Toán & Cài Đặt Tài Khoản",
-  "Manage your compliance auditor profile credentials, security credentials, and view role scope details.": "Quản lý thông tin xác thực hồ sơ kiểm toán tuân thủ, thông tin bảo mật và xem chi tiết phạm vi vai trò.",
+  "Manage your compliance auditor profile credentials, security credentials, and view role scope details.":
+    "Quản lý thông tin xác thực hồ sơ kiểm toán tuân thủ, thông tin bảo mật và xem chi tiết phạm vi vai trò.",
   "Officer Profile Details": "Chi Tiết Hồ Sơ Cán Bộ",
   "Assigned System Role": "Vai Trò Hệ Thống Được Phân Công",
   "Email Address": "Địa chỉ Email",
@@ -2084,16 +2607,19 @@ export const EN_TO_VN = {
   "Confirm new password": "Xác nhận mật khẩu mới",
   "Update Password": "Cập nhật mật khẩu",
   "Independent Auditor": "Kiểm toán viên độc lập",
-  "Regulatory Compliance & Quality Audit": "Tuân thủ quy định & Kiểm toán chất lượng",
+  "Regulatory Compliance & Quality Audit":
+    "Tuân thủ quy định & Kiểm toán chất lượng",
   "Active (Read-Only)": "Hoạt động (Chỉ đọc)",
-  "Full Read-Only Access to GET Endpoints": "Toàn quyền chỉ đọc các Endpoint GET",
+  "Full Read-Only Access to GET Endpoints":
+    "Toàn quyền chỉ đọc các Endpoint GET",
   "QA Portal": "Cổng QA",
   "QA Staff": "Nhân viên QA",
-  "AeroMetric Aviation Systems / QA Space": "Hệ Thống Hàng Không AeroMetric / Không Gian QA",
-  "Dashboard": "Tổng quan",
+  "AeroMetric Aviation Systems / QA Space":
+    "Hệ Thống Hàng Không AeroMetric / Không Gian QA",
+  Dashboard: "Tổng quan",
   "ETR Review": "Thẩm định ETR",
-  "Compliance": "Tuân thủ",
-  "Account": "Tài khoản",
+  Compliance: "Tuân thủ",
+  Account: "Tài khoản",
   "VERIFY EVIDENCE": "XÁC MINH MINH CHỨNG",
   "ETR REVIEW QUEUE": "HÀNG ĐỢI THẨM ĐỊNH ETR",
   "REVIEW ETR": "THẨM ĐỊNH ETR",
@@ -2107,9 +2633,11 @@ export const EN_TO_VN = {
   "Search ETR Records": "Tìm kiếm hồ sơ ETR",
   "Quality assurance operations": "Hoạt động đảm bảo chất lượng",
   "QA Staff Dashboard": "Bảng Điều Khiển Nhân Viên QA",
-  "Central view for pending evidence, ETR review work, rejected records, and compliance actions.": "Chế độ xem trung tâm cho minh chứng chờ xử lý, công việc thẩm định ETR, hồ sơ bị từ chối và các hành động tuân thủ.",
+  "Central view for pending evidence, ETR review work, rejected records, and compliance actions.":
+    "Chế độ xem trung tâm cho minh chứng chờ xử lý, công việc thẩm định ETR, hồ sơ bị từ chối và các hành động tuân thủ.",
   "Today's focus": "Trọng tâm hôm nay",
-  "Review evidence first, then clear the ETR queue and capture exceptions in the audit trail.": "Xác minh minh chứng trước, sau đó xử lý hàng đợi ETR và ghi nhận các ngoại lệ vào nhật ký kiểm toán.",
+  "Review evidence first, then clear the ETR queue and capture exceptions in the audit trail.":
+    "Xác minh minh chứng trước, sau đó xử lý hàng đợi ETR và ghi nhận các ngoại lệ vào nhật ký kiểm toán.",
   "Pending Evidence": "Minh chứng chờ xử lý",
   "Pending ETR Reviews": "ETR chờ thẩm định",
   "Rejected Records": "Hồ sơ bị từ chối",
@@ -2118,54 +2646,72 @@ export const EN_TO_VN = {
   "Evidence Verification": "Thẩm định minh chứng",
   "ETR Review Queue": "Hàng đợi thẩm định ETR",
   "Search / Export": "Tìm kiếm / Xuất",
-  "This structure keeps QA Staff focused on review work only.": "Cấu trúc này giúp nhân viên QA chỉ tập trung vào công việc thẩm định.",
+  "This structure keeps QA Staff focused on review work only.":
+    "Cấu trúc này giúp nhân viên QA chỉ tập trung vào công việc thẩm định.",
   "Access Scope": "Phạm vi truy cập",
-  "View learner, course, class, attendance, and assessment data.": "Xem dữ liệu học viên, khóa học, lớp học, điểm danh và đánh giá.",
-  "Verify or reject uploaded evidence.": "Xác minh hoặc từ chối minh chứng đã tải lên.",
-  "Review ETRs and return them for correction.": "Thẩm định ETR và trả về để chỉnh sửa.",
-  "Search records, export packages, and view audit logs.": "Tìm kiếm hồ sơ, xuất gói hồ sơ và xem nhật ký kiểm toán.",
+  "View learner, course, class, attendance, and assessment data.":
+    "Xem dữ liệu học viên, khóa học, lớp học, điểm danh và đánh giá.",
+  "Verify or reject uploaded evidence.":
+    "Xác minh hoặc từ chối minh chứng đã tải lên.",
+  "Review ETRs and return them for correction.":
+    "Thẩm định ETR và trả về để chỉnh sửa.",
+  "Search records, export packages, and view audit logs.":
+    "Tìm kiếm hồ sơ, xuất gói hồ sơ và xem nhật ký kiểm toán.",
   "Core Work Queue": "Hàng đợi công việc chính",
-  "The 5-page QA workflow is enough for capstone demonstration and user acceptance.": "Quy trình QA 5 trang đủ cho phần trình diễn capstone và nghiệm thu người dùng.",
+  "The 5-page QA workflow is enough for capstone demonstration and user acceptance.":
+    "Quy trình QA 5 trang đủ cho phần trình diễn capstone và nghiệm thu người dùng.",
   "Pending QA": "Chờ QA",
   "Audit Ready": "Sẵn sàng kiểm toán",
-  "Verify uploaded training evidence before it enters the review queue.": "Xác minh minh chứng đào tạo đã tải lên trước khi vào hàng đợi thẩm định.",
-  "Review submitted ETRs, inspect completeness, and return items when needed.": "Thẩm định các ETR đã gửi, kiểm tra tính đầy đủ và trả về các mục khi cần thiết.",
+  "Verify uploaded training evidence before it enters the review queue.":
+    "Xác minh minh chứng đào tạo đã tải lên trước khi vào hàng đợi thẩm định.",
+  "Review submitted ETRs, inspect completeness, and return items when needed.":
+    "Thẩm định các ETR đã gửi, kiểm tra tính đầy đủ và trả về các mục khi cần thiết.",
   "In Review": "Đang thẩm định",
   "Compliance Actions": "Hành động tuân thủ",
-  "Search historical records, export training packages, and inspect the audit trail.": "Tìm kiếm hồ sơ lịch sử, xuất gói đào tạo và kiểm tra nhật ký kiểm toán.",
-  "Ready": "Sẵn sàng",
+  "Search historical records, export training packages, and inspect the audit trail.":
+    "Tìm kiếm hồ sơ lịch sử, xuất gói đào tạo và kiểm tra nhật ký kiểm toán.",
+  Ready: "Sẵn sàng",
   "Evidence management": "Quản lý minh chứng",
-  "Verify or reject uploaded evidence before it is used in ETR review.": "Xác minh hoặc từ chối minh chứng đã tải lên trước khi dùng trong thẩm định ETR.",
-  "All evidence awaiting QA attention appears here in one queue.": "Toàn bộ minh chứng chờ QA xử lý xuất hiện tại đây trong một hàng đợi.",
+  "Verify or reject uploaded evidence before it is used in ETR review.":
+    "Xác minh hoặc từ chối minh chứng đã tải lên trước khi dùng trong thẩm định ETR.",
+  "All evidence awaiting QA attention appears here in one queue.":
+    "Toàn bộ minh chứng chờ QA xử lý xuất hiện tại đây trong một hàng đợi.",
   "Verify Selected": "Xác minh lựa chọn",
   "Reject Selected": "Từ chối lựa chọn",
   "Verify All Pending": "Xác minh tất cả",
   "Verifying...": "Đang xác minh...",
-  "Delete": "Xóa",
-  "QA accounts cannot delete evidence files (only Instructor/Admin/Academic).": "Tài khoản QA không có quyền xóa minh chứng (chỉ Instructor/Admin/Academic).",
+  Delete: "Xóa",
+  "QA accounts cannot delete evidence files (only Instructor/Admin/Academic).":
+    "Tài khoản QA không có quyền xóa minh chứng (chỉ Instructor/Admin/Academic).",
   "Uploaded Evidence Files": "Các tệp minh chứng đã tải lên",
-  "Recently uploaded evidence files across the system.": "Các tệp minh chứng được tải lên gần đây trên toàn hệ thống.",
+  "Recently uploaded evidence files across the system.":
+    "Các tệp minh chứng được tải lên gần đây trên toàn hệ thống.",
   "No evidence files uploaded yet.": "Chưa có tệp minh chứng nào được tải lên.",
-  "files": "tệp tin",
+  files: "tệp tin",
   "Loading data...": "Đang tải dữ liệu...",
   "ETR review": "Thẩm định ETR",
-  "View all submitted ETRs awaiting QA review. Click Verify to approve or Return to send back for correction.": "Xem toàn bộ ETR đã gửi chờ QA thẩm định. Bấm Verify để phê duyệt hoặc Return để trả về chỉnh sửa.",
+  "View all submitted ETRs awaiting QA review. Click Verify to approve or Return to send back for correction.":
+    "Xem toàn bộ ETR đã gửi chờ QA thẩm định. Bấm Verify để phê duyệt hoặc Return để trả về chỉnh sửa.",
   "Submitted ETRs": "ETR đã gửi",
-  "Select one record to review and verify completeness.": "Chọn một hồ sơ để thẩm định và xác minh tính đầy đủ.",
-  "Refresh": "Làm mới",
+  "Select one record to review and verify completeness.":
+    "Chọn một hồ sơ để thẩm định và xác minh tính đầy đủ.",
+  Refresh: "Làm mới",
   "Verify ETR": "Xác minh ETR",
   "ETR details": "Chi tiết ETR",
   "Review ETR Details": "Thẩm định chi tiết ETR",
-  "Inspect the learner profile, attendance, assessment, evidence, and approval history before approving or returning the ETR.": "Kiểm tra hồ sơ học viên, điểm danh, đánh giá, minh chứng và lịch sử phê duyệt trước khi phê duyệt hoặc trả về ETR.",
+  "Inspect the learner profile, attendance, assessment, evidence, and approval history before approving or returning the ETR.":
+    "Kiểm tra hồ sơ học viên, điểm danh, đánh giá, minh chứng và lịch sử phê duyệt trước khi phê duyệt hoặc trả về ETR.",
   "Select ETR Record": "Chọn hồ sơ ETR",
   "Record Summary": "Tóm tắt hồ sơ",
   "Course / Class": "Khóa học / Lớp",
   "Submitted At": "Đã gửi lúc",
   "QA Review Form": "Biểu mẫu thẩm định QA",
   "Review Notes": "Ghi chú thẩm định",
-  "Add verification notes, missing items, or approval remarks.": "Thêm ghi chú xác minh, các mục còn thiếu hoặc nhận xét phê duyệt.",
-  "verified": "đã xác minh",
-  "Send the ETR back to the training team with a clear reason so they can correct and resubmit it.": "Gửi ETR trở lại cho đội đào tạo kèm lý do rõ ràng để họ chỉnh sửa và gửi lại.",
+  "Add verification notes, missing items, or approval remarks.":
+    "Thêm ghi chú xác minh, các mục còn thiếu hoặc nhận xét phê duyệt.",
+  verified: "đã xác minh",
+  "Send the ETR back to the training team with a clear reason so they can correct and resubmit it.":
+    "Gửi ETR trở lại cho đội đào tạo kèm lý do rõ ràng để họ chỉnh sửa và gửi lại.",
   "Select ETR": "Chọn ETR",
   "Common Return Reasons": "Lý do trả về thường gặp",
   "Missing evidence file": "Thiếu tệp minh chứng",
@@ -2173,51 +2719,64 @@ export const EN_TO_VN = {
   "Assessment not attached": "Chưa đính kèm đánh giá",
   "Wrong learner details": "Sai thông tin học viên",
   "Return Message": "Nội dung trả về",
-  "Explain what must be corrected before resubmission.": "Giải thích những gì cần chỉnh sửa trước khi gửi lại.",
-  "Clear": "Xóa",
+  "Explain what must be corrected before resubmission.":
+    "Giải thích những gì cần chỉnh sửa trước khi gửi lại.",
+  Clear: "Xóa",
   "Sending...": "Đang gửi...",
   "Send Back": "Gửi trả",
-  "Draft": "Bản nháp",
+  Draft: "Bản nháp",
   "Search and Export": "Tìm kiếm và xuất",
-  "Search historical and active ETRs, then export training packages for audit or management review.": "Tìm kiếm ETR lịch sử và đang hoạt động, sau đó xuất gói đào tạo để kiểm toán hoặc quản lý xem xét.",
-  "Search by learner, course, class, or ETR ID": "Tìm theo học viên, khóa học, lớp học hoặc mã ETR",
+  "Search historical and active ETRs, then export training packages for audit or management review.":
+    "Tìm kiếm ETR lịch sử và đang hoạt động, sau đó xuất gói đào tạo để kiểm toán hoặc quản lý xem xét.",
+  "Search by learner, course, class, or ETR ID":
+    "Tìm theo học viên, khóa học, lớp học hoặc mã ETR",
   "All Statuses": "Tất cả trạng thái",
   "QA Verified": "QA đã xác minh",
   "Returned for Correction": "Đã trả về chỉnh sửa",
   "Searching...": "Đang tìm kiếm...",
-  "Use learner name, course code, date, or status.": "Sử dụng tên học viên, mã khóa học, ngày hoặc trạng thái.",
+  "Use learner name, course code, date, or status.":
+    "Sử dụng tên học viên, mã khóa học, ngày hoặc trạng thái.",
   "Export Training Package": "Xuất gói đào tạo",
-  "Generate audit-ready PDF or archive outputs.": "Tạo PDF sẵn sàng kiểm toán hoặc đầu ra lưu trữ.",
+  "Generate audit-ready PDF or archive outputs.":
+    "Tạo PDF sẵn sàng kiểm toán hoặc đầu ra lưu trữ.",
   "Filter scope": "Phạm vi lọc",
-  "Active records, historical records, and reviewed queues.": "Hồ sơ đang hoạt động, hồ sơ lịch sử và hàng đợi đã thẩm định.",
+  "Active records, historical records, and reviewed queues.":
+    "Hồ sơ đang hoạt động, hồ sơ lịch sử và hàng đợi đã thẩm định.",
   "Export Audit Trail": "Xuất nhật ký kiểm toán",
-  "View activity history of ETRs and users so QA decisions can be traced during review and audit.": "Xem lịch sử hoạt động của ETR và người dùng để các quyết định QA có thể được truy vết trong quá trình thẩm định và kiểm toán.",
+  "View activity history of ETRs and users so QA decisions can be traced during review and audit.":
+    "Xem lịch sử hoạt động của ETR và người dùng để các quyết định QA có thể được truy vết trong quá trình thẩm định và kiểm toán.",
   "Recent Activity": "Hoạt động gần đây",
-  "Use this page to confirm who reviewed, verified, returned, or exported each record.": "Dùng trang này để xác nhận ai đã thẩm định, xác minh, trả về hoặc xuất từng hồ sơ.",
+  "Use this page to confirm who reviewed, verified, returned, or exported each record.":
+    "Dùng trang này để xác nhận ai đã thẩm định, xác minh, trả về hoặc xuất từng hồ sơ.",
   "Read Only": "Chỉ đọc",
   "Retake History": "Lịch sử thi lại",
-  "View all retake attempts for subject results. Track score changes and authorization details across all learners.": "Xem toàn bộ lần thi lại cho kết quả môn học. Theo dõi thay đổi điểm và chi tiết ủy quyền trên mọi học viên.",
+  "View all retake attempts for subject results. Track score changes and authorization details across all learners.":
+    "Xem toàn bộ lần thi lại cho kết quả môn học. Theo dõi thay đổi điểm và chi tiết ủy quyền trên mọi học viên.",
   "Retake Records": "Bản ghi thi lại",
-  "Each entry records a score change made after initial publication.": "Mỗi bản ghi ghi nhận thay đổi điểm sau khi công bố ban đầu.",
+  "Each entry records a score change made after initial publication.":
+    "Mỗi bản ghi ghi nhận thay đổi điểm sau khi công bố ban đầu.",
   "All Subject Results": "Tất cả kết quả môn học",
   "Subject Result": "Kết quả môn học",
-  "Attempt": "Lần thi",
+  Attempt: "Lần thi",
   "Reason:": "Lý do:",
   "Previous:": "Trước:",
   "New:": "Mới:",
   "Authorized:": "Ủy quyền:",
   "Status:": "Trạng thái:",
-  "Manage your own account, update your profile information, and change your password here.": "Quản lý tài khoản của bạn, cập nhật thông tin hồ sơ và đổi mật khẩu tại đây.",
-  "Profile": "Hồ sơ",
-  "Name": "Tên",
-  "Email": "Email",
+  "Manage your own account, update your profile information, and change your password here.":
+    "Quản lý tài khoản của bạn, cập nhật thông tin hồ sơ và đổi mật khẩu tại đây.",
+  Profile: "Hồ sơ",
+  Name: "Tên",
+  Email: "Email",
   "Change Password": "Đổi mật khẩu",
   "Current password": "Mật khẩu hiện tại",
   "Administrator page 1 of 5": "Trang 1/5 của Quản trị viên",
   "Administrator page 5 of 5": "Trang 5/5 của Quản trị viên",
-  "Monitor overall platform activity, user counts, and review queues. Administrator can view core data, but workflow actions stay with the business roles.": "Theo dõi hoạt động tổng thể của nền tảng, số lượng người dùng và hàng đợi kiểm duyệt. Quản trị viên có thể xem dữ liệu cốt lõi, nhưng các hành động quy trình thuộc về các vai trò nghiệp vụ.",
+  "Monitor overall platform activity, user counts, and review queues. Administrator can view core data, but workflow actions stay with the business roles.":
+    "Theo dõi hoạt động tổng thể của nền tảng, số lượng người dùng và hàng đợi kiểm duyệt. Quản trị viên có thể xem dữ liệu cốt lõi, nhưng các hành động quy trình thuộc về các vai trò nghiệp vụ.",
   "Read-only scope": "Phạm vi chỉ đọc",
-  "View access only for training records and operational summaries.": "Quyền truy cập chỉ xem đối với hồ sơ đào tạo và tóm tắt vận hành.",
+  "View access only for training records and operational summaries.":
+    "Quyền truy cập chỉ xem đối với hồ sơ đào tạo và tóm tắt vận hành.",
   "Total Users": "Tổng người dùng",
   "Total Learners": "Tổng học viên",
   "Total Courses": "Tổng khóa học",
@@ -2226,10 +2785,10 @@ export const EN_TO_VN = {
   "Pending Reviews": "Chờ duyệt",
   "Administrator should view": "Quản trị viên nên xem",
   "Read-only access": "Quyền chỉ đọc",
-  "Learners": "Học viên",
-  "Courses": "Khóa học",
-  "Classes": "Lớp học",
-  "ETRs": "Hồ sơ ETR",
+  Learners: "Học viên",
+  Courses: "Khóa học",
+  Classes: "Lớp học",
+  ETRs: "Hồ sơ ETR",
   "Restricted actions": "Hành động bị hạn chế",
   "Must stay with business roles": "Phải thuộc về các vai trò nghiệp vụ",
   "Approve ETR": "Phê duyệt ETR",
@@ -2241,63 +2800,70 @@ export const EN_TO_VN = {
   "Upload evidence": "Tải lên minh chứng",
   "Reject ETR": "Từ chối ETR",
   "System Configuration": "Cấu hình hệ thống",
-  "Optional configuration page for system-level controls that support the admin portal later.": "Trang cấu hình tùy chọn cho các điều khiển cấp hệ thống hỗ trợ cổng quản trị sau này.",
+  "Optional configuration page for system-level controls that support the admin portal later.":
+    "Trang cấu hình tùy chọn cho các điều khiển cấp hệ thống hỗ trợ cổng quản trị sau này.",
   "Save Settings": "Lưu cài đặt",
-  "Configuration": "Cấu hình",
+  Configuration: "Cấu hình",
   "File upload limits": "Giới hạn tải lên tệp",
   "Password policy": "Chính sách mật khẩu",
   "Session timeout": "Thời gian hết hạn phiên",
-  "Placeholder control for future backend integration. This page will be updated when the system config endpoints are ready.": "Điều khiển giữ chỗ cho tích hợp backend trong tương lai. Trang này sẽ được cập nhật khi các endpoint cấu hình sẵn sàng.",
+  "Placeholder control for future backend integration. This page will be updated when the system config endpoints are ready.":
+    "Điều khiển giữ chỗ cho tích hợp backend trong tương lai. Trang này sẽ được cập nhật khi các endpoint cấu hình sẵn sàng.",
   "ANALYTICS DASHBOARD": "BẢNG ĐIỀU KHIỂN PHÂN TÍCH",
   "ETR FINAL APPROVAL": "PHÊ DUYỆT ETR CUỐI CÙNG",
   "TRẠNG THÁI LỚP HỌC": "TRẠNG THÁI LỚP HỌC",
   "CHỨNG CHỈ HẾT HẠN": "CHỨNG CHỈ HẾT HẠN",
   "Training Manager Portal": "Cổng Trưởng Phòng Đào Tạo",
   "Training Manager": "Trưởng phòng đào tạo",
-  "Management": "Quản lý",
-  "Records": "Hồ sơ",
-  "Competency": "Năng lực",
-  "Analytics": "Phân tích",
-  "Integrations": "Tích hợp",
-  "Library": "Thư viện",
+  Management: "Quản lý",
+  Records: "Hồ sơ",
+  Competency: "Năng lực",
+  Analytics: "Phân tích",
+  Integrations: "Tích hợp",
+  Library: "Thư viện",
   "Sign in": "Đăng nhập",
   "Need assistance?": "Cần trợ giúp?",
-  "Contact your system administrator.": "Liên hệ với quản trị viên hệ thống của bạn.",
+  "Contact your system administrator.":
+    "Liên hệ với quản trị viên hệ thống của bạn.",
   "Aviation training operations": "Hoạt động đào tạo hàng không",
-  "Secure access for ETR administration and training workflows.": "Truy cập an toàn cho quản trị ETR và quy trình đào tạo.",
-  "Manage learners, courses, attendance, evidence, and ETR approval flows from one central aviation training portal.": "Quản lý học viên, khóa học, điểm danh, minh chứng và quy trình phê duyệt ETR từ một cổng đào tạo hàng không trung tâm.",
+  "Secure access for ETR administration and training workflows.":
+    "Truy cập an toàn cho quản trị ETR và quy trình đào tạo.",
+  "Manage learners, courses, attendance, evidence, and ETR approval flows from one central aviation training portal.":
+    "Quản lý học viên, khóa học, điểm danh, minh chứng và quy trình phê duyệt ETR từ một cổng đào tạo hàng không trung tâm.",
   "The training record aviation runs on.": "Hồ sơ đào tạo vận hành hàng không.",
-  "ETR is the enterprise-grade Electrical Training Record platform for aviation. Certify, track, and audit every technician, every module, every sign-off — with cryptographic proof.": "ETR là nền tảng Hồ sơ Đào tạo Điện tử cấp doanh nghiệp cho ngành hàng không. Chứng nhận, theo dõi và kiểm toán mọi kỹ thuật viên, mọi mô-đun, mọi chữ ký — với bằng chứng mật mã.",
+  "ETR is the enterprise-grade Electrical Training Record platform for aviation. Certify, track, and audit every technician, every module, every sign-off — with cryptographic proof.":
+    "ETR là nền tảng Hồ sơ Đào tạo Điện tử cấp doanh nghiệp cho ngành hàng không. Chứng nhận, theo dõi và kiểm toán mọi kỹ thuật viên, mọi mô-đun, mọi chữ ký — với bằng chứng mật mã.",
   "Explore the platform": "Khám phá nền tảng",
   "FAA & EASA aligned": "Tuân thủ tiêu chuẩn FAA & EASA",
   "ITAR-ready deployment": "Triển khai sẵn sàng ITAR",
-  "PLATFORM": "NỀN TẢNG",
-  "COMPANY": "CÔNG TY",
-  "RESOURCES": "TÀI NGUYÊN",
-  "Privacy": "Bảo mật",
-  "Terms": "Điều khoản",
-  "Security": "An ninh",
-  "About": "Giới thiệu",
-  "Customers": "Khách hàng",
-  "Careers": "Tuyển dụng",
-  "Newsroom": "Tin tức",
-  "Docs": "Tài liệu",
+  PLATFORM: "NỀN TẢNG",
+  COMPANY: "CÔNG TY",
+  RESOURCES: "TÀI NGUYÊN",
+  Privacy: "Bảo mật",
+  Terms: "Điều khoản",
+  Security: "An ninh",
+  About: "Giới thiệu",
+  Customers: "Khách hàng",
+  Careers: "Tuyển dụng",
+  Newsroom: "Tin tức",
+  Docs: "Tài liệu",
   "Regulatory Library": "Thư viện quy định",
-  "Contact": "Liên hệ",
-  "TRUSTED BY PART 145 & PART 147 OPERATORS": "ĐƯỢC CÁC NHÀ KHAI THÁC PART 145 & PART 147 TIN CẬY",
+  Contact: "Liên hệ",
+  "TRUSTED BY PART 145 & PART 147 OPERATORS":
+    "ĐƯỢC CÁC NHÀ KHAI THÁC PART 145 & PART 147 TIN CẬY",
   "The training record": "Hồ sơ đào tạo",
   "aviation runs on.": "vận hành hàng không.",
   "SOC 2 Type II": "SOC 2 Type II",
-  "CERTIFICATION": "CHỨNG NHẬN",
+  CERTIFICATION: "CHỨNG NHẬN",
   "ACTIVE LEARNERS": "HỌC VIÊN ĐANG HOẠT ĐỘNG",
   "+312 this month": "+312 trong tháng này",
   "CERT. ISSUED": "CC ĐÃ CẤP",
   "cryptographically signed": "được ký mật mã",
-  "COMPLIANCE": "TUÂN THỦ",
+  COMPLIANCE: "TUÂN THỦ",
   "audit-ready": "sẵn sàng kiểm toán",
   "AVG. SIGN-OFF": "TB. KÝ DUYỆT",
   "from evaluation": "từ đánh giá",
-  "CERTIFIED": "ĐÃ CHỨNG NHẬN",
+  CERTIFIED: "ĐÃ CHỨNG NHẬN",
   "IN REVIEW": "ĐANG XEM XÉT",
   "IN PROGRESS": "ĐANG TIẾN HÀNH",
   "CERTIFIED TECHNICIANS": "KỸ THUẬT VIÊN ĐÃ CHỨNG NHẬN",
@@ -2306,84 +2872,106 @@ export const EN_TO_VN = {
   "AVG. CERTIFICATION CYCLE": "CHU KỲ CHỨNG NHẬN TB.",
   "TRUSTED ACROSS THE AVIATION INDUSTRY": "ĐƯỢC TIN CẬY TRONG NGÀNH HÀNG KHÔNG",
   "— THE PLATFORM": "— NỀN TẢNG",
-  "One system of record for aviation electrical competency.": "Một hệ thống hồ sơ duy nhất cho năng lực điện hàng không.",
-  "ETR replaces spreadsheets, PDFs, and legacy LMS bolt-ons with a purpose-built platform designed around how aviation training actually happens — on the hangar floor.": "ETR thay thế bảng tính, PDF và các bổ sung LMS cũ bằng một nền tảng được thiết kế riêng theo cách đào tạo hàng không thực sự diễn ra — ngay tại nhà chứa máy bay.",
+  "One system of record for aviation electrical competency.":
+    "Một hệ thống hồ sơ duy nhất cho năng lực điện hàng không.",
+  "ETR replaces spreadsheets, PDFs, and legacy LMS bolt-ons with a purpose-built platform designed around how aviation training actually happens — on the hangar floor.":
+    "ETR thay thế bảng tính, PDF và các bổ sung LMS cũ bằng một nền tảng được thiết kế riêng theo cách đào tạo hàng không thực sự diễn ra — ngay tại nhà chứa máy bay.",
   "Auditable Training Records": "Hồ sơ đào tạo có thể kiểm toán",
-  "Every hour, module, and signature stored in an immutable ledger — ready for FAA, EASA, and internal QA audits at any time.": "Mọi giờ học, mô-đun và chữ ký được lưu trong sổ cái bất biến — sẵn sàng cho các cuộc kiểm toán FAA, EASA và QA nội bộ bất cứ lúc nào.",
+  "Every hour, module, and signature stored in an immutable ledger — ready for FAA, EASA, and internal QA audits at any time.":
+    "Mọi giờ học, mô-đun và chữ ký được lưu trong sổ cái bất biến — sẵn sàng cho các cuộc kiểm toán FAA, EASA và QA nội bộ bất cứ lúc nào.",
   "Competency Intelligence": "Thông minh năng lực",
-  "Predictive analytics surface skill gaps across fleets, hangars, and shifts before they impact airworthiness.": "Phân tích dự đoán làm lộ diện khoảng trống kỹ năng trên toàn đội bay, nhà chứa và ca làm việc trước khi chúng ảnh hưởng đến đủ điều kiện bay.",
+  "Predictive analytics surface skill gaps across fleets, hangars, and shifts before they impact airworthiness.":
+    "Phân tích dự đoán làm lộ diện khoảng trống kỹ năng trên toàn đội bay, nhà chứa và ca làm việc trước khi chúng ảnh hưởng đến đủ điều kiện bay.",
   "Compliance by Design": "Tuân thủ ngay từ thiết kế",
-  "Aligned with 14 CFR Part 145, Part 147, and EASA Part-66. Regulatory updates roll out automatically.": "Tuân thủ 14 CFR Part 145, Part 147 và EASA Part-66. Các cập nhật quy định được triển khai tự động.",
+  "Aligned with 14 CFR Part 145, Part 147, and EASA Part-66. Regulatory updates roll out automatically.":
+    "Tuân thủ 14 CFR Part 145, Part 147 và EASA Part-66. Các cập nhật quy định được triển khai tự động.",
   "Digital Sign-off": "Ký duyệt điện tử",
-  "PKI-backed electronic signatures with role-based delegation and full chain-of-custody visibility.": "Chữ ký điện tử nền tảng PKI với phân quyền theo vai trò và khả năng theo dõi chuỗi lưu giữ đầy đủ.",
+  "PKI-backed electronic signatures with role-based delegation and full chain-of-custody visibility.":
+    "Chữ ký điện tử nền tảng PKI với phân quyền theo vai trò và khả năng theo dõi chuỗi lưu giữ đầy đủ.",
   "Executive Dashboards": "Bảng điều khiển điều hành",
-  "Real-time readiness scores across programs, cohorts, and certifications — from the flightline to the boardroom.": "Điểm sẵn sàng theo thời gian thực trên các chương trình, khóa và chứng chỉ — từ sân bay đến phòng họp.",
+  "Real-time readiness scores across programs, cohorts, and certifications — from the flightline to the boardroom.":
+    "Điểm sẵn sàng theo thời gian thực trên các chương trình, khóa và chứng chỉ — từ sân bay đến phòng họp.",
   "Instructor Workbench": "Bàn làm việc giảng viên",
-  "Assign curriculum, evaluate practical demonstrations, and close out records without leaving the hangar floor.": "Phân công chương trình, đánh giá thực hành và chốt hồ sơ ngay tại nhà chứa máy bay.",
+  "Assign curriculum, evaluate practical demonstrations, and close out records without leaving the hangar floor.":
+    "Phân công chương trình, đánh giá thực hành và chốt hồ sơ ngay tại nhà chứa máy bay.",
   "— FOR TRAINING DIRECTORS": "— CHO GIÁM ĐỐC ĐÀO TẠO",
-  "Run every program from a single control tower.": "Vận hành mọi chương trình từ một trung tâm điều khiển duy nhất.",
-  "Manage curricula, evaluators, and cohorts across multiple hangars and time zones. Real-time readiness dashboards keep leadership ahead of every audit cycle.": "Quản lý chương trình, giám định viên và khóa học trên nhiều nhà chứa và múi giờ. Bảng sẵn sàng theo thời gian thực giúp ban lãnh đạo luôn đi trước mọi chu kỳ kiểm toán.",
+  "Run every program from a single control tower.":
+    "Vận hành mọi chương trình từ một trung tâm điều khiển duy nhất.",
+  "Manage curricula, evaluators, and cohorts across multiple hangars and time zones. Real-time readiness dashboards keep leadership ahead of every audit cycle.":
+    "Quản lý chương trình, giám định viên và khóa học trên nhiều nhà chứa và múi giờ. Bảng sẵn sàng theo thời gian thực giúp ban lãnh đạo luôn đi trước mọi chu kỳ kiểm toán.",
   "Multi-site program management": "Quản lý chương trình đa cơ sở",
   "Custom competency frameworks": "Khung năng lực tùy chỉnh",
   "Role-based delegation": "Ủy quyền theo vai trò",
   "— FOR INSTRUCTORS": "— CHO GIẢNG VIÊN",
-  "Sign off practical evaluations from the flightline.": "Ký duyệt đánh giá thực hành ngay tại hiện trường.",
-  "A mobile-first evaluator workbench that lets your best instructors capture evidence, annotate procedures, and certify competency without paper.": "Bàn làm việc đánh giá ưu tiên di động giúp giảng viên giỏi nhất thu thập minh chứng, chú thích quy trình và chứng nhận năng lực mà không cần giấy tờ.",
+  "Sign off practical evaluations from the flightline.":
+    "Ký duyệt đánh giá thực hành ngay tại hiện trường.",
+  "A mobile-first evaluator workbench that lets your best instructors capture evidence, annotate procedures, and certify competency without paper.":
+    "Bàn làm việc đánh giá ưu tiên di động giúp giảng viên giỏi nhất thu thập minh chứng, chú thích quy trình và chứng nhận năng lực mà không cần giấy tờ.",
   "Offline-capable mobile app": "Ứng dụng di động hoạt động ngoại tuyến",
   "Photo & video evidence attach": "Đính kèm minh chứng ảnh & video",
   "Cryptographic sign-off": "Ký duyệt mật mã",
   "— FOR COMPLIANCE": "— CHO TUÂN THỦ",
-  "Turn audits from fire drills into two-minute exports.": "Biến kiểm toán từ bài diễn tập thành bản xuất hai phút.",
-  "Every action is logged, versioned, and cryptographically sealed. When regulators call, produce the complete training history of any technician in seconds.": "Mọi hành động đều được ghi lại, tạo phiên bản và đóng dấu mật mã. Khi cơ quan quản lý yêu cầu, hãy xuất toàn bộ lịch sử đào tạo của bất kỳ kỹ thuật viên nào trong vài giây.",
+  "Turn audits from fire drills into two-minute exports.":
+    "Biến kiểm toán từ bài diễn tập thành bản xuất hai phút.",
+  "Every action is logged, versioned, and cryptographically sealed. When regulators call, produce the complete training history of any technician in seconds.":
+    "Mọi hành động đều được ghi lại, tạo phiên bản và đóng dấu mật mã. Khi cơ quan quản lý yêu cầu, hãy xuất toàn bộ lịch sử đào tạo của bất kỳ kỹ thuật viên nào trong vài giây.",
   "Immutable audit ledger": "Sổ cái kiểm toán bất biến",
   "FAA / EASA reporting templates": "Mẫu báo cáo FAA / EASA",
   "— WORKFLOW": "— QUY TRÌNH",
-  "From enrollment to audit — in one continuous chain of custody.": "Từ ghi danh đến kiểm toán — trong một chuỗi lưu giữ liên tục.",
+  "From enrollment to audit — in one continuous chain of custody.":
+    "Từ ghi danh đến kiểm toán — trong một chuỗi lưu giữ liên tục.",
   "STEP 01": "BƯỚC 01",
-  "Enroll": "Ghi danh",
-  "Import cohorts from your LMS or HRIS. ETR provisions credentials, curricula, and training plans in minutes.": "Nhập khóa học từ LMS hoặc HRIS. ETR cấp chứng chỉ, chương trình và kế hoạch đào tạo chỉ trong vài phút.",
+  Enroll: "Ghi danh",
+  "Import cohorts from your LMS or HRIS. ETR provisions credentials, curricula, and training plans in minutes.":
+    "Nhập khóa học từ LMS hoặc HRIS. ETR cấp chứng chỉ, chương trình và kế hoạch đào tạo chỉ trong vài phút.",
   "STEP 02": "BƯỚC 02",
-  "Train": "Đào tạo",
-  "Blended learning modules combine classroom, e-learning, and hands-on practical evaluations with digital sign-off.": "Các mô-đun học kết hợp giữa lớp học, e-learning và đánh giá thực hành trực tiếp với ký duyệt điện tử.",
+  Train: "Đào tạo",
+  "Blended learning modules combine classroom, e-learning, and hands-on practical evaluations with digital sign-off.":
+    "Các mô-đun học kết hợp giữa lớp học, e-learning và đánh giá thực hành trực tiếp với ký duyệt điện tử.",
   "STEP 03": "BƯỚC 03",
-  "Certify": "Chứng nhận",
-  "Automated competency checks route to qualified evaluators. Certificates issue with cryptographic provenance.": "Kiểm tra năng lực tự động chuyển đến giám định viên có đủ điều kiện. Chứng chỉ được cấp kèm nguồn gốc mật mã.",
+  Certify: "Chứng nhận",
+  "Automated competency checks route to qualified evaluators. Certificates issue with cryptographic provenance.":
+    "Kiểm tra năng lực tự động chuyển đến giám định viên có đủ điều kiện. Chứng chỉ được cấp kèm nguồn gốc mật mã.",
   "STEP 04": "BƯỚC 04",
-  "Audit": "Kiểm toán",
-  "One-click export of complete training histories for regulators, insurers, and customer audits.": "Xuất toàn bộ lịch sử đào tạo chỉ bằng một cú nhấp chuột cho cơ quan quản lý, bảo hiểm và kiểm toán khách hàng.",
+  Audit: "Kiểm toán",
+  "One-click export of complete training histories for regulators, insurers, and customer audits.":
+    "Xuất toàn bộ lịch sử đào tạo chỉ bằng một cú nhấp chuột cho cơ quan quản lý, bảo hiểm và kiểm toán khách hàng.",
   "See the training record": "Xem hồ sơ đào tạo",
   "your regulators": "mà cơ quan quản lý của bạn",
   "wish you": "mong bạn",
   "had.": "có.",
-  "30-minute technical walkthrough with an ETR aviation specialist. No slideware — just your workflows in the product.": "Trình diễn kỹ thuật 30 phút với chuyên gia hàng không ETR. Không có slide trình chiếu — chỉ có quy trình của bạn trong sản phẩm.",
+  "30-minute technical walkthrough with an ETR aviation specialist. No slideware — just your workflows in the product.":
+    "Trình diễn kỹ thuật 30 phút với chuyên gia hàng không ETR. Không có slide trình chiếu — chỉ có quy trình của bạn trong sản phẩm.",
   "AVIATION DASHBOARD": "BẢNG ĐIỀU KHIỂN HÀNG KHÔNG",
-  "Cohorts": "Khóa học",
-  "Active": "Đang hoạt động",
-  "Evaluators": "Giám định viên",
-  "Certified": "Đã chứng nhận",
+  Cohorts: "Khóa học",
+  Active: "Đang hoạt động",
+  Evaluators: "Giám định viên",
+  Certified: "Đã chứng nhận",
   "Cert. Score": "Điểm CC",
   "FLIGHTLINE EVALUATION": "ĐÁNH GIÁ TẠI HIỆN TRƯỜNG",
-  "PASSED": "ĐẠT",
-  "VERIFIED": "ĐÃ XÁC MINH",
+  PASSED: "ĐẠT",
+  VERIFIED: "ĐÃ XÁC MINH",
   "2 Evidence photos attached": "2 ảnh minh chứng đính kèm",
   "AUDIT LEDGER SEAL": "DẤU SỔ CÁI KIỂM TOÁN",
   "FAA Part 145 Audit": "Kiểm toán FAA Part 145",
   "100% READY": "100% SẴN SÀNG",
   "Export PDF Package": "Xuất gói PDF",
-  "Platform": "Nền tảng",
-  "Solutions": "Giải pháp",
-  "Workflow": "Quy trình",
-  "PART 145 & PART 147 AUDITABLE RECORDS": "HỒ SƠ KIỂM TOÁN PART 145 & PART 147",
-  "Centralized": "Tập trung hóa",
+  Platform: "Nền tảng",
+  Solutions: "Giải pháp",
+  Workflow: "Quy trình",
+  "PART 145 & PART 147 AUDITABLE RECORDS":
+    "HỒ SƠ KIỂM TOÁN PART 145 & PART 147",
+  Centralized: "Tập trung hóa",
   "Electronic Training Records.": "Hồ sơ đào tạo điện tử.",
-  "Say goodbye to fragmented binder logs and spreadsheet errors. ETR provides a unified digital standard for tracking every technician's qualifications, practical evaluations, and compliance sign-offs.": "Nói lời tạm biệt với sổ bìa rời rạc và lỗi bảng tính. ETR cung cấp chuẩn số hóa thống nhất để theo dõi trình độ, đánh giá thực hành và ký duyệt tuân thủ của từng kỹ thuật viên.",
+  "Say goodbye to fragmented binder logs and spreadsheet errors. ETR provides a unified digital standard for tracking every technician's qualifications, practical evaluations, and compliance sign-offs.":
+    "Nói lời tạm biệt với sổ bìa rời rạc và lỗi bảng tính. ETR cung cấp chuẩn số hóa thống nhất để theo dõi trình độ, đánh giá thực hành và ký duyệt tuân thủ của từng kỹ thuật viên.",
   "Sign In to View Your ETR": "Đăng nhập để xem hồ sơ ETR của bạn",
   "Request Demo": "Yêu cầu Demo",
   "SAMPLE ETR RECORD": "HỒ SƠ ETR MẪU",
-  "COMPLIANT": "TUÂN THỦ",
+  COMPLIANT: "TUÂN THỦ",
   "OPERATOR / MRO": "NHÀ KHAI THÁC / MRO",
-  "AUTHORIZATION": "ỦY QUYỀN",
-  "RECURRENCE": "TÁI ĐÀO TẠO",
+  AUTHORIZATION: "ỦY QUYỀN",
+  RECURRENCE: "TÁI ĐÀO TẠO",
   "Valid thru Sep 2027": "Hiệu lực đến tháng 9/2027",
   "PROOF SEAL": "DẤU BẰNG CHỨNG",
   "Recent Signoff & Evidence Trail": "Dấu vết ký duyệt & minh chứng gần đây",
@@ -2392,31 +2980,44 @@ export const EN_TO_VN = {
   "Score:": "Điểm:",
   "Exam Code": "Mã bài thi",
   "— ETR CORE CAPABILITIES": "— NĂNG LỰC CỐT LÕI ETR",
-  "Built for absolute traceability and aviation integrity.": "Xây dựng cho khả năng truy vết tuyệt đối và tính toàn vẹn hàng không.",
+  "Built for absolute traceability and aviation integrity.":
+    "Xây dựng cho khả năng truy vết tuyệt đối và tính toàn vẹn hàng không.",
   "Electronic Training Records": "Hồ sơ đào tạo điện tử",
-  "Complete digitized logbooks for every technician, recording theory courses, practical demonstrations, and recurrences in one unified system.": "Sổ nhật ký số hóa đầy đủ cho từng kỹ thuật viên, ghi lại các khóa lý thuyết, thực hành và tái đào tạo trong một hệ thống thống nhất.",
+  "Complete digitized logbooks for every technician, recording theory courses, practical demonstrations, and recurrences in one unified system.":
+    "Sổ nhật ký số hóa đầy đủ cho từng kỹ thuật viên, ghi lại các khóa lý thuyết, thực hành và tái đào tạo trong một hệ thống thống nhất.",
   "Centralized Learner Profiles": "Hồ sơ học viên tập trung",
-  "Track ratings, licenses, company approvals, and medical status alongside training progression with zero data duplication.": "Theo dõi định mức, giấy phép, phê duyệt công ty và tình trạng y tế cùng tiến độ đào tạo mà không trùng lặp dữ liệu.",
+  "Track ratings, licenses, company approvals, and medical status alongside training progression with zero data duplication.":
+    "Theo dõi định mức, giấy phép, phê duyệt công ty và tình trạng y tế cùng tiến độ đào tạo mà không trùng lặp dữ liệu.",
   "Training History & Recurrence": "Lịch sử đào tạo & tái đào tạo",
-  "Maintain full historical timelines. Automated alerts trigger well before recurrence expiration dates to prevent grounded authorization status.": "Duy trì toàn bộ mốc lịch sử. Cảnh báo tự động được kích hoạt trước ngày hết hạn tái đào tạo để ngăn trạng thái ủy quyền bị đình chỉ.",
+  "Maintain full historical timelines. Automated alerts trigger well before recurrence expiration dates to prevent grounded authorization status.":
+    "Duy trì toàn bộ mốc lịch sử. Cảnh báo tự động được kích hoạt trước ngày hết hạn tái đào tạo để ngăn trạng thái ủy quyền bị đình chỉ.",
   "Attendance Tracking": "Theo dõi điểm danh",
-  "Digital roll call logs with GPS and timestamp verification, ensuring class attendance criteria are verifiably fulfilled.": "Nhật ký điểm danh số hóa với xác minh GPS và mốc thời gian, đảm bảo tiêu chí chuyên cần được đáp ứng có thể kiểm chứng.",
-  "Store theory exam scores and practical checklist evaluations with complete question-level analytics and retake history.": "Lưu điểm thi lý thuyết và đánh giá checklist thực hành với phân tích cấp câu hỏi đầy đủ và lịch sử thi lại.",
+  "Digital roll call logs with GPS and timestamp verification, ensuring class attendance criteria are verifiably fulfilled.":
+    "Nhật ký điểm danh số hóa với xác minh GPS và mốc thời gian, đảm bảo tiêu chí chuyên cần được đáp ứng có thể kiểm chứng.",
+  "Store theory exam scores and practical checklist evaluations with complete question-level analytics and retake history.":
+    "Lưu điểm thi lý thuyết và đánh giá checklist thực hành với phân tích cấp câu hỏi đầy đủ và lịch sử thi lại.",
   "Training Evidence Storage": "Lưu trữ minh chứng đào tạo",
-  "Attach photo, video, and signed document evidence directly to specific practical checklist tasks for quality review.": "Đính kèm minh chứng ảnh, video và tài liệu ký trực tiếp vào các nhiệm vụ checklist thực hành cụ thể để đánh giá chất lượng.",
+  "Attach photo, video, and signed document evidence directly to specific practical checklist tasks for quality review.":
+    "Đính kèm minh chứng ảnh, video và tài liệu ký trực tiếp vào các nhiệm vụ checklist thực hành cụ thể để đánh giá chất lượng.",
   "Approval & Signoff Workflows": "Quy trình phê duyệt & ký duyệt",
-  "Multi-stage digital signatures between Instructors, Quality Assurance Officers, and Training Managers with role-based checks.": "Chữ ký điện tử nhiều giai đoạn giữa Giảng viên, Cán bộ Đảm bảo Chất lượng và Trưởng phòng Đào tạo với kiểm tra theo vai trò.",
+  "Multi-stage digital signatures between Instructors, Quality Assurance Officers, and Training Managers with role-based checks.":
+    "Chữ ký điện tử nhiều giai đoạn giữa Giảng viên, Cán bộ Đảm bảo Chất lượng và Trưởng phòng Đào tạo với kiểm tra theo vai trò.",
   "Immutable Audit Trail": "Dấu vết kiểm toán bất biến",
-  "Every edit, status change, and approval action is permanently logged with user ID, IP address, and timestamp for auditor inspection.": "Mọi chỉnh sửa, thay đổi trạng thái và hành động phê duyệt được ghi nhận vĩnh viễn kèm ID người dùng, địa chỉ IP và mốc thời gian để kiểm toán viên xem xét.",
-  "Ready to digitize your aviation training records?": "Sẵn sàng số hóa hồ sơ đào tạo hàng không của bạn?",
-  "Experience how ETR streamlines compliance and audit readiness across your maintenance organization.": "Trải nghiệm cách ETR hợp lý hóa tuân thủ và sự sẵn sàng kiểm toán trong tổ chức bảo trì của bạn.",
+  "Every edit, status change, and approval action is permanently logged with user ID, IP address, and timestamp for auditor inspection.":
+    "Mọi chỉnh sửa, thay đổi trạng thái và hành động phê duyệt được ghi nhận vĩnh viễn kèm ID người dùng, địa chỉ IP và mốc thời gian để kiểm toán viên xem xét.",
+  "Ready to digitize your aviation training records?":
+    "Sẵn sàng số hóa hồ sơ đào tạo hàng không của bạn?",
+  "Experience how ETR streamlines compliance and audit readiness across your maintenance organization.":
+    "Trải nghiệm cách ETR hợp lý hóa tuân thủ và sự sẵn sàng kiểm toán trong tổ chức bảo trì của bạn.",
   "Schedule Technical Demo": "Lên lịch Demo kỹ thuật",
   "Electronic Training Records (ETR)": "Hồ sơ đào tạo điện tử (ETR)",
-  "Platform Documentation & API Reference": "Tài liệu nền tảng & Tham chiếu API",
+  "Platform Documentation & API Reference":
+    "Tài liệu nền tảng & Tham chiếu API",
   "ETR PLATFORM DOCUMENTATION": "TÀI LIỆU NỀN TẢNG ETR",
   "Everything you need to": "Mọi thứ bạn cần để",
   "operate and integrate.": "vận hành và tích hợp.",
-  "Comprehensive guides for Administrators, Academic Staff, Instructors, Quality Assurance Officers, Training Managers, Students, and Auditors.": "Hướng dẫn toàn diện cho Quản trị viên, Cán bộ Học vụ, Giảng viên, Cán bộ Đảm bảo Chất lượng, Trưởng phòng Đào tạo, Học viên và Kiểm toán viên.",
+  "Comprehensive guides for Administrators, Academic Staff, Instructors, Quality Assurance Officers, Training Managers, Students, and Auditors.":
+    "Hướng dẫn toàn diện cho Quản trị viên, Cán bộ Học vụ, Giảng viên, Cán bộ Đảm bảo Chất lượng, Trưởng phòng Đào tạo, Học viên và Kiểm toán viên.",
   "DOCUMENTATION INDEX": "MỤC LỤC TÀI LIỆU",
   "Getting Started": "Bắt đầu",
   "User Guide": "Hướng dẫn sử dụng",
@@ -2426,170 +3027,244 @@ export const EN_TO_VN = {
   "Reporting & Exports": "Báo cáo & Xuất dữ liệu",
   "API Reference": "Tham chiếu API",
   "Getting Started with ETR": "Bắt đầu với ETR",
-  "Welcome to the Electronic Training Record (ETR) Aviation Platform. ETR provides a centralized, auditable system for managing technical training, practical evaluations, and compliance sign-offs.": "Chào mừng đến với Nền tảng Hồ sơ Đào tạo Điện tử (ETR) Hàng không. ETR cung cấp hệ thống tập trung, có thể kiểm toán để quản lý đào tạo kỹ thuật, đánh giá thực hành và ký duyệt tuân thủ.",
+  "Welcome to the Electronic Training Record (ETR) Aviation Platform. ETR provides a centralized, auditable system for managing technical training, practical evaluations, and compliance sign-offs.":
+    "Chào mừng đến với Nền tảng Hồ sơ Đào tạo Điện tử (ETR) Hàng không. ETR cung cấp hệ thống tập trung, có thể kiểm toán để quản lý đào tạo kỹ thuật, đánh giá thực hành và ký duyệt tuân thủ.",
   "1. System Login": "1. Đăng nhập hệ thống",
   "Access the portal at": "Truy cập cổng tại",
-  "using your assigned account credentials. The system automatically detects your role permissions and redirects you to your role-specific dashboard.": "bằng thông tin tài khoản được cấp. Hệ thống tự động nhận diện quyền vai trò của bạn và chuyển hướng đến bảng điều khiển riêng cho vai trò.",
+  "using your assigned account credentials. The system automatically detects your role permissions and redirects you to your role-specific dashboard.":
+    "bằng thông tin tài khoản được cấp. Hệ thống tự động nhận diện quyền vai trò của bạn và chuyển hướng đến bảng điều khiển riêng cho vai trò.",
   "2. Initial Account Setup": "2. Thiết lập tài khoản ban đầu",
-  "Upon first login, navigate to Profile settings to confirm your license numbers (FAA A&P, EASA B1/B2, CAAV), company authorization level, and contact email.": "Khi đăng nhập lần đầu, hãy vào Cài đặt Hồ sơ để xác nhận số giấy phép (FAA A&P, EASA B1/B2, CAAV), mức ủy quyền công ty và email liên hệ.",
+  "Upon first login, navigate to Profile settings to confirm your license numbers (FAA A&P, EASA B1/B2, CAAV), company authorization level, and contact email.":
+    "Khi đăng nhập lần đầu, hãy vào Cài đặt Hồ sơ để xác nhận số giấy phép (FAA A&P, EASA B1/B2, CAAV), mức ủy quyền công ty và email liên hệ.",
   "3. Navigating the Workspace": "3. Điều hướng không gian làm việc",
-  "Use the left sidebar navigation in your role layout to manage classes, submit practical checklist evidence, or audit pending ETR approvals.": "Sử dụng thanh điều hướng bên trái trong giao diện vai trò của bạn để quản lý lớp học, gửi minh chứng checklist thực hành hoặc kiểm tra các phê duyệt ETR đang chờ.",
+  "Use the left sidebar navigation in your role layout to manage classes, submit practical checklist evidence, or audit pending ETR approvals.":
+    "Sử dụng thanh điều hướng bên trái trong giao diện vai trò của bạn để quản lý lớp học, gửi minh chứng checklist thực hành hoặc kiểm tra các phê duyệt ETR đang chờ.",
   "User Guide & Workflows": "Hướng dẫn sử dụng & Quy trình",
-  "ETR operates through a structured multi-stage workflow designed for aviation safety compliance.": "ETR vận hành qua quy trình nhiều giai đoạn có cấu trúc được thiết kế cho tuân thủ an toàn hàng không.",
+  "ETR operates through a structured multi-stage workflow designed for aviation safety compliance.":
+    "ETR vận hành qua quy trình nhiều giai đoạn có cấu trúc được thiết kế cho tuân thủ an toàn hàng không.",
   "Step 1: Course & Class Enrollment": "Bước 1: Ghi danh Khóa học & Lớp học",
-  "Academic Staff provision courses, subjects, and student enrollments. Instructors are assigned to specific practical sessions.": "Cán bộ Học vụ thiết lập khóa học, môn học và ghi danh học viên. Giảng viên được phân công cho các buổi thực hành cụ thể.",
-  "Step 2: Attendance & Practical Evaluation": "Bước 2: Điểm danh & Đánh giá thực hành",
-  "Instructors log session presence and perform hands-on checklist evaluations, marking items as Passed, Retake Needed, or Incomplete.": "Giảng viên ghi nhận hiện diện buổi học và thực hiện đánh giá checklist trực tiếp, đánh dấu các mục là Đạt, Cần thi lại hoặc Chưa hoàn thành.",
-  "Step 3: Evidence Submission & QA Review": "Bước 3: Gửi minh chứng & Thẩm định QA",
-  "Required photos or work order evidence are uploaded. Quality Assurance (QA) Officers review evidence packages for compliance before approving.": "Ảnh bắt buộc hoặc minh chứng lệnh công việc được tải lên. Cán bộ Đảm bảo Chất lượng (QA) rà soát gói minh chứng về tuân thủ trước khi phê duyệt.",
-  "Step 4: Training Manager Final Approval": "Bước 4: Phê duyệt cuối cùng của Trưởng phòng Đào tạo",
-  "Training Managers verify overall class scores and issue digital sign-offs, sealing the ETR into a read-only state.": "Trưởng phòng Đào tạo xác minh điểm tổng của lớp và phát hành ký duyệt điện tử, niêm phong ETR ở trạng thái chỉ đọc.",
+  "Academic Staff provision courses, subjects, and student enrollments. Instructors are assigned to specific practical sessions.":
+    "Cán bộ Học vụ thiết lập khóa học, môn học và ghi danh học viên. Giảng viên được phân công cho các buổi thực hành cụ thể.",
+  "Step 2: Attendance & Practical Evaluation":
+    "Bước 2: Điểm danh & Đánh giá thực hành",
+  "Instructors log session presence and perform hands-on checklist evaluations, marking items as Passed, Retake Needed, or Incomplete.":
+    "Giảng viên ghi nhận hiện diện buổi học và thực hiện đánh giá checklist trực tiếp, đánh dấu các mục là Đạt, Cần thi lại hoặc Chưa hoàn thành.",
+  "Step 3: Evidence Submission & QA Review":
+    "Bước 3: Gửi minh chứng & Thẩm định QA",
+  "Required photos or work order evidence are uploaded. Quality Assurance (QA) Officers review evidence packages for compliance before approving.":
+    "Ảnh bắt buộc hoặc minh chứng lệnh công việc được tải lên. Cán bộ Đảm bảo Chất lượng (QA) rà soát gói minh chứng về tuân thủ trước khi phê duyệt.",
+  "Step 4: Training Manager Final Approval":
+    "Bước 4: Phê duyệt cuối cùng của Trưởng phòng Đào tạo",
+  "Training Managers verify overall class scores and issue digital sign-offs, sealing the ETR into a read-only state.":
+    "Trưởng phòng Đào tạo xác minh điểm tổng của lớp và phát hành ký duyệt điện tử, niêm phong ETR ở trạng thái chỉ đọc.",
   "Roles & Access Controls": "Vai trò & Kiểm soát truy cập",
-  "ETR enforces strict Role-Based Access Control (RBAC) to preserve data integrity and satisfy aviation regulatory separation of duties.": "ETR áp dụng Kiểm soát Truy cập theo Vai trò (RBAC) nghiêm ngặt để bảo toàn tính toàn vẹn dữ liệu và đáp ứng nguyên tắc phân tách nhiệm vụ theo quy định hàng không.",
-  "ROLE": "VAI TRÒ",
+  "ETR enforces strict Role-Based Access Control (RBAC) to preserve data integrity and satisfy aviation regulatory separation of duties.":
+    "ETR áp dụng Kiểm soát Truy cập theo Vai trò (RBAC) nghiêm ngặt để bảo toàn tính toàn vẹn dữ liệu và đáp ứng nguyên tắc phân tách nhiệm vụ theo quy định hàng không.",
+  ROLE: "VAI TRÒ",
   "KEY PERMISSIONS": "QUYỀN CHÍNH",
-  "RESTRICTIONS": "GIỚI HẠN",
-  "System config, User accounts, Audit logs, Department setup": "Cấu hình hệ thống, Tài khoản người dùng, Nhật ký kiểm toán, Thiết lập phòng ban",
+  RESTRICTIONS: "GIỚI HẠN",
+  "System config, User accounts, Audit logs, Department setup":
+    "Cấu hình hệ thống, Tài khoản người dùng, Nhật ký kiểm toán, Thiết lập phòng ban",
   "Cannot self-verify QA evidence": "Không thể tự xác minh minh chứng QA",
-  "Manage courses, classes, student profiles, subject assignments": "Quản lý khóa học, lớp học, hồ sơ học viên, phân công môn học",
-  "Cannot sign off practical evaluations": "Không thể ký duyệt đánh giá thực hành",
-  "Evaluate practical checklists, record attendance, attach evidence": "Đánh giá checklist thực hành, ghi điểm danh, đính kèm minh chứng",
+  "Manage courses, classes, student profiles, subject assignments":
+    "Quản lý khóa học, lớp học, hồ sơ học viên, phân công môn học",
+  "Cannot sign off practical evaluations":
+    "Không thể ký duyệt đánh giá thực hành",
+  "Evaluate practical checklists, record attendance, attach evidence":
+    "Đánh giá checklist thực hành, ghi điểm danh, đính kèm minh chứng",
   "Cannot finalize QA review": "Không thể chốt thẩm định QA",
-  "Audit evidence packages, approve/reject ETRs, search audit trails": "Kiểm tra gói minh chứng, phê duyệt/từ chối ETR, tìm kiếm dấu vết kiểm toán",
-  "Cannot edit student scores directly": "Không thể sửa điểm học viên trực tiếp",
-  "Final ETR approval, class completion lock, reopening authorized ETRs": "Phê duyệt ETR cuối cùng, khóa hoàn thành lớp, mở lại ETR đã được ủy quyền",
+  "Audit evidence packages, approve/reject ETRs, search audit trails":
+    "Kiểm tra gói minh chứng, phê duyệt/từ chối ETR, tìm kiếm dấu vết kiểm toán",
+  "Cannot edit student scores directly":
+    "Không thể sửa điểm học viên trực tiếp",
+  "Final ETR approval, class completion lock, reopening authorized ETRs":
+    "Phê duyệt ETR cuối cùng, khóa hoàn thành lớp, mở lại ETR đã được ủy quyền",
   "Requires QA review prior to signoff": "Cần thẩm định QA trước khi ký duyệt",
-  "Read-only inspection portal, export training packages, view audit logs": "Cổng kiểm tra chỉ đọc, xuất gói đào tạo, xem nhật ký kiểm toán",
+  "Read-only inspection portal, export training packages, view audit logs":
+    "Cổng kiểm tra chỉ đọc, xuất gói đào tạo, xem nhật ký kiểm toán",
   "Read-only access across all records": "Quyền chỉ đọc trên toàn bộ hồ sơ",
   "Training Records Structure": "Cấu trúc hồ sơ đào tạo",
-  "Each Electronic Training Record (ETR) contains full historical metadata for a learner's training program.": "Mỗi Hồ sơ Đào tạo Điện tử (ETR) chứa đầy đủ siêu dữ liệu lịch sử cho chương trình đào tạo của học viên.",
+  "Each Electronic Training Record (ETR) contains full historical metadata for a learner's training program.":
+    "Mỗi Hồ sơ Đào tạo Điện tử (ETR) chứa đầy đủ siêu dữ liệu lịch sử cho chương trình đào tạo của học viên.",
   "Record ID & Hash:": "Mã hồ sơ & Hash:",
-  "Unique system identifier with cryptographic SHA-256 seal.": "Định danh hệ thống duy nhất với dấu mật mã SHA-256.",
+  "Unique system identifier with cryptographic SHA-256 seal.":
+    "Định danh hệ thống duy nhất với dấu mật mã SHA-256.",
   "Learner Metadata:": "Siêu dữ liệu học viên:",
-  "Full name, employee ID, license type, and organization.": "Họ tên, mã nhân viên, loại giấy phép và tổ chức.",
+  "Full name, employee ID, license type, and organization.":
+    "Họ tên, mã nhân viên, loại giấy phép và tổ chức.",
   "Subject & Practical Checklists:": "Môn học & Checklist thực hành:",
-  "Individual task scores, timestamped evaluations, and evaluator ID.": "Điểm từng nhiệm vụ, đánh giá có mốc thời gian và mã giám định viên.",
+  "Individual task scores, timestamped evaluations, and evaluator ID.":
+    "Điểm từng nhiệm vụ, đánh giá có mốc thời gian và mã giám định viên.",
   "Approval Log:": "Nhật ký phê duyệt:",
-  "Timestamped signatures from Instructor, QA Officer, and Training Manager.": "Chữ ký có mốc thời gian từ Giảng viên, Cán bộ QA và Trưởng phòng Đào tạo.",
-  "Evidence Storage & Quality Control": "Lưu trữ minh chứng & Kiểm soát chất lượng",
-  "To meet FAA Part 145 and EASA Part-66 practical assessment requirements, practical checklist tasks require verifications.": "Để đáp ứng yêu cầu đánh giá thực hành FAA Part 145 và EASA Part-66, các nhiệm vụ checklist thực hành cần được xác minh.",
-  "Supported file types include JPEG, PNG, and PDF document scans up to 10MB per task attachment. Photos are tagged with EXIF timestamps and evaluator credentials.": "Các loại tệp được hỗ trợ gồm JPEG, PNG và bản quét PDF tối đa 10MB mỗi tệp đính kèm nhiệm vụ. Ảnh được gắn mốc thời gian EXIF và thông tin giám định viên.",
+  "Timestamped signatures from Instructor, QA Officer, and Training Manager.":
+    "Chữ ký có mốc thời gian từ Giảng viên, Cán bộ QA và Trưởng phòng Đào tạo.",
+  "Evidence Storage & Quality Control":
+    "Lưu trữ minh chứng & Kiểm soát chất lượng",
+  "To meet FAA Part 145 and EASA Part-66 practical assessment requirements, practical checklist tasks require verifications.":
+    "Để đáp ứng yêu cầu đánh giá thực hành FAA Part 145 và EASA Part-66, các nhiệm vụ checklist thực hành cần được xác minh.",
+  "Supported file types include JPEG, PNG, and PDF document scans up to 10MB per task attachment. Photos are tagged with EXIF timestamps and evaluator credentials.":
+    "Các loại tệp được hỗ trợ gồm JPEG, PNG và bản quét PDF tối đa 10MB mỗi tệp đính kèm nhiệm vụ. Ảnh được gắn mốc thời gian EXIF và thông tin giám định viên.",
   "Reporting & Export Packages": "Báo cáo & Gói xuất dữ liệu",
-  "ETR supports automated generation of audit packages:": "ETR hỗ trợ tạo tự động các gói kiểm toán:",
+  "ETR supports automated generation of audit packages:":
+    "ETR hỗ trợ tạo tự động các gói kiểm toán:",
   "Dashboard Export:": "Xuất bảng điều khiển:",
-  "Excel export of active cohort statistics.": "Xuất Excel thống kê khóa học đang hoạt động.",
+  "Excel export of active cohort statistics.":
+    "Xuất Excel thống kê khóa học đang hoạt động.",
   "Training Package PDF:": "PDF gói đào tạo:",
-  "Complete compiled ETR package including practical checklist results, attendance records, evidence photos, and digital sign-off certificates.": "Gói ETR tổng hợp đầy đủ gồm kết quả checklist thực hành, bản ghi điểm danh, ảnh minh chứng và chứng chỉ ký duyệt điện tử.",
+  "Complete compiled ETR package including practical checklist results, attendance records, evidence photos, and digital sign-off certificates.":
+    "Gói ETR tổng hợp đầy đủ gồm kết quả checklist thực hành, bản ghi điểm danh, ảnh minh chứng và chứng chỉ ký duyệt điện tử.",
   "Attendance Log PDF:": "PDF nhật ký điểm danh:",
-  "Formal attendance records signed by certified instructors.": "Bản ghi điểm danh chính thức có chữ ký của giảng viên được chứng nhận.",
+  "Formal attendance records signed by certified instructors.":
+    "Bản ghi điểm danh chính thức có chữ ký của giảng viên được chứng nhận.",
   "REST API Reference": "Tham chiếu REST API",
-  "Public-safe REST endpoints for external LMS and HRIS synchronization.": "Các endpoint REST an toàn công khai để đồng bộ LMS và HRIS bên ngoài.",
+  "Public-safe REST endpoints for external LMS and HRIS synchronization.":
+    "Các endpoint REST an toàn công khai để đồng bộ LMS và HRIS bên ngoài.",
   "ABOUT ETR AVIATION": "VỀ ETR AVIATION",
-  "Empowering safer skies through": "Trao quyền cho bầu trời an toàn hơn thông qua",
+  "Empowering safer skies through":
+    "Trao quyền cho bầu trời an toàn hơn thông qua",
   "digital training precision.": "sự chính xác của đào tạo số.",
-  "ETR was engineered specifically to solve the unique compliance, safety, and operational challenges of aviation maintenance and technical flight crew training.": "ETR được thiết kế riêng để giải quyết các thách thức tuân thủ, an toàn và vận hành đặc thù của bảo trì hàng không và đào tạo tổ bay kỹ thuật.",
+  "ETR was engineered specifically to solve the unique compliance, safety, and operational challenges of aviation maintenance and technical flight crew training.":
+    "ETR được thiết kế riêng để giải quyết các thách thức tuân thủ, an toàn và vận hành đặc thù của bảo trì hàng không và đào tạo tổ bay kỹ thuật.",
   "OUR MISSION & IMPACT": "SỨ MỆNH & TÁC ĐỘNG CỦA CHÚNG TÔI",
   "Digital Traceability": "Khả năng truy vết số",
   "Paper Binder Dependency": "Phụ thuộc sổ giấy",
   "Continuous Audit Readiness": "Sẵn sàng kiểm toán liên tục",
   "— OUR FOUNDATION": "— NỀN TẢNG CỦA CHÚNG TÔI",
-  "Designed for aviation operators, by aviation training experts.": "Được thiết kế cho các nhà khai thác hàng không, bởi các chuyên gia đào tạo hàng không.",
+  "Designed for aviation operators, by aviation training experts.":
+    "Được thiết kế cho các nhà khai thác hàng không, bởi các chuyên gia đào tạo hàng không.",
   "About the ETR Platform": "Về nền tảng ETR",
-  "The Electronic Training Record (ETR) system is a high-availability enterprise web application built to digitize, verify, and store technical training logbooks for airlines, repair stations (Part 145), approved training organizations (Part 147), and flight academies.": "Hệ thống Hồ sơ Đào tạo Điện tử (ETR) là ứng dụng web doanh nghiệp có độ khả dụng cao được xây dựng để số hóa, xác minh và lưu trữ sổ nhật ký đào tạo kỹ thuật cho các hãng hàng không, trạm bảo trì (Part 145), tổ chức đào tạo được phê duyệt (Part 147) và học viện bay.",
+  "The Electronic Training Record (ETR) system is a high-availability enterprise web application built to digitize, verify, and store technical training logbooks for airlines, repair stations (Part 145), approved training organizations (Part 147), and flight academies.":
+    "Hệ thống Hồ sơ Đào tạo Điện tử (ETR) là ứng dụng web doanh nghiệp có độ khả dụng cao được xây dựng để số hóa, xác minh và lưu trữ sổ nhật ký đào tạo kỹ thuật cho các hãng hàng không, trạm bảo trì (Part 145), tổ chức đào tạo được phê duyệt (Part 147) và học viện bay.",
   "Our Purpose": "Mục đích của chúng tôi",
-  "In commercial and general aviation, maintenance errors account for a significant percentage of preventable incidents. Ensuring that every technician who touches an aircraft component has verifiably completed required training and practical evaluations is critical to airworthiness. ETR eliminates lost records, incomplete sign-offs, and compliance loopholes.": "Trong hàng không thương mại và hàng không chung, lỗi bảo trì chiếm tỷ lệ đáng kể trong các sự cố có thể phòng ngừa. Đảm bảo mọi kỹ thuật viên chạm vào linh kiện máy bay đã hoàn thành đào tạo và đánh giá thực hành có thể kiểm chứng là yếu tố then chốt cho đủ điều kiện bay. ETR loại bỏ hồ sơ thất lạc, ký duyệt thiếu sót và lỗ hổng tuân thủ.",
+  "In commercial and general aviation, maintenance errors account for a significant percentage of preventable incidents. Ensuring that every technician who touches an aircraft component has verifiably completed required training and practical evaluations is critical to airworthiness. ETR eliminates lost records, incomplete sign-offs, and compliance loopholes.":
+    "Trong hàng không thương mại và hàng không chung, lỗi bảo trì chiếm tỷ lệ đáng kể trong các sự cố có thể phòng ngừa. Đảm bảo mọi kỹ thuật viên chạm vào linh kiện máy bay đã hoàn thành đào tạo và đánh giá thực hành có thể kiểm chứng là yếu tố then chốt cho đủ điều kiện bay. ETR loại bỏ hồ sơ thất lạc, ký duyệt thiếu sót và lỗ hổng tuân thủ.",
   "Our Vision": "Tầm nhìn của chúng tôi",
-  "To become the global standard for electronic training record management, enabling seamless, instant, and tamper-evident credential verification across civil aviation authorities worldwide.": "Trở thành chuẩn toàn cầu cho quản lý hồ sơ đào tạo điện tử, cho phép xác minh chứng chỉ liền mạch, tức thì và chống giả mạo trên toàn bộ cơ quan hàng không dân dụng thế giới.",
+  "To become the global standard for electronic training record management, enabling seamless, instant, and tamper-evident credential verification across civil aviation authorities worldwide.":
+    "Trở thành chuẩn toàn cầu cho quản lý hồ sơ đào tạo điện tử, cho phép xác minh chứng chỉ liền mạch, tức thì và chống giả mạo trên toàn bộ cơ quan hàng không dân dụng thế giới.",
   "Aviation Training Focus": "Trọng tâm đào tạo hàng không",
-  "Unlike generic HR software or basic LMS tools, ETR is tailored around aviation-specific workflows: practical assessment checklists, instructor sign-offs, evidence verification, retake histories, and multi-tier quality assurance reviews.": "Khác với phần mềm HR thông thường hay công cụ LMS cơ bản, ETR được tùy chỉnh theo các quy trình đặc thù hàng không: checklist đánh giá thực hành, ký duyệt giảng viên, xác minh minh chứng, lịch sử thi lại và thẩm định đảm bảo chất lượng nhiều tầng.",
-  "Why Electronic Training Records Matter": "Vì sao hồ sơ đào tạo điện tử quan trọng",
-  "Traditional paper logbooks suffer from legibility issues, physical degradation, risk of loss during facility moves, and laborious audit prep. Electronic records with cryptographic seals ensure perpetual durability, instant query capability, and ironclad legal audit defense.": "Sổ nhật ký giấy truyền thống gặp vấn đề về độ rõ chữ, xuống cấp vật lý, nguy cơ thất lạc khi di dời và chuẩn bị kiểm toán vất vả. Hồ sơ điện tử với dấu mật mã đảm bảo độ bền vĩnh viễn, khả năng truy vấn tức thì và phòng thủ kiểm toán pháp lý vững chắc.",
-  "Join the leading aviation training organizations on ETR.": "Gia nhập các tổ chức đào tạo hàng không hàng đầu trên ETR.",
-  "Speak with our aviation specialists to discuss your organization's transition to digital ETR.": "Trao đổi với chuyên gia hàng không của chúng tôi để bàn về quá trình chuyển đổi sang ETR số của tổ chức bạn.",
+  "Unlike generic HR software or basic LMS tools, ETR is tailored around aviation-specific workflows: practical assessment checklists, instructor sign-offs, evidence verification, retake histories, and multi-tier quality assurance reviews.":
+    "Khác với phần mềm HR thông thường hay công cụ LMS cơ bản, ETR được tùy chỉnh theo các quy trình đặc thù hàng không: checklist đánh giá thực hành, ký duyệt giảng viên, xác minh minh chứng, lịch sử thi lại và thẩm định đảm bảo chất lượng nhiều tầng.",
+  "Why Electronic Training Records Matter":
+    "Vì sao hồ sơ đào tạo điện tử quan trọng",
+  "Traditional paper logbooks suffer from legibility issues, physical degradation, risk of loss during facility moves, and laborious audit prep. Electronic records with cryptographic seals ensure perpetual durability, instant query capability, and ironclad legal audit defense.":
+    "Sổ nhật ký giấy truyền thống gặp vấn đề về độ rõ chữ, xuống cấp vật lý, nguy cơ thất lạc khi di dời và chuẩn bị kiểm toán vất vả. Hồ sơ điện tử với dấu mật mã đảm bảo độ bền vĩnh viễn, khả năng truy vấn tức thì và phòng thủ kiểm toán pháp lý vững chắc.",
+  "Join the leading aviation training organizations on ETR.":
+    "Gia nhập các tổ chức đào tạo hàng không hàng đầu trên ETR.",
+  "Speak with our aviation specialists to discuss your organization's transition to digital ETR.":
+    "Trao đổi với chuyên gia hàng không của chúng tôi để bàn về quá trình chuyển đổi sang ETR số của tổ chức bạn.",
   "Contact Our Team": "Liên hệ đội ngũ của chúng tôi",
   "About ETR Aviation Platform": "Về nền tảng ETR Aviation",
   "Newsroom & Press": "Tin tức & Báo chí",
   "ETR NEWSROOM & PRESS": "TIN TỨC & BÁO CHÍ ETR",
-  "Latest announcements, regulatory updates,": "Các thông báo mới nhất, cập nhật quy định,",
+  "Latest announcements, regulatory updates,":
+    "Các thông báo mới nhất, cập nhật quy định,",
   "& insights.": "& góc nhìn.",
-  "Stay informed on platform releases, CAAV/FAA regulatory alignments, and technical aviation training best practices.": "Cập nhật về các phiên bản nền tảng, điều chỉnh quy định CAAV/FAA và các thực tiễn tốt nhất về đào tạo hàng không kỹ thuật.",
+  "Stay informed on platform releases, CAAV/FAA regulatory alignments, and technical aviation training best practices.":
+    "Cập nhật về các phiên bản nền tảng, điều chỉnh quy định CAAV/FAA và các thực tiễn tốt nhất về đào tạo hàng không kỹ thuật.",
   "Loading news articles...": "Đang tải bài viết tin tức...",
-  "No news items found for this category.": "Không tìm thấy tin tức nào cho danh mục này.",
-  "By": "Bởi",
+  "No news items found for this category.":
+    "Không tìm thấy tin tức nào cho danh mục này.",
+  By: "Bởi",
   "Read Article": "Đọc bài viết",
   "Back to Newsroom": "Quay lại Tin tức",
   "Loading article...": "Đang tải bài viết...",
   "Article not found.": "Không tìm thấy bài viết.",
   "Published on": "Đăng ngày",
-  "As part of our commitment to continuous safety and operational transparency, ETR Aviation provides ongoing platform enhancements to meet evolving international aviation regulatory standards.": "Trong khuôn khổ cam kết an toàn liên tục và minh bạch vận hành, ETR Aviation cung cấp các cải tiến nền tảng thường xuyên để đáp ứng các chuẩn quy định hàng không quốc tế đang phát triển.",
+  "As part of our commitment to continuous safety and operational transparency, ETR Aviation provides ongoing platform enhancements to meet evolving international aviation regulatory standards.":
+    "Trong khuôn khổ cam kết an toàn liên tục và minh bạch vận hành, ETR Aviation cung cấp các cải tiến nền tảng thường xuyên để đáp ứng các chuẩn quy định hàng không quốc tế đang phát triển.",
   "Training Analytics & Reporting": "Phân tích & Báo cáo đào tạo",
   "ENTERPRISE REPORTING & INTELLIGENCE": "BÁO CÁO & THÔNG MINH DOANH NGHIỆP",
   "Actionable insights across": "Thông tin chi tiết có thể hành động trên",
   "fleets and cohorts.": "toàn đội bay và các khóa.",
-  "Monitor qualification trends, identify skill bottlenecks, track practical evidence submission rates, and generate executive compliance reports in seconds.": "Giám sát xu hướng trình độ, xác định điểm nghẽn kỹ năng, theo dõi tỷ lệ gửi minh chứng thực hành và tạo báo cáo tuân thủ điều hành chỉ trong vài giây.",
+  "Monitor qualification trends, identify skill bottlenecks, track practical evidence submission rates, and generate executive compliance reports in seconds.":
+    "Giám sát xu hướng trình độ, xác định điểm nghẽn kỹ năng, theo dõi tỷ lệ gửi minh chứng thực hành và tạo báo cáo tuân thủ điều hành chỉ trong vài giây.",
   "Explore Analytics Features": "Khám phá tính năng phân tích",
   "PUBLIC PERFORMANCE OVERVIEW": "TỔNG QUAN HIỆU SUẤT CÔNG KHAI",
-  "Loading public analytics preview...": "Đang tải bản xem trước phân tích công khai...",
+  "Loading public analytics preview...":
+    "Đang tải bản xem trước phân tích công khai...",
   "ACTIVE CERTIFICATES": "CHỨNG CHỈ ĐANG HIỆU LỰC",
   "Zero critical findings": "Không có phát hiện nghiêm trọng",
   "AVG. SIGNOFF TIME": "TB. THỜI GIAN KÝ DUYỆT",
   "From practical demo": "Từ bản demo thực hành",
   "+312 this quarter": "+312 trong quý này",
   "— INTELLIGENCE SUITE": "— BỘ CÔNG CỤ THÔNG MINH",
-  "Comprehensive visibility into aviation training performance.": "Tầm nhìn toàn diện về hiệu suất đào tạo hàng không.",
+  "Comprehensive visibility into aviation training performance.":
+    "Tầm nhìn toàn diện về hiệu suất đào tạo hàng không.",
   "Training Overview Dashboards": "Bảng điều khiển tổng quan đào tạo",
-  "Real-time high-level summaries for Directors of Training, Training Managers, and QA Chiefs showing program readiness at a glance.": "Tóm tắt cấp cao theo thời gian thực cho Giám đốc Đào tạo, Trưởng phòng Đào tạo và Trưởng bộ phận QA, hiển thị mức sẵn sàng chương trình trong nháy mắt.",
+  "Real-time high-level summaries for Directors of Training, Training Managers, and QA Chiefs showing program readiness at a glance.":
+    "Tóm tắt cấp cao theo thời gian thực cho Giám đốc Đào tạo, Trưởng phòng Đào tạo và Trưởng bộ phận QA, hiển thị mức sẵn sàng chương trình trong nháy mắt.",
   "Completion Rate Metrics": "Chỉ số tỷ lệ hoàn thành",
-  "Track cohort progression curves against scheduled milestones. Automatically highlight lagging students before course deadlines.": "Theo dõi đường cong tiến độ khóa so với các mốc đã lên lịch. Tự động làm nổi bật học viên chậm tiến độ trước hạn khóa học.",
+  "Track cohort progression curves against scheduled milestones. Automatically highlight lagging students before course deadlines.":
+    "Theo dõi đường cong tiến độ khóa so với các mốc đã lên lịch. Tự động làm nổi bật học viên chậm tiến độ trước hạn khóa học.",
   "Attendance Statistics": "Thống kê điểm danh",
-  "Monitor session presence rates, excused absences, and makeup session schedules across ground school and simulator labs.": "Giám sát tỷ lệ hiện diện buổi học, nghỉ có phép và lịch học bù trên toàn bộ trường mặt đất và phòng mô phỏng.",
+  "Monitor session presence rates, excused absences, and makeup session schedules across ground school and simulator labs.":
+    "Giám sát tỷ lệ hiện diện buổi học, nghỉ có phép và lịch học bù trên toàn bộ trường mặt đất và phòng mô phỏng.",
   "Assessment Result Distribution": "Phân bố kết quả đánh giá",
-  "Analyze pass rates, average scores, and retake frequency by subject, exam version, or instructor evaluator.": "Phân tích tỷ lệ đạt, điểm trung bình và tần suất thi lại theo môn học, phiên bản đề thi hoặc giảng viên đánh giá.",
+  "Analyze pass rates, average scores, and retake frequency by subject, exam version, or instructor evaluator.":
+    "Phân tích tỷ lệ đạt, điểm trung bình và tần suất thi lại theo môn học, phiên bản đề thi hoặc giảng viên đánh giá.",
   "Missing Evidence Detection": "Phát hiện minh chứng thiếu",
-  "Automated warning engine flags practical checklist evaluations missing mandatory photo/video proof prior to final sign-off.": "Công cụ cảnh báo tự động gắn cờ các đánh giá checklist thực hành thiếu bằng chứng ảnh/video bắt buộc trước khi ký duyệt cuối.",
+  "Automated warning engine flags practical checklist evaluations missing mandatory photo/video proof prior to final sign-off.":
+    "Công cụ cảnh báo tự động gắn cờ các đánh giá checklist thực hành thiếu bằng chứng ảnh/video bắt buộc trước khi ký duyệt cuối.",
   "Exportable Training Reports": "Báo cáo đào tạo có thể xuất",
-  "Generate one-click PDF, Excel, and CSV report packages formatted for internal quality audits and aviation regulatory submission.": "Tạo gói báo cáo PDF, Excel và CSV chỉ bằng một cú nhấp chuột, định dạng cho kiểm toán chất lượng nội bộ và nộp cơ quan quản lý hàng không.",
+  "Generate one-click PDF, Excel, and CSV report packages formatted for internal quality audits and aviation regulatory submission.":
+    "Tạo gói báo cáo PDF, Excel và CSV chỉ bằng một cú nhấp chuột, định dạng cho kiểm toán chất lượng nội bộ và nộp cơ quan quản lý hàng không.",
   "Fleet Training Readiness Metrics": "Chỉ số sẵn sàng đào tạo đội bay",
   "PROGRAM / COURSE": "CHƯƠNG TRÌNH / KHÓA HỌC",
   "READINESS SCORE": "ĐIỂM SẴN SÀNG",
-  "ACTION": "HÀNH ĐỘNG",
+  ACTION: "HÀNH ĐỘNG",
   "Request Package": "Yêu cầu gói",
-  "Unlock precision reporting for your organization.": "Mở khóa báo cáo chính xác cho tổ chức của bạn.",
-  "Connect with an ETR analytics specialist to see custom reporting workflows in action.": "Kết nối với chuyên gia phân tích ETR để xem quy trình báo cáo tùy chỉnh hoạt động thực tế.",
+  "Unlock precision reporting for your organization.":
+    "Mở khóa báo cáo chính xác cho tổ chức của bạn.",
+  "Connect with an ETR analytics specialist to see custom reporting workflows in action.":
+    "Kết nối với chuyên gia phân tích ETR để xem quy trình báo cáo tùy chỉnh hoạt động thực tế.",
   "Request Analytics Consultation": "Yêu cầu tư vấn phân tích",
   "Competency Tracking & Evaluation": "Theo dõi & Đánh giá năng lực",
   "COMPETENCY MANAGEMENT SYSTEM": "HỆ THỐNG QUẢN LÝ NĂNG LỰC",
   "Verifiable competency": "Năng lực có thể xác minh",
   "on the hangar floor.": "ngay tại nhà chứa máy bay.",
-  "Bridge the gap between theoretical knowledge and practical execution. Track skill mastery, evaluate tasks against standardized rubrics, and monitor cohort progress in real time.": "Thu hẹp khoảng cách giữa kiến thức lý thuyết và thực thi thực tế. Theo dõi mức thành thạo kỹ năng, đánh giá nhiệm vụ theo bộ tiêu chí chuẩn hóa và giám sát tiến độ khóa theo thời gian thực.",
+  "Bridge the gap between theoretical knowledge and practical execution. Track skill mastery, evaluate tasks against standardized rubrics, and monitor cohort progress in real time.":
+    "Thu hẹp khoảng cách giữa kiến thức lý thuyết và thực thi thực tế. Theo dõi mức thành thạo kỹ năng, đánh giá nhiệm vụ theo bộ tiêu chí chuẩn hóa và giám sát tiến độ khóa theo thời gian thực.",
   "Request Competency Walkthrough": "Yêu cầu trình diễn năng lực",
   "PRACTICAL EVALUATION MATRIX": "MA TRẬN ĐÁNH GIÁ THỰC HÀNH",
   "100% PASS": "100% ĐẠT",
   "95% PASS": "95% ĐẠT",
   "Cohort Competency Completion": "Mức hoàn thành năng lực khóa",
   "— COMPETENCY FRAMEWORK": "— KHUNG NĂNG LỰC",
-  "Objective evaluation standards for technical excellence.": "Chuẩn đánh giá khách quan cho sự xuất sắc kỹ thuật.",
+  "Objective evaluation standards for technical excellence.":
+    "Chuẩn đánh giá khách quan cho sự xuất sắc kỹ thuật.",
   "Competency Tracking": "Theo dõi năng lực",
-  "Define clear competency goals for each aircraft type, avionics suite, and maintenance rating. Monitor individual skill progression effortlessly.": "Xác định mục tiêu năng lực rõ ràng cho từng loại máy bay, hệ thống điện tử hàng không và định mức bảo trì. Giám sát tiến bộ kỹ năng từng cá nhân một cách dễ dàng.",
+  "Define clear competency goals for each aircraft type, avionics suite, and maintenance rating. Monitor individual skill progression effortlessly.":
+    "Xác định mục tiêu năng lực rõ ràng cho từng loại máy bay, hệ thống điện tử hàng không và định mức bảo trì. Giám sát tiến bộ kỹ năng từng cá nhân một cách dễ dàng.",
   "Practical Assessment Checklists": "Checklist đánh giá thực hành",
-  "Granular checklist items for hands-on tasks, requiring evaluators to verify specific safety steps, tool usage, and quality tolerances.": "Các mục checklist chi tiết cho nhiệm vụ thực hành, yêu cầu giám định viên xác minh từng bước an toàn, cách sử dụng dụng cụ và dung sai chất lượng.",
+  "Granular checklist items for hands-on tasks, requiring evaluators to verify specific safety steps, tool usage, and quality tolerances.":
+    "Các mục checklist chi tiết cho nhiệm vụ thực hành, yêu cầu giám định viên xác minh từng bước an toàn, cách sử dụng dụng cụ và dung sai chất lượng.",
   "Instructor Evaluation Workbench": "Bàn làm việc đánh giá của giảng viên",
-  "Instructors evaluate learners directly on mobile or tablet devices, adding comments, rating skill execution, and requesting photo proof.": "Giảng viên đánh giá học viên trực tiếp trên thiết bị di động hoặc máy tính bảng, thêm nhận xét, chấm điểm thực hiện kỹ năng và yêu cầu bằng chứng ảnh.",
+  "Instructors evaluate learners directly on mobile or tablet devices, adding comments, rating skill execution, and requesting photo proof.":
+    "Giảng viên đánh giá học viên trực tiếp trên thiết bị di động hoặc máy tính bảng, thêm nhận xét, chấm điểm thực hiện kỹ năng và yêu cầu bằng chứng ảnh.",
   "Real-Time Training Progress": "Tiến độ đào tạo theo thời gian thực",
-  "Visual progress indicators highlight completed modules, pending evaluations, and retake requirements across training cohorts.": "Chỉ báo tiến độ trực quan làm nổi bật mô-đun đã hoàn thành, đánh giá đang chờ và yêu cầu thi lại trên các khóa đào tạo.",
+  "Visual progress indicators highlight completed modules, pending evaluations, and retake requirements across training cohorts.":
+    "Chỉ báo tiến độ trực quan làm nổi bật mô-đun đã hoàn thành, đánh giá đang chờ và yêu cầu thi lại trên các khóa đào tạo.",
   "Completion Requirements Verification": "Xác minh điều kiện hoàn thành",
-  "Automated rules verify that attendance thresholds, pass rates, and required evidence attachments are satisfied before issuing ETR completion.": "Quy tắc tự động xác minh ngưỡng điểm danh, tỷ lệ đạt và minh chứng bắt buộc được đáp ứng trước khi cấp hoàn thành ETR.",
-  "Elevate your practical assessment standards today.": "Nâng cao chuẩn đánh giá thực hành của bạn ngay hôm nay.",
-  "Discover how ETR ensures true technician readiness before authorization.": "Khám phá cách ETR đảm bảo mức sẵn sàng thực sự của kỹ thuật viên trước khi cấp ủy quyền.",
+  "Automated rules verify that attendance thresholds, pass rates, and required evidence attachments are satisfied before issuing ETR completion.":
+    "Quy tắc tự động xác minh ngưỡng điểm danh, tỷ lệ đạt và minh chứng bắt buộc được đáp ứng trước khi cấp hoàn thành ETR.",
+  "Elevate your practical assessment standards today.":
+    "Nâng cao chuẩn đánh giá thực hành của bạn ngay hôm nay.",
+  "Discover how ETR ensures true technician readiness before authorization.":
+    "Khám phá cách ETR đảm bảo mức sẵn sàng thực sự của kỹ thuật viên trước khi cấp ủy quyền.",
   "Log In to Portal": "Đăng nhập Cổng",
-  "Aviation Training Compliance & Audit Readiness": "Tuân thủ đào tạo hàng không & Sẵn sàng kiểm toán",
+  "Aviation Training Compliance & Audit Readiness":
+    "Tuân thủ đào tạo hàng không & Sẵn sàng kiểm toán",
   "REGULATORY & QUALITY ASSURANCE": "QUY ĐỊNH & ĐẢM BẢO CHẤT LƯỢNG",
   "Compliance by design for": "Tuân thủ ngay từ thiết kế cho",
   "FAA & EASA audits.": "các cuộc kiểm toán FAA & EASA.",
-  "ETR transforms regulatory compliance from a stressful pre-audit panic into a continuous, automated state of audit readiness. Every record is verified, sealed, and traceable.": "ETR biến tuân thủ quy định từ nỗi lo căng thẳng trước kiểm toán thành trạng thái sẵn sàng kiểm toán liên tục, tự động. Mọi hồ sơ đều được xác minh, niêm phong và có thể truy vết.",
-  "Discuss Regulatory Aligned Solutions": "Trao đổi giải pháp tuân thủ quy định",
-  "PART 145 / 147 AUDIT STATUS: 100% PASS": "TRẠNG THÁI KIỂM TOÁN PART 145 / 147: 100% ĐẠT",
-  "Read-only evidence ledger cryptographically sealed": "Sổ cái minh chứng chỉ đọc được niêm phong mật mã",
+  "ETR transforms regulatory compliance from a stressful pre-audit panic into a continuous, automated state of audit readiness. Every record is verified, sealed, and traceable.":
+    "ETR biến tuân thủ quy định từ nỗi lo căng thẳng trước kiểm toán thành trạng thái sẵn sàng kiểm toán liên tục, tự động. Mọi hồ sơ đều được xác minh, niêm phong và có thể truy vết.",
+  "Discuss Regulatory Aligned Solutions":
+    "Trao đổi giải pháp tuân thủ quy định",
+  "PART 145 / 147 AUDIT STATUS: 100% PASS":
+    "TRẠNG THÁI KIỂM TOÁN PART 145 / 147: 100% ĐẠT",
+  "Read-only evidence ledger cryptographically sealed":
+    "Sổ cái minh chứng chỉ đọc được niêm phong mật mã",
   "CHAIN-OF-CUSTODY:": "CHUỖI LƯU GIỮ:",
   "VERIFIED (12/12 CHECKS)": "ĐÃ XÁC MINH (12/12 LẦN KIỂM TRA)",
   "QA EVIDENCE STATUS:": "TRẠNG THÁI MINH CHỨNG QA:",
@@ -2597,101 +3272,139 @@ export const EN_TO_VN = {
   "RECORD RETENTION:": "LƯU GIỮ HỒ SƠ:",
   "PERPETUAL SECURE VAULT": "KHO BẢO MẬT VĨNH VIỄN",
   "— COMPLIANCE ARCHITECTURE": "— KIẾN TRÚC TUÂN THỦ",
-  "Built to satisfy the stringent requirements of aviation authorities.": "Được xây dựng để đáp ứng các yêu cầu nghiêm ngặt của cơ quan hàng không.",
+  "Built to satisfy the stringent requirements of aviation authorities.":
+    "Được xây dựng để đáp ứng các yêu cầu nghiêm ngặt của cơ quan hàng không.",
   "Compliance Monitoring": "Giám sát tuân thủ",
-  "Automated rules verify course structures, instructor qualifications, and practical assessment criteria before records can be submitted.": "Quy tắc tự động xác minh cấu trúc khóa học, trình độ giảng viên và tiêu chí đánh giá thực hành trước khi hồ sơ được gửi.",
-  "Quality Assurance (QA) officers review attached photos, test results, and attendance records with built-in conflict-of-interest prevention.": "Cán bộ Đảm bảo Chất lượng (QA) rà soát ảnh đính kèm, kết quả kiểm tra và bản ghi điểm danh với cơ chế ngăn ngừa xung đột lợi ích tích hợp.",
+  "Automated rules verify course structures, instructor qualifications, and practical assessment criteria before records can be submitted.":
+    "Quy tắc tự động xác minh cấu trúc khóa học, trình độ giảng viên và tiêu chí đánh giá thực hành trước khi hồ sơ được gửi.",
+  "Quality Assurance (QA) officers review attached photos, test results, and attendance records with built-in conflict-of-interest prevention.":
+    "Cán bộ Đảm bảo Chất lượng (QA) rà soát ảnh đính kèm, kết quả kiểm tra và bản ghi điểm danh với cơ chế ngăn ngừa xung đột lợi ích tích hợp.",
   "ETR Validation": "Xác thực ETR",
-  "Once validated, ETR records enter a read-only locked state. Any attempt to modify a finalized record requires formal administrative unlock logs.": "Sau khi được xác thực, hồ sơ ETR chuyển sang trạng thái khóa chỉ đọc. Mọi nỗ lực sửa hồ sơ đã chốt đều cần nhật ký mở khóa quản trị chính thức.",
+  "Once validated, ETR records enter a read-only locked state. Any attempt to modify a finalized record requires formal administrative unlock logs.":
+    "Sau khi được xác thực, hồ sơ ETR chuyển sang trạng thái khóa chỉ đọc. Mọi nỗ lực sửa hồ sơ đã chốt đều cần nhật ký mở khóa quản trị chính thức.",
   "Multi-Tier Approval Workflow": "Quy trình phê duyệt nhiều tầng",
-  "Structured approval path across Instructor &rarr; QA Officer &rarr; Training Manager with mandatory rejection comments and retake tracking.": "Lộ trình phê duyệt có cấu trúc qua Giảng viên &rarr; Cán bộ QA &rarr; Trưởng phòng Đào tạo với nhận xét từ chối bắt buộc và theo dõi thi lại.",
+  "Structured approval path across Instructor &rarr; QA Officer &rarr; Training Manager with mandatory rejection comments and retake tracking.":
+    "Lộ trình phê duyệt có cấu trúc qua Giảng viên &rarr; Cán bộ QA &rarr; Trưởng phòng Đào tạo với nhận xét từ chối bắt buộc và theo dõi thi lại.",
   "Training Record Traceability": "Khả năng truy vết hồ sơ đào tạo",
-  "Instantly trace an authorization back to the specific practical evaluation session, instructor signature, and underlying curriculum version.": "Truy vết tức thì một ủy quyền về đúng buổi đánh giá thực hành, chữ ký giảng viên và phiên bản chương trình gốc.",
-  "Turn audits into a 2-minute export process.": "Biến kiểm toán thành quy trình xuất dữ liệu 2 phút.",
-  "Learn how ETR's dedicated Auditor Portal provides read-only inspection access without exposing sensitive administrative data.": "Tìm hiểu cách Cổng Kiểm toán chuyên dụng của ETR cung cấp quyền kiểm tra chỉ đọc mà không phơi bày dữ liệu quản trị nhạy cảm.",
+  "Instantly trace an authorization back to the specific practical evaluation session, instructor signature, and underlying curriculum version.":
+    "Truy vết tức thì một ủy quyền về đúng buổi đánh giá thực hành, chữ ký giảng viên và phiên bản chương trình gốc.",
+  "Turn audits into a 2-minute export process.":
+    "Biến kiểm toán thành quy trình xuất dữ liệu 2 phút.",
+  "Learn how ETR's dedicated Auditor Portal provides read-only inspection access without exposing sensitive administrative data.":
+    "Tìm hiểu cách Cổng Kiểm toán chuyên dụng của ETR cung cấp quyền kiểm tra chỉ đọc mà không phơi bày dữ liệu quản trị nhạy cảm.",
   "Request Auditor Portal Demo": "Yêu cầu Demo Cổng Kiểm toán",
   "Platform Security & Data Governance": "Bảo mật nền tảng & Quản trị dữ liệu",
   "ETR SECURITY & GOVERNANCE": "BẢO MẬT & QUẢN TRỊ ETR",
   "Enterprise security for": "Bảo mật doanh nghiệp cho",
   "critical aviation records.": "hồ sơ hàng không quan trọng.",
-  "ETR is architected around strict access controls, tamper-evident audit logs, and complete data isolation to protect technical training records across commercial airlines and MRO operators.": "ETR được kiến trúc xoay quanh kiểm soát truy cập nghiêm ngặt, nhật ký kiểm toán chống giả mạo và cách ly dữ liệu hoàn toàn để bảo vệ hồ sơ đào tạo kỹ thuật của các hãng hàng không thương mại và nhà khai thác MRO.",
+  "ETR is architected around strict access controls, tamper-evident audit logs, and complete data isolation to protect technical training records across commercial airlines and MRO operators.":
+    "ETR được kiến trúc xoay quanh kiểm soát truy cập nghiêm ngặt, nhật ký kiểm toán chống giả mạo và cách ly dữ liệu hoàn toàn để bảo vệ hồ sơ đào tạo kỹ thuật của các hãng hàng không thương mại và nhà khai thác MRO.",
   "SECURITY CONTROLS MATRIX": "MA TRẬN KIỂM SOÁT BẢO MẬT",
   "Role-Based Access Control (RBAC)": "Kiểm soát truy cập theo vai trò (RBAC)",
-  "Strict role checks for Admin, Academic, Instructor, QA, Training Manager, Student, Auditor": "Kiểm tra vai trò nghiêm ngặt cho Quản trị viên, Học vụ, Giảng viên, QA, Trưởng phòng Đào tạo, Học viên, Kiểm toán viên",
+  "Strict role checks for Admin, Academic, Instructor, QA, Training Manager, Student, Auditor":
+    "Kiểm tra vai trò nghiêm ngặt cho Quản trị viên, Học vụ, Giảng viên, QA, Trưởng phòng Đào tạo, Học viên, Kiểm toán viên",
   "Tamper-Evident Audit Logging": "Nhật ký kiểm toán chống giả mạo",
-  "Permanent logging of user actions, timestamps, and IP addresses in CSDL audit tables": "Ghi nhận vĩnh viễn hành động người dùng, mốc thời gian và địa chỉ IP trong các bảng kiểm toán CSDL",
+  "Permanent logging of user actions, timestamps, and IP addresses in CSDL audit tables":
+    "Ghi nhận vĩnh viễn hành động người dùng, mốc thời gian và địa chỉ IP trong các bảng kiểm toán CSDL",
   "Read-Only Finalized ETR Records": "Hồ sơ ETR đã chốt chỉ đọc",
-  "Completed training records are sealed and protected from unauthorized modification": "Hồ sơ đào tạo đã hoàn thành được niêm phong và bảo vệ khỏi chỉnh sửa trái phép",
+  "Completed training records are sealed and protected from unauthorized modification":
+    "Hồ sơ đào tạo đã hoàn thành được niêm phong và bảo vệ khỏi chỉnh sửa trái phép",
   "— SECURITY ARCHITECTURE": "— KIẾN TRÚC BẢO MẬT",
-  "How ETR safeguards training integrity.": "ETR bảo vệ tính toàn vẹn đào tạo như thế nào.",
+  "How ETR safeguards training integrity.":
+    "ETR bảo vệ tính toàn vẹn đào tạo như thế nào.",
   "Authentication & Session Control": "Xác thực & Kiểm soát phiên",
-  "Secure Bearer Token authentication with automated expiration, token refresh protocols, and protected route navigation guards.": "Xác thực Bearer Token an toàn với hết hạn tự động, giao thức làm mới token và bộ bảo vệ điều hướng tuyến đường.",
+  "Secure Bearer Token authentication with automated expiration, token refresh protocols, and protected route navigation guards.":
+    "Xác thực Bearer Token an toàn với hết hạn tự động, giao thức làm mới token và bộ bảo vệ điều hướng tuyến đường.",
   "Data Protection & Isolation": "Bảo vệ & cách ly dữ liệu",
-  "Logical tenant isolation prevents unauthorized cross-organization visibility. Public endpoints never expose learner identity data.": "Cách ly đối tượng thuê ở mức logic ngăn truy cập trái phép giữa các tổ chức. Các endpoint công khai không bao giờ phơi bày dữ liệu định danh học viên.",
+  "Logical tenant isolation prevents unauthorized cross-organization visibility. Public endpoints never expose learner identity data.":
+    "Cách ly đối tượng thuê ở mức logic ngăn truy cập trái phép giữa các tổ chức. Các endpoint công khai không bao giờ phơi bày dữ liệu định danh học viên.",
   "Conflict of Interest Safeguards": "Bảo vệ chống xung đột lợi ích",
-  "Built-in business rules prevent instructors from approving QA reviews for evidence or evaluations they submitted themselves.": "Quy tắc nghiệp vụ tích hợp ngăn giảng viên phê duyệt thẩm định QA cho minh chứng hoặc đánh giá do chính họ gửi.",
+  "Built-in business rules prevent instructors from approving QA reviews for evidence or evaluations they submitted themselves.":
+    "Quy tắc nghiệp vụ tích hợp ngăn giảng viên phê duyệt thẩm định QA cho minh chứng hoặc đánh giá do chính họ gửi.",
   "Evidence Storage Integrity": "Toàn vẹn lưu trữ minh chứng",
-  "Attached practical evaluation media (photos, documents) are stored in secure blob storage with access token validation and checksum verifications.": "Phương tiện đánh giá thực hành đính kèm (ảnh, tài liệu) được lưu trong kho lưu trữ blob an toàn với xác thực token truy cập và kiểm tra checksum.",
-  "Have security or compliance questions?": "Có câu hỏi về bảo mật hoặc tuân thủ?",
-  "Our security architecture team can provide detailed documentation on data governance and system deployment options.": "Đội ngũ kiến trúc bảo mật của chúng tôi có thể cung cấp tài liệu chi tiết về quản trị dữ liệu và các phương án triển khai hệ thống.",
+  "Attached practical evaluation media (photos, documents) are stored in secure blob storage with access token validation and checksum verifications.":
+    "Phương tiện đánh giá thực hành đính kèm (ảnh, tài liệu) được lưu trong kho lưu trữ blob an toàn với xác thực token truy cập và kiểm tra checksum.",
+  "Have security or compliance questions?":
+    "Có câu hỏi về bảo mật hoặc tuân thủ?",
+  "Our security architecture team can provide detailed documentation on data governance and system deployment options.":
+    "Đội ngũ kiến trúc bảo mật của chúng tôi có thể cung cấp tài liệu chi tiết về quản trị dữ liệu và các phương án triển khai hệ thống.",
   "Contact Security Team": "Liên hệ Đội ngũ Bảo mật",
   "System Integrations": "Tích hợp hệ thống",
   "OPEN API & ECOSYSTEM CONNECTIVITY": "API MỞ & KẾT NỐI HỆ SINH THÁI",
   "Seamlessly integrated with": "Tích hợp liền mạch với",
   "your aviation stack.": "hệ thống hàng không của bạn.",
-  "ETR doesn't replace your existing systems — it connects them. Bridge your LMS, HRIS, MRO maintenance software, and cloud storage into a unified training record network.": "ETR không thay thế hệ thống hiện có của bạn — mà kết nối chúng. Kết nối LMS, HRIS, phần mềm bảo trì MRO và lưu trữ đám mây thành một mạng hồ sơ đào tạo thống nhất.",
+  "ETR doesn't replace your existing systems — it connects them. Bridge your LMS, HRIS, MRO maintenance software, and cloud storage into a unified training record network.":
+    "ETR không thay thế hệ thống hiện có của bạn — mà kết nối chúng. Kết nối LMS, HRIS, phần mềm bảo trì MRO và lưu trữ đám mây thành một mạng hồ sơ đào tạo thống nhất.",
   "View API Documentation": "Xem tài liệu API",
   "ETR API & INTEGRATION ARCHITECTURE": "KIẾN TRÚC TÍCH HỢP & API ETR",
   "Enterprise LMS": "LMS Doanh nghiệp",
   "Cloud S3 Vault": "Kho lưu trữ Cloud S3",
   "— INTEGRATION CONNECTORS": "— BỘ KẾT NỐI TÍCH HỢP",
-  "Pre-built integrations and customizable webhooks.": "Tích hợp dựng sẵn và webhook tùy chỉnh.",
+  "Pre-built integrations and customizable webhooks.":
+    "Tích hợp dựng sẵn và webhook tùy chỉnh.",
   "Enterprise LMS Sync": "Đồng bộ LMS Doanh nghiệp",
   "Learning Management": "Quản lý học tập",
-  "Bi-directional SCORM, xAPI, and REST API sync with Moodles, Cornerstone, and custom LMS platforms for roster and course completion import.": "Đồng bộ hai chiều SCORM, xAPI và REST API với Moodles, Cornerstone và các nền tảng LMS tùy chỉnh để nhập danh sách học viên và hoàn thành khóa học.",
+  "Bi-directional SCORM, xAPI, and REST API sync with Moodles, Cornerstone, and custom LMS platforms for roster and course completion import.":
+    "Đồng bộ hai chiều SCORM, xAPI và REST API với Moodles, Cornerstone và các nền tảng LMS tùy chỉnh để nhập danh sách học viên và hoàn thành khóa học.",
   "MRO & Fleet Software": "Phần mềm MRO & Đội bay",
   "Operations & HRIS": "Vận hành & HRIS",
-  "Connect directly with AMOS, SAP Aviation, and Maintenix to sync technician ratings, authorizations, and maintenance duty capabilities.": "Kết nối trực tiếp với AMOS, SAP Aviation và Maintenix để đồng bộ định mức kỹ thuật viên, ủy quyền và năng lực nhiệm vụ bảo trì.",
+  "Connect directly with AMOS, SAP Aviation, and Maintenix to sync technician ratings, authorizations, and maintenance duty capabilities.":
+    "Kết nối trực tiếp với AMOS, SAP Aviation và Maintenix để đồng bộ định mức kỹ thuật viên, ủy quyền và năng lực nhiệm vụ bảo trì.",
   "Assessment & Exam Systems": "Hệ thống đánh giá & thi cử",
   "Testing Platforms": "Nền tảng kiểm tra",
-  "Automated ingestion of computer-based theoretical test results, question bank scores, and candidate authorization codes.": "Tiếp nhận tự động kết quả thi lý thuyết trên máy tính, điểm ngân hàng câu hỏi và mã ủy quyền thí sinh.",
+  "Automated ingestion of computer-based theoretical test results, question bank scores, and candidate authorization codes.":
+    "Tiếp nhận tự động kết quả thi lý thuyết trên máy tính, điểm ngân hàng câu hỏi và mã ủy quyền thí sinh.",
   "Cloud Document Repositories": "Kho tài liệu đám mây",
   "Document Vaults": "Kho tài liệu",
-  "Secure export and backup of signed PDF ETR packages to Azure Blob Storage, AWS S3, SharePoint Enterprise, or local server SANs.": "Xuất và sao lưu an toàn gói PDF ETR đã ký đến Azure Blob Storage, AWS S3, SharePoint Enterprise hoặc SAN máy chủ nội bộ.",
+  "Secure export and backup of signed PDF ETR packages to Azure Blob Storage, AWS S3, SharePoint Enterprise, or local server SANs.":
+    "Xuất và sao lưu an toàn gói PDF ETR đã ký đến Azure Blob Storage, AWS S3, SharePoint Enterprise hoặc SAN máy chủ nội bộ.",
   "SSO & Identity Providers": "SSO & Nhà cung cấp định danh",
-  "Authentication": "Xác thực",
-  "OAuth 2.0, SAML 2.0, Azure Active Directory / Entra ID, and Okta integration for single sign-on across maintenance bases.": "Tích hợp OAuth 2.0, SAML 2.0, Azure Active Directory / Entra ID và Okta để đăng nhập một lần trên các cơ sở bảo trì.",
+  Authentication: "Xác thực",
+  "OAuth 2.0, SAML 2.0, Azure Active Directory / Entra ID, and Okta integration for single sign-on across maintenance bases.":
+    "Tích hợp OAuth 2.0, SAML 2.0, Azure Active Directory / Entra ID và Okta để đăng nhập một lần trên các cơ sở bảo trì.",
   "RESTful Webhooks & API Gateway": "Webhook RESTful & API Gateway",
   "Developer Platform": "Nền tảng nhà phát triển",
-  "Subscribe to real-time webhook events for ETR completion, evidence submission, authorization renewal, and QA rejection.": "Đăng ký sự kiện webhook theo thời gian thực cho hoàn thành ETR, gửi minh chứng, gia hạn ủy quyền và từ chối QA.",
-  "Need a custom enterprise integration?": "Cần tích hợp doanh nghiệp tùy chỉnh?",
-  "Our technical solutions team assists with custom REST API connectors, data migrations, and webhook routing.": "Đội ngũ giải pháp kỹ thuật hỗ trợ bộ kết nối REST API tùy chỉnh, di trú dữ liệu và định tuyến webhook.",
+  "Subscribe to real-time webhook events for ETR completion, evidence submission, authorization renewal, and QA rejection.":
+    "Đăng ký sự kiện webhook theo thời gian thực cho hoàn thành ETR, gửi minh chứng, gia hạn ủy quyền và từ chối QA.",
+  "Need a custom enterprise integration?":
+    "Cần tích hợp doanh nghiệp tùy chỉnh?",
+  "Our technical solutions team assists with custom REST API connectors, data migrations, and webhook routing.":
+    "Đội ngũ giải pháp kỹ thuật hỗ trợ bộ kết nối REST API tùy chỉnh, di trú dữ liệu và định tuyến webhook.",
   "Contact Integration Engineers": "Liên hệ Kỹ sư Tích hợp",
-  "Regulatory Library & Aviation Standards": "Thư viện quy định & Tiêu chuẩn hàng không",
-  "PUBLIC AVIATION REGULATORY LIBRARY": "THƯ VIỆN QUY ĐỊNH HÀNG KHÔNG CÔNG KHAI",
+  "Regulatory Library & Aviation Standards":
+    "Thư viện quy định & Tiêu chuẩn hàng không",
+  "PUBLIC AVIATION REGULATORY LIBRARY":
+    "THƯ VIỆN QUY ĐỊNH HÀNG KHÔNG CÔNG KHAI",
   "Reference framework for": "Khung tham chiếu cho",
   "aviation training standards.": "các tiêu chuẩn đào tạo hàng không.",
-  "Explore sample reference guidelines, Part 145/147 training frameworks, EWIS practical assessment standards, and compliance benchmarks for electronic training records.": "Khám phá hướng dẫn tham chiếu mẫu, khung đào tạo Part 145/147, chuẩn đánh giá thực hành EWIS và các mốc tuân thủ cho hồ sơ đào tạo điện tử.",
-  "Search regulatory standards by title, keyword, or document ID...": "Tìm kiếm tiêu chuẩn quy định theo tiêu đề, từ khóa hoặc mã tài liệu...",
+  "Explore sample reference guidelines, Part 145/147 training frameworks, EWIS practical assessment standards, and compliance benchmarks for electronic training records.":
+    "Khám phá hướng dẫn tham chiếu mẫu, khung đào tạo Part 145/147, chuẩn đánh giá thực hành EWIS và các mốc tuân thủ cho hồ sơ đào tạo điện tử.",
+  "Search regulatory standards by title, keyword, or document ID...":
+    "Tìm kiếm tiêu chuẩn quy định theo tiêu đề, từ khóa hoặc mã tài liệu...",
   "Note:": "Ghi chú:",
-  "These reference documents represent public-safe educational models and regulatory alignment guidelines used by ETR Aviation platform developers and training administrators.": "Các tài liệu tham chiếu này thể hiện mô hình giáo dục an toàn công khai và hướng dẫn căn chỉnh quy định được các nhà phát triển nền tảng và quản trị viên đào tạo ETR Aviation sử dụng.",
+  "These reference documents represent public-safe educational models and regulatory alignment guidelines used by ETR Aviation platform developers and training administrators.":
+    "Các tài liệu tham chiếu này thể hiện mô hình giáo dục an toàn công khai và hướng dẫn căn chỉnh quy định được các nhà phát triển nền tảng và quản trị viên đào tạo ETR Aviation sử dụng.",
   "Loading regulatory library...": "Đang tải thư viện quy định...",
-  "No matching regulatory documents found.": "Không tìm thấy tài liệu quy định phù hợp.",
+  "No matching regulatory documents found.":
+    "Không tìm thấy tài liệu quy định phù hợp.",
   "View Reference Specifications": "Xem thông số kỹ thuật tham chiếu",
   "Category:": "Danh mục:",
   "Issuing Body:": "Cơ quan ban hành:",
   "Revision Date:": "Ngày sửa đổi:",
   "Specification Overview": "Tổng quan thông số kỹ thuật",
-  "SPECIFICATION STRUCTURE (SAMPLE JSON)": "CẤU TRÚC THÔNG SỐ KỸ THUẬT (JSON MẪU)",
+  "SPECIFICATION STRUCTURE (SAMPLE JSON)":
+    "CẤU TRÚC THÔNG SỐ KỸ THUẬT (JSON MẪU)",
   "Close Preview": "Đóng bản xem trước",
   "Careers & Open Positions": "Tuyển dụng & Vị trí mở",
   "JOIN THE ETR TEAM": "GIA NHẬP ĐỘI NGŨ ETR",
   "Build the future of": "Xây dựng tương lai của",
   "aviation safety & compliance.": "an toàn & tuân thủ hàng không.",
-  "We are looking for passionate aviation domain experts, cloud engineers, quality auditors, and customer success leaders to transform electronic training record technology.": "Chúng tôi đang tìm kiếm các chuyên gia hàng không đam mê, kỹ sư đám mây, kiểm toán viên chất lượng và lãnh đạo thành công khách hàng để chuyển đổi công nghệ hồ sơ đào tạo điện tử.",
+  "We are looking for passionate aviation domain experts, cloud engineers, quality auditors, and customer success leaders to transform electronic training record technology.":
+    "Chúng tôi đang tìm kiếm các chuyên gia hàng không đam mê, kỹ sư đám mây, kiểm toán viên chất lượng và lãnh đạo thành công khách hàng để chuyển đổi công nghệ hồ sơ đào tạo điện tử.",
   "— OPEN POSITIONS": "— VỊ TRÍ ĐANG TUYỂN",
   "Explore current opportunities.": "Khám phá các cơ hội hiện tại.",
-  "Search by job title, department, or location...": "Tìm kiếm theo chức danh, phòng ban hoặc địa điểm...",
+  "Search by job title, department, or location...":
+    "Tìm kiếm theo chức danh, phòng ban hoặc địa điểm...",
   "Loading open positions...": "Đang tải vị trí tuyển dụng...",
   "No matching positions found.": "Không tìm thấy vị trí phù hợp.",
   "Requirements:": "Yêu cầu:",
@@ -2702,23 +3415,30 @@ export const EN_TO_VN = {
   "Email Address *": "Địa chỉ Email *",
   "e.g. john.doe@airline.com": "VD: nguyenvana@airline.com",
   "Phone Number": "Số điện thoại",
-  "Cover Note / Relevant Aviation Experience": "Thư giới thiệu / Kinh nghiệm hàng không liên quan",
-  "Briefly introduce your qualifications, licenses (FAA/EASA), or engineering background...": "Giới thiệu ngắn gọn về trình độ, giấy phép (FAA/EASA) hoặc nền tảng kỹ thuật của bạn...",
-  "Cancel": "Hủy",
+  "Cover Note / Relevant Aviation Experience":
+    "Thư giới thiệu / Kinh nghiệm hàng không liên quan",
+  "Briefly introduce your qualifications, licenses (FAA/EASA), or engineering background...":
+    "Giới thiệu ngắn gọn về trình độ, giấy phép (FAA/EASA) hoặc nền tảng kỹ thuật của bạn...",
+  Cancel: "Hủy",
   "Submitting...": "Đang gửi...",
   "Submit Application": "Gửi đơn ứng tuyển",
-  "Please fill in required fields (Name & Email).": "Vui lòng điền các trường bắt buộc (Tên & Email).",
+  "Please fill in required fields (Name & Email).":
+    "Vui lòng điền các trường bắt buộc (Tên & Email).",
   "Application submitted successfully!": "Đơn ứng tuyển đã gửi thành công!",
-  "Failed to submit application. Please try again.": "Gửi đơn ứng tuyển thất bại. Vui lòng thử lại.",
+  "Failed to submit application. Please try again.":
+    "Gửi đơn ứng tuyển thất bại. Vui lòng thử lại.",
   "Contact Us & Schedule Technical Demo": "Liên hệ & Đặt lịch Demo kỹ thuật",
   "GET IN TOUCH WITH ETR AVIATION": "LIÊN HỆ VỚI ETR AVIATION",
   "Talk to an aviation": "Trao đổi với",
   "ETR specialist.": "chuyên gia ETR hàng không.",
-  "Whether you want a technical platform demonstration, custom API integration consultation, or Part 145/147 audit alignment advice — our experts are standing by.": "Dù bạn cần trình diễn nền tảng kỹ thuật, tư vấn tích hợp API tùy chỉnh hay tư vấn căn chỉnh kiểm toán Part 145/147 — các chuyên gia của chúng tôi luôn sẵn sàng.",
+  "Whether you want a technical platform demonstration, custom API integration consultation, or Part 145/147 audit alignment advice — our experts are standing by.":
+    "Dù bạn cần trình diễn nền tảng kỹ thuật, tư vấn tích hợp API tùy chỉnh hay tư vấn căn chỉnh kiểm toán Part 145/147 — các chuyên gia của chúng tôi luôn sẵn sàng.",
   "Enterprise Support & Enquiries": "Hỗ trợ Doanh nghiệp & Yêu cầu",
-  "Connect with our team to explore deployment options, pilot programs for maintenance bases, or technical support.": "Kết nối với đội ngũ của chúng tôi để khám phá phương án triển khai, chương trình thí điểm cho cơ sở bảo trì hoặc hỗ trợ kỹ thuật.",
+  "Connect with our team to explore deployment options, pilot programs for maintenance bases, or technical support.":
+    "Kết nối với đội ngũ của chúng tôi để khám phá phương án triển khai, chương trình thí điểm cho cơ sở bảo trì hoặc hỗ trợ kỹ thuật.",
   "Global Headquarters": "Trụ sở chính toàn cầu",
-  "Aviation Tech Hub, Hanoi & Ho Chi Minh City, Vietnam": "Trung tâm Công nghệ Hàng không, Hà Nội & TP. Hồ Chí Minh, Việt Nam",
+  "Aviation Tech Hub, Hanoi & Ho Chi Minh City, Vietnam":
+    "Trung tâm Công nghệ Hàng không, Hà Nội & TP. Hồ Chí Minh, Việt Nam",
   "Email Enquiries": "Yêu cầu qua Email",
   "Technical Support Line": "Đường dây hỗ trợ kỹ thuật",
   "Mon-Fri 08:00 - 18:00 ICT": "T2-T6 08:00 - 18:00 ICT",
@@ -2736,65 +3456,104 @@ export const EN_TO_VN = {
   "Enterprise & Fleet Pricing": "Báo giá Doanh nghiệp & Đội bay",
   "General Inquiry": "Yêu cầu chung",
   "Message * (min 10 characters)": "Tin nhắn * (tối thiểu 10 ký tự)",
-  "Tell us about your organization's training record requirements or current challenges...": "Cho chúng tôi biết về yêu cầu hồ sơ đào tạo hoặc thách thức hiện tại của tổ chức bạn...",
+  "Tell us about your organization's training record requirements or current challenges...":
+    "Cho chúng tôi biết về yêu cầu hồ sơ đào tạo hoặc thách thức hiện tại của tổ chức bạn...",
   "Sending Message...": "Đang gửi tin nhắn...",
   "Submit Inquiry": "Gửi yêu cầu",
   "Please enter your name.": "Vui lòng nhập tên của bạn.",
   "Please enter a valid email address.": "Vui lòng nhập địa chỉ email hợp lệ.",
-  "Please enter your organization or airline name.": "Vui lòng nhập tên tổ chức hoặc hãng hàng không của bạn.",
-  "Message must be at least 10 characters long.": "Tin nhắn phải có ít nhất 10 ký tự.",
-  "Thank you! Your message has been sent successfully. An ETR aviation specialist will respond shortly.": "Cảm ơn bạn! Tin nhắn đã được gửi thành công. Chuyên gia ETR hàng không sẽ phản hồi sớm.",
-  "Server error occurred while submitting your message. Please try again later.": "Đã xảy ra lỗi máy chủ khi gửi tin nhắn. Vui lòng thử lại sau.",
+  "Please enter your organization or airline name.":
+    "Vui lòng nhập tên tổ chức hoặc hãng hàng không của bạn.",
+  "Message must be at least 10 characters long.":
+    "Tin nhắn phải có ít nhất 10 ký tự.",
+  "Thank you! Your message has been sent successfully. An ETR aviation specialist will respond shortly.":
+    "Cảm ơn bạn! Tin nhắn đã được gửi thành công. Chuyên gia ETR hàng không sẽ phản hồi sớm.",
+  "Server error occurred while submitting your message. Please try again later.":
+    "Đã xảy ra lỗi máy chủ khi gửi tin nhắn. Vui lòng thử lại sau.",
   "Target Organizations & Customers": "Tổ chức mục tiêu & Khách hàng",
   "BUILT FOR AVIATION ORGANIZATIONS": "XÂY DỰNG CHO CÁC TỔ CHỨC HÀNG KHÔNG",
   "Tailored solutions for every": "Giải pháp phù hợp cho từng",
   "aviation training sector.": "lĩnh vực đào tạo hàng không.",
-  "From regional Part 145 repair stations to international flight academies, ETR provides scalable electronic training record infrastructure customized for your operational scope.": "Từ trạm bảo trì Part 145 khu vực đến học viện bay quốc tế, ETR cung cấp hạ tầng hồ sơ đào tạo điện tử có khả năng mở rộng, tùy chỉnh theo phạm vi vận hành của bạn.",
+  "From regional Part 145 repair stations to international flight academies, ETR provides scalable electronic training record infrastructure customized for your operational scope.":
+    "Từ trạm bảo trì Part 145 khu vực đến học viện bay quốc tế, ETR cung cấp hạ tầng hồ sơ đào tạo điện tử có khả năng mở rộng, tùy chỉnh theo phạm vi vận hành của bạn.",
   "Request Organization Demo": "Yêu cầu Demo tổ chức",
   "— ORGANIZATION CATEGORIES": "— DANH MỤC TỔ CHỨC",
-  "How different aviation entities utilize ETR.": "Các thực thể hàng không khác nhau sử dụng ETR như thế nào.",
+  "How different aviation entities utilize ETR.":
+    "Các thực thể hàng không khác nhau sử dụng ETR như thế nào.",
   "Use Case:": "Tình huống sử dụng:",
   "Key Benefits:": "Lợi ích chính:",
-  "Maintenance Repair Organizations (Part 145 MRO)": "Tổ chức bảo trì sửa chữa (Part 145 MRO)",
-  "Manage technician electrical wiring (EWIS), avionics repair certifications, and annual recurrent authorizations across multiple hangar bases.": "Quản lý hệ thống dây điện (EWIS) của kỹ thuật viên, chứng chỉ sửa chữa điện tử hàng không và ủy quyền tái đào tạo hàng năm trên nhiều cơ sở nhà chứa.",
-  "Instant audit readiness for FAA/EASA inspections": "Sẵn sàng kiểm toán tức thì cho thanh tra FAA/EASA",
-  "Prevent unauthorized technician assignment": "Ngăn phân công kỹ thuật viên trái phép",
-  "Cryptographic proof of practical evaluations": "Bằng chứng mật mã cho đánh giá thực hành",
-  "Approved Maintenance Training Organizations (Part 147)": "Tổ chức đào tạo bảo trì được phê duyệt (Part 147)",
-  "Deliver structured basic and type-specific maintenance training courses, execute practical task checklists, and manage multi-stage student sign-offs.": "Triển khai khóa đào tạo bảo trì cơ bản và theo loại hình có cấu trúc, thực hiện checklist nhiệm vụ thực hành và quản lý ký duyệt học viên nhiều giai đoạn.",
-  "Standardized practical checklist evaluation": "Đánh giá checklist thực hành chuẩn hóa",
-  "Detailed retake and examination tracking": "Theo dõi thi lại và kiểm tra chi tiết",
+  "Maintenance Repair Organizations (Part 145 MRO)":
+    "Tổ chức bảo trì sửa chữa (Part 145 MRO)",
+  "Manage technician electrical wiring (EWIS), avionics repair certifications, and annual recurrent authorizations across multiple hangar bases.":
+    "Quản lý hệ thống dây điện (EWIS) của kỹ thuật viên, chứng chỉ sửa chữa điện tử hàng không và ủy quyền tái đào tạo hàng năm trên nhiều cơ sở nhà chứa.",
+  "Instant audit readiness for FAA/EASA inspections":
+    "Sẵn sàng kiểm toán tức thì cho thanh tra FAA/EASA",
+  "Prevent unauthorized technician assignment":
+    "Ngăn phân công kỹ thuật viên trái phép",
+  "Cryptographic proof of practical evaluations":
+    "Bằng chứng mật mã cho đánh giá thực hành",
+  "Approved Maintenance Training Organizations (Part 147)":
+    "Tổ chức đào tạo bảo trì được phê duyệt (Part 147)",
+  "Deliver structured basic and type-specific maintenance training courses, execute practical task checklists, and manage multi-stage student sign-offs.":
+    "Triển khai khóa đào tạo bảo trì cơ bản và theo loại hình có cấu trúc, thực hiện checklist nhiệm vụ thực hành và quản lý ký duyệt học viên nhiều giai đoạn.",
+  "Standardized practical checklist evaluation":
+    "Đánh giá checklist thực hành chuẩn hóa",
+  "Detailed retake and examination tracking":
+    "Theo dõi thi lại và kiểm tra chi tiết",
   "Automated student certificate issuance": "Cấp chứng chỉ học viên tự động",
   "Commercial & Regional Airlines": "Hãng hàng không thương mại & khu vực",
-  "Centralize technical training records for fleet maintenance crews, flight engineers, and ground operational staff across global outstations.": "Tập trung hóa hồ sơ đào tạo kỹ thuật cho đội bảo trì, kỹ sư bay và nhân sự vận hành mặt đất trên các điểm ngoài toàn cầu.",
+  "Centralize technical training records for fleet maintenance crews, flight engineers, and ground operational staff across global outstations.":
+    "Tập trung hóa hồ sơ đào tạo kỹ thuật cho đội bảo trì, kỹ sư bay và nhân sự vận hành mặt đất trên các điểm ngoài toàn cầu.",
   "Multi-site authorization control tower": "Tháp điều khiển ủy quyền đa cơ sở",
-  "Real-time fleet readiness dashboards": "Bảng sẵn sàng đội bay theo thời gian thực",
-  "Integration with airline HRIS and flight ops": "Tích hợp với HRIS hãng hàng không và vận hành bay",
-  "Flight Training Organizations (ATO / FTO)": "Tổ chức đào tạo bay (ATO / FTO)",
-  "Track ground school theory modules, simulator session evaluations, emergency procedure compliance, and instructor sign-offs for student pilots.": "Theo dõi mô-đun lý thuyết trường mặt đất, đánh giá buổi mô phỏng, tuân thủ quy trình khẩn cấp và ký duyệt giảng viên cho học viên phi công.",
-  "Complete flight and simulator session logs": "Nhật ký buổi bay và mô phỏng đầy đủ",
+  "Real-time fleet readiness dashboards":
+    "Bảng sẵn sàng đội bay theo thời gian thực",
+  "Integration with airline HRIS and flight ops":
+    "Tích hợp với HRIS hãng hàng không và vận hành bay",
+  "Flight Training Organizations (ATO / FTO)":
+    "Tổ chức đào tạo bay (ATO / FTO)",
+  "Track ground school theory modules, simulator session evaluations, emergency procedure compliance, and instructor sign-offs for student pilots.":
+    "Theo dõi mô-đun lý thuyết trường mặt đất, đánh giá buổi mô phỏng, tuân thủ quy trình khẩn cấp và ký duyệt giảng viên cho học viên phi công.",
+  "Complete flight and simulator session logs":
+    "Nhật ký buổi bay và mô phỏng đầy đủ",
   "Instructor digital signature chain": "Chuỗi chữ ký số của giảng viên",
   "Regulatory compliance reporting": "Báo cáo tuân thủ quy định",
-  "Cabin Crew & Safety Training Centers": "Trung tâm đào tạo tiếp viên & an toàn",
-  "Manage cabin safety equipment procedures, annual emergency exit drills, first aid practical checks, and recurrent safety certifications.": "Quản lý quy trình thiết bị an toàn khoang, diễn tập lối thoát hiểm khẩn cấp hàng năm, kiểm tra thực hành sơ cứu và chứng chỉ an toàn tái đào tạo.",
-  "Batch attendance and evaluation logging": "Ghi nhận điểm danh và đánh giá theo lô",
+  "Cabin Crew & Safety Training Centers":
+    "Trung tâm đào tạo tiếp viên & an toàn",
+  "Manage cabin safety equipment procedures, annual emergency exit drills, first aid practical checks, and recurrent safety certifications.":
+    "Quản lý quy trình thiết bị an toàn khoang, diễn tập lối thoát hiểm khẩn cấp hàng năm, kiểm tra thực hành sơ cứu và chứng chỉ an toàn tái đào tạo.",
+  "Batch attendance and evaluation logging":
+    "Ghi nhận điểm danh và đánh giá theo lô",
   "Automated recurrence renewal alerts": "Cảnh báo gia hạn tái đào tạo tự động",
   "Standardized safety drill rubrics": "Bộ tiêu chí diễn tập an toàn chuẩn hóa",
-  "Is your organization ready for digital ETR?": "Tổ chức của bạn đã sẵn sàng cho ETR số?",
-  "Speak with an aviation workflow consultant to map your existing training processes into ETR.": "Trao đổi với chuyên gia tư vấn quy trình hàng không để chuyển quy trình đào tạo hiện có của bạn sang ETR.",
+  "Is your organization ready for digital ETR?":
+    "Tổ chức của bạn đã sẵn sàng cho ETR số?",
+  "Speak with an aviation workflow consultant to map your existing training processes into ETR.":
+    "Trao đổi với chuyên gia tư vấn quy trình hàng không để chuyển quy trình đào tạo hiện có của bạn sang ETR.",
   "Schedule Consultation": "Đặt lịch tư vấn",
-  "System activities (record creation, checklist scoring, evidence verification, ETR approval, and logins) are recorded in permanent audit logs.": "Các hoạt động của hệ thống (tạo hồ sơ, chấm điểm checklist, xác thực minh chứng, phê duyệt ETR và đăng nhập) được ghi lại trong nhật ký kiểm toán vĩnh viễn.",
-  "Verification queue for QA-validated records awaiting final authority signature. High-precision screening required for regulatory compliance.": "Hàng chờ xác minh cho các hồ sơ đã được QA xác nhận, đang chờ chữ ký cuối cùng của cấp thẩm quyền. Yêu cầu kiểm tra độ chính xác cao để tuân thủ quy định.",
-  "The enterprise Electronic Training Record platform for aviation. Certification, competency, and compliance — audit-ready by default.": "Nền tảng Hồ sơ Đào tạo Điện tử (ETR) cấp doanh nghiệp cho hàng không. Chứng chỉ, năng lực và tuân thủ — sẵn sàng kiểm toán mặc định.",
-  "This action will stamp the training certificate, issue the final approval key, and update the audit log registry permanently.": "Hành động này sẽ đóng dấu chứng chỉ đào tạo, cấp khóa phê duyệt cuối cùng và cập nhật sổ đăng ký nhật ký kiểm toán vĩnh viễn.",
-  "Granular route and API endpoint protection ensuring staff access is strictly restricted to authorized operational duties.": "Bảo vệ chi tiết từng route và endpoint API, đảm bảo quyền truy cập của nhân viên bị giới hạn nghiêm ngặt theo nhiệm vụ vận hành được ủy quyền.",
-  "Complete historical logs capture who performed every action, when, from which IP, and what data changed.": "Nhật ký lịch sử đầy đủ ghi lại ai đã thực hiện từng hành động, khi nào, từ IP nào và dữ liệu nào đã thay đổi.",
-  "AUTHORIZED ACCESS ONLY • AVIATION SECURITY PROTOCOL 12-B COMPLIANT • SESSION LOGGED": "CHỈ DÀNH CHO NGƯỜI ĐƯỢC ỦY QUYỀN • TUÂN THỦ GIAO THỨC AN NINH HÀNG KHÔNG 12-B • PHIÊN ĐÃ ĐƯỢC GHI NHẬN",
-  "Cryptographic seals are initialized and ready for deployment on verified records.": "Con dấu mật mã đã được khởi tạo và sẵn sàng triển khai trên các hồ sơ đã xác minh.",
-  "Define access boundaries and keep business responsibilities separated.": "Xác định ranh giới truy cập và giữ tách biệt các trách nhiệm nghiệp vụ.",
-  "AeroMetric Aviation Systems / Training Manager Space": "Hệ Thống Hàng Không AeroMetric / Không Gian Quản Lý Đào Tạo",
-  "AeroMetric Aviation Systems / Instructor Space": "Hệ Thống Hàng Không AeroMetric / Không Gian Giảng Viên",
-  "AeroMetric Aviation Systems / Student Portal": "Hệ Thống Hàng Không AeroMetric / Cổng Học Viên",
+  "System activities (record creation, checklist scoring, evidence verification, ETR approval, and logins) are recorded in permanent audit logs.":
+    "Các hoạt động của hệ thống (tạo hồ sơ, chấm điểm checklist, xác thực minh chứng, phê duyệt ETR và đăng nhập) được ghi lại trong nhật ký kiểm toán vĩnh viễn.",
+  "Verification queue for QA-validated records awaiting final authority signature. High-precision screening required for regulatory compliance.":
+    "Hàng chờ xác minh cho các hồ sơ đã được QA xác nhận, đang chờ chữ ký cuối cùng của cấp thẩm quyền. Yêu cầu kiểm tra độ chính xác cao để tuân thủ quy định.",
+  "The enterprise Electronic Training Record platform for aviation. Certification, competency, and compliance — audit-ready by default.":
+    "Nền tảng Hồ sơ Đào tạo Điện tử (ETR) cấp doanh nghiệp cho hàng không. Chứng chỉ, năng lực và tuân thủ — sẵn sàng kiểm toán mặc định.",
+  "This action will stamp the training certificate, issue the final approval key, and update the audit log registry permanently.":
+    "Hành động này sẽ đóng dấu chứng chỉ đào tạo, cấp khóa phê duyệt cuối cùng và cập nhật sổ đăng ký nhật ký kiểm toán vĩnh viễn.",
+  "Granular route and API endpoint protection ensuring staff access is strictly restricted to authorized operational duties.":
+    "Bảo vệ chi tiết từng route và endpoint API, đảm bảo quyền truy cập của nhân viên bị giới hạn nghiêm ngặt theo nhiệm vụ vận hành được ủy quyền.",
+  "Complete historical logs capture who performed every action, when, from which IP, and what data changed.":
+    "Nhật ký lịch sử đầy đủ ghi lại ai đã thực hiện từng hành động, khi nào, từ IP nào và dữ liệu nào đã thay đổi.",
+  "AUTHORIZED ACCESS ONLY • AVIATION SECURITY PROTOCOL 12-B COMPLIANT • SESSION LOGGED":
+    "CHỈ DÀNH CHO NGƯỜI ĐƯỢC ỦY QUYỀN • TUÂN THỦ GIAO THỨC AN NINH HÀNG KHÔNG 12-B • PHIÊN ĐÃ ĐƯỢC GHI NHẬN",
+  "Cryptographic seals are initialized and ready for deployment on verified records.":
+    "Con dấu mật mã đã được khởi tạo và sẵn sàng triển khai trên các hồ sơ đã xác minh.",
+  "Define access boundaries and keep business responsibilities separated.":
+    "Xác định ranh giới truy cập và giữ tách biệt các trách nhiệm nghiệp vụ.",
+  "AeroMetric Aviation Systems / Training Manager Space":
+    "Hệ Thống Hàng Không AeroMetric / Không Gian Quản Lý Đào Tạo",
+  "AeroMetric Aviation Systems / Instructor Space":
+    "Hệ Thống Hàng Không AeroMetric / Không Gian Giảng Viên",
+  "AeroMetric Aviation Systems / Student Portal":
+    "Hệ Thống Hàng Không AeroMetric / Cổng Học Viên",
   "ISSUER:": "NHÀ PHÁT HÀNH:",
   "TIMESTAMP:": "THỜI ĐIỂM:",
   "HASH:": "MÃ BĂM:",
@@ -2804,12 +3563,18 @@ export const EN_TO_VN = {
   "TLS 1.3 Corporate Gateways": "Cổng kết nối doanh nghiệp TLS 1.3",
   "AeroVault™ Protocol Active": "Giao thức AeroVault™ Đang Hoạt Động",
   "Regulations Overview": "Tổng quan Quy định",
-  "Operational performance and compliance overview for": "Tổng quan hiệu suất vận hành và tuân thủ cho",
-  "E.g. Sim Phase: Final Check, Ground School...": "Ví dụ: Giai đoạn Sim: Kiểm tra cuối, Trường mặt đất...",
-  "AeroMetric Aviation Systems / Academic Space": "Hệ Thống Hàng Không AeroMetric / Không Gian Học Vụ",
-  "AeroMetric Aviation Systems / Admin Space": "Hệ Thống Hàng Không AeroMetric / Không Gian Quản Trị",
-  "All data transmissions are encrypted via": "Tất cả truyền dữ liệu được mã hóa qua",
-  "Filter by Student Name, ID or ETR...": "Lọc theo Tên học viên, ID hoặc ETR...",
+  "Operational performance and compliance overview for":
+    "Tổng quan hiệu suất vận hành và tuân thủ cho",
+  "E.g. Sim Phase: Final Check, Ground School...":
+    "Ví dụ: Giai đoạn Sim: Kiểm tra cuối, Trường mặt đất...",
+  "AeroMetric Aviation Systems / Academic Space":
+    "Hệ Thống Hàng Không AeroMetric / Không Gian Học Vụ",
+  "AeroMetric Aviation Systems / Admin Space":
+    "Hệ Thống Hàng Không AeroMetric / Không Gian Quản Trị",
+  "All data transmissions are encrypted via":
+    "Tất cả truyền dữ liệu được mã hóa qua",
+  "Filter by Student Name, ID or ETR...":
+    "Lọc theo Tên học viên, ID hoặc ETR...",
   "Electronic Training Record Portal": "Cổng Hồ sơ Đào tạo Điện tử",
   "E.g. A320 Type Rating Class 03": "Ví dụ: Lớp Type Rating A320 03",
   "AWAITING VERIFICATION REGISTRY": "SỔ ĐĂNG KÝ CHỜ XÁC MINH",
@@ -2876,7 +3641,8 @@ export const EN_TO_VN = {
   "QA STAMPED": "QA ĐÃ ĐÓNG DẤU",
   "PASS RATE": "TỶ LỆ ĐẬU",
   "/ Evidence Management": "/ Quản lý minh chứng",
-  "View audit entries, search by activity, and filter by user or date. Logs are read-only and cannot be edited or deleted.": "Xem các mục nhật ký, tìm kiếm theo hoạt động và lọc theo người dùng hoặc ngày. Nhật ký chỉ đọc và không thể chỉnh sửa hoặc xóa.",
+  "View audit entries, search by activity, and filter by user or date. Logs are read-only and cannot be edited or deleted.":
+    "Xem các mục nhật ký, tìm kiếm theo hoạt động và lọc theo người dùng hoặc ngày. Nhật ký chỉ đọc và không thể chỉnh sửa hoặc xóa.",
   "Operational Class Analytics": "Phân tích Lớp học Vận hành",
   "Soft Delete (Inactive)": "Soft Delete (Ngừng kích hoạt)",
   "Search Audit Logs": "Tìm kiếm Nhật ký kiểm toán",
@@ -2891,7 +3657,7 @@ export const EN_TO_VN = {
   "Audit Log": "Nhật ký kiểm toán",
   "Recent activity": "Hoạt động gần đây",
   "Immutable log trail": "Dấu vết nhật ký bất biến",
-  "LEARNERS": "HỌC VIÊN",
+  LEARNERS: "HỌC VIÊN",
   "ETR LOGS": "NHẬT KÝ ETR",
   "ACADEMIC PORTAL": "CỔNG HỌC VỤ",
   "EVIDENCE MANAGEMENT": "QUẢN LÝ MINH CHỨNG",
@@ -2904,22 +3670,22 @@ export const EN_TO_VN = {
   "Not allowed": "Không được phép",
   "Delete logs": "Xóa nhật ký",
   "Edit logs": "Chỉnh sửa nhật ký",
-  "Functions": "Chức năng",
-  "Documents": "Tài liệu",
+  Functions: "Chức năng",
+  Documents: "Tài liệu",
   "Type Rating": "Định mức Loại (Type Rating)",
-  "Conversion": "Chuyển đổi",
+  Conversion: "Chuyển đổi",
   "E.g. SIM-04": "Ví dụ: SIM-04",
   "Employee ID": "Mã nhân viên",
   "Issued Date": "Ngày cấp",
   "Assessed on": "Được đánh giá vào",
   "Verified by": "Được xác minh bởi",
   "E.g. BATCH-320-B": "Ví dụ: BATCH-320-B",
-  "Inactive": "Ngừng kích hoạt",
-  "PROGRESS": "TIẾN ĐỘ",
-  "Workshop": "Hội thảo",
-  "Activity": "Hoạt động",
+  Inactive: "Ngừng kích hoạt",
+  PROGRESS: "TIẾN ĐỘ",
+  Workshop: "Hội thảo",
+  Activity: "Hoạt động",
   "Email *": "Email *",
-  "CURRENT": "HIỆN TẠI",
+  CURRENT: "HIỆN TẠI",
   "ETR TRAINING SYSTEM": "HỆ THỐNG ĐÀO TẠO ETR",
   "ETR SYNCHRONIZATION": "ĐỒNG BỘ ETR",
   "CERTIFIED DIGITAL ID SIGNATURE": "CHỮ KÝ SỐ ĐIỆN TỬ ĐÃ CHỨNG NHẬN",
@@ -2927,19 +3693,21 @@ export const EN_TO_VN = {
   "Filter by user": "Lọc theo người dùng",
   "Filter by date": "Lọc theo ngày",
   "Filter by Role": "Lọc theo Vai trò",
-  "Administrator": "Quản trị viên",
+  Administrator: "Quản trị viên",
   "Access Matrix": "Ma trận Truy cập",
   "User Accounts": "Tài khoản Người dùng",
-  "UserID": "Mã tài khoản",
-  "URGENT": "KHẨN CẤP",
-  "LIVE": "TRỰC TIẾP",
-  "HIGH": "CAO",
-  "High": "Cao",
+  UserID: "Mã tài khoản",
+  URGENT: "KHẨN CẤP",
+  LIVE: "TRỰC TIẾP",
+  HIGH: "CAO",
+  High: "Cao",
   "N/A": "Không áp dụng",
-  "for": "cho",
-  "on": "vào",
-  "View all ETR records across the system with their current status, learner, and evidence progress.": "Xem tất cả hồ sơ ETR trong toàn hệ thống với trạng thái hiện tại, học viên và tiến độ minh chứng.",
-  "Read-only registry — use the Review Queue for actions on submitted records.": "Sổ đăng ký chỉ đọc — dùng Hàng chờ Xem xét cho các thao tác trên hồ sơ đã nộp.",
+  for: "cho",
+  on: "vào",
+  "View all ETR records across the system with their current status, learner, and evidence progress.":
+    "Xem tất cả hồ sơ ETR trong toàn hệ thống với trạng thái hiện tại, học viên và tiến độ minh chứng.",
+  "Read-only registry — use the Review Queue for actions on submitted records.":
+    "Sổ đăng ký chỉ đọc — dùng Hàng chờ Xem xét cho các thao tác trên hồ sơ đã nộp.",
   "Search ETR ID, learner, class...": "Tìm kiếm ETR ID, học viên, lớp...",
   "ETR Completed / Locked": "ETR đã hoàn tất / bị khóa",
   "Preview / Review": "Xem trước / Review",
@@ -2952,11 +3720,11 @@ export const EN_TO_VN = {
   "QA Comment": "Bình luận QA",
   "Old Value": "Giá trị cũ",
   "New Value": "Giá trị mới",
-  "Uploaded": "Đã tải lên",
-  "Review": "Xem xét",
-  "Actor": "Người thực hiện",
-  "File": "Tệp",
-  "Size": "Kích thước",
+  Uploaded: "Đã tải lên",
+  Review: "Xem xét",
+  Actor: "Người thực hiện",
+  File: "Tệp",
+  Size: "Kích thước",
   "Academic Dashboard": "Bảng điều khiển Học vụ",
   "Instructor Dashboard": "Bảng điều khiển Giảng viên",
   "Data source": "Nguồn dữ liệu",
@@ -2966,31 +3734,40 @@ export const EN_TO_VN = {
   "Chase up": "Đôn đốc",
   "Pending approval": "Chờ phê duyệt",
   "Missing evidence": "Thiếu minh chứng",
-  "e.g. Flight Operations, Technical Training...": "Ví dụ: Flight Operations, Technical Training...",
-  "Admin": "Quản trị viên",
-  "Academic": "Học vụ",
+  "e.g. Flight Operations, Technical Training...":
+    "Ví dụ: Flight Operations, Technical Training...",
+  Admin: "Quản trị viên",
+  Academic: "Học vụ",
   "Live from API": "Trực tiếp từ API",
   "ETR pipeline by status.": "Đường ống ETR theo trạng thái.",
-  "Chase up queues across the platform.": "Các hàng đợi cần đôn đốc trên toàn hệ thống.",
+  "Chase up queues across the platform.":
+    "Các hàng đợi cần đôn đốc trên toàn hệ thống.",
   "No action items.": "Không có mục hành động.",
-  "Students": "Học viên",
-  "students": "học viên",
-  "HV": "HV",
+  Students: "Học viên",
+  students: "học viên",
+  HV: "HV",
   "Evidence Files": "Tệp minh chứng",
   "Evidence Verification Status": "Trạng thái xác minh minh chứng",
-  "All uploaded evidence files by verification status.": "Tất cả tệp minh chứng đã tải lên theo trạng thái xác minh.",
-  "System-wide ETR distribution by status.": "Phân bố ETR toàn hệ thống theo trạng thái.",
-  "Jump straight to the review work queues.": "Chuyển nhanh đến hàng đợi xử lý.",
-  "Operational performance and compliance overview from live ETR data.": "Tổng quan hiệu suất vận hành và tuân thủ từ dữ liệu ETR thật.",
+  "All uploaded evidence files by verification status.":
+    "Tất cả tệp minh chứng đã tải lên theo trạng thái xác minh.",
+  "System-wide ETR distribution by status.":
+    "Phân bố ETR toàn hệ thống theo trạng thái.",
+  "Jump straight to the review work queues.":
+    "Chuyển nhanh đến hàng đợi xử lý.",
+  "Operational performance and compliance overview from live ETR data.":
+    "Tổng quan hiệu suất vận hành và tuân thủ từ dữ liệu ETR thật.",
   "All ETR records in the system": "Tất cả hồ sơ ETR trong hệ thống",
   "ETRs finalized and locked": "Hồ sơ ETR đã hoàn tất và khóa",
   "Awaiting review or final sign-off": "Đang chờ xem xét hoặc ký duyệt cuối",
   "Percentage of ETRs completed": "Phần trăm hồ sơ ETR đã hoàn thành",
-  "Records locked vs records returned by QA, per month over the last 8 months.": "Hồ sơ khóa so với hồ sơ bị QA trả về, theo tháng trong 8 tháng gần nhất.",
-  "Records needing review, sign-off, or evidence completion.": "Hồ sơ cần xem xét, ký duyệt hoặc bổ sung minh chứng.",
+  "Records locked vs records returned by QA, per month over the last 8 months.":
+    "Hồ sơ khóa so với hồ sơ bị QA trả về, theo tháng trong 8 tháng gần nhất.",
+  "Records needing review, sign-off, or evidence completion.":
+    "Hồ sơ cần xem xét, ký duyệt hoặc bổ sung minh chứng.",
   "Approval Queue": "Hàng đợi phê duyệt",
   "View approval queue": "Xem hàng đợi phê duyệt",
-  "Search by ID, learner, course or status...": "Tìm theo ID, học viên, khóa học hoặc trạng thái...",
+  "Search by ID, learner, course or status...":
+    "Tìm theo ID, học viên, khóa học hoặc trạng thái...",
   "No records match your search.": "Không có hồ sơ nào khớp tìm kiếm.",
   "ETR Record": "Hồ sơ ETR",
   "Select ETR Record to Export": "Chọn hồ sơ ETR để xuất",
@@ -3000,11 +3777,12 @@ export const EN_TO_VN = {
   "Submitted / Verified / Pending": "Đã gửi / Đã thẩm định / Đang chờ",
   "Returned / Rejected": "Trả lại / Từ chối",
   "— Auto (first Completed ETR) —": "— Tự động (ETR Completed đầu tiên) —",
-  "No record chosen — the export falls back to the first Completed ETR. Pick one above to export a specific dossier.": "Chưa chọn hồ sơ — bản xuất sẽ dùng ETR Completed đầu tiên. Hãy chọn một hồ sơ ở trên để xuất đúng hồ sơ đó.",
+  "No record chosen — the export falls back to the first Completed ETR. Pick one above to export a specific dossier.":
+    "Chưa chọn hồ sơ — bản xuất sẽ dùng ETR Completed đầu tiên. Hãy chọn một hồ sơ ở trên để xuất đúng hồ sơ đó.",
   "No audit events recorded.": "Chưa ghi nhận sự kiện kiểm toán nào.",
   "System (System / Admin)": "Hệ thống (System / Admin)",
-  "Old": "Cũ",
-  "New": "Mới",
+  Old: "Cũ",
+  New: "Mới",
   "Audit Events": "Sự kiện kiểm toán",
   "Compliance Rate (%)": "Tỉ lệ tuân thủ (%)",
   "Locked Records": "Hồ sơ đã khóa",
@@ -3036,7 +3814,8 @@ export const EN_TO_VN = {
   "Pass rate (%)": "Tỉ lệ đạt yêu cầu (%)",
   "Number of records": "Số lượng hồ sơ",
   "Training Progress": "Tiến trình hồ sơ đào tạo",
-  "ETR Training progression stage curve chart.": "Biểu đồ đường cong giai đoạn đào tạo ETR.",
+  "ETR Training progression stage curve chart.":
+    "Biểu đồ đường cong giai đoạn đào tạo ETR.",
   "Enrollment & Orientation": "Ghi danh & Nhập môn",
   "Theory Training": "Đào tạo lý thuyết",
   "Workshop Practical": "Thực hành xưởng",
@@ -3066,44 +3845,55 @@ export const EN_TO_VN = {
   "Log ID": "ID Nhật ký",
   "Ghi danh": "Ghi danh",
   "GV:": "GV:",
-  "Xem": "Xem",
-  "Nam": "Nam",
+  Xem: "Xem",
+  Nam: "Nam",
   "Xem final": "Xem bản chốt",
   "Nam (Male)": "Nam",
   "Total Instructors": "Tổng số Giảng viên",
   "New Users This Month": "Người dùng mới tháng này",
   "ETR Pipeline Progression Trend": "Xu hướng Tiến độ Pipeline ETR",
-  "Progression curve of records across workflow stages.": "Đường cong tiến độ của hồ sơ qua các giai đoạn quy trình.",
-  "Business-rule thresholds currently enforced by the backend (BusinessRuleEngine). These values require a backend release to change.": "Các ngưỡng quy tắc nghiệp vụ đang được Backend thực thi (BusinessRuleEngine).",
+  "Progression curve of records across workflow stages.":
+    "Đường cong tiến độ của hồ sơ qua các giai đoạn quy trình.",
+  "Business-rule thresholds currently enforced by the backend (BusinessRuleEngine). These values require a backend release to change.":
+    "Các ngưỡng quy tắc nghiệp vụ đang được Backend thực thi (BusinessRuleEngine).",
   "Read-only": "Chỉ xem",
-  "Dynamic configuration endpoints are not available yet — values below are enforced constants in the backend.": "Các endpoint cấu hình động chưa khả dụng — giá trị bên dưới là hằng số được thực thi ở Backend.",
+  "Dynamic configuration endpoints are not available yet — values below are enforced constants in the backend.":
+    "Các endpoint cấu hình động chưa khả dụng — giá trị bên dưới là hằng số được thực thi ở Backend.",
   "Enforced business rule": "Quy tắc nghiệp vụ bắt buộc",
   "Soft Delete": "Xóa mềm (Inactive)",
   "Import Users (Excel)": "Nhập người dùng (Excel)",
   "Downloading...": "Đang tải xuống...",
-  "No execution log recorded for this ETR yet.": "Chưa có nhật ký thực thi nào cho hồ sơ ETR này.",
+  "No execution log recorded for this ETR yet.":
+    "Chưa có nhật ký thực thi nào cho hồ sơ ETR này.",
   "CRUD Actions:": "Thao tác CRUD:",
   "Approve & Sign-off": "Phê duyệt & Ký xác nhận",
   "Lock & Unlock": "Khóa & Mở khóa",
   "Modules:": "Phân hệ:",
   "Auditor Dashboard": "Bảng điều khiển Kiểm toán viên",
-  "Compliance overview: locked records, audit trail and export history — all from one dashboard call.": "Tổng quan tuân thủ: hồ sơ bị khóa, nhật ký kiểm toán và lịch sử xuất dữ liệu.",
-  "Locked vs total completed records": "Hồ sơ đã khóa so với tổng số hồ sơ hoàn thành",
+  "Compliance overview: locked records, audit trail and export history — all from one dashboard call.":
+    "Tổng quan tuân thủ: hồ sơ bị khóa, nhật ký kiểm toán và lịch sử xuất dữ liệu.",
+  "Locked vs total completed records":
+    "Hồ sơ đã khóa so với tổng số hồ sơ hoàn thành",
   "Awaiting review / sign-off": "Đang chờ xem xét / ký duyệt",
-  "From real export jobs (GET /api/Exports)": "Từ các tác vụ xuất dữ liệu thực tế (GET /api/Exports)",
+  "From real export jobs (GET /api/Exports)":
+    "Từ các tác vụ xuất dữ liệu thực tế (GET /api/Exports)",
   "Loading export history...": "Đang tải lịch sử xuất...",
   "No export jobs recorded yet.": "Chưa có tác vụ xuất dữ liệu nào.",
-  "No matching ETR record found. Please pick one from the list.": "Không tìm thấy hồ sơ ETR phù hợp. Vui lòng chọn từ danh sách.",
+  "No matching ETR record found. Please pick one from the list.":
+    "Không tìm thấy hồ sơ ETR phù hợp. Vui lòng chọn từ danh sách.",
   "Back to Locked ETR Records": "Quay lại danh sách Hồ sơ ETR đã khóa",
   "Verified At": "Thời gian Thẩm định",
   "Completed At": "Thời gian Hoàn tất",
   "Export successful": "Xuất dữ liệu thành công",
-  "This export will include the full validation timeline (Submitted / Verified / Completed) of the selected record.": "Tệp xuất này sẽ bao gồm toàn bộ tiến trình xác thực (Nộp / Thẩm định / Hoàn tất) của hồ sơ đã chọn.",
-  "Built for every role in aviation training and compliance.": "Được thiết kế cho mọi vai trò trong đào tạo và tuân thủ hàng không.",
-  "Assessment": "Đánh giá / Kiểm tra",
+  "This export will include the full validation timeline (Submitted / Verified / Completed) of the selected record.":
+    "Tệp xuất này sẽ bao gồm toàn bộ tiến trình xác thực (Nộp / Thẩm định / Hoàn tất) của hồ sơ đã chọn.",
+  "Built for every role in aviation training and compliance.":
+    "Được thiết kế cho mọi vai trò trong đào tạo và tuân thủ hàng không.",
+  Assessment: "Đánh giá / Kiểm tra",
   "Xem Note": "Xem ghi chú",
   "Compliance & Quality Assurance": "Tuân thủ & Đảm bảo Chất lượng (QA)",
-  "Search by actor, module, score, file...": "Tìm theo người thực hiện, phân hệ, điểm, tệp...",
+  "Search by actor, module, score, file...":
+    "Tìm theo người thực hiện, phân hệ, điểm, tệp...",
   "Maker-Checker Verified": "Đã xác thực Maker-Checker",
   "QA Categories:": "Danh mục QA:",
   "All Logs": "Tất cả Nhật ký",
@@ -3112,99 +3902,163 @@ export const EN_TO_VN = {
   "Attendance Logs": "Nhật ký Điểm danh",
   "All CRUD Actions": "Tất cả thao tác CRUD",
   "Verified Activity Records": "Bản ghi hoạt động đã xác minh",
-  "Click any row to inspect complete before/after values and JSON audit payload.": "Nhấp vào bất kỳ dòng nào để xem giá trị trước/sau và payload audit JSON.",
+  "Click any row to inspect complete before/after values and JSON audit payload.":
+    "Nhấp vào bất kỳ dòng nào để xem giá trị trước/sau và payload audit JSON.",
   "Details / Changes": "Chi tiết / Thay đổi",
-  "QA Verification & Review Workload": "Khối lượng công việc Thẩm định & Đánh giá QA",
-  "Workload curve across verification queues and audited records.": "Đường cong khối lượng công việc qua các hàng đợi thẩm định và hồ sơ kiểm toán.",
+  "QA Verification & Review Workload":
+    "Khối lượng công việc Thẩm định & Đánh giá QA",
+  "Workload curve across verification queues and audited records.":
+    "Đường cong khối lượng công việc qua các hàng đợi thẩm định và hồ sơ kiểm toán.",
   "Submission & Verification History": "Lịch sử Nộp & Thẩm định",
   "Awaiting QA decision": "Đang chờ quyết định của QA",
   "Export Package (PDF)": "Xuất gói hồ sơ (PDF)",
   "Download Audit Trail": "Tải xuống Nhật ký Audit",
   "What each section does": "Chức năng của từng phần",
-  "enter a learner, course, class code or ETR ID above, then press Search.": "nhập tên học viên, khóa học, mã lớp hoặc mã ETR ở trên rồi nhấn Tìm kiếm.",
-  "open the record to inspect subject results, evidence and approval history.": "mở hồ sơ để xem kết quả môn học, minh chứng và lịch sử phê duyệt.",
+  "enter a learner, course, class code or ETR ID above, then press Search.":
+    "nhập tên học viên, khóa học, mã lớp hoặc mã ETR ở trên rồi nhấn Tìm kiếm.",
+  "open the record to inspect subject results, evidence and approval history.":
+    "mở hồ sơ để xem kết quả môn học, minh chứng và lịch sử phê duyệt.",
   "Export Training Package (PDF)": "Xuất Gói đào tạo (PDF)",
-  "generate the audit-ready package for the selected record.": "tạo gói hồ sơ kiểm toán cho bản ghi đã chọn.",
-  "export the approval/audit log attached to the record.": "xuất nhật ký phê duyệt/kiểm toán đính kèm hồ sơ.",
+  "generate the audit-ready package for the selected record.":
+    "tạo gói hồ sơ kiểm toán cho bản ghi đã chọn.",
+  "export the approval/audit log attached to the record.":
+    "xuất nhật ký phê duyệt/kiểm toán đính kèm hồ sơ.",
   "Signed Off": "Đã ký xác nhận",
-  "SubjectResult": "Kết quả môn học",
+  SubjectResult: "Kết quả môn học",
   "File #": "Tệp #",
-  "Percentage of ETR records completed.": "Tỷ lệ phần trăm hồ sơ ETR đã hoàn thành.",
+  "Percentage of ETR records completed.":
+    "Tỷ lệ phần trăm hồ sơ ETR đã hoàn thành.",
   "Records by compliance group.": "Hồ sơ theo nhóm tuân thủ.",
   "STUDENT CODE": "MÃ HỌC VIÊN",
-  "Score": "Điểm",
-  "Activate": "Kích hoạt",
-  "Disable": "Vô hiệu hóa",
+  Score: "Điểm",
+  Activate: "Kích hoạt",
+  Disable: "Vô hiệu hóa",
   "View profile details": "Xem chi tiết hồ sơ",
   "Account Status": "Trạng thái tài khoản",
   "Student Management": "Quản lý Học viên",
-  "Manage student list and profiles: view details, create new, edit profiles, switch department, disable and reactivate accounts.": "Quản lý danh sách và hồ sơ học viên: Xem thông tin, tạo mới, chỉnh sửa hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.",
+  "Manage student list and profiles: view details, create new, edit profiles, switch department, disable and reactivate accounts.":
+    "Quản lý danh sách và hồ sơ học viên: Xem thông tin, tạo mới, chỉnh sửa hồ sơ, đổi phòng ban, vô hiệu hóa và kích hoạt lại tài khoản.",
   "All Students & Profiles": "Tất cả học viên & hồ sơ",
   "Student Profile Details": "Hồ sơ chi tiết học viên",
   "Edit Profile": "Chỉnh sửa hồ sơ",
-  "STT": "STT",
+  STT: "STT",
   "➕ Ghi danh": "➕ Ghi danh",
   "Email *": "Email *",
-  "ID": "ID",
-  "QA": "QA",
-  "HV": "Học viên",
-  "Columns: Username (email)*, Password*, Role*, Department*, Full Name*, DOB, Gender, Phone, Organization": "Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*, Họ và tên*, Ngày sinh, Giới tính, SĐT, Tổ chức",
-  "ETR doesn't replace your existing systems — it connects them. Bridge your LMS, HRIS, MRO maintenance software, and cloud storage into a unified training record network.": "ETR không thay thế hệ thống hiện có của bạn — nó kết nối chúng. Kết nối LMS, HRIS, phần mềm bảo dưỡng MRO và lưu trữ đám mây thành một mạng lưới hồ sơ đào tạo thống nhất.",
-  "Learn how ETR's dedicated Auditor Portal provides read-only inspection access without exposing sensitive administrative data.": "Tìm hiểu cách Cổng Auditor chuyên dụng của ETR cung cấp quyền tra cứu chỉ-đọc mà không lộ dữ liệu quản trị nhạy cảm.",
-  "Say goodbye to fragmented binder logs and spreadsheet errors. ETR provides a unified digital standard for tracking every technician's qualifications, practical evaluations, and compliance sign-offs.": "Tạm biệt sổ tay rời rạc và lỗi bảng tính. ETR cung cấp chuẩn số thống nhất để theo dõi bằng cấp, đánh giá thực hành và ký xác nhận tuân thủ của mọi kỹ thuật viên.",
-  "Speak with our aviation specialists to discuss your organization's transition to digital ETR.": "Trao đổi với chuyên gia hàng không của chúng tôi về lộ trình chuyển đổi sang ETR số cho tổ chức của bạn.",
-  "Tell us about your organization's training record requirements or current challenges...": "Hãy cho chúng tôi biết yêu cầu hồ sơ đào tạo hoặc thách thức hiện tại của tổ chức bạn...",
-  "Each Electronic Training Record (ETR) contains full historical metadata for a learner's training program.": "Mỗi Hồ sơ Đào tạo Điện tử (ETR) chứa toàn bộ dữ liệu lịch sử của chương trình đào tạo học viên.",
+  ID: "ID",
+  QA: "QA",
+  HV: "Học viên",
+  "Columns: Username (email)*, Password*, Role*, Department*, Full Name*, DOB, Gender, Phone, Organization":
+    "Cột: Username (email)*, Mật khẩu*, Vai trò*, Phòng ban*, Họ và tên*, Ngày sinh, Giới tính, SĐT, Tổ chức",
+  "ETR doesn't replace your existing systems — it connects them. Bridge your LMS, HRIS, MRO maintenance software, and cloud storage into a unified training record network.":
+    "ETR không thay thế hệ thống hiện có của bạn — nó kết nối chúng. Kết nối LMS, HRIS, phần mềm bảo dưỡng MRO và lưu trữ đám mây thành một mạng lưới hồ sơ đào tạo thống nhất.",
+  "Learn how ETR's dedicated Auditor Portal provides read-only inspection access without exposing sensitive administrative data.":
+    "Tìm hiểu cách Cổng Auditor chuyên dụng của ETR cung cấp quyền tra cứu chỉ-đọc mà không lộ dữ liệu quản trị nhạy cảm.",
+  "Say goodbye to fragmented binder logs and spreadsheet errors. ETR provides a unified digital standard for tracking every technician's qualifications, practical evaluations, and compliance sign-offs.":
+    "Tạm biệt sổ tay rời rạc và lỗi bảng tính. ETR cung cấp chuẩn số thống nhất để theo dõi bằng cấp, đánh giá thực hành và ký xác nhận tuân thủ của mọi kỹ thuật viên.",
+  "Speak with our aviation specialists to discuss your organization's transition to digital ETR.":
+    "Trao đổi với chuyên gia hàng không của chúng tôi về lộ trình chuyển đổi sang ETR số cho tổ chức của bạn.",
+  "Tell us about your organization's training record requirements or current challenges...":
+    "Hãy cho chúng tôi biết yêu cầu hồ sơ đào tạo hoặc thách thức hiện tại của tổ chức bạn...",
+  "Each Electronic Training Record (ETR) contains full historical metadata for a learner's training program.":
+    "Mỗi Hồ sơ Đào tạo Điện tử (ETR) chứa toàn bộ dữ liệu lịch sử của chương trình đào tạo học viên.",
+  // ── Bổ sung đợt rà soát i18n: EN→VN cho chuỗi EN nguồn (lang=vi phải dịch được) ──
+  "Academic Portal": "Cổng Academic",
+  "Analytics Dashboard": "Bảng điều khiển phân tích",
+  "ETR Action Items": "Việc cần xử lý ETR",
+  "SUBMIT ETR": "TRÌNH ETR",
+  "Import Excel": "Import Excel",
+  "Activate Account": "Kích hoạt tài khoản",
+  "IN": "ĐANG",
+  "PROGRESS": "DIỄN RA",
+  "SCHEDULED": "ĐÃ LỊCH",
+  "DELAYED": "TRỄ",
+  "Certification": "Chứng nhận",
+  "Attendance Rate": "Tỷ lệ điểm danh",
+  "ETR Final Approval": "Duyệt cuối ETR",
+  "EXPORT": "XUẤT",
+  "APPROVED": "ĐÃ DUYỆT",
+  "RETURNED": "ĐÃ TRẢ LẠI",
+  "HISTORY": "LỊCH SỬ",
+  "APPROVE ETR": "DUYỆT ETR",
+  "REOPEN": "MỞ LẠI",
+  "Approved by": "Duyệt bởi",
+  "ARCHIVED": "ĐÃ LƯU TRỮ",
+  // ── Bổ sung đợt rà soát i18n #2: competency tasks & role names ──
+  "EWIS Wiring Harness Splicing": "Ghép nối bó dây điện EWIS",
+  "Avionics Bus Connector Pinning": "Ghép nối chân connector bus avionics",
+  "ETR Aviation Training": "Đào tạo Hàng không ETR",
+  // Dropdown SubjectManagement
+  "Theory": "Lý thuyết",
+  "Practical": "Thực hành",
+  "Written Exam": "Kiểm tra viết",
+  "Active": "Hoạt động",
+  "Inactive": "Vô hiệu",
+  "QA Officer": "Cán bộ QA",
+  "Module 04 • Task #EW-102": "Mô-đun 04 • Nhiệm vụ #EW-102",
+  "Module 07 • Task #AV-401": "Mô-đun 07 • Nhiệm vụ #AV-401",
 };
 
 export const DICTIONARY = {
   vi: {
-    deleteClass: 'Lớp học #{id} ({code}) đã được xóa.',
-    deleteCourse: 'Khóa học #{id} ({code}) đã được xóa.',
+    deleteClass: "Lớp học #{id} ({code}) đã được xóa.",
+    deleteCourse: "Khóa học #{id} ({code}) đã được xóa.",
     deleteDept: 'Phòng ban "{name}" (ID: #{id}) đã được xóa.',
     toggleAccount: 'Tài khoản "{username}" đã chuyển sang {status}.',
     accountCreated: 'Tài khoản "{username}" đã được tạo.',
     softDeletedAccount: 'Tài khoản "{username}" đã chuyển sang Inactive.',
     activatedAccount: 'Tài khoản "{username}" đã kích hoạt trở lại.',
-    confirmSoftDelete: 'Bạn có chắc chắn muốn chuyển tài khoản "{username}" sang trạng thái Inactive (Soft Delete)?',
+    confirmSoftDelete:
+      'Bạn có chắc chắn muốn chuyển tài khoản "{username}" sang trạng thái Inactive (Soft Delete)?',
     confirmToggleStatus: 'Bạn có muốn đổi trạng thái tài khoản "{username}"?',
-    confirmActivate: 'Bạn có chắc chắn muốn kích hoạt lại tài khoản "{username}" thành Active?',
+    confirmActivate:
+      'Bạn có chắc chắn muốn kích hoạt lại tài khoản "{username}" thành Active?',
     studentDisabled: 'Tài khoản "{username}" đã được vô hiệu hóa.',
     studentActivated: 'Tài khoản "{username}" đã được kích hoạt trở lại.',
-    confirmDisableLearner: 'Bạn có chắc chắn muốn vô hiệu hóa tài khoản học viên "{username}"?',
-    confirmActivateLearner: 'Bạn có chắc chắn muốn kích hoạt lại tài khoản học viên "{username}" thành Active?',
-    profileLinkNote: 'Tài khoản: "{username}" (UserID: {id}) — hồ sơ sẽ được móc nối tự động vào account này.',
-    classCodeExists: '❌ Mã lớp học "{code}" đã tồn tại trong hệ thống. Vui lòng nhập một Mã mới duy nhất.',
-    showingStudents: 'Hiển thị 1 - {n} của 28 học viên',
-    ineligibleCount: 'CHƯA ĐỦ ĐK KÝ ({n})',
+    confirmDisableLearner:
+      'Bạn có chắc chắn muốn vô hiệu hóa tài khoản học viên "{username}"?',
+    confirmActivateLearner:
+      'Bạn có chắc chắn muốn kích hoạt lại tài khoản học viên "{username}" thành Active?',
+    profileLinkNote:
+      'Tài khoản: "{username}" (UserID: {id}) — hồ sơ sẽ được móc nối tự động vào account này.',
+    classCodeExists:
+      '❌ Mã lớp học "{code}" đã tồn tại trong hệ thống. Vui lòng nhập một Mã mới duy nhất.',
+    showingStudents: "Hiển thị 1 - {n} của 28 học viên",
+    ineligibleCount: "CHƯA ĐỦ ĐK KÝ ({n})",
   },
   en: {
-    deleteClass: 'Class #{id} ({code}) has been deleted.',
-    deleteCourse: 'Course #{id} ({code}) has been deleted.',
+    deleteClass: "Class #{id} ({code}) has been deleted.",
+    deleteCourse: "Course #{id} ({code}) has been deleted.",
     deleteDept: 'Department "{name}" (ID: #{id}) has been deleted.',
     toggleAccount: 'Account "{username}" has been set to {status}.',
     accountCreated: 'Account "{username}" has been created.',
     softDeletedAccount: 'Account "{username}" has been set to Inactive.',
     activatedAccount: 'Account "{username}" has been reactivated.',
-    confirmSoftDelete: 'Are you sure you want to set account "{username}" to Inactive (Soft Delete)?',
-    confirmToggleStatus: 'Do you want to change the status of account "{username}"?',
-    confirmActivate: 'Are you sure you want to reactivate account "{username}" to Active?',
+    confirmSoftDelete:
+      'Are you sure you want to set account "{username}" to Inactive (Soft Delete)?',
+    confirmToggleStatus:
+      'Do you want to change the status of account "{username}"?',
+    confirmActivate:
+      'Are you sure you want to reactivate account "{username}" to Active?',
     studentDisabled: 'Account "{username}" has been disabled.',
     studentActivated: 'Account "{username}" has been reactivated.',
-    confirmDisableLearner: 'Are you sure you want to disable student account "{username}"?',
-    confirmActivateLearner: 'Are you sure you want to reactivate student account "{username}" to Active?',
-    profileLinkNote: 'Account: "{username}" (UserID: {id}) — the profile will be linked to this account automatically.',
-    classCodeExists: '❌ Class code "{code}" already exists in the system. Please enter a unique new code.',
-    showingStudents: 'Showing 1 - {n} of 28 students',
-    ineligibleCount: 'NOT ELIGIBLE FOR SIGN-OFF ({n})',
+    confirmDisableLearner:
+      'Are you sure you want to disable student account "{username}"?',
+    confirmActivateLearner:
+      'Are you sure you want to reactivate student account "{username}" to Active?',
+    profileLinkNote:
+      'Account: "{username}" (UserID: {id}) — the profile will be linked to this account automatically.',
+    classCodeExists:
+      '❌ Class code "{code}" already exists in the system. Please enter a unique new code.',
+    showingStudents: "Showing 1 - {n} of 28 students",
+    ineligibleCount: "NOT ELIGIBLE FOR SIGN-OFF ({n})",
   },
 };
 
 export const renderTemplate = (template, params) => {
-  if (!template) return '';
-  if (typeof template !== 'string') return String(template);
+  if (!template) return "";
+  if (typeof template !== "string") return String(template);
   return template.replace(/#\{(\w+)\}|\{(\w+)\}/g, (_, a, b) => {
     const k = a || b;
-    return params && params[k] !== undefined ? params[k] : '';
+    return params && params[k] !== undefined ? params[k] : "";
   });
 };
