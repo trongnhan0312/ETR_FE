@@ -182,15 +182,18 @@ describe('StudentMyETR - hiển thị môn giữ nguyên / cần học lại', (
       },
     }))
 
-    const [{ default: StudentMyETR }, { LanguageProvider }] = await Promise.all([
+    const [{ default: StudentMyETR }, { LanguageProvider }, { MemoryRouter }] = await Promise.all([
       import('../Student/StudentMyETR'),
       import('../context/LanguageContext'),
+      import('react-router-dom'),
     ])
 
     render(
-      <LanguageProvider>
-        <StudentMyETR />
-      </LanguageProvider>
+      <MemoryRouter>
+        <LanguageProvider>
+          <StudentMyETR />
+        </LanguageProvider>
+      </MemoryRouter>
     )
   }
 

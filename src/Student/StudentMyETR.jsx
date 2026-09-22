@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 import { isEtrCompleted } from '../utils/etrStatus';
+import { useSubViewBack } from '../utils/navigation';
 
 const STATUS_MAP = {
   'In Progress': 'progress',
@@ -415,12 +417,35 @@ const TrainingHistory = () => {
 
 /* ── List View (default) ── */
 const StudentMyETR = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { tr } = useLanguage();
   const [etrs, setEtrs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEtr, setSelectedEtr] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'history'
+
+  const handleBackToList = () => {
+    setSelectedEtr(null);
+    if (location.state?.selectedEtrId) {
+      navigate(".", {
+        replace: true,
+        state: {
+          ...(location.state || {}),
+          selectedEtrId: null,
+        },
+      });
+    }
+  };
+
+  useSubViewBack(!!selectedEtr, handleBackToList);
+
+  useEffect(() => {
+    if (!location.state?.selectedEtrId && selectedEtr) {
+      setSelectedEtr(null);
+    }
+  }, [location.state?.selectedEtrId]);
 
   const loadData = async () => {
     setLoading(true);
@@ -488,6 +513,13 @@ const StudentMyETR = () => {
     // Cờ cho biết đã lấy được chi tiết đầy đủ (/Etr/{id}) hay chưa — dùng để hiển thị thông báo
     // chính xác thay vì "Không có dữ liệu kết quả môn học" gây hiểu nhầm khi API bị chặn (403).
     setSelectedEtr({ ...detail, detailLoaded: loaded });
+    navigate(".", {
+      replace: false,
+      state: {
+        ...(location.state || {}),
+        selectedEtrId: id,
+      },
+    });
   };
 
   const mapped = etrs.map(mapEtr);
@@ -500,7 +532,7 @@ const StudentMyETR = () => {
 
   // Detail view
   if (selectedEtr) {
-    return <DetailView etr={selectedEtr} onBack={() => setSelectedEtr(null)} />;
+    return <DetailView etr={selectedEtr} onBack={handleBackToList} />;
   }
 
   // List view

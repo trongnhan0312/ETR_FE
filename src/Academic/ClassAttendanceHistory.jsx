@@ -129,11 +129,38 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
 
       {/* Page Title */}
       <div className="content-header" style={{ marginBottom: '12px' }}>
-        <div className="header-left">
-          <h1 style={{ color: '#002147', fontWeight: 800, fontSize: '24px', letterSpacing: '-0.01em' }}>
-            {tr('Lịch sử điểm danh chi tiết')}
-          </h1>
-          <div className="divider-gold" />
+        <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            onClick={onBack}
+            className="btn-back-inline"
+            title={tr("Quay lại Khóa & Lớp học")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "36px",
+              height: "36px",
+              borderRadius: "8px",
+              border: "1px solid #dfe6f1",
+              background: "#fff",
+              color: "#002147",
+              cursor: "pointer",
+              fontSize: "18px",
+              lineHeight: 1,
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              transition: "all 0.15s ease",
+              flexShrink: 0,
+            }}
+          >
+            ←
+          </button>
+          <div>
+            <h1 style={{ color: '#002147', fontWeight: 800, fontSize: '24px', letterSpacing: '-0.01em', margin: 0 }}>
+              {tr('Lịch sử điểm danh chi tiết')}
+            </h1>
+            <div className="divider-gold" />
+          </div>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import NotificationsDropdown from '../components/NotificationsDropdown';
 import { useLanguage } from '../context/LanguageContext';
 import RouteErrorBoundary from '../components/RouteErrorBoundary';
+import { handleAppBack } from '../utils/navigation';
 import '../Academic/academic.scss';
 import './admin.scss';
 
@@ -126,7 +127,7 @@ const AdminLayout = () => {
             {/* Back button - hidden when on home page */}
             {!isHomePage && (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => handleAppBack(navigate, '/admin')}
                 type="button"
                 aria-label={tr('Quay lại')}
                 style={{

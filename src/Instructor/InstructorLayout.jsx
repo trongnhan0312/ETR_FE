@@ -12,6 +12,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher";
 import NotificationsDropdown from "../components/NotificationsDropdown";
 import { useLanguage } from "../context/LanguageContext";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
+import { handleAppBack } from "../utils/navigation";
 import "./instructor.scss";
 
 const navigationItems = [
@@ -56,9 +57,7 @@ const InstructorLayout = () => {
   const { tr } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const isHomePage =
-    location.pathname === "/instructor" ||
-    location.pathname === "/instructor/classes";
+  const isHomePage = location.pathname === "/instructor";
 
   // Try to retrieve user information from localStorage
   let user = { fullName: "Giảng viên", roleName: "Instructor" };
@@ -185,7 +184,7 @@ const InstructorLayout = () => {
             {/* Back button - hidden when on home page */}
             {!isHomePage && (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => handleAppBack(navigate, "/instructor")}
                 type="button"
                 aria-label={tr("Quay lại")}
                 style={{

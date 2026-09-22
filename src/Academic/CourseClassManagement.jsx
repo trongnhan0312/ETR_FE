@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import CreateCourse from "./CreateCourse";
@@ -15,12 +16,15 @@ import { downloadExportFile } from "../Auditor/auditorApi";
 import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
+import { useSubViewBack } from "../utils/navigation";
 import {
   findClassSessionShortfall,
   findSubjectsWithoutSessionConfig,
 } from "../utils/classSessions";
 
 const CourseClassManagement = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const { tr } = useLanguage();
   const [courses, setCourses] = useState([]);
@@ -55,6 +59,39 @@ const CourseClassManagement = () => {
   const [classSubmitting, setClassSubmitting] = useState(false);
 
   const [selectedClassForHistory, setSelectedClassForHistory] = useState(null);
+
+  const handleSelectClassForHistory = (cls) => {
+    setSelectedClassForHistory(cls);
+    navigate(".", {
+      replace: false,
+      state: {
+        ...(location.state || {}),
+        historyClassId: cls?.classId,
+      },
+    });
+  };
+
+  const handleBackFromHistory = () => {
+    setSelectedClassForHistory(null);
+    if (location.state?.historyClassId) {
+      navigate(".", {
+        replace: true,
+        state: {
+          ...(location.state || {}),
+          historyClassId: null,
+        },
+      });
+    }
+  };
+
+  useSubViewBack(!!selectedClassForHistory, handleBackFromHistory);
+
+  useEffect(() => {
+    if (!location.state?.historyClassId && selectedClassForHistory) {
+      setSelectedClassForHistory(null);
+    }
+  }, [location.state?.historyClassId]);
+
   const [viewingClassDetail, setViewingClassDetail] = useState(null);
   const [instructorsList, setInstructorsList] = useState([]);
 
@@ -1044,7 +1081,7 @@ const CourseClassManagement = () => {
     return (
       <ClassAttendanceHistory
         activeClass={selectedClassForHistory}
-        onBack={() => setSelectedClassForHistory(null)}
+        onBack={handleBackFromHistory}
       />
     );
   }
@@ -1634,7 +1671,7 @@ const CourseClassManagement = () => {
                                     }}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedClassForHistory(cls);
+                                      handleSelectClassForHistory(cls);
                                     }}
                                   >
                                     {tr("Điểm danh")}
@@ -1895,7 +1932,7 @@ const CourseClassManagement = () => {
                           whiteSpace: "nowrap",
                           flexShrink: 0,
                         }}
-                        onClick={() => setSelectedClassForHistory(cls)}
+                        onClick={() => handleSelectClassForHistory(cls)}
                       >
                         {tr("Chi tiết")}
                       </button>
@@ -2225,7 +2262,7 @@ const CourseClassManagement = () => {
               >{tr('Đóng')}</button>
               <button
                 type="button"
-                onClick={() => { setViewingClassDetail(null); setSelectedClassForHistory(viewingClassDetail); }}
+                onClick={() => { setViewingClassDetail(null); handleSelectClassForHistory(viewingClassDetail); }}
                 style={{ padding: '8px 16px', background: '#002147', border: 'none', borderRadius: '6px', color: '#c5a059', cursor: 'pointer', fontSize: '13px', fontWeight: 700 }}
               >{tr('Xem điểm danh')}</button>
             </div>

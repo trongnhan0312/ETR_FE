@@ -4,6 +4,7 @@ import NotificationsDropdown from '../components/NotificationsDropdown';
 import { useLanguage } from '../context/LanguageContext';
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import RouteErrorBoundary from '../components/RouteErrorBoundary';
+import { handleAppBack } from '../utils/navigation';
 import '../Academic/academic.scss';
 
 const iconDocument = (
@@ -110,7 +111,7 @@ const TrainingManagerLayout = () => {
             {/* Back button - hidden when on home page */}
             {!isHomePage && (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => handleAppBack(navigate, '/trainingmanager')}
                 type="button"
                 aria-label={tr('Quay lại')}
                 style={{

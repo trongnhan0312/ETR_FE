@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
 import { announce } from "../utils/crudNotify";
@@ -7,13 +8,41 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import { useSubViewBack } from "../utils/navigation";
 import "./instructor.scss";
 
 const InstructorClasses = () => {
   const { tr } = useLanguage();
   const toast = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [classesData, setClassesData] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
+
+  const handleBackToClasses = useCallback(() => {
+    setSelectedClass(null);
+    if (location.state?.classExplorerId) {
+      navigate(-1);
+    }
+  }, [location.state, navigate]);
+
+  useSubViewBack(!!selectedClass, handleBackToClasses);
+
+  useEffect(() => {
+    if (selectedClass && !location.state?.classExplorerId) {
+      setSelectedClass(null);
+    }
+  }, [location.state, selectedClass]);
+
+  const handleSelectClass = (cls) => {
+    setSelectedClass(cls);
+    if (!location.state?.classExplorerId) {
+      navigate(location.pathname, {
+        state: { ...(location.state || {}), classExplorerId: cls.classId },
+      });
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tất cả");
 
@@ -237,6 +266,21 @@ const InstructorClasses = () => {
   const loadSessions = useCallback(async () => {
     if (!selectedClass) return;
     try {
+      let currentSubjects = subjectsList;
+      if (!currentSubjects || currentSubjects.length === 0) {
+        try {
+          const fetchedSub = await api
+            .get("/Subjects")
+            .catch(() => api.get("/subjects").catch(() => []));
+          if (Array.isArray(fetchedSub) && fetchedSub.length > 0) {
+            currentSubjects = fetchedSub;
+            setSubjectsList(fetchedSub);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       const apiSessions = await api
         .get("/Sessions")
         .catch(() => api.get("/sessions").catch(() => []));
@@ -255,18 +299,40 @@ const InstructorClasses = () => {
           }
         }
 
+        const sid = s.subjectId ?? s.SubjectId ?? selectedClass.subjectId;
+        const foundSub = (currentSubjects || []).find(
+          (sub) =>
+            String(sub.subjectId ?? sub.SubjectId ?? sub.id) === String(sid),
+        );
+        const resolvedSubjectName =
+          s.subjectName ||
+          s.SubjectName ||
+          foundSub?.subjectName ||
+          foundSub?.SubjectName ||
+          "";
+        const resolvedSubjectCode =
+          s.subjectCode ||
+          s.SubjectCode ||
+          foundSub?.subjectCode ||
+          foundSub?.SubjectCode ||
+          "";
+
         return {
           sessionId: s.sessionId,
           stt: String(idx + 1).padStart(2, "0"),
           date: dateStr,
           name: s.sessionTitle || tr("Buổi học"),
+          subjectName:
+            resolvedSubjectName ||
+            (resolvedSubjectCode ? resolvedSubjectCode : tr("Môn học")),
+          subjectCode: resolvedSubjectCode,
           room: s.location || tr("Phòng học"),
           instructor: s.instructorName || "Giảng viên",
           attendanceCount: s.isConfirmed ? tr("Đã chốt") : tr("Chưa chốt"),
           isConfirmed: s.isConfirmed || false,
           rate: 100,
           sessionDateValue: s.sessionDate || "",
-          subjectId: s.subjectId || selectedClass.subjectId || 1,
+          subjectId: sid || 1,
           classId: s.classId || selectedClass.classId,
           assessmentId: s.assessmentId != null ? Number(s.assessmentId) : null,
           isAssessmentRequired: !!s.isAssessmentRequired,
@@ -281,7 +347,7 @@ const InstructorClasses = () => {
     } catch (err) {
       console.error("Lỗi khi tải danh sách buổi học:", err);
     }
-  }, [selectedClass, tr]);
+  }, [selectedClass, tr, subjectsList]);
 
   useEffect(() => {
     if (!selectedClass) return;
@@ -333,11 +399,15 @@ const InstructorClasses = () => {
 
   // Filter sessions
   const filteredSessions = useMemo(() => {
+    const q = sessionSearch.trim().toLowerCase();
+    if (!q) return sessions;
     return sessions.filter(
       (s) =>
-        s.name.toLowerCase().includes(sessionSearch.toLowerCase()) ||
-        s.instructor.toLowerCase().includes(sessionSearch.toLowerCase()) ||
-        s.room.toLowerCase().includes(sessionSearch.toLowerCase()),
+        (s.name && s.name.toLowerCase().includes(q)) ||
+        (s.subjectName && s.subjectName.toLowerCase().includes(q)) ||
+        (s.subjectCode && s.subjectCode.toLowerCase().includes(q)) ||
+        (s.instructor && s.instructor.toLowerCase().includes(q)) ||
+        (s.room && s.room.toLowerCase().includes(q)),
     );
   }, [sessions, sessionSearch]);
 
@@ -570,7 +640,7 @@ const InstructorClasses = () => {
         <nav className="breadcrumb-nav">
           <span
             className="breadcrumb-item"
-            onClick={() => setSelectedClass(null)}
+            onClick={handleBackToClasses}
             style={{ cursor: "pointer" }}
           >
             {tr('LỚP CỦA TÔI')}
@@ -587,7 +657,51 @@ const InstructorClasses = () => {
         {/* Page Header */}
         <section className="content-header">
           <div className="header-left">
-            <h1>{selectedClass.name}</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={handleBackToClasses}
+                aria-label={tr("Quay lại")}
+                title={tr("Quay lại danh sách lớp")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  border: "1px solid #dfe6f1",
+                  background: "#ffffff",
+                  color: "#c5a059",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#c5a059";
+                  e.currentTarget.style.background = "rgba(197, 160, 89, 0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#dfe6f1";
+                  e.currentTarget.style.background = "#ffffff";
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5" />
+                  <path d="M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h1 style={{ margin: 0 }}>{selectedClass.name}</h1>
+            </div>
             <div className="divider-gold" />
             <p className="header-description">
               {selectedClass.subName} · {tr('Mã lớp: ')}{selectedClass.code}
@@ -753,7 +867,7 @@ const InstructorClasses = () => {
               className="table-header"
               style={{
                 display: "grid",
-                gridTemplateColumns: "60px 100px 1fr 1fr 1fr 120px 120px",
+                gridTemplateColumns: "60px 105px 1.2fr 1.2fr 1fr 1fr 120px 120px",
                 alignItems: "center",
                 gap: "12px",
                 background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
@@ -763,126 +877,180 @@ const InstructorClasses = () => {
                 fontWeight: "700",
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
-                minWidth: "780px",
+                minWidth: "920px",
               }}
             >
               <div style={{ textAlign: "center" }}>{tr('STT')}</div>
               <div>{tr('Ngày học')}</div>
               <div>{tr('Tên buổi học')}</div>
+              <div>{tr('Tên môn học')}</div>
               <div>{tr('Phòng học')}</div>
               <div>{tr('Giảng viên')}</div>
               <div style={{ textAlign: "center" }}>{tr('Trạng thái')}</div>
               <div style={{ textAlign: "right" }}>{tr('Thao tác')}</div>
             </div>
 
-            <div className="table-body" style={{ minWidth: "780px" }}>
-              {sessionPager.pageItems.map((session) => (
+            <div className="table-body" style={{ minWidth: "920px" }}>
+              {sessionPager.pageItems.length === 0 ? (
                 <div
-                  key={session.sessionId}
-                  className="table-row"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "60px 100px 1fr 1fr 1fr 120px 120px",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "14px 20px",
-                    borderTop: "1px solid #e0e4e8",
-                    cursor: "default",
-                  }}
-                >
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "700",
-                    color: "rgba(0,33,71,0.4)",
+                    padding: "32px",
                     textAlign: "center",
-                  }}
-                >
-                  {session.stt}
-                </span>
-                <span
-                  style={{
+                    color: "rgba(0,33,71,0.4)",
                     fontSize: "13px",
-                    fontWeight: "600",
-                    color: "#002147",
                   }}
                 >
-                  {session.date}
-                </span>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    color: "#002147",
-                  }}
-                >
-                  {session.name}
-                </span>
-                <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
-                  {session.room}
-                </span>
-                <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
-                  {session.instructor}
-                </span>
-                <div style={{ textAlign: "center" }}>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      textTransform: "uppercase",
-                      padding: "4px 10px",
-                      borderRadius: "999px",
-                      backgroundColor: session.isConfirmed
-                        ? "rgba(239, 68, 68, 0.08)"
-                        : "rgba(34, 197, 94, 0.08)",
-                      color: session.isConfirmed ? "#ef4444" : "#16a34a",
-                    }}
-                  >
-                    {session.attendanceCount}
-                  </span>
+                  {tr('Không tìm thấy buổi học nào.')}
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: "8px",
-                  }}
-                >
-                  <button
-                    onClick={() => openEditSessionModal(session)}
-                    type="button"
+              ) : (
+                sessionPager.pageItems.map((session) => (
+                  <div
+                    key={session.sessionId}
+                    className="table-row"
                     style={{
-                      padding: "6px 10px",
-                      borderRadius: "8px",
-                      border: "1px solid #d9e1ec",
-                      backgroundColor: "#ffffff",
-                      color: "#002147",
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      fontWeight: "700",
+                      display: "grid",
+                      gridTemplateColumns: "60px 105px 1.2fr 1.2fr 1fr 1fr 120px 120px",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "14px 20px",
+                      borderTop: "1px solid #e0e4e8",
+                      cursor: "default",
                     }}
                   >
-                    {tr('Sửa')}
-                  </button>
-                  <button
-                    onClick={() => setConfirmDeleteSessionId(session.sessionId)}
-                    type="button"
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: "8px",
-                      border: "1px solid #fecaca",
-                      backgroundColor: "#fff1f2",
-                      color: "#b91c1c",
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                    }}
-                  >
-                    {tr('Xóa')}
-                  </button>
-                </div>
-              </div>
-            ))}
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        color: "rgba(0,33,71,0.4)",
+                        textAlign: "center",
+                      }}
+                    >
+                      {session.stt}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "#002147",
+                      }}
+                    >
+                      {session.date}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "#002147",
+                      }}
+                    >
+                      {session.name}
+                    </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "#002147",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        title={session.subjectName}
+                      >
+                        {session.subjectName || "—"}
+                      </span>
+                      {session.subjectCode &&
+                        session.subjectCode !== session.subjectName && (
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "rgba(0,33,71,0.45)",
+                              fontWeight: "500",
+                            }}
+                          >
+                            {session.subjectCode}
+                          </span>
+                        )}
+                    </div>
+                    <span
+                      style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}
+                    >
+                      {session.room}
+                    </span>
+                    <span
+                      style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}
+                    >
+                      {session.instructor}
+                    </span>
+                    <div style={{ textAlign: "center" }}>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                          padding: "4px 10px",
+                          borderRadius: "999px",
+                          backgroundColor: session.isConfirmed
+                            ? "rgba(239, 68, 68, 0.08)"
+                            : "rgba(34, 197, 94, 0.08)",
+                          color: session.isConfirmed ? "#ef4444" : "#16a34a",
+                        }}
+                      >
+                        {session.attendanceCount}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: "8px",
+                      }}
+                    >
+                      <button
+                        onClick={() => openEditSessionModal(session)}
+                        type="button"
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          border: "1px solid #d9e1ec",
+                          backgroundColor: "#ffffff",
+                          color: "#002147",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                        }}
+                      >
+                        {tr('Sửa')}
+                      </button>
+                      <button
+                        onClick={() =>
+                          setConfirmDeleteSessionId(session.sessionId)
+                        }
+                        type="button"
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          border: "1px solid #fecaca",
+                          backgroundColor: "#fff1f2",
+                          color: "#b91c1c",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                        }}
+                      >
+                        {tr('Xóa')}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -1718,7 +1886,7 @@ const InstructorClasses = () => {
                     </span>
                     <div
                       style={{ cursor: "pointer" }}
-                      onClick={() => setSelectedClass(cls)}
+                      onClick={() => handleSelectClass(cls)}
                     >
                       <p
                         style={{
@@ -1792,7 +1960,7 @@ const InstructorClasses = () => {
                     </div>
                     <div style={{ textAlign: "right", paddingRight: "12px" }}>
                       <button
-                        onClick={() => setSelectedClass(cls)}
+                        onClick={() => handleSelectClass(cls)}
                         className="ghost-btn"
                         style={{
                           padding: "6px 12px",
