@@ -124,6 +124,7 @@ Legend: **[BE]** enforced by backend · **[FE]** enforced by frontend · **[CFG]
 | BR-114 | Login validation: username ≥ 3 chars, password ≥ 6 chars; unknown/expired tokens clear the session. | [FE] |
 | BR-115 | Role determines portal routing and permissions (Admin/TrainingManager share the TM portal; Auditor is GET-only). | [FE guards + BE policies] |
 | BR-116 | Names/codes/emails are unique **per entity** among *active* records; values freed by soft-delete become reusable. | [BE] indexes |
+| BR-117 | In User Management, an Admin **cannot edit their own account**, nor can they **edit another Admin account** (action disabled + frontend guard). Editing non-admin users is permitted. | [FE] |
 
 ## 12. Certificates & Expiry
 

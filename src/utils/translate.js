@@ -1828,6 +1828,16 @@ export const VN_TO_EN = {
   "Không thể tải chi tiết ETR.": "Unable to load ETR details.",
   "Không thể tải trạng thái chứng chỉ. Vui lòng thử lại sau.":
     "Unable to load certificate status. Please try again later.",
+  "Không thể tự chỉnh sửa thông tin tài khoản của chính mình":
+    "Cannot edit your own account information",
+  "Bạn không thể tự chỉnh sửa thông tin tài khoản của chính mình!":
+    "You cannot edit your own account information!",
+  "Không thể chỉnh sửa tài khoản Quản trị viên khác":
+    "Cannot edit another Administrator account",
+  "Không thể chỉnh sửa tài khoản Quản trị viên khác!":
+    "Cannot edit another Administrator account!",
+  "Thao tác không được phép với tài khoản này.":
+    "Action not allowed for this account.",
   "Không thể tự vô hiệu hóa/xóa tài khoản của chính mình":
     "You cannot deactivate or delete your own account",
   "Không thể vô hiệu hóa hoặc xóa tài khoản Quản trị viên hệ thống gốc (ID: 1).":
@@ -3849,6 +3859,10 @@ export const EN_TO_VN = {
   Nam: "Nam",
   "Xem final": "Xem bản chốt",
   "Nam (Male)": "Nam",
+  Nữ: "Nữ",
+  "Nữ (Female)": "Nữ",
+  Male: "Nam",
+  Female: "Nữ",
   "Total Instructors": "Tổng số Giảng viên",
   "New Users This Month": "Người dùng mới tháng này",
   "ETR Pipeline Progression Trend": "Xu hướng Tiến độ Pipeline ETR",

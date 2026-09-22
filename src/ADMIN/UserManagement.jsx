@@ -355,8 +355,51 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     }
   };
 
+  // Current logged in user ID and info
+  const { currentUserId, currentUsername } = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user'));
+      return {
+        currentUserId: u?.accountId ?? u?.userId ?? u?.id ?? null,
+        currentUsername: (u?.username || u?.email || '').toLowerCase(),
+      };
+    } catch {
+      return { currentUserId: null, currentUsername: '' };
+    }
+  })();
+
+  // BE chặn xóa/vô hiệu hóa tài khoản Quản trị viên hệ thống gốc (AccountId = 1)
+  const ROOT_ADMIN_ID = '1';
+  const isRootAdmin = (user) => String(user?.accountId) === ROOT_ADMIN_ID;
+
+  const isCurrentUser = (user) => {
+    if (!user) return false;
+    if (currentUserId && String(user.accountId) === String(currentUserId)) return true;
+    if (currentUsername && (String(user.username || '').toLowerCase() === currentUsername || String(user.email || '').toLowerCase() === currentUsername)) return true;
+    return false;
+  };
+
+  const isAccountAdmin = (user) => {
+    if (!user) return false;
+    return (
+      String(user.roleId) === '1' ||
+      String(user.role || '').toLowerCase() === 'admin' ||
+      isRootAdmin(user)
+    );
+  };
+
   // Open Edit Modal
   const handleOpenEditModal = (user) => {
+    if (!user) return;
+    if (isCurrentUser(user)) {
+      toast.warning(tr('Bạn không thể tự chỉnh sửa thông tin tài khoản của chính mình!'));
+      return;
+    }
+    if (isAccountAdmin(user)) {
+      toast.warning(tr('Không thể chỉnh sửa tài khoản Quản trị viên khác!'));
+      return;
+    }
+
     setEditingUser(user);
     setEditFullName(user.fullName === 'Chưa cập nhật' ? '' : user.fullName);
     setEditEmail(user.email || '');
@@ -392,6 +435,14 @@ const UserManagement = ({ defaultTab = 'users' }) => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+    if (!editingUser) return;
+
+    if (isCurrentUser(editingUser) || isAccountAdmin(editingUser)) {
+      toast.error(tr('Thao tác không được phép với tài khoản này.'));
+      setIsEditOpen(false);
+      return;
+    }
+
     if (!editFullName.trim()) {
       setFormError(tr('Vui lòng nhập Họ và tên.'));
       return;
@@ -547,21 +598,6 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     }
   };
 
-  // Current logged in user ID
-  const currentUserId = (() => {
-    try {
-      const u = JSON.parse(localStorage.getItem('user'));
-      return u?.accountId ?? u?.userId ?? null;
-    } catch {
-      return null;
-    }
-  })();
-
-  // BE chặn xóa/vô hiệu hóa tài khoản Quản trị viên hệ thống gốc (AccountId = 1)
-  // — xem AccountService.DeleteAccountAsync/UpdateAccountStatusAsync (commit 6d20503).
-  const ROOT_ADMIN_ID = '1';
-  const isRootAdmin = (user) => String(user?.accountId) === ROOT_ADMIN_ID;
-
   // Xác nhận trước các thao tác tài khoản (thay window.confirm)
   const [confirmAction, setConfirmAction] = useState(null); // { type: 'toggle' | 'delete' | 'activate', user }
 
@@ -574,7 +610,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       return;
     }
 
-    if (String(user.accountId) === String(currentUserId)) {
+    if (isCurrentUser(user)) {
       if (type === 'delete') {
         toast.error(tr("Bạn không thể tự xóa tài khoản của chính mình (cả xóa mềm lẫn xóa cứng)!"));
         setConfirmAction(null);
@@ -880,13 +916,22 @@ const UserManagement = ({ defaultTab = 'users' }) => {
               ) : (
                 userPagination.pageItems.map((user) => {
                   const isInactive = user.status?.toLowerCase() === 'inactive' || user.status?.toLowerCase() === 'disabled';
-                  const isSelf = String(user.accountId) === String(currentUserId);
+                  const isSelf = isCurrentUser(user);
                   const isProtectedAdmin = isRootAdmin(user);
+                  const isAdminAccount = isAccountAdmin(user);
                   // Khóa thao tác với chính mình VÀ với tài khoản Admin gốc (BE chặn ở tầng service).
                   const isLocked = isSelf || isProtectedAdmin;
                   const lockedTitle = isSelf
                     ? tr('Không thể tự vô hiệu hóa/xóa tài khoản của chính mình')
                     : tr('Không thể vô hiệu hóa hoặc xóa tài khoản Quản trị viên hệ thống gốc (ID: 1).');
+
+                  // Admin không thể tự sửa thông tin tài khoản của chính mình và không thể sửa tài khoản Admin khác
+                  const isEditDisabled = isSelf || isAdminAccount;
+                  const editDisabledTitle = isSelf
+                    ? tr('Không thể tự chỉnh sửa thông tin tài khoản của chính mình')
+                    : isAdminAccount
+                      ? tr('Không thể chỉnh sửa tài khoản Quản trị viên khác')
+                      : '';
                   return (
                     <div key={user.accountId} className="table-row table-layout user-layout" style={{ gridTemplateColumns: '1.1fr 1.2fr 1.2fr 0.9fr 1.1fr 0.8fr 0.8fr 1.2fr', alignItems: 'center' }}>
                       <div className="font-medium" style={{ color: '#0f172a', fontWeight: '600' }}>
@@ -912,7 +957,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                       <div className="text-gray" style={{ fontSize: '13px', fontWeight: '500' }}>
                         {user.departmentName}
                       </div>
-                      <div className="text-gray">{user.gender || 'N/A'}</div>
+                      <div className="text-gray">{user.gender ? tr(user.gender) : 'N/A'}</div>
                       <div>
                         <button
                           type="button"
@@ -929,8 +974,18 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                         <button
                           className="action-btn"
                           type="button"
-                          onClick={() => handleOpenEditModal(user)}
-                          style={{ padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
+                          onClick={() => !isEditDisabled && handleOpenEditModal(user)}
+                          disabled={isEditDisabled}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '12px',
+                            color: isEditDisabled ? '#94a3b8' : undefined,
+                            borderColor: isEditDisabled ? '#e2e8f0' : undefined,
+                            background: isEditDisabled ? '#f8fafc' : undefined,
+                            cursor: isEditDisabled ? 'not-allowed' : 'pointer',
+                            opacity: isEditDisabled ? 0.6 : 1,
+                          }}
+                          title={isEditDisabled ? editDisabledTitle : tr('Edit')}
                         >
                           {tr('Edit')}
                         </button>
@@ -1405,9 +1460,8 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                     onChange={(e) => setGender(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                   >
-                    <option value="Male">{tr('Nam (Male)')}</option>
-                    <option value="Female">{tr('Nữ (Female)')}</option>
-                    <option value="Other">{tr('Khác (Other)')}</option>
+                    <option value="Male">{tr('Nam')}</option>
+                    <option value="Female">{tr('Nữ')}</option>
                   </select>
                 </div>
               </div>
@@ -1534,9 +1588,8 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                   onChange={(e) => setEditGender(e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                 >
-                  <option value="Male">{tr('Nam (Male)')}</option>
-                  <option value="Female">{tr('Nữ (Female)')}</option>
-                  <option value="Other">{tr('Khác (Other)')}</option>
+                  <option value="Male">{tr('Nam')}</option>
+                  <option value="Female">{tr('Nữ')}</option>
                 </select>
               </div>
 
