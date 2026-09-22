@@ -702,19 +702,17 @@ const InstructorAssessments = () => {
           ),
         );
         const practicalOk = requiredChecklists.length === 0
-          ? false
+          ? true
           : practicalResultsForSubject.length === requiredChecklists.length;
 
-        // Rule 4: At least one evidence file uploaded & Verified for this subject result
+        // Rule 4: At least one evidence file uploaded for this subject result
         const evidencesForSubject = evidencesArr.filter(
-          (ev) => Number(ev.subjectResultId) === Number(subjectResultId),
+          (ev) => Number(ev.subjectResultId) === Number(subjectResultId) && !ev.isDeleted,
         );
-        const evidenceOk = evidencesForSubject.length > 0
-          && evidencesForSubject.every((ev) =>
-              ev.verificationStatus === "Verified"
-              || ev.status === "Verified"
-              || ev.verified === true,
-            );
+        const evidenceOk = evidencesForSubject.length > 0;
+        const evidenceVerified = evidenceOk && evidencesForSubject.every((ev) =>
+          ev.verificationStatus === "Verified" || ev.status === "Verified" || ev.verified === true
+        );
 
         const eligible = attendanceOk && theoryOk && practicalOk && evidenceOk;
 
@@ -736,7 +734,7 @@ const InstructorAssessments = () => {
           attendanceRate,
           subjectScore,
           passingScore,
-          eligibility: { attendanceOk, theoryOk, practicalOk, evidenceOk, eligible },
+          eligibility: { attendanceOk, theoryOk, practicalOk, evidenceOk, evidenceVerified, eligible },
         });
       }
 
@@ -1029,31 +1027,6 @@ const InstructorAssessments = () => {
         }),
       );
 
-      // Chỉ ký xác nhận cho HV lưu điểm THÀNH CÔNG (bỏ qua HV bị lỗi — vd: 400 retake).
-      const signoffStudents = changedScores.filter(
-        (student) => !failedEnrollmentIds.has(student.enrollmentId),
-      );
-      if (signoffStudents.length !== changedScores.length) {
-        console.warn(
-          `[DIAG] Bỏ qua SubjectSignoff cho ${changedScores.length - signoffStudents.length} HV lưu điểm thất bại:`,
-          changedScores
-            .filter((s) => failedEnrollmentIds.has(s.enrollmentId))
-            .map((s) => `${s.code} ${s.name}`),
-        );
-      }
-      await Promise.all(
-        signoffStudents.map((student) => {
-          if (student.subjectResultId) {
-            return api
-              .post("/SubjectSignoff", {
-                subjectResultId: student.subjectResultId,
-                comment: tr("Đã hoàn thành đánh giá chuyên đề."),
-              })
-              .catch(() => null);
-          }
-          return Promise.resolve(null);
-        }),
-      );
 
       const syncedScores = editingScores.map((s) =>
         newResultIds[s.enrollmentId]
@@ -1195,8 +1168,15 @@ const InstructorAssessments = () => {
       const ineligible = eligibilityList.filter((e) => !e.eligible);
 
       if (ineligible.length > 0) {
-        const names = ineligible.map((e) => e.name).join(", ");
-        toast.warning(`${tr("Chưa đủ điều kiện ký xác nhận!")} (${names})`);
+        const details = ineligible.map((e) => {
+          const reasons = [];
+          if (!e.attendanceOk) reasons.push(tr("chuyên cần < 80%"));
+          if (!e.theoryOk) reasons.push(tr("điểm lý thuyết chưa đạt"));
+          if (!e.practicalOk) reasons.push(tr("thực hành chưa đạt"));
+          if (!e.evidenceOk) reasons.push(tr("chưa tải minh chứng"));
+          return `${e.name} (${reasons.join(", ")})`;
+        }).join("; ");
+        toast.warning(`${tr("Chưa đủ điều kiện ký xác nhận:")} ${details}`);
         setConfirmSignoffOpen(false);
         return;
       }
@@ -1223,7 +1203,7 @@ const InstructorAssessments = () => {
       }
     } catch (err) {
       console.error("Lỗi khi ký xác nhận:", err);
-      toast.error(tr("Ký xác nhận thất bại!"));
+      toast.error(err.response?.data?.message || err.message || tr("Ký xác nhận thất bại!"));
     } finally {
       setSigningOff(false);
     }
@@ -1392,31 +1372,6 @@ const InstructorAssessments = () => {
           }),
         );
 
-        // Chỉ ký xác nhận cho HV lưu điểm THÀNH CÔNG (bỏ qua HV bị lỗi — vd: 400 retake).
-        const signoffStudents = changedScores.filter(
-          (student) => !failedEnrollmentIds.has(student.enrollmentId),
-        );
-        if (signoffStudents.length !== changedScores.length) {
-          console.warn(
-            `[DIAG] Bỏ qua SubjectSignoff cho ${changedScores.length - signoffStudents.length} HV lưu điểm thất bại:`,
-            changedScores
-              .filter((s) => failedEnrollmentIds.has(s.enrollmentId))
-              .map((s) => `${s.code} ${s.name}`),
-          );
-        }
-        await Promise.all(
-          signoffStudents.map((student) => {
-            if (student.subjectResultId) {
-              return api
-                .post("/SubjectSignoff", {
-                  subjectResultId: student.subjectResultId,
-                  comment: tr("Đã hoàn thành đánh giá chuyên đề."),
-                })
-                .catch(() => null);
-            }
-            return Promise.resolve(null);
-          }),
-        );
 
         setStudentScores(editingScores);
       }
@@ -2087,7 +2042,7 @@ const InstructorAssessments = () => {
               <div style={{ textAlign: "center" }}>{tr('Điểm danh ≥ 80%')}</div>
               <div style={{ textAlign: "center" }}>{tr('Điểm lý thuyết ≥ Pass')}</div>
               <div style={{ textAlign: "center" }}>{tr('Thực hành bắt buộc đạt')}</div>
-              <div style={{ textAlign: "center" }}>{tr('Minh chứng đã xác thực')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Minh chứng đã tải lên')}</div>
               <div style={{ textAlign: "center" }}>{tr('Đủ ĐK')}</div>
             </div>
             {eligibilityList.length === 0 ? (
@@ -2101,8 +2056,8 @@ const InstructorAssessments = () => {
                   {[
                     { ok: e.attendanceOk, label: e.attendanceRate != null ? `${e.attendanceRate}%` : tr("N/A") },
                     { ok: e.theoryOk, label: e.subjectScore != null ? `${e.subjectScore}/${e.passingScore}` : tr("N/A") },
-                    { ok: e.practicalOk, label: tr("Bắt buộc") },
-                    { ok: e.evidenceOk, label: tr("Xác thực") },
+                    { ok: e.practicalOk, label: e.practicalOk ? tr("Đạt") : tr("Chưa đạt") },
+                    { ok: e.evidenceOk, label: e.evidenceVerified ? tr("Đã duyệt") : (e.evidenceOk ? tr("Đã tải") : tr("Chưa có")) },
                   ].map((c, i) => (
                     <div key={i} style={{ textAlign: "center" }}>
                       <span style={{
