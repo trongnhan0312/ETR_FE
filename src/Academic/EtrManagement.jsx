@@ -190,15 +190,23 @@ const EtrManagement = ({ defaultView = "list" }) => {
         const srMap = {};
         const attendanceOkMap = {};
         const resultsOkMap = {};
+        const returnReasonMap = {};
         etrsArr.forEach((e, i) => {
           const id = e.etrCourseRecordId || e.eTRCourseRecordId;
-          const srs = detailsArr[i]?.subjectResults || [];
+          const detail = detailsArr[i];
+          const srs = detail?.subjectResults || [];
           srMap[id] = srs.map((sr) => sr.subjectResultId);
           // Bước 2 & 3 — logic dùng chung ở utils/etrStatus.js (xem unit test
           // src/test/EtrWorkflowSteps.test.jsx): mọi môn >= 80% chuyên cần và mọi
           // kết quả đã CHỐT ĐIỂM thì mới "✓ ĐÃ XÁC THỰC".
           attendanceOkMap[id] = areAllAttendanceRatesOk(srs);
           resultsOkMap[id] = areSubjectScoresFinalized(srs);
+          const returnHistory = (detail?.approvalHistories || [])
+            .filter((h) => /return|reject/i.test(h.actionType || ""))
+            .sort((a, b) => new Date(b.actionAt || 0) - new Date(a.actionAt || 0))[0];
+          if (returnHistory?.comments || returnHistory?.comment) {
+            returnReasonMap[id] = returnHistory.comments || returnHistory.comment;
+          }
         });
         setSubjectResultIdsByEtr(srMap);
 
@@ -213,6 +221,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
           attendanceOkMap,
           resultsOkMap,
           evidenceTypeNameById,
+          returnReasonMap,
         );
         setEtrRecords(merged);
         if (merged.length > 0) {
@@ -295,6 +304,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
     // minh chứng khi BE thiếu mimeType. Truyền tường minh để không phụ thuộc state
     // (state update là bất đồng bộ, lần load đầu sẽ bị rỗng nếu đọc trực tiếp).
     evidenceTypeNameById = {},
+    returnReasonMap = {},
   ) => {
     const evfsArr = Array.isArray(evidenceFiles) ? evidenceFiles : [];
 
@@ -421,7 +431,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
         // submit khi KHÔNG còn evidence nào chưa Verified. Mảng rỗng → .every() trả true
         // (giống backend: không có evidence thì không có file chưa verified).
         evidenceReady: etrEvidences.every((ev) => ev.status === "Verified"),
-        returnReason: etr.returnReason || etr.ReturnReason || etr.rejectionReason || etr.RejectionReason || "",
+        returnReason: returnReasonMap[etrId] || etr.returnReason || etr.ReturnReason || etr.rejectionReason || etr.RejectionReason || "",
       };
     });
   };
@@ -463,15 +473,23 @@ const EtrManagement = ({ defaultView = "list" }) => {
       const srMap = {};
       const attendanceOkMap = {};
       const resultsOkMap = {};
+      const returnReasonMap = {};
       etrsArr.forEach((e, i) => {
         const id = e.etrCourseRecordId || e.eTRCourseRecordId;
-        const srs = detailsArr[i]?.subjectResults || [];
+        const detail = detailsArr[i];
+        const srs = detail?.subjectResults || [];
         srMap[id] = srs.map((sr) => sr.subjectResultId);
         // Điểm danh/Chuyên cần chỉ "đạt" khi MỌI môn đã có AttendanceRate >= 80 (khớp quy tắc
         // backend khi Submit ETR). ETR mới chưa điểm danh → attendanceRate null → false.
         attendanceOkMap[id] = areAllAttendanceRatesOk(srs);
         // Bước 3 "Điểm số kết quả kiểm tra" tính từ dữ liệu thật (isPublished sau khi CHỐT ĐIỂM).
         resultsOkMap[id] = areSubjectScoresFinalized(srs);
+        const returnHistory = (detail?.approvalHistories || [])
+          .filter((h) => /return|reject/i.test(h.actionType || ""))
+          .sort((a, b) => new Date(b.actionAt || 0) - new Date(a.actionAt || 0))[0];
+        if (returnHistory?.comments || returnHistory?.comment) {
+          returnReasonMap[id] = returnHistory.comments || returnHistory.comment;
+        }
       });
       setSubjectResultIdsByEtr(srMap);
 
@@ -485,6 +503,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
         attendanceOkMap,
         resultsOkMap,
         evidenceTypeNameById,
+        returnReasonMap,
       );
       setEtrRecords(merged);
       const auditsArr = Array.isArray(audits)
@@ -2959,19 +2978,31 @@ const EtrManagement = ({ defaultView = "list" }) => {
                               ? "#dcfce7"
                               : record.status === "PENDING QA"
                                 ? "#fef3c7"
-                                : "#f1f5f9",
+                                : record.status === "QA VERIFIED"
+                                  ? "#dbeafe"
+                                  : record.status === "RETURNED FOR CORRECTION"
+                                    ? "#fee2e2"
+                                    : "#f1f5f9",
                           border:
                             record.status === "APPROVED"
                               ? "1px solid #bbf7d0"
                               : record.status === "PENDING QA"
                                 ? "1px solid #fde68a"
-                                : "1px solid #e2e8f0",
+                                : record.status === "QA VERIFIED"
+                                  ? "1px solid #bfdbfe"
+                                  : record.status === "RETURNED FOR CORRECTION"
+                                    ? "1px solid #fca5a5"
+                                    : "1px solid #e2e8f0",
                           color:
                             record.status === "APPROVED"
                               ? "#15803d"
                               : record.status === "PENDING QA"
                                 ? "#d97706"
-                                : "#475569",
+                                : record.status === "QA VERIFIED"
+                                  ? "#1d4ed8"
+                                  : record.status === "RETURNED FOR CORRECTION"
+                                    ? "#b91c1c"
+                                    : "#475569",
                           padding: "4px 8px",
                           borderRadius: "4px",
                           fontSize: "10px",
@@ -3519,9 +3550,14 @@ const EtrManagement = ({ defaultView = "list" }) => {
                   {(finalViewRecord?.status === "RETURNED FOR CORRECTION" ||
                     finalViewDetail?.status === "ReturnedForCorrection" ||
                     finalViewDetail?.status === "Rejected" ||
+                    finalViewRecord?.returnReason ||
                     finalViewDetail?.rejectionReason ||
                     finalViewDetail?.returnReason ||
-                    finalViewDetail?.comment) && (
+                    finalViewDetail?.comment ||
+                    (Array.isArray(finalViewDetail?.approvalHistories) &&
+                      finalViewDetail.approvalHistories.some((h) =>
+                        /return|reject/i.test(h.actionType || "")
+                      ))) && (
                     <div
                       style={{
                         backgroundColor: "#fff1f2",
@@ -3536,7 +3572,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: "8px",
+                          justifyContent: "space-between",
                           color: "#be123c",
                           fontWeight: 700,
                           fontSize: "13px",
@@ -3554,12 +3590,33 @@ const EtrManagement = ({ defaultView = "list" }) => {
                           fontWeight: 500,
                         }}
                       >
-                        {finalViewDetail?.rejectionReason ||
-                          finalViewDetail?.returnReason ||
-                          finalViewDetail?.comment ||
-                          finalViewRecord?.rejectionReason ||
-                          finalViewRecord?.returnReason ||
-                          tr("Hồ sơ đã được thẩm định trả về để chỉnh sửa hoặc bổ sung minh chứng trước khi ký duyệt chính thức.")}
+                        {(() => {
+                          const histories = Array.isArray(finalViewDetail?.approvalHistories)
+                            ? finalViewDetail.approvalHistories
+                            : [];
+                          const returnHistory = histories
+                            .filter(
+                              (h) =>
+                                /return|reject/i.test(h.actionType || "") ||
+                                /returned/i.test(h.action || "")
+                            )
+                            .sort(
+                              (a, b) =>
+                                new Date(b.actionAt || b.createdAt || 0).getTime() -
+                                new Date(a.actionAt || a.createdAt || 0).getTime()
+                            )[0];
+
+                          return (
+                            returnHistory?.comments ||
+                            returnHistory?.comment ||
+                            finalViewRecord?.returnReason ||
+                            finalViewDetail?.rejectionReason ||
+                            finalViewDetail?.returnReason ||
+                            finalViewDetail?.comment ||
+                            finalViewRecord?.rejectionReason ||
+                            tr("Hồ sơ đã được thẩm định trả về để chỉnh sửa hoặc bổ sung minh chứng trước khi ký duyệt chính thức.")
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
