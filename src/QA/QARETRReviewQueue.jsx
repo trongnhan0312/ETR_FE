@@ -403,31 +403,28 @@ const QARETRReviewQueue = () => {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    cursor: "pointer",
+                    flexWrap: "wrap",
+                    gap: "12px",
                   }}
-                  onClick={() =>
-                    setSelectedEtr(
-                      selectedEtr?.etrId === record.etrId ? null : record
-                    )
-                  }
                 >
-                  <div>
-                    <p className="qa-list-title">
-                      {record.id} - {record.learner}
+                  <div
+                    style={{ cursor: "pointer", flex: "1 1 240px" }}
+                    onClick={() => handleViewDetails(record)}
+                  >
+                    <p className="qa-list-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span>{record.id} - {record.learner}</span>
+                      <span className="qa-status pending">{trEn(record.stage)}</span>
                     </p>
                     <p className="qa-list-desc">{record.course}</p>
                   </div>
-                  <span className="qa-status pending">{trEn(record.stage)}</span>
-                </div>
 
-                {selectedEtr?.etrId === record.etrId && (
                   <div
                     className="qa-actions"
                     style={{
-                      paddingTop: "8px",
-                      borderTop: "1px solid #e2e8f0",
                       display: "flex",
                       gap: "8px",
+                      flexWrap: "wrap",
+                      alignItems: "center",
                     }}
                   >
                     <button
@@ -444,21 +441,23 @@ const QARETRReviewQueue = () => {
                     <button
                       className="qa-btn"
                       type="button"
+                      style={{ backgroundColor: "#15803d", borderColor: "#15803d", color: "#ffffff", fontWeight: "600" }}
                       onClick={() => setConfirmVerifyId(record.etrId)}
                       disabled={verifying}
                     >
-                      {trEn('Verify ETR')}
+                      ✓ {trEn('Verify ETR')}
                     </button>
                     <button
                       className="qa-btn-secondary"
                       type="button"
+                      style={{ color: "#b91c1c", borderColor: "#fca5a5" }}
                       onClick={() => setReturnTarget(record.etrId)}
                       disabled={verifying}
                     >
-                      {trEn('Return for Correction')}
+                      ↺ {trEn('Return for Correction')}
                     </button>
                   </div>
-                )}
+                </div>
               </div>
             ))
           )}
@@ -1174,6 +1173,36 @@ const QARETRReviewQueue = () => {
                     </div>
                     <ApprovalHistory etrId={detailTarget.etrId} />
                   </div>
+
+                  {/* Action buttons inside detail modal for Submitted ETRs */}
+                  {etrDetail?.status === "Submitted" && (
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px", padding: "14px 0", borderTop: "1px solid #e0e4e8" }}>
+                      <button
+                        className="qa-btn-secondary"
+                        type="button"
+                        style={{ color: "#b91c1c", borderColor: "#fca5a5", padding: "8px 16px" }}
+                        onClick={() => {
+                          setReturnTarget(detailTarget.etrId);
+                          setDetailTarget(null);
+                        }}
+                        disabled={verifying}
+                      >
+                        ↺ {trEn('Return for Correction')}
+                      </button>
+                      <button
+                        className="qa-btn"
+                        type="button"
+                        style={{ backgroundColor: "#15803d", borderColor: "#15803d", color: "#ffffff", fontWeight: "600", padding: "8px 18px" }}
+                        onClick={() => {
+                          setConfirmVerifyId(detailTarget.etrId);
+                          setDetailTarget(null);
+                        }}
+                        disabled={verifying}
+                      >
+                        ✓ {trEn('Verify ETR')}
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
