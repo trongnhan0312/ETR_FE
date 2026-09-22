@@ -1395,36 +1395,38 @@ const EtrApproval = () => {
                         </button>
                         {activeTab === "PENDING" && (
                           <div style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
-                            <button
-                              onClick={() => handleReturn(etr)}
-                              className="tm-btn-secondary"
-                              style={{
-                                display: "flex",
-                                gap: "6px",
-                                alignItems: "center",
-                                padding: "12px 14px",
-                                color: "#b91c1c",
-                                border: "1px solid #fca5a5",
-                                backgroundColor: "#fef2f2",
-                                fontWeight: 600,
-                                borderRadius: "4px",
-                                fontSize: "11px",
-                                cursor: "pointer",
-                              }}
-                              title={tr("Trả lại hồ sơ ETR để chỉnh sửa")}
-                            >
-                              ↺ {tr('RETURN')}
-                            </button>
                             {etr.qaVerified ? (
-                              <button
-                                onClick={() => {
-                                  setSelectedEtr(etr);
-                                  setShowActionModal("APPROVE");
-                                }}
-                                className="tm-btn-approve-etr"
-                              >
-                                {tr('APPROVE ETR')}
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => handleReturn(etr)}
+                                  className="tm-btn-secondary"
+                                  style={{
+                                    display: "flex",
+                                    gap: "6px",
+                                    alignItems: "center",
+                                    padding: "12px 14px",
+                                    color: "#b91c1c",
+                                    border: "1px solid #fca5a5",
+                                    backgroundColor: "#fef2f2",
+                                    fontWeight: 600,
+                                    borderRadius: "4px",
+                                    fontSize: "11px",
+                                    cursor: "pointer",
+                                  }}
+                                  title={tr("Trả lại hồ sơ ETR để chỉnh sửa")}
+                                >
+                                  ↺ {tr('RETURN')}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedEtr(etr);
+                                    setShowActionModal("APPROVE");
+                                  }}
+                                  className="tm-btn-approve-etr"
+                                >
+                                  {tr('APPROVE ETR')}
+                                </button>
+                              </>
                             ) : (
                               <button
                                 disabled
@@ -1438,9 +1440,9 @@ const EtrApproval = () => {
                                   border: "1px solid #e5e7eb",
                                   cursor: "not-allowed",
                                 }}
-                                title={tr("Hồ sơ cần được QA thẩm định trước tại mục ETR Review Queue.")}
+                                title={tr("Hồ sơ đang chờ QA thẩm định tại mục ETR Review Queue. Training Manager chỉ có thể duyệt hoặc trả về sau khi QA đã thẩm định.")}
                               >
-                                {tr('CHỜ QA DUYỆT')}
+                                ⏳ {tr('CHỜ QA DUYỆT')}
                               </button>
                             )}
                           </div>
@@ -1739,36 +1741,36 @@ const EtrApproval = () => {
                 {tr('Close')}
               </button>
               {selectedEtr.status === "PENDING" && (
-                <>
-                  <button
-                    onClick={() => {
-                      const target = selectedEtr;
-                      setSelectedEtr(null);
-                      handleReturn(target);
-                    }}
-                    className="tm-btn-secondary"
-                    style={{
-                      color: "#b91c1c",
-                      border: "1px solid #fca5a5",
-                      backgroundColor: "#fef2f2",
-                      fontWeight: 600,
-                    }}
-                  >
-                    ↺ {tr('Return for Correction')}
-                  </button>
-                  {selectedEtr.qaVerified ? (
+                selectedEtr.qaVerified ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        const target = selectedEtr;
+                        setSelectedEtr(null);
+                        handleReturn(target);
+                      }}
+                      className="tm-btn-secondary"
+                      style={{
+                        color: "#b91c1c",
+                        border: "1px solid #fca5a5",
+                        backgroundColor: "#fef2f2",
+                        fontWeight: 600,
+                      }}
+                    >
+                      ↺ {tr('Return for Correction')}
+                    </button>
                     <button
                       onClick={() => setShowActionModal("APPROVE")}
                       className="tm-btn-success"
                     >
                       {tr('Sign off & Approve')}
                     </button>
-                  ) : (
-                    <span style={{ fontSize: "12px", color: "#b45309", fontWeight: 600, alignSelf: "center", marginRight: "12px" }}>
-                      ⏳ {tr('Hồ sơ đang chờ QA thẩm định trước khi phê duyệt cuối')}
-                    </span>
-                  )}
-                </>
+                  </>
+                ) : (
+                  <span style={{ fontSize: "12px", color: "#b45309", fontWeight: 600, alignSelf: "center", marginRight: "12px" }}>
+                    ⏳ {tr('Hồ sơ đang chờ QA thẩm định trước khi phê duyệt cuối')}
+                  </span>
+                )
               )}
             </div>
           </div>
