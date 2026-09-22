@@ -8,16 +8,20 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import { isEtrCompleted, isEtrPendingApproval, isEtrReturned } from "../utils/etrStatus";
 import "./training-manager.scss";
 
 const EtrApproval = () => {
   const { tr } = useLanguage();
-  const { searchQuery } = useOutletContext();
+  const outletCtx = useOutletContext();
+  const searchQuery = outletCtx?.searchQuery || "";
+  const [tableSearch, setTableSearch] = useState("");
   const [activeTab, setActiveTab] = useState("PENDING"); // PENDING, APPROVED, RETURNED
   const [selectedEtr, setSelectedEtr] = useState(null);
   const [viewingHistory, setViewingHistory] = useState(null);
   const [showActionModal, setShowActionModal] = useState(null); // 'APPROVE'
   const [reopenTarget, setReopenTarget] = useState(null); // ETR id cần mở lại (PromptModal)
+  const [returnTarget, setReturnTarget] = useState(null); // ETR item cần trả lại (PromptModal)
 
   const [approvalRequests, setApprovalRequests] = useState([]);
   // Fallback chỉ kích hoạt khi TM thật sự bị 403 ở GET /Etr (danh sách dựng từ /Approvals)
@@ -138,9 +142,13 @@ const EtrApproval = () => {
       const fallbackFromApprovals = etrForbidden && approvalsArr.length > 0;
       setApprovalFallbackActive(fallbackFromApprovals);
 
-      // Chi tiết từng ETR (subjectResults) + toàn bộ evidence — dữ liệu thật cho transcript
+      // Chỉ tải chi tiết cho các hồ sơ cần hiển thị (Verified, Completed, Pending approval, Returned)
+      // thay vì gọi API cho toàn bộ hàng trăm hồ sơ cùng lúc gây nghẽn mạng/index lệch.
+      const relevantEtrs = etrsArr.filter(
+        (e) => e.status === "Verified" || isEtrCompleted(e.status) || isEtrPendingApproval(e.status) || isEtrReturned(e.status)
+      );
       const detailsArr = await Promise.all(
-        etrsArr.map((e) =>
+        relevantEtrs.map((e) =>
           api.get(`/Etr/${e.etrCourseRecordId || e.eTRCourseRecordId}`).catch(() => null)
         )
       );
@@ -153,19 +161,17 @@ const EtrApproval = () => {
         // CurrentStatus (Pending/Approved/Rejected), SubmittedBy, SubmittedAt, CurrentApproverId, CompletedAt }
         mapped = approvalsArr.map((req) => mapApprovalToEtr(req)).filter(Boolean);
       } else {
-      mapped = etrsArr
-        .filter((e) => e.status === "Verified" || e.status === "Completed")
-        .map((etr, i) => {
+      mapped = relevantEtrs.map((etr, i) => {
           const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
+          const detail = detailsArr[i];
           const enrollmentLink = resolveEnrollment(etr.enrollmentId);
-          const accountId = enrollmentLink?.accountId;
-          const classId = enrollmentLink?.classId;
+          const accountId = enrollmentLink?.accountId || detail?.accountId;
+          const classId = enrollmentLink?.classId || detail?.classId;
           const profile =
             accountId != null
               ? profilesArr.find((p) => p.accountId === accountId)
               : null;
           const classInfo = classId != null ? classMap[classId] : null;
-          const detail = detailsArr[i];
           const subjectResults = (detail?.subjectResults || []).map((sr) => sr);
           const subjectResultIds = subjectResults.map((sr) => sr.subjectResultId);
           // Evidence đầy đủ (fileSize/verificationStatus) từ GET /Evidences.
@@ -201,9 +207,10 @@ const EtrApproval = () => {
             : 0;
           const approval = approvalsArr.find(
             (r) =>
-              (r.etrCourseRecordId ?? r.eTRCourseRecordId) === Number(etrId) &&
-              r.currentStatus === "Approved",
+              (r.etrCourseRecordId ?? r.eTRCourseRecordId) === Number(etrId),
           );
+          const isApproved = isEtrCompleted(etr.status) || approval?.currentStatus === "Approved";
+          const isReturned = isEtrReturned(etr.status) || approval?.currentStatus === "Rejected" || approval?.currentStatus === "Returned";
           return {
             id: `#ETR-${String(etrId).padStart(4, "0")}`,
             etrId,
@@ -215,7 +222,7 @@ const EtrApproval = () => {
               ? classInfo.className
               : `Class #${classId ?? ""}`,
             avgScore: avgAttendance,
-            qaVerified: etr.status === "Verified" || etr.status === "Completed",
+            qaVerified: etr.status === "Verified" || isEtrCompleted(etr.status),
             qaVerifier: "QA Staff",
             qaDate: etr.verifiedAt
               ? new Date(etr.verifiedAt).toISOString().split("T")[0]
@@ -223,9 +230,9 @@ const EtrApproval = () => {
             submissionDate: etr.submittedAt
               ? new Date(etr.submittedAt).toISOString().split("T")[0]
               : "",
-            status: etr.status === "Completed" ? "APPROVED" : "PENDING",
-            approvedBy: approval?.approvedByAccountId
-              ? `Account #${approval.approvedByAccountId}`
+            status: isApproved ? "APPROVED" : isReturned ? "RETURNED" : "PENDING",
+            approvedBy: approval?.currentApproverId
+              ? `Account #${approval.currentApproverId}`
               : "",
             approvalDate: etr.completedAt
               ? new Date(etr.completedAt).toISOString().split("T")[0]
@@ -249,12 +256,16 @@ const EtrApproval = () => {
       const approvedList = mapped.filter(
         (e) => e.status === "APPROVED" && e.submittedAt && e.completedAt,
       );
-      const avgProcessing = approvedList.length
-        ? approvedList.reduce(
-            (acc, e) => acc + (new Date(e.completedAt) - new Date(e.submittedAt)),
-            0,
-          ) /
-          approvedList.length /
+      // Chỉ tính thời gian xử lý HỢP LỆ (completedAt >= submittedAt). Dữ liệu seed có
+      // bản ghi completedAt TRƯỚC submittedAt (hoàn thành trước khi nộp — vô lý, lệch tới
+      // ~2 năm) khiến phép trừ ra số âm rất lớn → Avg Processing Time -3744.8h.
+      // Loại các bản ghi lệch này khỏi trung bình; không còn bản ghi hợp lệ → "—".
+      const validDurations = approvedList
+        .map((e) => new Date(e.completedAt) - new Date(e.submittedAt))
+        .filter((ms) => ms >= 0);
+      const avgProcessing = validDurations.length
+        ? validDurations.reduce((acc, ms) => acc + ms, 0) /
+          validDurations.length /
           3600000
         : null;
       const activeClasses = new Set(
@@ -379,6 +390,48 @@ const EtrApproval = () => {
     }
   };
 
+  // Return for correction (Trả lại hồ sơ ETR để sửa đổi)
+  const handleReturn = (etr) => {
+    setReturnTarget(etr);
+  };
+
+  const handleConfirmReturn = async (reason) => {
+    const target = returnTarget;
+    if (!target) return;
+    if (!reason || !reason.trim()) {
+      toast.error(tr("Cần nêu lý do trả lại"));
+      return;
+    }
+    try {
+      const etrId = target.etrId;
+      const request = approvalRequests.find(
+        (r) =>
+          (r.etrCourseRecordId ?? r.eTRCourseRecordId) === Number(etrId) &&
+          r.currentStatus !== "Approved",
+      );
+      if (request) {
+        await api.post(
+          `/Approvals/${request.approvalRequestId}/process?action=Return`,
+          { comment: reason.trim() },
+        );
+      } else {
+        await api.post(`/Etr/${etrId}/return`, { comment: reason.trim() });
+      }
+      await loadEtrsFromApi();
+      if (viewingHistory?.etrId === etrId) {
+        setViewingHistory(null);
+      }
+      if (selectedEtr?.etrId === etrId) {
+        setSelectedEtr(null);
+      }
+      toast.success(tr("Đã trả lại hồ sơ ETR để chỉnh sửa"), announce("edit", tr("Hồ sơ")));
+    } catch (err) {
+      toast.error(tr("Trả lại hồ sơ thất bại: ") + (err?.message || ""));
+    } finally {
+      setReturnTarget(null);
+    }
+  };
+
   // Lấy role hiện tại từ localStorage (lưu khi login)
   const getCurrentRole = () => {
     try {
@@ -392,12 +445,14 @@ const EtrApproval = () => {
   const isAdmin = currentRole.toLowerCase() === "admin";
 
   // Filter records
+  const combinedSearch = (tableSearch || searchQuery || "").trim().toLowerCase();
   const filteredEtrs = etrs.filter((item) => {
     const matchesSearch =
-      item.traineeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.className.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.traineeCode.toLowerCase().includes(searchQuery.toLowerCase());
+      !combinedSearch ||
+      (item.traineeName && item.traineeName.toLowerCase().includes(combinedSearch)) ||
+      (item.id && item.id.toLowerCase().includes(combinedSearch)) ||
+      (item.className && item.className.toLowerCase().includes(combinedSearch)) ||
+      (item.traineeCode && item.traineeCode.toLowerCase().includes(combinedSearch));
 
     const matchesStatus = item.status === activeTab;
 
@@ -406,7 +461,7 @@ const EtrApproval = () => {
 
   const { page, setPage, pageCount, pageItems, total } = usePagination(filteredEtrs, {
     pageSize: 10,
-    resetKey: `${activeTab}|${searchQuery}`,
+    resetKey: `${activeTab}|${combinedSearch}`,
   });
 
   if (viewingHistory) {
@@ -420,20 +475,90 @@ const EtrApproval = () => {
             <span className="sub-tab active">{tr('Documents')}</span>
             <span className="sub-tab">{tr('Compliance')}</span>
           </div>
-          <div className="topbar-actions">
-            <button className="icon-btn" onClick={() => toast.info(tr("Không có thông báo mới"))}>
-              <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
-                <path d="M0 14.1667V12.5H1.66667V6.66667C1.66667 5.51389 2.01389 4.48958 2.70833 3.59375C3.40278 2.69792 4.30556 2.11111 5.41667 1.83333V1.25C5.41667 0.902778 5.53819 0.607639 5.78125 0.364583C6.02431 0.121528 6.31944 0 6.66667 0C7.01389 0 7.30903 0.121528 7.55208 0.364583C7.79514 0.607639 7.91667 0.902778 7.91667 1.25V1.83333C9.02778 2.11111 9.93056 2.69792 10.625 3.59375C11.3194 4.48958 11.6667 5.51389 11.6667 6.66667V12.5H13.3333V14.1667H0ZM6.66667 16.6667C6.20833 16.6667 5.81597 16.5035 5.48958 16.1771C5.16319 15.8507 5 15.4583 5 15H8.33333C8.33333 15.4583 8.17014 15.8507 7.84375 16.1771C7.51736 16.5035 7.125 16.6667 6.66667 16.6667ZM3.33333 12.5H10V6.66667C10 5.75 9.67361 4.96528 9.02083 4.3125C8.36806 3.65972 7.58333 3.33333 6.66667 3.33333C5.75 3.33333 4.96528 3.65972 4.3125 4.3125C3.65972 4.96528 3.33333 5.75 3.33333 6.66667V12.5Z" fill="#64748B" />
-              </svg>
-            </button>
-            <button className="icon-btn" onClick={() => toast.info(tr("Chức năng đang hoàn thiện"))}>
+          <div className="topbar-actions" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button
+              className="icon-btn"
+              onClick={() => window.print()}
+              title={tr("In bảng điểm (Print Transcript)")}
+              style={{ cursor: "pointer" }}
+            >
               <svg width={17} height={15} viewBox="0 0 17 15" fill="none">
                 <path d="M11.6667 4.16667V1.66667H5V4.16667H3.33333V0H13.3333V4.16667H11.6667ZM1.66667 5.83333C1.66667 5.83333 1.74653 5.83333 1.90625 5.83333C2.06597 5.83333 2.26389 5.83333 2.5 5.83333H14.1667C14.4028 5.83333 14.6007 5.83333 14.7604 5.83333C14.9201 5.83333 15 5.83333 15 5.83333H13.3333H3.33333H1.66667ZM13.3333 7.91667C13.5694 7.91667 13.7674 7.83681 13.9271 7.67708C14.0868 7.51736 14.1667 7.31944 14.1667 7.08333C14.1667 6.84722 14.0868 6.64931 13.9271 6.48958C13.7674 6.32986 13.5694 6.25 13.3333 6.25C13.0972 6.25 12.8993 6.32986 12.7396 6.48958C12.5799 6.64931 12.5 7.08333 12.5 7.08333C12.5 7.31944 12.5799 7.51736 12.7396 7.67708C12.8993 7.83681 13.0972 7.91667 13.3333 7.91667ZM11.6667 13.3333V10H5V13.3333H11.6667ZM13.3333 15H3.33333V11.6667H0V6.66667C0 5.95833 0.243056 5.36458 0.729167 4.88542C1.21528 4.40625 1.80556 4.16667 2.5 4.16667H14.1667C14.875 4.16667 15.4688 4.40625 15.9479 4.88542C16.4271 5.36458 16.6667 5.95833 16.6667 6.66667V11.6667H13.3333V15ZM15 10V6.66667C15 6.43056 14.9201 6.23264 14.7604 6.07292C14.6007 5.91319 14.4028 5.83333 14.1667 5.83333H2.5C2.26389 5.83333 2.06597 5.91319 1.90625 6.07292C1.74653 6.23264 1.66667 6.43056 1.66667 6.66667V10H3.33333V8.33333H13.3333V10H15Z" fill="#64748B" />
               </svg>
             </button>
-            <button className="grant-cert-btn" onClick={() => toast.info(tr("Chức năng đang hoàn thiện"))}>
-              Grant Certification
-            </button>
+            {viewingHistory.status === "PENDING" && (
+              viewingHistory.qaVerified ? (
+                <>
+                  <button
+                    onClick={() => handleReturn(viewingHistory)}
+                    className="tm-btn-secondary"
+                    style={{
+                      padding: "8px 14px",
+                      color: "#b91c1c",
+                      border: "1px solid #fca5a5",
+                      backgroundColor: "#fef2f2",
+                      fontWeight: 600,
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                    }}
+                    title={tr("Hồ sơ đã qua QA nhưng chưa đạt, trả lại để chỉnh sửa")}
+                  >
+                    ↺ {tr('Return for Correction')}
+                  </button>
+                  <button
+                    className="grant-cert-btn"
+                    onClick={() => {
+                      setSelectedEtr(viewingHistory);
+                      setShowActionModal("APPROVE");
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    ✓ {tr('Approve & Grant Certification')}
+                  </button>
+                </>
+              ) : (
+                <button
+                  disabled
+                  className="grant-cert-btn"
+                  style={{
+                    opacity: 0.6,
+                    cursor: "not-allowed",
+                    backgroundColor: "#94a3b8",
+                  }}
+                  title={tr("Hồ sơ đang chờ QA thẩm định tại ETR Review Queue. Training Manager chỉ duyệt hoặc trả về khi QA đã thẩm định xong.")}
+                >
+                  ⏳ {tr('Awaiting QA Verification')}
+                </button>
+              )
+            )}
+            {viewingHistory.status === "APPROVED" && (
+              <span
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  backgroundColor: "#dcfce7",
+                  color: "#15803d",
+                  fontWeight: 600,
+                  fontSize: "12px",
+                }}
+              >
+                ✓ {tr('Certificate Granted')}
+              </span>
+            )}
+            {viewingHistory.status === "RETURNED" && (
+              <span
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  backgroundColor: "#fee2e2",
+                  color: "#b91c1c",
+                  fontWeight: 600,
+                  fontSize: "12px",
+                }}
+              >
+                ↺ {tr('Returned for Correction')}
+              </span>
+            )}
             <div className="user-avatar">{viewingHistory.initials}</div>
           </div>
         </div>
@@ -1022,6 +1147,8 @@ const EtrApproval = () => {
             <div className="tm-search-box" style={{ width: "380px" }}>
               <input
                 type="text"
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
                 placeholder={tr('Filter by Student Name, ID or ETR...')}
                 className="w-full bg-white border border-[#e1e4e8] pl-10 pr-6 py-2 text-sm rounded-lg text-gray-700"
                 style={{ width: "380px", borderRadius: "8px" }}
@@ -1188,20 +1315,38 @@ const EtrApproval = () => {
                         }}
                       >
                         {etr.status === "PENDING" ? (
-                          <div className="tm-badge-verified">
-                            <svg
-                              width={13}
-                              height={13}
-                              viewBox="0 0 13 13"
-                              fill="none"
+                          etr.qaVerified ? (
+                            <div className="tm-badge-verified">
+                              <svg
+                                width={13}
+                                height={13}
+                                viewBox="0 0 13 13"
+                                fill="none"
+                              >
+                                <path
+                                  d="M4.43333 12.25L3.325 10.3833L1.225 9.91667L1.42917 7.75833L0 6.125L1.42917 4.49167L1.225 2.33333L3.325 1.86667L4.43333 0L6.41667 0.845833L8.4 0L9.50833 1.86667L11.6083 2.33333L11.4042 4.49167L12.8333 6.125L11.4042 7.75833L11.6083 9.91667L9.50833 10.3833L8.4 12.25L6.41667 11.4042L4.43333 12.25ZM5.80417 8.19583L9.1 4.9L8.28333 4.05417L5.80417 6.53333L4.55 5.30833L3.73333 6.125L5.80417 8.19583Z"
+                                  fill="#15803D"
+                                />
+                              </svg>
+                              <span>{tr('QA VERIFIED')}</span>
+                            </div>
+                          ) : (
+                            <span
+                              className="tm-status-tag"
+                              style={{
+                                backgroundColor: "#fef3c7",
+                                color: "#b45309",
+                                border: "1px solid #fde68a",
+                                fontWeight: 600,
+                                fontSize: "11px",
+                                padding: "4px 8px",
+                                borderRadius: "4px"
+                              }}
+                              title={tr("Đang chờ QA thẩm định trước khi Training Manager duyệt cuối")}
                             >
-                              <path
-                                d="M4.43333 12.25L3.325 10.3833L1.225 9.91667L1.42917 7.75833L0 6.125L1.42917 4.49167L1.225 2.33333L3.325 1.86667L4.43333 0L6.41667 0.845833L8.4 0L9.50833 1.86667L11.6083 2.33333L11.4042 4.49167L12.8333 6.125L11.4042 7.75833L11.6083 9.91667L9.50833 10.3833L8.4 12.25L6.41667 11.4042L4.43333 12.25ZM5.80417 8.19583L9.1 4.9L8.28333 4.05417L5.80417 6.53333L4.55 5.30833L3.73333 6.125L5.80417 8.19583Z"
-                                fill="#15803D"
-                              />
-                            </svg>
-                            <span>{tr('VERIFIED')}</span>
-                          </div>
+                              ⏳ {tr('AWAITING QA')}
+                            </span>
+                          )
                         ) : etr.status === "APPROVED" ? (
                           <span className="tm-status-tag active">{tr('APPROVED')}</span>
                         ) : (
@@ -1249,17 +1394,58 @@ const EtrApproval = () => {
                           <span>{tr('HISTORY')}</span>
                         </button>
                         {activeTab === "PENDING" && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setSelectedEtr(etr);
-                                setShowActionModal("APPROVE");
-                              }}
-                              className="tm-btn-approve-etr"
-                            >
-                              {tr('APPROVE ETR')}
-                            </button>
-                          </>
+                          <div style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
+                            {etr.qaVerified ? (
+                              <>
+                                <button
+                                  onClick={() => handleReturn(etr)}
+                                  className="tm-btn-secondary"
+                                  style={{
+                                    display: "flex",
+                                    gap: "6px",
+                                    alignItems: "center",
+                                    padding: "12px 14px",
+                                    color: "#b91c1c",
+                                    border: "1px solid #fca5a5",
+                                    backgroundColor: "#fef2f2",
+                                    fontWeight: 600,
+                                    borderRadius: "4px",
+                                    fontSize: "11px",
+                                    cursor: "pointer",
+                                  }}
+                                  title={tr("Trả lại hồ sơ ETR để chỉnh sửa")}
+                                >
+                                  ↺ {tr('RETURN')}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedEtr(etr);
+                                    setShowActionModal("APPROVE");
+                                  }}
+                                  className="tm-btn-approve-etr"
+                                >
+                                  {tr('APPROVE ETR')}
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                disabled
+                                style={{
+                                  padding: "8px 12px",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  borderRadius: "4px",
+                                  backgroundColor: "#f3f4f6",
+                                  color: "#9ca3af",
+                                  border: "1px solid #e5e7eb",
+                                  cursor: "not-allowed",
+                                }}
+                                title={tr("Hồ sơ đang chờ QA thẩm định tại mục ETR Review Queue. Training Manager chỉ có thể duyệt hoặc trả về sau khi QA đã thẩm định.")}
+                              >
+                                ⏳ {tr('CHỜ QA DUYỆT')}
+                              </button>
+                            )}
+                          </div>
                         )}
                         {activeTab === "APPROVED" && isAdmin && (
                           <button
@@ -1450,37 +1636,74 @@ const EtrApproval = () => {
               <div
                 style={{
                   padding: "16px",
-                  backgroundColor: "#f8f9fa",
-                  border: "1px solid #e5e7eb",
+                  backgroundColor: selectedEtr.qaVerified ? "#f8f9fa" : "#fffbeb",
+                  border: selectedEtr.qaVerified ? "1px solid #e5e7eb" : "1px solid #fde68a",
+                  borderRadius: "6px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                 }}
               >
-                <div>
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      color: "#6b7280",
-                      textTransform: "uppercase",
-                      display: "block",
-                      marginBottom: "2px",
-                    }}
-                  >
-                    {tr('QA Verification Log')}
-                  </span>
-                  <span style={{ fontSize: "12px", color: "#4b5563" }}>
-                    {tr('Verified by')}{" "}
-                    <span style={{ fontWeight: 600, color: "#002147" }}>
-                      {selectedEtr.qaVerifier}
-                    </span>{" "}
-                    {tr('on')} {selectedEtr.qaDate || selectedEtr.submissionDate}
-                  </span>
-                </div>
-                <div>
-                  <span className="tm-status-tag verified">{tr('QA STAMPED')}</span>
-                </div>
+                {selectedEtr.qaVerified ? (
+                  <>
+                    <div>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          color: "#6b7280",
+                          textTransform: "uppercase",
+                          display: "block",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        {tr('QA Verification Log')}
+                      </span>
+                      <span style={{ fontSize: "12px", color: "#4b5563" }}>
+                        {tr('Verified by')}{" "}
+                        <span style={{ fontWeight: 600, color: "#002147" }}>
+                          {selectedEtr.qaVerifier || "QA Staff"}
+                        </span>{" "}
+                        {tr('on')} {selectedEtr.qaDate || selectedEtr.submissionDate}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="tm-status-tag verified">{tr('QA STAMPED')}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          color: "#b45309",
+                          textTransform: "uppercase",
+                          display: "block",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        {tr('QA Verification Status')}
+                      </span>
+                      <span style={{ fontSize: "12px", color: "#6b7280" }}>
+                        {tr('Chưa được QA thẩm định (Hồ sơ đang chờ QA xử lý tại ETR Review Queue)')}
+                      </span>
+                    </div>
+                    <div>
+                      <span
+                        className="tm-status-tag"
+                        style={{
+                          backgroundColor: "#fef3c7",
+                          color: "#b45309",
+                          border: "1px solid #fde68a",
+                        }}
+                      >
+                        ⏳ {tr('PENDING QA')}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Show Returned Feedback if Status is Returned */}
@@ -1518,14 +1741,36 @@ const EtrApproval = () => {
                 {tr('Close')}
               </button>
               {selectedEtr.status === "PENDING" && (
-                <>
-                  <button
-                    onClick={() => setShowActionModal("APPROVE")}
-                    className="tm-btn-success"
-                  >
-                    {tr('Sign off & Approve')}
-                  </button>
-                </>
+                selectedEtr.qaVerified ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        const target = selectedEtr;
+                        setSelectedEtr(null);
+                        handleReturn(target);
+                      }}
+                      className="tm-btn-secondary"
+                      style={{
+                        color: "#b91c1c",
+                        border: "1px solid #fca5a5",
+                        backgroundColor: "#fef2f2",
+                        fontWeight: 600,
+                      }}
+                    >
+                      ↺ {tr('Return for Correction')}
+                    </button>
+                    <button
+                      onClick={() => setShowActionModal("APPROVE")}
+                      className="tm-btn-success"
+                    >
+                      {tr('Sign off & Approve')}
+                    </button>
+                  </>
+                ) : (
+                  <span style={{ fontSize: "12px", color: "#b45309", fontWeight: 600, alignSelf: "center", marginRight: "12px" }}>
+                    ⏳ {tr('Hồ sơ đang chờ QA thẩm định trước khi phê duyệt cuối')}
+                  </span>
+                )
               )}
             </div>
           </div>
@@ -1612,6 +1857,19 @@ const EtrApproval = () => {
         confirmText={tr('MỞ LẠI ETR')}
         cancelText={tr('HỦY BỎ')}
         variant="gold"
+      />
+
+      {/* Modal nhập lý do Trả lại ETR để sửa đổi (Return for Correction) */}
+      <PromptModal
+        isOpen={!!returnTarget}
+        onClose={() => setReturnTarget(null)}
+        onConfirm={handleConfirmReturn}
+        title={`${tr('Trả lại (Return for Correction)')} ETR #${String(returnTarget?.etrId || "").padStart(4, "0")}`}
+        message={tr('Vui lòng nêu rõ lý do hoặc yêu cầu chỉnh sửa gửi lại cho Giáo vụ/Giảng viên.')}
+        placeholder={tr('Nhập lý do trả về sửa...')}
+        confirmText={tr('TRẢ VỀ SỬA')}
+        cancelText={tr('HỦY BỎ')}
+        variant="danger"
       />
 
     </div>

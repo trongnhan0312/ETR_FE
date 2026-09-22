@@ -38,6 +38,23 @@
   min-width: 1100px;
 }
 
+/* ── FIX: header và data row phải dùng CHUNG padding ngang ────────────────
+   academic.scss định nghĩa `.table-body .table-row { padding: 12px 16px }` có
+   specificity (0,2,0) — CAO HƠN `.auditor-table-grid { padding: 16px 24px }` (0,1,0).
+   Vì vậy header (chỉ có .table-header + .auditor-*-grid) dùng 16px 24px, còn data
+   row dùng 12px 16px → cột dữ liệu bị lệch 8px so với header. Ép mọi header/data row
+   của Auditor về cùng một padding. */
+.table-header.auditor-table-grid,
+.table-header.auditor-dash-grid,
+.table-header.auditor-logs-grid,
+.table-header.auditor-export-grid,
+.table-body .table-row.auditor-table-grid,
+.table-body .table-row.auditor-dash-grid,
+.table-body .table-row.auditor-logs-grid,
+.table-body .table-row.auditor-export-grid {
+  padding: 16px 24px;
+}
+
 // KPI cards + biểu đồ kiểu FreeDash — dùng chung cho mọi role (xem ../dashboard.scss)
 @import '../dashboard.scss';
 

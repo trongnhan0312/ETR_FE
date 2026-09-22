@@ -3,6 +3,8 @@ import { useState } from 'react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NotificationsDropdown from '../components/NotificationsDropdown';
 import { useLanguage } from '../context/LanguageContext';
+import RouteErrorBoundary from '../components/RouteErrorBoundary';
+import { handleAppBack } from '../utils/navigation';
 import '../Academic/academic.scss';
 import './qa.scss';
 
@@ -112,7 +114,7 @@ const QALayout = () => {
             {/* Back button - hidden when on home page */}
             {!isHomePage && (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => handleAppBack(navigate, '/qa')}
                 type="button"
                 aria-label={tr('Quay lại')}
                 style={{
@@ -196,7 +198,10 @@ const QALayout = () => {
 
         {/* Content Body */}
         <main className="academic-content">
-          <Outlet context={{ searchQuery }} />
+          {/* Lỗi ở 1 trang/modal chỉ thay vùng nội dung, sidebar vẫn dùng được */}
+          <RouteErrorBoundary>
+            <Outlet context={{ searchQuery }} />
+          </RouteErrorBoundary>
         </main>
       </div>
     </div>

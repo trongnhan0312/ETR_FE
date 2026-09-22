@@ -17,6 +17,10 @@ describe('Language Switching & i18n Verification', () => {
     expect(translateVn('Tạo khóa học')).toBe('Create Course');
     expect(translateVn('Hồ sơ học viên')).toBe('Student Profile');
     expect(translateVn('LỚP CỦA TÔI')).toBe('MY CLASSES');
+    expect(translateVn('Mã học viên')).toBe('Student Code');
+    expect(translateVn('Kích hoạt')).toBe('Activate');
+    expect(translateVn('Vô hiệu hóa')).toBe('Disable');
+    expect(translateVn('Chỉnh sửa hồ sơ')).toBe('Edit Profile');
   });
 
   it('translates English strings to Vietnamese when switching to Vietnamese', () => {
@@ -25,6 +29,10 @@ describe('Language Switching & i18n Verification', () => {
     expect(translateEn('Dashboard')).toBe('Tổng quan');
     expect(translateEn('MY CLASSES')).toBe('LỚP CỦA TÔI');
     expect(translateEn('User Management')).toBe('Quản lý Người dùng');
+    expect(translateEn('Student Code')).toBe('Mã học viên');
+    expect(translateEn('Activate')).toBe('Kích hoạt');
+    expect(translateEn('Disable')).toBe('Vô hiệu hóa');
+    expect(translateEn('Edit Profile')).toBe('Chỉnh sửa hồ sơ');
   });
 
   it('handles reverse lookup for strings defined in VN_TO_EN or EN_TO_VN', () => {

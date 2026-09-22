@@ -15,6 +15,8 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
   const [parentCourse, setParentCourse] = useState(getInitialCourseId);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const [location, setLocation] = useState('Phòng Sim A320');
+  const [capacity, setCapacity] = useState(30);
 
   // Default dates: Today & Today + 30 days — dùng ngày LOCAL (không dùng toISOString/UTC)
   // để tránh lệch ngày do múi giờ (VD ở Việt Nam trước 7h sáng UTC sẽ tính ra ngày hôm trước).
@@ -32,32 +34,130 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
   const [status, setStatus] = useState('Sắp diễn ra');
   const [subjectWarning, setSubjectWarning] = useState('');
 
-  // Danh sách môn học của khóa đã chọn (từ /Courses/{id}) — dùng để gán Giảng viên theo từng Môn học
+  // Danh sách môn học của khóa đã chọn (từ /Courses/{id} hoặc props) — dùng để gán Giảng viên theo từng Môn học
   const [courseSubjects, setCourseSubjects] = useState([]);
   // instructorBySubject: subjectId -> instructorAccountId ('' = Chưa phân công)
   const [instructorBySubject, setInstructorBySubject] = useState({});
 
+  // Tính thời lượng tối thiểu chuẩn ICAO/CAAV: Ground <= 8h/ngày, SIM <= 4h/ngày, đệm 15%
+  const calculateMinDays = (subs) => {
+    if (!subs || subs.length === 0) return { minTrainingDays: 1, minBufferDays: 1, totalMinDays: 2 };
+    let totalDays = 0;
+    for (const s of subs) {
+      const hours = Number(s.requiredHours) || 0;
+      if (hours <= 0) continue;
+      const type = String(s.subjectType || '').toLowerCase();
+      const isSim = type.includes('practical') || type.includes('sim') || type.includes('simulator');
+      const maxDaily = isSim ? 4 : 8;
+      totalDays += hours / maxDaily;
+    }
+    const minTrainingDays = Math.ceil(totalDays) || 1;
+    const minBufferDays = Math.ceil(minTrainingDays * 0.15);
+    return { minTrainingDays, minBufferDays, totalMinDays: minTrainingDays + minBufferDays };
+  };
+
+  const durationInfo = calculateMinDays(courseSubjects);
+
+  const computeMinEndDateStr = (startStr, days) => {
+    if (!startStr) return '';
+    const parts = startStr.split('-').map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    d.setDate(d.getDate() + days);
+    return toLocalDateStr(d);
+  };
+
+  const minEndDateStr = computeMinEndDateStr(startDate, durationInfo.totalMinDays);
+
+  const extractSubjectsFromCourse = (courseObj) => {
+    if (!courseObj) return [];
+    const candidates = [
+      courseObj.courseSubjects,
+      courseObj.subjects,
+      courseObj.CourseSubjects,
+      courseObj.Subjects,
+      courseObj.selectedSubjectIds,
+      courseObj.subjectIds,
+      courseObj.SubjectIds,
+    ];
+    for (const item of candidates) {
+      if (Array.isArray(item) && item.length > 0) {
+        return item.map((s, idx) => {
+          if (typeof s === 'object' && s !== null) {
+            const sid = s.subjectId ?? s.SubjectId ?? s.id ?? s.Id;
+            const subDetails = subjects.find((sub) => String(sub.subjectId) === String(sid));
+            return {
+              subjectId: Number(sid) || sid,
+              sequenceNo: s.sequenceNo ?? s.SequenceNo ?? idx + 1,
+              requiredHours: s.requiredHours ?? s.RequiredHours ?? subDetails?.defaultHours ?? 0,
+              requiredSessions: s.requiredSessions ?? s.RequiredSessions ?? subDetails?.minSessions ?? 1,
+              isMandatory: s.isMandatory ?? s.IsMandatory ?? true,
+              passingScore: s.passingScore ?? s.PassingScore ?? 5,
+              subjectCode: s.subjectCode || s.SubjectCode || subDetails?.subjectCode || '',
+              subjectName: s.subjectName || s.SubjectName || subDetails?.subjectName || '',
+            };
+          }
+          const sid = Number(s) || s;
+          const subDetails = subjects.find((sub) => String(sub.subjectId) === String(sid));
+          return {
+            subjectId: sid,
+            sequenceNo: idx + 1,
+            requiredHours: subDetails?.defaultHours ?? 0,
+            requiredSessions: subDetails?.minSessions ?? 1,
+            isMandatory: true,
+            passingScore: 5,
+            subjectCode: subDetails?.subjectCode || '',
+            subjectName: subDetails?.subjectName || '',
+          };
+        });
+      }
+    }
+    return [];
+  };
+
   useEffect(() => {
     if (!parentCourse) return;
     setSubjectWarning('');
-    setCourseSubjects([]);
     setInstructorBySubject({});
 
-    api.get(`/Courses/${parentCourse}`).then((cDetail) => {
-      const subs = Array.isArray(cDetail?.subjects)
-        ? cDetail.subjects
-        : (Array.isArray(cDetail?.courseSubjects) ? cDetail.courseSubjects : []);
+    // 1. Immediately check course from props for instant subject display
+    const foundCourse = courses.find((c) => String(c.courseId) === String(parentCourse));
+    const initialSubs = extractSubjectsFromCourse(foundCourse);
+    if (initialSubs.length > 0) {
+      setCourseSubjects(initialSubs);
+    } else {
+      setCourseSubjects([]);
+    }
 
-      if (cDetail && subs.length === 0) {
-        setSubjectWarning(`${tr('⚠️ Khóa học')} "${cDetail.courseName || cDetail.courseCode}" ${tr('chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.')}`);
-      }
-      setCourseSubjects(subs);
-    }).catch(() => {});
-  }, [parentCourse]);
+    // 2. Fetch fresh course detail from API
+    api.get(`/Courses/${parentCourse}`)
+      .then((cDetail) => {
+        if (!cDetail) return;
+        const apiSubs = extractSubjectsFromCourse(cDetail);
+        if (apiSubs.length > 0) {
+          setCourseSubjects(apiSubs);
+          setSubjectWarning('');
+        } else if (initialSubs.length === 0) {
+          const cName = cDetail.courseName || cDetail.courseCode || foundCourse?.name || foundCourse?.code || '';
+          setSubjectWarning(
+            `${tr('⚠️ Khóa học')} "${cName}" ${tr('chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.')}`
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Error fetching course subjects in CreateClass:', err);
+      });
+  }, [parentCourse, courses, subjects]);
 
   const subjectName = (subjectId) => {
     const sub = subjects.find((s) => String(s.subjectId) === String(subjectId));
-    return sub ? `[${sub.subjectCode}] ${sub.subjectName}` : `Môn #${subjectId}`;
+    if (sub) {
+      return `[${sub.subjectCode || 'MÔN'}] ${sub.subjectName || ''}`;
+    }
+    const fromCs = courseSubjects.find((cs) => String(cs.subjectId) === String(subjectId));
+    if (fromCs && (fromCs.subjectCode || fromCs.subjectName)) {
+      return `[${fromCs.subjectCode || 'MÔN'}] ${fromCs.subjectName || ''}`;
+    }
+    return `Môn #${subjectId}`;
   };
 
   const setSubjectInstructor = (subjectId, accountId) => {
@@ -69,6 +169,21 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
 
     if (!parentCourse) {
       alert(tr('Vui lòng chọn Khóa học đào tạo.'));
+      return;
+    }
+
+    if (startDate < todayStr) {
+      alert(tr('Ngày bắt đầu đào tạo không được ở trong quá khứ.'));
+      return;
+    }
+
+    if (endDate <= startDate) {
+      alert(tr('Ngày kết thúc phải sau ngày bắt đầu.'));
+      return;
+    }
+
+    if (minEndDateStr && endDate < minEndDateStr) {
+      alert(`${tr('Thời gian kết thúc quá ngắn so với tổng số giờ học chuẩn ICAO/CAAV. Lớp học yêu cầu tối thiểu')} ${durationInfo.totalMinDays} ${tr('ngày (kết thúc từ ngày')} ${minEndDateStr}).`);
       return;
     }
 
@@ -84,7 +199,9 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
       code: code.trim(),
       name: name.trim(),
       startDate: startDate || todayStr,
-      endDate: endDate || nextMonthStr,
+      endDate: endDate || minEndDateStr || nextMonthStr,
+      location: location.trim() || 'Phòng Sim A320',
+      capacity: Number(capacity) || 30,
       status,
       attendanceRate: 0,
       instructorAssignments
@@ -189,6 +306,32 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
                   required
                 />
               </div>
+
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label htmlFor="class-location-input">{tr('Địa điểm đào tạo (Location)')}</label>
+                  <input
+                    id="class-location-input"
+                    type="text"
+                    placeholder={tr('Ví dụ: Phòng Sim A320, Hangar 1...')}
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="class-capacity-input">{tr('Sĩ số tối đa (Capacity) *')}</label>
+                  <input
+                    id="class-capacity-input"
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={capacity}
+                    onChange={(e) => setCapacity(Number(e.target.value))}
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Instructor Assignment per Subject */}
@@ -230,14 +373,22 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
               <div style={{ fontSize: '13px', fontWeight: '700', color: '#002147', borderBottom: '1px solid #e0e4e9', paddingBottom: '8px' }}>
                 {tr('THỜI GIAN ĐÀO TẠO')}
               </div>
-              <div className="form-row">
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
                   <label htmlFor="class-start-date">{tr('Ngày bắt đầu *')}</label>
                   <input
                     id="class-start-date"
                     type="date"
+                    min={todayStr}
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      setStartDate(newStart);
+                      const computedMinEnd = computeMinEndDateStr(newStart, durationInfo.totalMinDays);
+                      if (endDate < computedMinEnd) {
+                        setEndDate(computedMinEnd);
+                      }
+                    }}
                     required
                   />
                 </div>
@@ -246,10 +397,32 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
                   <input
                     id="class-end-date"
                     type="date"
+                    min={minEndDateStr || startDate}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     required
                   />
+                </div>
+              </div>
+
+              {/* ICAO Standard Duration Badge */}
+              <div style={{
+                fontSize: '12px',
+                color: '#1e40af',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '6px',
+                padding: '10px 14px',
+                lineHeight: '1.5'
+              }}>
+                <div style={{ fontWeight: 700, marginBottom: '2px' }}>
+                  ✈️ {tr('Quy định thời gian đào tạo chuẩn ICAO / CAAV:')}
+                </div>
+                <div>
+                  {tr('Khóa học yêu cầu tối thiểu')} <strong>{durationInfo.totalMinDays} {tr('ngày')}</strong> ({durationInfo.minTrainingDays} {tr('ngày học')} + {durationInfo.minBufferDays} {tr('ngày đệm 15% cho retake & bảo trì')}).
+                  {minEndDateStr && (
+                    <span> {tr('Ngày kết thúc sớm nhất cho phép:')} <strong style={{ color: '#0369a1' }}>{minEndDateStr}</strong>.</span>
+                  )}
                 </div>
               </div>
             </div>

@@ -334,6 +334,54 @@ export const parseApiError = (err, fallback) => {
     );
   const raw = typeof err === "string" ? err : err.message || String(err);
 
+  // ——— Trùng mã nghiệp vụ do BE kiểm tra tường minh (batch 2026-08-20) ———
+  // Course/Subject/Class/Department/EvidenceType đều ném BusinessRuleViolationException
+  // với message tiếng Anh chứa "... already exists.". Phải tách riêng TRƯỚC nhánh
+  // "already exists" chung bên dưới, nếu không sẽ hiển thị nhầm thông báo "email đã tồn tại".
+  if (raw.includes("A course with code")) {
+    return translateVn(
+      "Mã khóa học này đã tồn tại trong hệ thống. Vui lòng nhập mã khác.",
+    );
+  }
+
+  if (raw.includes("A subject with code")) {
+    return translateVn(
+      "Mã môn học này đã tồn tại trong hệ thống. Vui lòng nhập mã khác.",
+    );
+  }
+
+  if (raw.includes("A class with code")) {
+    return translateVn(
+      "Mã lớp học này đã tồn tại trong hệ thống. Vui lòng nhập mã khác.",
+    );
+  }
+
+  if (raw.includes("A department named")) {
+    return translateVn(
+      "Tên phòng ban này đã tồn tại trong hệ thống. Vui lòng nhập tên khác.",
+    );
+  }
+
+  if (raw.includes("An evidence type named")) {
+    return translateVn(
+      "Tên loại minh chứng này đã tồn tại trong hệ thống. Vui lòng nhập tên khác.",
+    );
+  }
+
+  // ——— Trùng tài khoản/Username (tạo Account, Import học viên) ———
+  // BE: BusinessRuleViolationException("An account with username '...' already exists.")
+  // → 400 BusinessRuleViolation, message gốc nằm trong ProblemDetails.detail.
+  if (
+    raw.includes("already exists") ||
+    raw.toLowerCase().includes("đã tồn tại") ||
+    raw.toLowerCase().includes("duplicate username") ||
+    raw.toLowerCase().includes("duplicate email")
+  ) {
+    return translateVn(
+      "Tên đăng nhập (Email) này đã tồn tại trong hệ thống. Vui lòng chọn email khác.",
+    );
+  }
+
   if (
     raw.includes("already enrolled") ||
     raw.includes("ongoing ETR") ||
@@ -450,6 +498,13 @@ export const parseApiError = (err, fallback) => {
     // ASP.NET ProblemDetails: { title, detail } — ưu tiên detail (mô tả cụ thể)
     if (parsed.detail) return parsed.detail;
     if (parsed.message) return parsed.message;
+    // ValidationProblemDetails (422 do model binding — contract mới từ batch 2026-08-18):
+    // chi tiết nằm trong `errors` theo từng field, KHÔNG có `detail`. Gom lại để hiển thị
+    // lý do cụ thể thay vì title chung "Validation failed".
+    if (parsed.errors && typeof parsed.errors === "object") {
+      const flat = Object.values(parsed.errors).flat().filter(Boolean);
+      if (flat.length > 0) return flat.join(" ");
+    }
     if (parsed.title) return parsed.title;
   } catch (error) {
     // Ignore parse failures and fall back to the translated message.

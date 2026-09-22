@@ -46,6 +46,7 @@ const AssessmentModal = ({
   onSubmit,
   onFormUpdate,
 }) => {
+  const { tr } = useLanguage();
   return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div
@@ -54,7 +55,7 @@ const AssessmentModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{isEdit ? "Cập nhật Assessment" : "Tạo Assessment"}</h2>
+          <h2>{isEdit ? tr("Cập nhật Assessment") : tr("Tạo Assessment")}</h2>
           <button
             className="close-btn"
             onClick={onCancel}
@@ -86,7 +87,7 @@ const AssessmentModal = ({
             <label>{tr('Tên đánh giá (ComponentName)')}</label>
             <input
               type="text"
-              value={form.componentName}
+              value={form?.componentName || ""}
               placeholder={tr('VD: Kiểm tra cuối kỳ LT')}
               onChange={(e) => onFormUpdate({ ...form, componentName: e.target.value })}
             />
@@ -96,12 +97,12 @@ const AssessmentModal = ({
             <div className="form-group">
               <label>{tr('Loại đánh giá')}</label>
               <select
-                value={form.assessmentType}
+                value={form?.assessmentType || "Theory"}
                 onChange={(e) => onFormUpdate({ ...form, assessmentType: e.target.value })}
               >
                 {ASSESSMENT_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
-                    {t.label}
+                    {tr(t.label)}
                   </option>
                 ))}
               </select>
@@ -113,13 +114,13 @@ const AssessmentModal = ({
                 min="0"
                 max="100"
                 step="any"
-                value={form.weight}
+                value={form?.weight ?? 0}
                 onChange={(e) =>
                   onFormUpdate({ ...form, weight: parseFloat(e.target.value) || 0 })
                 }
               />
               <small style={{ fontSize: "10px", color: "rgba(0,33,71,0.5)" }}>
-                Tổng trọng số các assessment = 100%
+                {tr('Tổng trọng số các assessment = 100%')}
               </small>
             </div>
           </div>
@@ -132,7 +133,7 @@ const AssessmentModal = ({
                 min="0"
                 max="100"
                 step="any"
-                value={form.passingScore}
+                value={form?.passingScore ?? 0}
                 onChange={(e) =>
                   onFormUpdate({
                     ...form,
@@ -146,7 +147,7 @@ const AssessmentModal = ({
               <input
                 type="number"
                 min="0"
-                value={form.displayOrder}
+                value={form?.displayOrder ?? 0}
                 onChange={(e) =>
                   onFormUpdate({
                     ...form,
@@ -168,7 +169,7 @@ const AssessmentModal = ({
             >
               <input
                 type="checkbox"
-                checked={form.isRequired}
+                checked={!!form?.isRequired}
                 onChange={(e) => onFormUpdate({ ...form, isRequired: e.target.checked })}
                 style={{ cursor: "pointer" }}
               />
@@ -179,7 +180,7 @@ const AssessmentModal = ({
 
         <div className="modal-footer">
           <button className="modal-cancel-btn" type="button" onClick={onCancel}>
-            Hủy bỏ
+            {tr('Hủy bỏ')}
           </button>
           <button
             className="modal-submit-btn"
@@ -191,7 +192,7 @@ const AssessmentModal = ({
               cursor: saving ? "not-allowed" : "pointer",
             }}
           >
-            {saving ? "Đang lưu..." : "Lưu"}
+            {saving ? tr("Đang lưu...") : tr("Lưu")}
           </button>
         </div>
       </div>
@@ -209,6 +210,7 @@ const ChecklistModal = ({
   onSubmit,
   onFormUpdate,
 }) => {
+  const { tr } = useLanguage();
   return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div
@@ -217,7 +219,7 @@ const ChecklistModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{isEdit ? "Cập nhật Mục thực hành" : "Tạo Mục thực hành"}</h2>
+          <h2>{isEdit ? tr("Cập nhật Mục thực hành") : tr("Tạo Mục thực hành")}</h2>
           <button
             className="close-btn"
             onClick={onCancel}
@@ -311,7 +313,7 @@ const ChecklistModal = ({
 
         <div className="modal-footer">
           <button className="modal-cancel-btn" type="button" onClick={onCancel}>
-            Hủy bỏ
+            {tr('Hủy bỏ')}
           </button>
           <button
             className="modal-submit-btn"
@@ -323,7 +325,7 @@ const ChecklistModal = ({
               cursor: saving ? "not-allowed" : "pointer",
             }}
           >
-            {saving ? "Đang lưu..." : "Lưu"}
+            {saving ? tr("Đang lưu...") : tr("Lưu")}
           </button>
         </div>
       </div>
@@ -332,13 +334,28 @@ const ChecklistModal = ({
   );
 };
 
+// Giảng viên hiện tại = người đang đăng nhập (giống các màn Instructor khác) —
+// dùng để lọc "lớp/môn mình được phân công" (Sân nhà ai nấy đá).
+const getCurrentAccountId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.accountId ?? user.userId ?? null;
+  } catch {
+    return null;
+  }
+};
+
 const InstructorAssessmentStructure = () => {
   const { tr } = useLanguage();
   const toast = useToast();
 
-  const [coursesList, setCoursesList] = useState([]);
-  const [subjectsList, setSubjectsList] = useState([]);
-  const [selectedCourseId, setSelectedCourseId] = useState("");
+  // "Sân nhà ai nấy đá" — giống các màn Instructor khác: dropdown chọn LỚP của giảng
+  // viên đang đăng nhập (lọc theo ClassSubject.InstructorAccountId), KHÔNG hiển thị
+  // toàn bộ Course hệ thống (trước đây Course/Subject bị trùng, khó nhìn). Từ lớp
+  // suy ra Course để load Assessments; môn chọn = môn ĐƯỢC PHÂN CÔNG trong lớp đó.
+  const [classesData, setClassesData] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [subjectsList, setSubjectsList] = useState([]); // môn được phân công trong lớp
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
 
   const [assessments, setAssessments] = useState([]);
@@ -368,31 +385,132 @@ const InstructorAssessmentStructure = () => {
     const fetchBase = async () => {
       setLoading(true);
       try {
-        const [apiCourses, apiSubjects] = await Promise.all([
-          api.get("/courses").catch(() => []),
+        const currentAccountId = getCurrentAccountId();
+        const [apiClasses, apiCourses, apiSubjects] = await Promise.all([
+          api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
+          api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
           api.get("/Subjects").catch(() => api.get("/subjects").catch(() => [])),
         ]);
-        setCoursesList(Array.isArray(apiCourses) ? apiCourses : []);
+
+        const storedOverrides = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("etr_class_instructors") || "{}");
+          } catch {
+            return {};
+          }
+        })();
+
+        const mapped = (Array.isArray(apiClasses) ? apiClasses : [])
+          .map((cls, idx) => {
+            const course = (Array.isArray(apiCourses) ? apiCourses : []).find(
+              (c) => String(c.courseId) === String(cls.courseId),
+            );
+            const cached =
+              storedOverrides[String(cls.classId)] ||
+              (cls.classCode ? storedOverrides[String(cls.classCode).trim().toUpperCase()] : null);
+            const resolvedAssignments =
+              Array.isArray(cls.instructorAssignments) && cls.instructorAssignments.length > 0
+                ? cls.instructorAssignments
+                : Array.isArray(cls.classSubjects) && cls.classSubjects.length > 0
+                  ? cls.classSubjects
+                  : Array.isArray(cls.ClassSubjects) && cls.ClassSubjects.length > 0
+                    ? cls.ClassSubjects
+                    : Array.isArray(cached) && cached.length > 0
+                      ? cached
+                      : cls.instructorAccountId || cls.InstructorAccountId
+                        ? [{ subjectId: cls.subjectId || 1, instructorAccountId: cls.instructorAccountId || cls.InstructorAccountId }]
+                        : [];
+
+            const statusLower = String(cls.status || "").toLowerCase();
+            const isLocked =
+              statusLower === "completed" ||
+              statusLower === "đã kết thúc" ||
+              statusLower === "cancelled" ||
+              statusLower === "đã hủy" ||
+              statusLower === "closed";
+
+            return {
+              classId: cls.classId,
+              stt: String(idx + 1).padStart(2, "0"),
+              code: cls.classCode || `CL-${cls.classId}`,
+              name: cls.className || tr("Lớp đào tạo"),
+              subName: course ? course.courseName : tr("Chuyên đề huấn luyện"),
+              schedule: cls.schedule || tr("Chưa sắp lịch"),
+              status: cls.status || tr("Đang diễn ra"),
+              courseId: course ? course.courseId : (cls.courseId ?? null),
+              assignments: resolvedAssignments,
+              isLocked,
+            };
+          })
+          // Lớp ĐÃ KẾT THÚC / BỊ HỦY → BE chặn mọi thay đổi cấu trúc đánh giá → bỏ khỏi dropdown.
+          .filter((c) => !c.isLocked)
+          // Chỉ giữ lớp mà giảng viên hiện tại được phân công dạy ít nhất 1 môn.
+          .filter(
+            (c) =>
+              currentAccountId == null ||
+              (c.assignments || []).some(
+                (a) =>
+                  a.instructorAccountId != null &&
+                  String(a.instructorAccountId) === String(currentAccountId),
+              ),
+          );
+
+        setClassesData(mapped);
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
-        if (Array.isArray(apiCourses) && apiCourses.length > 0) {
-          setSelectedCourseId(String(apiCourses[0].courseId));
+        if (mapped.length > 0) {
+          setSelectedClassId(mapped[0].classId);
         }
       } catch (err) {
-        console.error("Lỗi khi tải khóa học/môn học:", err);
+        console.error("Lỗi khi tải lớp học:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchBase();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selectedClass = useMemo(
+    () => classesData.find((c) => c.classId === parseInt(selectedClassId)),
+    [classesData, selectedClassId],
+  );
+  const currentCourseId = selectedClass?.courseId ?? null;
+
+  // Các môn ĐƯỢC PHÂN CÔNG cho giảng viên trong lớp đang chọn — dropdown Subject chỉ
+  // gồm các môn này (hết cảnh tượng trùng/lộn xộn do dùng Subjects global).
+  const assignedSubjects = useMemo(() => {
+    const currentAccountId = getCurrentAccountId();
+    const ids = [
+      ...new Set(
+        (selectedClass?.assignments || [])
+          .filter(
+            (a) =>
+              a.subjectId != null &&
+              (currentAccountId == null ||
+                String(a.instructorAccountId) === String(currentAccountId)),
+          )
+          .map((a) => a.subjectId),
+      ),
+    ];
+    return ids
+      .map((id) => {
+        const sub = (subjectsList || []).find(
+          (s) => s.subjectId === id,
+        );
+        return {
+          subjectId: id,
+          subjectCode: sub?.subjectCode || `SUB${id}`,
+          subjectName: sub?.subjectName || tr("Môn học"),
+        };
+      })
+      .sort((a, b) => a.subjectId - b.subjectId);
+  }, [selectedClass, subjectsList, tr]);
 
   const loadItems = useCallback(async () => {
-    if (!selectedCourseId) return;
+    if (!currentCourseId) return;
     setLoading(true);
     try {
-      const courseId = parseInt(selectedCourseId, 10);
+      const courseId = parseInt(currentCourseId, 10);
       const subjectId = parseInt(selectedSubjectId, 10) || 0;
-
       const [apiAssessments, apiChecklists] = await Promise.all([
         api
           .get("/Assessments")
@@ -428,11 +546,11 @@ const InstructorAssessmentStructure = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedCourseId, selectedSubjectId]);
+  }, [currentCourseId, selectedSubjectId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      if (selectedCourseId) {
+      if (currentCourseId) {
         void loadItems();
       } else {
         setAssessments([]);
@@ -440,7 +558,7 @@ const InstructorAssessmentStructure = () => {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [selectedCourseId, selectedSubjectId, loadItems]);
+  }, [currentCourseId, selectedSubjectId, loadItems]);
 
   const totalWeight = useMemo(
     () => assessments.reduce((sum, a) => sum + (Number(a.weight) || 0), 0),
@@ -460,14 +578,15 @@ const InstructorAssessmentStructure = () => {
   };
 
   const openEditAssessment = (item) => {
+    if (!item) return;
     setEditingAssessment(item);
     setAssessmentForm({
-      componentName: item.componentName || "",
-      assessmentType: item.assessmentType || "Theory",
-      weight: Number(item.weight) || 0,
-      passingScore: Number(item.passingScore) || 0,
-      isRequired: item.isRequired ?? true,
-      displayOrder: Number(item.displayOrder) || 0,
+      componentName: item.componentName || item.ComponentName || "",
+      assessmentType: item.assessmentType || item.AssessmentType || "Theory",
+      weight: Number(item.weight ?? item.Weight ?? 0),
+      passingScore: Number(item.passingScore ?? item.PassingScore ?? 0),
+      isRequired: (item.isRequired ?? item.IsRequired) ?? true,
+      displayOrder: Number(item.displayOrder ?? item.DisplayOrder ?? 0),
     });
     setAssessmentError("");
     setShowAssessmentModal(true);
@@ -475,11 +594,11 @@ const InstructorAssessmentStructure = () => {
 
   const handleSaveAssessment = async () => {
     if (!assessmentForm.componentName.trim()) {
-      setAssessmentError("Vui lòng nhập tên đánh giá.");
+      setAssessmentError(tr("Vui lòng nhập tên đánh giá."));
       return;
     }
     if (!(assessmentForm.weight >= 0 && assessmentForm.weight <= 100)) {
-      setAssessmentError("Trọng số phải nằm trong khoảng 0 – 100.");
+      setAssessmentError(tr("Trọng số phải nằm trong khoảng 0 – 100."));
       return;
     }
     setSavingAssessment(true);
@@ -495,28 +614,29 @@ const InstructorAssessmentStructure = () => {
         displayOrder: Number(assessmentForm.displayOrder) || 0,
       };
       let saved;
-      if (editingAssessment) {
+      const aId = editingAssessment?.assessmentId ?? editingAssessment?.AssessmentId;
+      if (editingAssessment && aId) {
         saved = await api.put(
-          `/Assessments/${editingAssessment.assessmentId}`,
-          { ...payload, assessmentId: editingAssessment.assessmentId },
+          `/Assessments/${aId}`,
+          { ...payload, assessmentId: Number(aId) },
         );
         toast.success(tr("Đã cập nhật"), announce("edit", tr("Assessment")));
       } else {
         saved = await api.post("/Assessments", {
           ...payload,
-          courseId: parseInt(selectedCourseId, 10),
+          courseId: parseInt(currentCourseId, 10),
         });
         toast.success(tr("Đã tạo"), announce("add", tr("Assessment")));
       }
       const newItem = saved || {
         ...payload,
-        assessmentId: editingAssessment?.assessmentId || Date.now(),
-        courseId: parseInt(selectedCourseId, 10),
+        assessmentId: aId || Date.now(),
+        courseId: parseInt(currentCourseId, 10),
       };
       setAssessments((prev) => {
         if (editingAssessment) {
           return prev.map((a) =>
-            a.assessmentId === editingAssessment.assessmentId ? newItem : a,
+            (a.assessmentId ?? a.AssessmentId) === aId ? newItem : a,
           );
         }
         return [...prev, newItem];
@@ -579,7 +699,7 @@ const InstructorAssessmentStructure = () => {
       } else {
         saved = await api.post("/PracticalChecklists", {
           ...payload,
-          courseId: parseInt(selectedCourseId, 10),
+          courseId: parseInt(currentCourseId, 10),
           subjectId: parseInt(selectedSubjectId, 10),
         });
         toast.success(tr("Đã tạo"), announce("add", tr("Practical Checklist")));
@@ -588,7 +708,7 @@ const InstructorAssessmentStructure = () => {
         ...payload,
         practicalChecklistId:
           editingChecklist?.practicalChecklistId || Date.now(),
-        courseId: parseInt(selectedCourseId, 10),
+        courseId: parseInt(currentCourseId, 10),
         subjectId: parseInt(selectedSubjectId, 10),
       };
       setChecklists((prev) => {
@@ -647,60 +767,78 @@ const InstructorAssessmentStructure = () => {
         </div>
       </section>
 
+      {/* Card trắng cho khu chọn lớp/môn — label màu tối đọc được trên nền trắng,
+          thay vì nằm trực tiếp trên nền gradient navy đậm của trang */}
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "16px",
-          marginBottom: "20px",
-        }}
+        className="structure-selector-card"
+        style={{ marginBottom: "20px" }}
       >
-        <div className="form-group">
-          <label>{tr("Khóa học")}</label>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: "16px",
+          }}
+        >
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>{tr("Lớp của tôi")}</label>
           <select
-            value={selectedCourseId}
+            value={selectedClassId}
             onChange={(e) => {
-              setSelectedCourseId(e.target.value);
+              setSelectedClassId(e.target.value);
               setSelectedSubjectId("");
             }}
             style={{ padding: "12px 14px", borderRadius: "12px", fontSize: "13px" }}
           >
-            <option value="">{tr("Chọn khóa học")}</option>
-            {coursesList.map((c) => (
-              <option key={c.courseId} value={String(c.courseId)}>
-                {c.courseCode || `K${c.courseId}`} · {c.courseName}
+            <option value="">{tr("Chọn lớp")}</option>
+            {classesData.map((c) => (
+              <option key={c.classId} value={String(c.classId)}>
+                {c.name} ({c.code}) · {c.subName}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="form-group">
+        <div className="form-group" style={{ marginBottom: 0 }}>
           <label>{tr("Môn học")}</label>
           <select
             value={selectedSubjectId}
             onChange={(e) => setSelectedSubjectId(e.target.value)}
             style={{ padding: "12px 14px", borderRadius: "12px", fontSize: "13px" }}
-            disabled={!selectedCourseId}
+            disabled={!selectedClassId || assignedSubjects.length === 0}
           >
-            <option value="">{tr("Chọn môn (tùy chọn)")}</option>
-            {subjectsList.map((s) => (
+            <option value="">
+              {assignedSubjects.length === 0
+                ? tr("Bạn chưa được phân công môn nào trong lớp này")
+                : tr("Chọn môn")}
+            </option>
+            {assignedSubjects.map((s) => (
               <option key={s.subjectId} value={String(s.subjectId)}>
                 {s.subjectCode} · {s.subjectName}
               </option>
             ))}
           </select>
         </div>
+        </div>
       </div>
 
-      {!selectedSubjectId ? (
+      {!selectedClassId || !selectedSubjectId ? (
         <div
           className="empty-table-state"
           style={{ padding: "60px", textAlign: "center" }}
         >
           <p style={{ color: "rgba(0,33,71,0.5)", fontSize: "14px" }}>
-            {tr(
-              "Chọn môn học để cấu hình Assessments & Practical Checklists cho môn đó.",
-            )}
+            {!selectedClassId
+              ? tr(
+                  "Chọn lớp của bạn để cấu hình Assessments & Practical Checklists.",
+                )
+              : assignedSubjects.length === 0
+                ? tr(
+                    "Bạn chưa được phân công môn nào trong lớp này. Liên hệ Academic để được phân công.",
+                  )
+                : tr(
+                    "Chọn môn học để cấu hình Assessments & Practical Checklists cho môn đó.",
+                  )}
           </p>
         </div>
       ) : (
@@ -870,7 +1008,7 @@ const InstructorAssessmentStructure = () => {
                         </div>
                         <div style={{ fontSize: "12px", fontWeight: "700" }}>
                           {a.isRequired ? (
-                            <span style={{ color: "#15803d" }}>✓ {tr("Có")}</span>
+                            <span style={{ color: "#15803d" }}>✓ {tr("Bắt buộc")}</span>
                           ) : (
                             <span style={{ color: "rgba(0,33,71,0.4)" }}>—</span>
                           )}

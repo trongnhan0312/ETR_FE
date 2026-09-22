@@ -339,7 +339,6 @@ const Dashboard = () => {
                 {loading ? '...' : kpi.value == null ? 0 : kpi.value}
               </div>
               <div className="freedash-kpi-label">{kpi.label}</div>
-              <div className="freedash-kpi-sub">{tr('Live from API')}</div>
             </div>
           </div>
         ))}

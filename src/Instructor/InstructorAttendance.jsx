@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
@@ -11,6 +12,11 @@ import { protectExcelTemplate } from "../utils/excelTemplateProtect";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { useLanguage } from "../context/LanguageContext";
+import { useSubViewBack } from "../utils/navigation";
+import {
+  groupSessionsBySubject,
+  sessionGroupsBySubjectId,
+} from "../utils/attendanceSessions";
 import "./instructor.scss";
 
 // Status constants enforced by the backend (RegularExpression "^(Present|Absent)$")
@@ -38,14 +44,61 @@ const getCurrentAccountId = () => {
   }
 };
 
+// Lớp ĐÃ KẾT THÚC / BỊ HỦY → ETR học viên thường đã Completed/Locked → BE chặn mọi thay đổi
+// điểm danh (ImmutabilityValidator: "Cannot modify ... because the related ETRCourseRecord
+// is Completed or Locked"). Đặt ở module scope để fetchClasses dùng được trong useEffect([]).
+const isLockedStatus = (status) => {
+  const st = String(status || "").toLowerCase();
+  return (
+    st === "completed" ||
+    st === "đã kết thúc" ||
+    st === "cancelled" ||
+    st === "đã hủy" ||
+    st === "closed"
+  );
+};
+
+// BE (AttendanceService.RecordAttendanceAsync + BusinessRuleEngine.AttendanceGracePeriodHours = 48)
+// chỉ cho phép Instructor điểm danh bù trong vòng 48h sau ngày học; quá hạn → 400 và yêu cầu
+// liên hệ Academic Staff. Hàm này ở module scope (không gọi Date.now() khi render).
+const ATTENDANCE_GRACE_PERIOD_HOURS = 48;
+const isBeyondAttendanceGrace = (rawSessionDate) => {
+  if (!rawSessionDate) return false;
+  const d = new Date(rawSessionDate);
+  if (Number.isNaN(d.getTime())) return false;
+  // BE tính: sessionDate.Date.AddDays(1).AddHours(48) → hết hạn lúc 00:00 ngày kế tiếp + 48h
+  const expiry =
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() +
+    (24 + ATTENDANCE_GRACE_PERIOD_HOURS) * 60 * 60 * 1000;
+  return Date.now() > expiry;
+};
+
 const InstructorAttendance = () => {
   const { tr } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [classesData, setClassesData] = useState([]);
   const [subjectsList, setSubjectsList] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [sessions, setSessions] = useState([]);
   const [subjectFilter, setSubjectFilter] = useState(""); // "" = tất cả môn
   const [selectedSession, setSelectedSession] = useState(null);
+
+  const handleBackToSessions = useCallback(() => {
+    setSelectedSession(null);
+    if (location.state?.attendanceSessionId) {
+      navigate(-1);
+    }
+  }, [location.state, navigate]);
+
+  useSubViewBack(!!selectedSession, handleBackToSessions);
+
+  // Sync if browser back button was clicked
+  useEffect(() => {
+    if (selectedSession && !location.state?.attendanceSessionId) {
+      setSelectedSession(null);
+    }
+  }, [location.state, selectedSession]);
 
   // Student list and attendance records
   const [students, setStudents] = useState([]);
@@ -85,13 +138,39 @@ const InstructorAttendance = () => {
       setLoading(true);
       try {
         const [apiClasses, apiCourses, apiSubjects] = await Promise.all([
-          api.get("/classes").catch(() => []),
-          api.get("/courses").catch(() => []),
-          api.get("/subjects").catch(() => []),
+          api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
+          api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
+          api.get("/Subjects").catch(() => api.get("/subjects").catch(() => [])),
         ]);
 
-        const mapped = apiClasses.map((cls, idx) => {
-          const course = apiCourses.find((c) => c.courseId === cls.courseId);
+        const storedOverrides = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("etr_class_instructors") || "{}");
+          } catch {
+            return {};
+          }
+        })();
+
+        const mapped = (Array.isArray(apiClasses) ? apiClasses : []).map((cls, idx) => {
+          const course = (Array.isArray(apiCourses) ? apiCourses : []).find(
+            (c) => String(c.courseId) === String(cls.courseId)
+          );
+          const cached =
+            storedOverrides[String(cls.classId)] ||
+            (cls.classCode ? storedOverrides[String(cls.classCode).trim().toUpperCase()] : null);
+          const resolvedAssignments =
+            Array.isArray(cls.instructorAssignments) && cls.instructorAssignments.length > 0
+              ? cls.instructorAssignments
+              : Array.isArray(cls.classSubjects) && cls.classSubjects.length > 0
+                ? cls.classSubjects
+                : Array.isArray(cls.ClassSubjects) && cls.ClassSubjects.length > 0
+                  ? cls.ClassSubjects
+                  : Array.isArray(cached) && cached.length > 0
+                    ? cached
+                    : cls.instructorAccountId || cls.InstructorAccountId
+                      ? [{ subjectId: cls.subjectId || 1, instructorAccountId: cls.instructorAccountId || cls.InstructorAccountId }]
+                      : [];
+
           return {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
@@ -103,17 +182,27 @@ const InstructorAttendance = () => {
             time: cls.time || "08:00 - 11:30",
             studentsCount: "0/0",
             status: cls.status || tr("Đang diễn ra"),
-            // Giữ nguyên danh sách phân công giảng viên theo môn của lớp (từ BE) —
-            // dùng để chỉ hiển thị buổi của môn mình được phân công.
-            assignments: Array.isArray(cls.instructorAssignments)
-              ? cls.instructorAssignments
-              : [],
+            assignments: resolvedAssignments,
           };
         });
-        setClassesData(mapped);
+        // Bỏ lớp đã khóa (Completed/Cancelled/Closed) khỏi màn điểm danh — lớp này chỉ
+        // đọc (BE chặn ghi điểm danh qua ImmutabilityValidator + grace period) nên không
+        // thể điểm danh/sửa. Dropdown chỉ còn các lớp có thể thao tác.
+        const activeClasses = mapped.filter((c) => !isLockedStatus(c.status));
+        setClassesData(activeClasses);
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
-        if (mapped.length > 0) {
-          setSelectedClassId(mapped[0].classId);
+        if (activeClasses.length > 0) {
+          const savedClassId =
+            location.state?.attendanceClassId ||
+            sessionStorage.getItem("etr_attendance_class_id");
+          if (
+            savedClassId &&
+            activeClasses.some((c) => String(c.classId) === String(savedClassId))
+          ) {
+            setSelectedClassId(Number(savedClassId));
+          } else {
+            setSelectedClassId(activeClasses[0].classId);
+          }
         }
       } catch (err) {
         console.error("Lỗi khi tải danh sách lớp học:", err);
@@ -122,7 +211,13 @@ const InstructorAttendance = () => {
       }
     };
     fetchClasses();
-  }, []);
+  }, [location.state?.attendanceClassId]);
+
+  useEffect(() => {
+    if (selectedClassId) {
+      sessionStorage.setItem("etr_attendance_class_id", String(selectedClassId));
+    }
+  }, [selectedClassId]);
 
   // Fetch sessions when a class is selected
   useEffect(() => {
@@ -178,6 +273,9 @@ const InstructorAttendance = () => {
               subjectId: s.subjectId ?? null,
               stt: String(idx + 1).padStart(2, "0"),
               date: dateStr,
+              // Giữ nguyên mốc thời gian gốc để kiểm tra grace period 48h của BE
+              sessionDate: rawDate || null,
+              graceExpired: isBeyondAttendanceGrace(rawDate),
               name: s.sessionTitle || tr("Buổi học"),
               room: s.location || tr("Phòng học"),
               instructor: getCurrentInstructorName(),
@@ -197,6 +295,15 @@ const InstructorAttendance = () => {
   // Load students and attendance records when a session is selected
   const loadAttendance = async (session) => {
     setSelectedSession(session);
+    if (!location.state?.attendanceSessionId) {
+      navigate(location.pathname, {
+        state: {
+          ...(location.state || {}),
+          attendanceSessionId: session.sessionId,
+          attendanceClassId: selectedClassId,
+        },
+      });
+    }
     setLoading(true);
     try {
       // 1. Get class details, enrollments
@@ -372,23 +479,13 @@ const InstructorAttendance = () => {
     return classesData.find((c) => c.classId === parseInt(selectedClassId));
   }, [classesData, selectedClassId]);
 
-  // Lớp ĐÃ KẾT THÚC / BỊ HỦY → ETR học viên thường đã Completed/Locked → BE chặn mọi thay đổi
-  // điểm danh (ImmutabilityValidator: "Cannot modify ... because the related ETRCourseRecord
-  // is Completed or Locked"). Hiển thị cảnh báo, KHÔNG khóa cứng nút — vì sau khi dữ liệu/trạng
-  // thái được sửa (lớp mở lại / ETR mở khóa) luồng import phải chạy được ngay.
-  // Lớp đã kết thúc/hủy → ETR học viên thường đã Completed/Locked → BE chặn ghi điểm danh
-  const isLockedStatus = (status) => {
-    const st = String(status || "").toLowerCase();
-    return (
-      st === "completed" ||
-      st === "đã kết thúc" ||
-      st === "cancelled" ||
-      st === "đã hủy" ||
-      st === "closed"
-    );
-  };
-
   const isClassClosed = isLockedStatus(selectedClass?.status);
+
+  // BE (AttendanceService.RecordAttendanceAsync + BusinessRuleEngine.AttendanceGracePeriodHours = 48)
+  // chỉ cho phép Instructor điểm danh bù trong vòng 48h sau ngày học; quá hạn → 400 và yêu cầu
+  // liên hệ Academic Staff. FE cảnh báo trước (KHÔNG khóa cứng nút, giống cảnh báo lớp đã kết thúc).
+  // Đã tính sẵn ở bước map danh sách buổi (xem fetchSessions) — không gọi Date.now() khi render.
+  const isGraceExpired = selectedSession?.graceExpired === true;
 
   // Nhãn trạng thái lớp hiển thị trong dropdown chọn lớp
   const getClassStatusLabel = (status) => {
@@ -692,11 +789,30 @@ const InstructorAttendance = () => {
       .sort((a, b) => a.subjectId - b.subjectId);
   }, [sessions, subjectsList]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Đánh số buổi TRONG TỪNG MÔN (Buổi 1..N) trên toàn bộ danh sách — tính trước
+  // khi lọc để lọc 1 môn thì số buổi vẫn đúng.
+  const numberedSessions = useMemo(
+    () => groupSessionsBySubject(sessions).flatMap((group) => group.sessions),
+    [sessions],
+  );
+
   // Buổi hiển thị theo bộ lọc môn (trống = tất cả)
   const visibleSessions = useMemo(() => {
-    if (!subjectFilter) return sessions;
-    return sessions.filter((s) => String(s.subjectId) === subjectFilter);
-  }, [sessions, subjectFilter]);
+    if (!subjectFilter) return numberedSessions;
+    return numberedSessions.filter(
+      (s) => String(s.subjectId) === subjectFilter,
+    );
+  }, [numberedSessions, subjectFilter]);
+
+  // Gom theo môn: mỗi môn 1 nhóm + số buổi/đã chốt của môn đó
+  const sessionGroups = useMemo(
+    () => groupSessionsBySubject(visibleSessions),
+    [visibleSessions],
+  );
+  const sessionGroupBySubjectId = useMemo(
+    () => sessionGroupsBySubjectId(sessionGroups),
+    [sessionGroups],
+  );
 
   const sessionPager = usePagination(visibleSessions, {
     pageSize: 10,
@@ -714,7 +830,7 @@ const InstructorAttendance = () => {
         <nav className="breadcrumb-nav">
           <span
             className="breadcrumb-item"
-            onClick={() => setSelectedSession(null)}
+            onClick={handleBackToSessions}
             style={{ cursor: "pointer", color: "white" }}
           >
             {tr("ĐIỂM DANH")}
@@ -727,6 +843,35 @@ const InstructorAttendance = () => {
           </svg>
           <span className="breadcrumb-item active">{tr(selectedSession.name)}</span>
         </nav>
+
+        {/* Cảnh báo: buổi học đã quá hạn điểm danh bù 48h — BE chặn Instructor ghi điểm danh */}
+        {isGraceExpired && !isConfirmed && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "10px",
+              padding: "12px 18px",
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
+              borderLeft: "4px solid #d97706",
+              borderRadius: "10px",
+              fontSize: "12px",
+              color: "#92400e",
+              lineHeight: 1.5,
+            }}
+          >
+            <span style={{ fontSize: "16px", lineHeight: 1 }}>⏰</span>
+            <div>
+              <strong>
+                {tr("Buổi học đã quá hạn điểm danh bù (48 giờ)")}.
+              </strong>{" "}
+              {tr(
+                "Hệ thống chỉ cho phép giảng viên điểm danh bù trong vòng 48 giờ sau ngày học. Vui lòng liên hệ Academic Staff để xử lý ngoại lệ.",
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Cảnh báo: lớp đã kết thúc/hủy — BE chặn ghi điểm danh (ETR học viên đã khóa) */}
         {isClassClosed && (
@@ -757,9 +902,53 @@ const InstructorAttendance = () => {
 
         <section className="content-header">
           <div className="header-left">
-            <h1>
-              {tr("Điểm danh")} — {tr(selectedSession.name)}
-            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={handleBackToSessions}
+                aria-label={tr("Quay lại")}
+                title={tr("Quay lại")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  border: "1px solid #dfe6f1",
+                  background: "#ffffff",
+                  color: "#c5a059",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#c5a059";
+                  e.currentTarget.style.background = "rgba(197, 160, 89, 0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#dfe6f1";
+                  e.currentTarget.style.background = "#ffffff";
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5" />
+                  <path d="M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h1 style={{ margin: 0 }}>
+                {tr("Điểm danh")} — {tr(selectedSession.name)}
+              </h1>
+            </div>
             <div className="divider-gold" />
             <p className="header-description">
               {selectedSession.date} · {selectedSession.room} · {tr("Lớp: ")}
@@ -1643,7 +1832,6 @@ const InstructorAttendance = () => {
         >
           {classesData.map((c) => (
             <option key={c.classId} value={c.classId}>
-              {isLockedStatus(c.status) ? "🔒 " : ""}
               {c.name} ({c.code}) — {getClassStatusLabel(c.status)}
             </option>
           ))}
@@ -1725,9 +1913,81 @@ const InstructorAttendance = () => {
               {tr("Không tìm thấy buổi học nào cho lớp học hiện tại.")}
             </div>
           ) : (
-            sessionPager.pageItems.map((session) => (
+            sessionPager.pageItems.map((session, rowIndex) => {
+              // Buổi đầu của mỗi môn trên trang này → in tiêu đề nhóm môn
+              const previous =
+                rowIndex > 0 ? sessionPager.pageItems[rowIndex - 1] : null;
+              const startsGroup =
+                !previous ||
+                String(previous.subjectId) !== String(session.subjectId);
+              const continuesFromPreviousPage =
+                startsGroup && rowIndex === 0 && sessionPager.page > 1;
+              const group = sessionGroupBySubjectId.get(
+                String(session.subjectId),
+              );
+
+              return (
+                <Fragment key={session.sessionId}>
+                  {startsGroup && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                        padding: "10px 20px",
+                        background: "rgba(197, 160, 89, 0.08)",
+                        borderTop: "1px solid #e5e7eb",
+                        borderBottom: "1px solid #e5e7eb",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: "800",
+                            letterSpacing: "0.05em",
+                            textTransform: "uppercase",
+                            color: "#c5a059",
+                          }}
+                        >
+                          {tr("Môn học")}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: "700",
+                            color: "#002147",
+                          }}
+                        >
+                          {getSubjectName(session.subjectId) || tr("Môn học")}
+                          {continuesFromPreviousPage
+                            ? ` (${tr("tiếp theo")})`
+                            : ""}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: "rgba(0,33,71,0.65)",
+                        }}
+                      >
+                        {`${group?.count ?? 1} ${tr("buổi")}`}
+                        {group
+                          ? ` · ${group.confirmedCount}/${group.count} ${tr("đã chốt")}`
+                          : ""}
+                      </span>
+                    </div>
+                  )}
               <div
-                key={session.sessionId}
                 className="table-row"
                 style={{
                   display: "grid",
@@ -1745,7 +2005,7 @@ const InstructorAttendance = () => {
                     textAlign: "center",
                   }}
                 >
-                  {session.stt}
+                  {String(session.indexInSubject ?? 0).padStart(2, "0")}
                 </span>
                 <span
                   style={{
@@ -1764,20 +2024,6 @@ const InstructorAttendance = () => {
                   }}
                 >
                   {tr(session.name)}
-                  {session.subjectId != null &&
-                    getSubjectName(session.subjectId) && (
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: "11px",
-                          fontWeight: "600",
-                          color: "rgba(0,33,71,0.5)",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {getSubjectName(session.subjectId)}
-                      </span>
-                    )}
                 </span>
                 <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
                   {session.room}
@@ -1822,7 +2068,9 @@ const InstructorAttendance = () => {
                   </button>
                 </div>
               </div>
-            ))
+                </Fragment>
+              );
+            })
           )}
         </div>
 

@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { isEtrCompleted } from "./etrStatus";
 
 /**
  * Evidence gắn với học viên qua SubjectResultId (EvidenceResponse trả subjectResultId).
@@ -43,7 +44,7 @@ export const buildSrToAccountMap = async (etrs) => {
       etrDetailsById[etrId] = details;
       const enrollment = enrollmentByEnrollmentId.get(details.enrollmentId);
       // Backend chặn sửa EvidenceFile khi ETR Status == "Completed" OR IsLocked == true
-      const isLockedEtr = details.status === "Completed" || details.isLocked === true;
+      const isLockedEtr = isEtrCompleted(details.status) || details.isLocked === true;
       details.subjectResults.forEach((sr) => {
         if (enrollment && enrollment.accountId) {
           srToAccount[sr.subjectResultId] = enrollment.accountId;

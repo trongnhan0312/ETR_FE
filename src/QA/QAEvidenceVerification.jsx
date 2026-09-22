@@ -68,6 +68,15 @@ const QAEvidenceVerification = () => {
           verificationComment: ev.verificationComment || "",
           subjectResultId: ev.subjectResultId,
           accountId: ev.accountId,
+          // URL Cloudinary thật của file — dùng để tải/xem trước trực tiếp.
+          // Lưu ý: GET /Evidences/{id}/download của BE trả 302 REDIRECT sang Cloudinary
+          // (không trả byte file), nên fetch qua api.downloadFile bị CORS chặn → "Download failed".
+          fileUrl: ev.fileUrl || ev.FileUrl || "",
+          uploadedByAccountId: ev.uploadedByAccountId ?? ev.uploadedBy ?? null,
+          verifiedByAccountId: ev.verifiedByAccountId ?? null,
+          verifiedAt: ev.verifiedAt
+            ? new Date(ev.verifiedAt).toLocaleString("vi-VN")
+            : "",
         };
       });
 
@@ -132,14 +141,73 @@ const QAEvidenceVerification = () => {
   const isPdfType = (mime) =>
     (mime || "").toLowerCase() === "application/pdf";
 
+  // Lưu blob thành file tải về (dùng chung cho download).
+  const saveBlob = (blob, fileName) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  /**
+   * Mở/tải file minh chứng một cách an toàn:
+   *  1. Ưu tiên FileUrl (Cloudinary) lấy trực tiếp từ GET /Evidences — thử fetch để ép tải về.
+   *  2. Nếu fetch bị CORS chặn → mở URL trong tab mới (điều hướng không bị CORS giới hạn).
+   *  3. Không có FileUrl → gọi endpoint BE /Evidences/{id}/download qua api.downloadFile
+   *     (endpoint này 302 sang Cloudinary; fetch follow redirect nên vẫn trả blob khi CORS cho phép).
+   */
+  const openOrDownloadEvidence = async (row) => {
+    if (!row) return;
+    let targetUrl = row.fileUrl;
+    if (!targetUrl) {
+      const detail = await api.get(`/Evidences/${row.id}`).catch(() => null);
+      targetUrl = detail?.fileUrl || detail?.FileUrl;
+    }
+    if (targetUrl) {
+      try {
+        const res = await fetch(targetUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (blob && blob.size > 0 && blob.type !== "text/html") {
+          saveBlob(blob, row.fileName || `evidence-${row.id}`);
+          return;
+        }
+        throw new Error("empty blob");
+      } catch {
+        window.open(targetUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+    }
+    const blob = await api.downloadFile(`/Evidences/${row.id}/download`, {
+      suppressAuthRedirect: true,
+    });
+    saveBlob(blob, row.fileName || `evidence-${row.id}`);
+  };
+
   const loadPreview = async (row) => {
     if (!row) return;
+    let targetUrl = row.fileUrl;
+    if (!targetUrl) {
+      const detail = await api.get(`/Evidences/${row.id}`).catch(() => null);
+      targetUrl = detail?.fileUrl || detail?.FileUrl;
+    }
+    if (targetUrl) {
+      setPreviewUrl((prev) => {
+        if (prev && prev.startsWith("blob:")) window.URL.revokeObjectURL(prev);
+        return targetUrl;
+      });
+      return;
+    }
     setPreviewLoading(true);
     try {
       const blob = await api.downloadFile(`/Evidences/${row.id}/download`, { suppressAuthRedirect: true });
       const url = window.URL.createObjectURL(blob);
       setPreviewUrl((prev) => {
-        if (prev) window.URL.revokeObjectURL(prev);
+        if (prev && prev.startsWith("blob:")) window.URL.revokeObjectURL(prev);
         return url;
       });
     } catch (err) {
@@ -156,7 +224,7 @@ const QAEvidenceVerification = () => {
   };
 
   const closeReview = () => {
-    if (previewUrl) window.URL.revokeObjectURL(previewUrl);
+    if (previewUrl && previewUrl.startsWith("blob:")) window.URL.revokeObjectURL(previewUrl);
     setPreviewUrl("");
     setReviewTarget(null);
   };
@@ -168,7 +236,9 @@ const QAEvidenceVerification = () => {
   }, [previewUrl]);
   useEffect(
     () => () => {
-      if (previewUrlRef.current) window.URL.revokeObjectURL(previewUrlRef.current);
+      if (previewUrlRef.current && previewUrlRef.current.startsWith("blob:")) {
+        window.URL.revokeObjectURL(previewUrlRef.current);
+      }
     },
     []
   );
@@ -214,29 +284,33 @@ const QAEvidenceVerification = () => {
     }
   };
 
-  // Tải file minh chứng về máy (GET /Evidences/{id}/download)
+  // Tải file minh chứng về máy — ưu tiên FileUrl Cloudinary (xem openOrDownloadEvidence),
+  // fallback endpoint BE /Evidences/{id}/download cho bản ghi cũ không có FileUrl.
   const handleDownload = async (row) => {
     try {
-      const blob = await api.downloadFile(`/Evidences/${row.id}/download`, { suppressAuthRedirect: true });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = row.fileName || `evidence-${row.id}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      await openOrDownloadEvidence(row);
     } catch (err) {
-      toast.error(tr("Tải xuống thất bại"));
+      console.error("Tải minh chứng thất bại:", err);
+      toast.error(`${tr("Tải xuống thất bại")}: ${err?.message || ""}`);
     }
   };
 
-  // QA KHÔNG có chức năng xóa evidence (backend DELETE /Evidences/{id} chỉ cho Instructor/Admin/Academic)
-  const pendingCount = evidenceList.filter((e) => e.status === "Pending").length;
+  // Tabs: Chờ duyệt (Pending) vs Đã xử lý (Processed: Verified/Rejected) vs Tất cả
+  const [activeTab, setActiveTab] = useState("PENDING");
+  const pendingEvidences = evidenceList.filter((e) => e.status === "Pending");
+  const processedEvidences = evidenceList.filter((e) => e.status === "Verified" || e.status === "Rejected");
+  const currentDisplayList =
+    activeTab === "PENDING"
+      ? pendingEvidences
+      : activeTab === "PROCESSED"
+        ? processedEvidences
+        : evidenceList;
 
-  const { page, setPage, pageCount, pageItems, total } = usePagination(evidenceList, {
+  const pendingCount = pendingEvidences.length;
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(currentDisplayList, {
     pageSize: 10,
-    resetKey: evidenceList.length,
+    resetKey: `${activeTab}|${evidenceList.length}`,
   });
 
   // Xác minh hàng loạt — PUT /api/Evidences/bulk-verify (khớp BulkVerifyEvidenceRequest BE:
@@ -296,14 +370,24 @@ const QAEvidenceVerification = () => {
       </section>
 
       <section className="qa-table-card">
-        <div className="qa-table-header">
+        <div className="qa-table-header" style={{ flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <h2>{trEn('Pending Evidence')} ({pendingCount})</h2>
+            <h2>
+              {activeTab === "PENDING"
+                ? `${tr("Minh chứng chờ duyệt")} (${pendingCount})`
+                : activeTab === "PROCESSED"
+                  ? `${tr("Minh chứng đã xử lý")} (${processedEvidences.length})`
+                  : `${tr("Tất cả minh chứng")} (${evidenceList.length})`}
+            </h2>
             <p className="qa-page-description">
-              {trEn('All evidence awaiting QA attention appears here in one queue.')}
+              {activeTab === "PENDING"
+                ? tr("Danh sách các minh chứng đào tạo đang chờ QA thẩm định và xác thực.")
+                : activeTab === "PROCESSED"
+                  ? tr("Danh sách các minh chứng đã được xác thực (Verified) hoặc từ chối (Rejected).")
+                  : tr("Toàn bộ minh chứng trong hệ thống ETR.")}
             </p>
           </div>
-          {pendingCount > 0 && (
+          {activeTab === "PENDING" && pendingCount > 0 && (
             <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
               <button
                 className="qa-btn"
@@ -317,6 +401,64 @@ const QAEvidenceVerification = () => {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Tab navigation pills */}
+        <div style={{ display: "flex", gap: "8px", padding: "0 24px 16px", borderBottom: "1px solid #e2e8f0" }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("PENDING")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "20px",
+              border: "1px solid",
+              borderColor: activeTab === "PENDING" ? "#002147" : "#cbd5e1",
+              backgroundColor: activeTab === "PENDING" ? "#002147" : "#f8fafc",
+              color: activeTab === "PENDING" ? "#c5a059" : "#475569",
+              fontWeight: 700,
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {tr("Chờ duyệt")} ({pendingEvidences.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("PROCESSED")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "20px",
+              border: "1px solid",
+              borderColor: activeTab === "PROCESSED" ? "#002147" : "#cbd5e1",
+              backgroundColor: activeTab === "PROCESSED" ? "#002147" : "#f8fafc",
+              color: activeTab === "PROCESSED" ? "#c5a059" : "#475569",
+              fontWeight: 700,
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {tr("Đã xử lý")} ({processedEvidences.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("ALL")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "20px",
+              border: "1px solid",
+              borderColor: activeTab === "ALL" ? "#002147" : "#cbd5e1",
+              backgroundColor: activeTab === "ALL" ? "#002147" : "#f8fafc",
+              color: activeTab === "ALL" ? "#c5a059" : "#475569",
+              fontWeight: 700,
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {tr("Tất cả")} ({evidenceList.length})
+          </button>
         </div>
 
         <div className="qa-list">
@@ -628,6 +770,52 @@ const QAEvidenceVerification = () => {
                     <strong>{tr('Subject Result')}</strong>
                     <span>#{reviewTarget.subjectResultId ?? "—"}</span>
                   </div>
+                  <div className="qa-kv">
+                    <strong>{trEn('Uploaded By')}</strong>
+                    <span>
+                      {reviewTarget.uploadedByAccountId
+                        ? `Account #${reviewTarget.uploadedByAccountId}`
+                        : "—"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Lịch sử xử lý minh chứng */}
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#475569",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {trEn('Submission & Verification History')}
+                  </p>
+                  <ul style={{ margin: "6px 0 0", paddingLeft: 16, fontSize: 12, color: "rgba(0,33,71,0.75)" }}>
+                    <li>
+                      {trEn('Submitted')}: {reviewTarget.uploadedAt || "—"}
+                    </li>
+                    {reviewTarget.verifiedAt ? (
+                      <li>
+                        {trEn(reviewTarget.status === 'Rejected' ? 'Rejected' : 'Verified')}:{" "}
+                        {reviewTarget.verifiedAt}
+                        {reviewTarget.verifiedByAccountId
+                          ? ` — Account #${reviewTarget.verifiedByAccountId}`
+                          : ""}
+                      </li>
+                    ) : (
+                      <li>{trEn('Awaiting QA decision')}</li>
+                    )}
+                  </ul>
                 </div>
 
                 {reviewTarget.locked && (

@@ -3,6 +3,8 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import NotificationsDropdown from '../components/NotificationsDropdown';
 import { useLanguage } from '../context/LanguageContext';
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import RouteErrorBoundary from '../components/RouteErrorBoundary';
+import { handleAppBack } from '../utils/navigation';
 import '../Academic/academic.scss';
 
 const iconDocument = (
@@ -109,7 +111,7 @@ const TrainingManagerLayout = () => {
             {/* Back button - hidden when on home page */}
             {!isHomePage && (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => handleAppBack(navigate, '/trainingmanager')}
                 type="button"
                 aria-label={tr('Quay lại')}
                 style={{
@@ -191,7 +193,10 @@ const TrainingManagerLayout = () => {
 
         {/* Content Body */}
         <main className="academic-content">
-          <Outlet context={{ searchQuery }} />
+          {/* Lỗi ở 1 trang/modal chỉ thay vùng nội dung, sidebar vẫn dùng được */}
+          <RouteErrorBoundary>
+            <Outlet context={{ searchQuery }} />
+          </RouteErrorBoundary>
         </main>
       </div>
 

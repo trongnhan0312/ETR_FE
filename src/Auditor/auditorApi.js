@@ -1,4 +1,6 @@
 import { api, getApiBaseLabel, getActiveApiBaseUrl } from "../utils/api";
+import { isEtrCompleted } from "../utils/etrStatus";
+import { filterLogsByScope, isLogVisibleToUser } from "../utils/auditScope";
 
 /**
  * Auditor Compliance API Service Layer
@@ -87,18 +89,22 @@ const accountName = (lookup, accountId) => {
 
 // --- 1. AuditController APIs (Read-Only) ---
 
-/** GET /api/Audit?page=&pageSize= (Danh sách nhật ký hệ thống) */
+/** GET /api/Audit?page=&pageSize= (Danh sách nhật ký hệ thống — đã lọc theo phạm vi role) */
 export const fetchAuditLogs = async (page = 1, pageSize = 50) => {
   const lookup = await loadLookup();
   const data = await api.get(`/Audit?page=${page}&pageSize=${pageSize}`);
-  return extractList(data).map((log) => normalizeAuditLog(log, lookup));
+  // Lọc phạm vi: Auditor không thấy log quản trị hệ thống (Account, Department...) và ADMIN_FORCE_UNLOCK
+  const visibleLogs = filterLogsByScope(extractList(data));
+  return visibleLogs.map((log) => normalizeAuditLog(log, lookup));
 };
 
-/** GET /api/Audit/{id} (Chi tiết một nhật ký) */
+/** GET /api/Audit/{id} (Chi tiết một nhật ký — chỉ khi thuộc phạm vi role) */
 export const fetchAuditLogById = async (id) => {
   const lookup = await loadLookup();
   const data = await api.get(`/Audit/${id}`);
-  return data ? normalizeAuditLog(data, lookup) : null;
+  // Chặn IDOR từ FE: log ngoài phạm vi role thì không trả về
+  if (!isLogVisibleToUser(data)) return null;
+  return normalizeAuditLog(data, lookup);
 };
 
 /**
@@ -115,7 +121,8 @@ export const searchAuditLogs = async (query = "", filterModule = "All", page = 1
   const endpoint = q
     ? `/Audit/search?query=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`
     : `/Audit?page=${page}&pageSize=${pageSize}`;
-  let logs = extractList(await api.get(endpoint)).map((log) => normalizeAuditLog(log, lookup));
+  let logs = filterLogsByScope(extractList(await api.get(endpoint)))
+    .map((log) => normalizeAuditLog(log, lookup));
   if (filterModule && filterModule !== "All") {
     logs = logs.filter((log) =>
       String(log.module || "").toLowerCase().includes(String(filterModule).toLowerCase()),
@@ -171,6 +178,145 @@ export const fetchApprovals = async (etrId = null) => {
   return filtered.map((r) => normalizeApproval(r, lookup));
 };
 
+// Nhãn hiển thị cho từng loại action trong lịch sử thực thi (ApprovalHistory.ActionType /
+// AuditLog.ActionType của BE). Trước đây trang chỉ lấy GET /Approvals nên mỗi ETR chỉ có
+// ĐÚNG 1 dòng (yêu cầu phê duyệt hiện tại) → log bị "cụt", không thấy Created/Reviewed/
+// Verified/Approved/Locked. Nay gộp thêm AuditLog + mốc thời gian vòng đời của ETR.
+const ACTION_LABELS = {
+  CREATE: "Created",
+  CREATED: "Created",
+  SUBMIT: "Submitted",
+  SUBMITTED: "Submitted",
+  REVIEW: "Reviewed",
+  REVIEWED: "Reviewed",
+  VERIFY: "QA Verified",
+  VERIFIED: "QA Verified",
+  APPROVE: "Approved",
+  APPROVED: "Approved",
+  LOCK: "Locked",
+  LOCKED: "Locked",
+  REJECT: "Returned for Correction",
+  REJECTED: "Returned for Correction",
+  RETURN: "Returned for Correction",
+  RETURNED: "Returned for Correction",
+};
+
+const actionLabel = (value) => {
+  const key = String(value || "").trim().toUpperCase();
+  return ACTION_LABELS[key] || (value ? String(value) : "Action");
+};
+
+/**
+ * Lịch sử thực thi ĐẦY ĐỦ của một hồ sơ ETR (Created → Reviewed → Verified → Approved → Locked).
+ * Nguồn dữ liệu (đều là endpoint read-only Auditor/QA được phép gọi):
+ *   1. GET /Audit  → mọi AuditLog gắn etrRecordId (action + người thực hiện + thời điểm).
+ *   2. GET /Approvals → yêu cầu phê duyệt của ETR (SubmittedBy/CurrentApprover/CurrentStatus).
+ *   3. GET /Etr → mốc vòng đời (SubmittedAt/VerifiedAt/CompletedAt) làm fallback khi thiếu log.
+ * Kết quả được sắp xếp theo thời gian tăng dần và gán số thứ tự (stage) liên tục.
+ */
+export const fetchApprovalHistory = async (etrId = null) => {
+  const numericId = extractNumericId(etrId);
+  if (numericId == null) return [];
+
+  const lookup = await loadLookup();
+  const [approvals, etrs] = await Promise.all([
+    api.get("/Approvals").catch(() => []),
+    api.get("/Etr").catch(() => []),
+  ]);
+
+  const etr = extractList(etrs).find((e) => extractEtrId(e) === numericId) || {};
+  const approvalRequests = extractList(approvals).filter(
+    (r) => r.etrCourseRecordId === numericId,
+  );
+
+  const rawSteps = [];
+
+  // 1) AuditLog — lịch sử action chi tiết nhất (có accountId + createdAt + description)
+  (lookup.auditLogs || [])
+    .filter((l) => (l.etrRecordId ?? l.ETRRecordId) === numericId)
+    .forEach((log) => {
+      const at = log.createdAt ?? log.CreatedAt ?? null;
+      const accountId = log.accountId ?? log.AccountId ?? null;
+      rawSteps.push({
+        at,
+        label: actionLabel(log.actionType ?? log.ActionType),
+        user: accountId ? accountName(lookup, accountId) : "Hệ thống (System)",
+        role: log.entityName ?? log.EntityName ?? "ETR",
+        detail: log.description ?? log.Description ?? "",
+        ref: log.auditLogId ?? log.AuditLogId,
+      });
+    });
+
+  // 2) Approval request — người gửi / người phê duyệt / trạng thái hiện tại
+  approvalRequests.forEach((r) => {
+    const submittedBy = r.submittedBy ?? r.SubmittedBy ?? null;
+    const approver = r.currentApproverId ?? r.CurrentApproverId ?? null;
+    const status = r.currentStatus ?? r.CurrentStatus ?? "Pending";
+    rawSteps.push({
+      at: r.submittedAt ?? r.SubmittedAt ?? null,
+      label: actionLabel(status) || "Submitted",
+      user: submittedBy ? accountName(lookup, submittedBy) : "Hệ thống (System)",
+      role: "Approval Request",
+      detail: approver ? `${status} — ${accountName(lookup, approver)}` : status,
+      ref: r.approvalRequestId ?? r.ApprovalRequestId,
+    });
+  });
+
+  // 3) Mốc vòng đời ETR (fallback khi AuditLog không đủ/đã bị cắt bởi pageSize)
+  const milestones = [
+    { at: etr.submittedAt, label: "Submitted" },
+    { at: etr.verifiedAt, label: "QA Verified" },
+    { at: etr.completedAt, label: "Completed" },
+  ];
+  const hasLabel = (label) => rawSteps.some((s) => s.label === label);
+  milestones.forEach((m) => {
+    if (m.at && !hasLabel(m.label)) {
+      rawSteps.push({
+        at: m.at,
+        label: m.label,
+        user: "Hệ thống (System)",
+        role: "ETR Lifecycle",
+        detail: m.label,
+        ref: null,
+      });
+    }
+  });
+  if (etr.isLocked && !hasLabel("Locked")) {
+    rawSteps.push({
+      at: etr.verifiedAt ?? etr.completedAt ?? null,
+      label: "Locked",
+      user: "Hệ thống (System)",
+      role: "ETR Lifecycle",
+      detail: "Cryptographically locked",
+      ref: null,
+    });
+  }
+
+  // Sắp xếp theo thời gian (bản ghi thiếu thời gian đẩy xuống cuối), rồi loại trùng
+  const sorted = rawSteps
+    .map((s) => ({ ...s, ts: s.at ? new Date(s.at).getTime() : Number.MAX_SAFE_INTEGER }))
+    .sort((a, b) => a.ts - b.ts);
+
+  const seen = new Set();
+  const unique = sorted.filter((s) => {
+    const key = `${s.label}|${s.at ?? ""}|${s.user}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return unique.map((s, idx) => ({
+    stage: idx + 1,
+    roleTitle: s.label,
+    user: s.user,
+    role: s.role,
+    timestamp: fmtDate(s.at),
+    action: s.detail ? `${s.label} — ${s.detail}` : s.label,
+    status: s.label,
+    hash: s.ref != null ? `#REF-${s.ref}` : "—",
+  }));
+};
+
 // --- 4. ExportsController APIs (Export Functionalities) ---
 
 const normalizeExportJob = (raw) => ({
@@ -209,7 +355,7 @@ export const exportPdf = async (payload = {}) => {
     // Fallback chỉ khi payload KHÔNG nói rõ export hồ sơ nào — tự chọn ETR Completed đầu tiên.
     const etrs = await api.get("/Etr").catch(() => []);
     const firstCompleted = extractList(etrs).find(
-      (etr) => String(etr.status || "").toLowerCase() === "completed",
+      (etr) => isEtrCompleted(etr.status),
     );
     const fallback = extractList(etrs)[0];
     body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);
@@ -229,7 +375,7 @@ export const exportTrainingPackage = async (payload = {}) => {
   if (requestedId == null) {
     const etrs = await api.get("/Etr").catch(() => []);
     const firstCompleted = extractList(etrs).find(
-      (etr) => String(etr.status || "").toLowerCase() === "completed",
+      (etr) => isEtrCompleted(etr.status),
     );
     const fallback = extractList(etrs)[0];
     body.ETRCourseRecordId = extractEtrId(firstCompleted || fallback);

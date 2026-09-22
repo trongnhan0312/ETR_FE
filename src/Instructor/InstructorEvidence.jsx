@@ -16,6 +16,10 @@ const InstructorEvidence = () => {
   // Học viên của lớp đã chọn (enrollmentId, accountId, fullName) + học viên đang chọn để upload
   const [classStudents, setClassStudents] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [subjectsList, setSubjectsList] = useState([]);
+  const [studentSubjects, setStudentSubjects] = useState([]);
+  const [selectedSubjectResultId, setSelectedSubjectResultId] = useState("");
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState("");
   const [evidences, setEvidences] = useState([]);
   const [evidenceTypes, setEvidenceTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,15 +30,16 @@ const InstructorEvidence = () => {
   // File drag & drop hover state
   const [dragging, setDragging] = useState(false);
 
-  // Load classes and evidence types
+  // Load classes, evidence types, and subjects
   useEffect(() => {
     const loadInitData = async () => {
       setLoading(true);
       try {
-        const [apiClasses, apiCourses, apiEvidenceTypes] = await Promise.all([
+        const [apiClasses, apiCourses, apiEvidenceTypes, apiSubjects] = await Promise.all([
           api.get("/classes").catch(() => []),
           api.get("/courses").catch(() => []),
           api.get("/EvidenceTypes").catch(() => []),
+          api.get("/subjects").catch(() => []),
         ]);
 
         const mappedClasses = apiClasses.map((cls, idx) => {
@@ -50,6 +55,7 @@ const InstructorEvidence = () => {
         });
         setClassesData(mappedClasses);
         setEvidenceTypes(apiEvidenceTypes);
+        setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         if (apiEvidenceTypes.length > 0) {
           setSelectedEvidenceTypeId(String(apiEvidenceTypes[0].evidenceTypeId));
         }
@@ -105,6 +111,65 @@ const InstructorEvidence = () => {
     }
   };
 
+  // Load môn học của học viên đang chọn (dựa trên ETR của học viên)
+  useEffect(() => {
+    const loadStudentSubjects = async () => {
+      if (!selectedStudentId) {
+        setStudentSubjects([]);
+        setSelectedSubjectResultId("");
+        return;
+      }
+      try {
+        const allEtrs = await api.get("/etr").catch(() => []);
+        const studentEtr = (Array.isArray(allEtrs) ? allEtrs : []).find(
+          (e) => String(e.enrollmentId) === String(selectedStudentId),
+        );
+        if (!studentEtr) {
+          setStudentSubjects([]);
+          setSelectedSubjectResultId("");
+          return;
+        }
+
+        const etrDetails = await api
+          .get(`/etr/${studentEtr.etrCourseRecordId}`)
+          .catch(() => null);
+
+        if (etrDetails && Array.isArray(etrDetails.subjectResults)) {
+          const mapped = etrDetails.subjectResults.map((sr) => {
+            const matchedSubject = subjectsList.find(
+              (s) => s.subjectId === sr.subjectId,
+            );
+            return {
+              subjectResultId: sr.subjectResultId,
+              subjectId: sr.subjectId,
+              subjectCode: matchedSubject?.subjectCode || `SUB-${sr.subjectId}`,
+              subjectName: matchedSubject?.subjectName || `Môn học #${sr.subjectId}`,
+              status: sr.status,
+            };
+          });
+          setStudentSubjects(mapped);
+          if (mapped.length > 0) {
+            setSelectedSubjectResultId((prev) =>
+              mapped.some((m) => String(m.subjectResultId) === String(prev))
+                ? prev
+                : String(mapped[0].subjectResultId),
+            );
+          } else {
+            setSelectedSubjectResultId("");
+          }
+        } else {
+          setStudentSubjects([]);
+          setSelectedSubjectResultId("");
+        }
+      } catch (err) {
+        console.error("Lỗi khi tải môn học của học viên:", err);
+        setStudentSubjects([]);
+        setSelectedSubjectResultId("");
+      }
+    };
+    loadStudentSubjects();
+  }, [selectedStudentId, subjectsList]);
+
   // Load evidence files when class is selected
   const loadEvidences = async () => {
     if (!selectedClassId) return;
@@ -126,6 +191,12 @@ const InstructorEvidence = () => {
         .filter((e) => e.classId === parseInt(selectedClassId))
         .map((e) => e.enrollmentId);
 
+      if (classEnrollmentIds.length === 0) {
+        setEvidences([]);
+        setLoading(false);
+        return;
+      }
+
       // ETR API returns enrollmentId (not accountId), so match by enrollmentId
       const classEtrs = allEtrs.filter((e) =>
         classEnrollmentIds.includes(e.enrollmentId),
@@ -135,6 +206,8 @@ const InstructorEvidence = () => {
       const learnerBySr = {};
       // Map subjectResultId → accountId học viên (lọc evidence theo học viên đang chọn)
       const accountBySr = {};
+      // Map subjectResultId → thông tin môn học
+      const subjectBySr = {};
 
       await Promise.all(
         classEtrs.map(async (etr) => {
@@ -150,35 +223,28 @@ const InstructorEvidence = () => {
               : null;
             const learnerName =
               profile?.fullName || `Student #${enrollment?.accountId || ""}`;
-            // Lớp KHÔNG có subjectId (backend Class/Classes không trả field này) → không thể
-            // match theo sr.subjectId === 1 (không bao giờ khớp với ETR thật, gây hiển thị
-            // nhầm evidence của ETR khác). Gom TẤT CẢ subject result của ETR các học viên
-            // trong lớp để danh sách hiển thị đúng minh chứng của lớp này.
             etrDetails.subjectResults.forEach((sr) => {
               subjectResultIds.push(sr.subjectResultId);
               learnerBySr[sr.subjectResultId] = learnerName;
               accountBySr[sr.subjectResultId] = enrollment?.accountId;
+              const sub = subjectsList.find((s) => s.subjectId === sr.subjectId);
+              subjectBySr[sr.subjectResultId] = {
+                subjectId: sr.subjectId,
+                subjectCode: sub?.subjectCode || `SUB-${sr.subjectId}`,
+                subjectName: sub?.subjectName || `Môn học #${sr.subjectId}`,
+              };
             });
           }
         }),
       );
 
-      // Debug: log what we got
-      console.log("[loadEvidences] allEvidences:", allEvidences?.length || 0);
-      console.log("[loadEvidences] allEtrs:", allEtrs?.length || 0);
-      console.log("[loadEvidences] classEnrollmentIds:", classEnrollmentIds);
-      console.log("[loadEvidences] classEtrs:", classEtrs?.length || 0);
-      console.log("[loadEvidences] subjectResultIds found:", subjectResultIds);
-
-      // If we have subjectResultIds, filter by them; otherwise show all evidences
+      // If we have subjectResultIds, filter by them; otherwise show empty list
       const filteredEvidences =
         subjectResultIds.length > 0
           ? allEvidences.filter((ev) =>
               subjectResultIds.includes(ev.subjectResultId),
             )
-          : allEvidences;
-
-      console.log("[loadEvidences] filteredEvidences:", filteredEvidences?.length || 0);
+          : [];
 
       const mappedEvidences = filteredEvidences.map((ev, idx) => {
         const typeName =
@@ -187,11 +253,16 @@ const InstructorEvidence = () => {
         const fileSizeInMB = ev.fileSize
           ? `${(ev.fileSize / (1024 * 1024)).toFixed(2)} MB`
           : "1.2 MB";
+        const subInfo = subjectBySr[ev.subjectResultId];
         return {
           evidenceFileId: ev.evidenceFileId || ev.id,
           stt: String(idx + 1).padStart(2, "0"),
           name: ev.fileName || tr("Bằng chứng đào tạo"),
           type: typeName,
+          subjectCode: subInfo?.subjectCode || "",
+          subjectName: subInfo?.subjectName || "",
+          subjectId: subInfo?.subjectId || null,
+          subjectResultId: ev.subjectResultId,
           date:
             ev.uploadedAt || ev.createdAt
               ? new Date(ev.uploadedAt || ev.createdAt).toLocaleDateString()
@@ -222,7 +293,7 @@ const InstructorEvidence = () => {
   useEffect(() => {
     loadEvidences();
     loadClassStudents(selectedClassId);
-  }, [selectedClassId, classesData, evidenceTypes]);
+  }, [selectedClassId, classesData, evidenceTypes, subjectsList]);
 
   // Handle file select and call upload API
   const handleUploadFile = async (file) => {
@@ -259,15 +330,9 @@ const InstructorEvidence = () => {
         );
       }
 
-      // ⚠️ KHÔNG match theo sr.subjectId === currentClass.subjectId: backend Class/Classes
-      // KHÔNG trả field subjectId (TrainingClassResponse không có) nên subjectId luôn fallback
-      // về 1, không khớp subject result nào của ETR mới → trước đây evidence bị gắn nhầm vào
-      // SubjectResultId = 1 thuộc ETR seed Completed/Locked → QA thấy "ETR Locked" và không
-      // Verify/Reject được. Lấy subject result ĐẦU TIÊN của ETR của học viên (giống
-      // Academic/EtrManagement.jsx) — ETR đúng của lần ghi danh mới luôn InProgress/unlocked.
-      let subjectResultId = 0;
-      if (classEnrollment) {
-        // ETR API returns enrollmentId (not accountId), so match by enrollmentId
+      let subjectResultId = selectedSubjectResultId ? parseInt(selectedSubjectResultId) : 0;
+      if (!subjectResultId && classEnrollment) {
+        // Fallback: ETR API returns enrollmentId (not accountId), so match by enrollmentId
         const studentEtr = allEtrs.find(
           (e) => e.enrollmentId === classEnrollment.enrollmentId,
         );
@@ -280,7 +345,7 @@ const InstructorEvidence = () => {
       }
       if (!subjectResultId) {
         throw new Error(
-          tr("Không tìm thấy môn học (SubjectResult) trong ETR của học viên để gắn minh chứng. Vui lòng kiểm tra ghi danh/ETR của học viên."),
+          tr("Vui lòng chọn môn học cần gắn minh chứng."),
         );
       }
 
@@ -375,18 +440,40 @@ const InstructorEvidence = () => {
     );
   }, [classStudents, selectedStudentId]);
 
-  // Lọc evidence theo học viên đã chọn (so khớp theo accountId học viên sở hữu evidence).
-  // Chưa chọn học viên → hiện toàn bộ evidence của lớp (hành vi cũ).
+  // Danh sách các môn học có trong bằng chứng của lớp
+  const classSubjectsForFilter = useMemo(() => {
+    const map = new Map();
+    evidences.forEach((ev) => {
+      if (ev.subjectId && !map.has(ev.subjectId)) {
+        map.set(ev.subjectId, {
+          subjectId: ev.subjectId,
+          subjectCode: ev.subjectCode,
+          subjectName: ev.subjectName,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [evidences]);
+
+  // Lọc evidence theo học viên và môn học đã chọn
   const visibleEvidences = useMemo(() => {
-    if (!selectedStudent) return evidences;
-    return evidences.filter(
-      (ev) => String(ev.accountId) === String(selectedStudent.accountId),
-    );
-  }, [evidences, selectedStudent]);
+    let list = evidences;
+    if (selectedStudent) {
+      list = list.filter(
+        (ev) => String(ev.accountId) === String(selectedStudent.accountId),
+      );
+    }
+    if (selectedSubjectFilter) {
+      list = list.filter(
+        (ev) => String(ev.subjectId) === String(selectedSubjectFilter),
+      );
+    }
+    return list;
+  }, [evidences, selectedStudent, selectedSubjectFilter]);
 
   const evidencePager = usePagination(visibleEvidences, {
     pageSize: 10,
-    resetKey: selectedStudentId,
+    resetKey: `${selectedStudentId}_${selectedSubjectFilter}`,
   });
 
   return (
@@ -406,6 +493,7 @@ const InstructorEvidence = () => {
         style={{
           display: "flex",
           alignItems: "center",
+          flexWrap: "wrap",
           gap: "12px",
           padding: "14px 20px",
           background: "#ffffff",
@@ -414,37 +502,79 @@ const InstructorEvidence = () => {
           boxShadow: "0 4px 12px rgba(0,33,71,0.04)",
         }}
       >
-        <label
-          style={{
-            fontSize: "11px",
-            fontWeight: "700",
-            color: "rgba(0,33,71,0.5)",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-          }}
-        >
-          {tr('Chọn lớp:')}
-        </label>
-        <select
-          style={{
-            padding: "8px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d9e1ec",
-            fontSize: "12px",
-            fontWeight: "700",
-            color: "#002147",
-            outline: "none",
-            cursor: "pointer",
-          }}
-          value={selectedClassId}
-          onChange={(e) => setSelectedClassId(e.target.value)}
-        >
-          {classesData.map((c) => (
-            <option key={c.classId} value={c.classId}>
-              {c.name} ({c.code})
-            </option>
-          ))}
-        </select>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <label
+            style={{
+              fontSize: "11px",
+              fontWeight: "700",
+              color: "rgba(0,33,71,0.5)",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            {tr('Chọn lớp:')}
+          </label>
+          <select
+            style={{
+              padding: "8px 12px",
+              borderRadius: "8px",
+              border: "1px solid #d9e1ec",
+              fontSize: "12px",
+              fontWeight: "700",
+              color: "#002147",
+              outline: "none",
+              cursor: "pointer",
+            }}
+            value={selectedClassId}
+            onChange={(e) => {
+              setSelectedClassId(e.target.value);
+              setSelectedSubjectFilter("");
+            }}
+          >
+            {classesData.map((c) => (
+              <option key={c.classId} value={c.classId}>
+                {c.name} ({c.code})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {classSubjectsForFilter.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "12px" }}>
+            <label
+              style={{
+                fontSize: "11px",
+                fontWeight: "700",
+                color: "rgba(0,33,71,0.5)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {tr('Lọc môn:')}
+            </label>
+            <select
+              style={{
+                padding: "8px 12px",
+                borderRadius: "8px",
+                border: "1px solid #d9e1ec",
+                fontSize: "12px",
+                fontWeight: "600",
+                color: "#002147",
+                outline: "none",
+                cursor: "pointer",
+              }}
+              value={selectedSubjectFilter}
+              onChange={(e) => setSelectedSubjectFilter(e.target.value)}
+            >
+              <option value="">{tr('Tất cả môn học')}</option>
+              {classSubjectsForFilter.map((sub) => (
+                <option key={sub.subjectId} value={sub.subjectId}>
+                  [{sub.subjectCode}] {sub.subjectName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Grid: Uploader on Left, List on Right */}
@@ -582,6 +712,23 @@ const InstructorEvidence = () => {
                         </span>
                       )}
                       {ev.learner ? " · " : ""}
+                      {ev.subjectCode && (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "1px 6px",
+                            borderRadius: "4px",
+                            background: "#e0f2fe",
+                            color: "#0369a1",
+                            fontWeight: "700",
+                            fontSize: "10px",
+                            marginRight: "4px",
+                          }}
+                        >
+                          [{ev.subjectCode}] {ev.subjectName}
+                        </span>
+                      )}
+                      {ev.subjectCode ? " · " : ""}
                       {ev.size} ·{" "}
                       <span
                         style={{
@@ -779,6 +926,63 @@ const InstructorEvidence = () => {
               }}
             >
               {tr('Minh chứng tải lên sẽ được gắn cho học viên này.')}
+            </p>
+          </div>
+
+          {/* Môn học cần gắn minh chứng */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              marginBottom: "8px",
+            }}
+          >
+            <label
+              style={{
+                fontSize: "11px",
+                fontWeight: "700",
+                color: "rgba(0,33,71,0.5)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {tr('Môn học:')}
+            </label>
+            <select
+              value={selectedSubjectResultId}
+              onChange={(e) => setSelectedSubjectResultId(e.target.value)}
+              style={{
+                padding: "10px 14px",
+                borderRadius: "10px",
+                border: "1px solid #d9e1ec",
+                fontSize: "13px",
+                fontWeight: "600",
+                color: "#002147",
+                outline: "none",
+                cursor: "pointer",
+                width: "100%",
+                backgroundColor: "#ffffff",
+              }}
+            >
+              {studentSubjects.length === 0 ? (
+                <option value="">{tr('Chưa có môn học trong ETR')}</option>
+              ) : (
+                studentSubjects.map((sub) => (
+                  <option key={sub.subjectResultId} value={sub.subjectResultId}>
+                    [{sub.subjectCode}] {sub.subjectName}
+                  </option>
+                ))
+              )}
+            </select>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "10px",
+                color: "rgba(0,33,71,0.45)",
+              }}
+            >
+              {tr('Minh chứng sẽ được liên kết vào kết quả của môn học này.')}
             </p>
           </div>
 

@@ -3,6 +3,8 @@ import { useState } from "react";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import NotificationsDropdown from "../components/NotificationsDropdown";
 import { useLanguage } from "../context/LanguageContext";
+import RouteErrorBoundary from "../components/RouteErrorBoundary";
+import { handleAppBack } from "../utils/navigation";
 import "./auditor.scss";
 
 const navigationItems = [
@@ -223,7 +225,7 @@ const AuditorLayout = () => {
           <div className="search-wrapper">
             {!isHomePage && (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => handleAppBack(navigate, "/auditor")}
                 type="button"
                 aria-label={tr("Quay lại")}
                 style={{
@@ -291,7 +293,10 @@ const AuditorLayout = () => {
 
         {/* Content Body */}
         <main className="academic-content">
-          <Outlet />
+          {/* Lỗi ở 1 trang/modal chỉ thay vùng nội dung, sidebar vẫn dùng được */}
+          <RouteErrorBoundary>
+            <Outlet />
+          </RouteErrorBoundary>
         </main>
       </div>
     </div>

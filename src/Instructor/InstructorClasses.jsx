@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { api } from "../utils/api";
 import { announce } from "../utils/crudNotify";
@@ -7,13 +8,41 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import { useSubViewBack } from "../utils/navigation";
 import "./instructor.scss";
 
 const InstructorClasses = () => {
   const { tr } = useLanguage();
   const toast = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [classesData, setClassesData] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
+
+  const handleBackToClasses = useCallback(() => {
+    setSelectedClass(null);
+    if (location.state?.classExplorerId) {
+      navigate(-1);
+    }
+  }, [location.state, navigate]);
+
+  useSubViewBack(!!selectedClass, handleBackToClasses);
+
+  useEffect(() => {
+    if (selectedClass && !location.state?.classExplorerId) {
+      setSelectedClass(null);
+    }
+  }, [location.state, selectedClass]);
+
+  const handleSelectClass = (cls) => {
+    setSelectedClass(cls);
+    if (!location.state?.classExplorerId) {
+      navigate(location.pathname, {
+        state: { ...(location.state || {}), classExplorerId: cls.classId },
+      });
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tất cả");
 
@@ -44,22 +73,53 @@ const InstructorClasses = () => {
   const [selectedSubjectDescription, setSelectedSubjectDescription] =
     useState("");
 
+  const getCurrentAccountId = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      return user.accountId ?? user.userId ?? user.id ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  const toDateTimeLocalValue = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   // Load all assigned classes on mount
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        const [apiClasses, apiCourses, apiSubjects, apiAssessments, apiPracticalChecklists] =
-          await Promise.all([
-            api.get("/classes").catch(() => []),
-            api.get("/courses").catch(() => []),
-            api.get("/subjects").catch(() => []),
-            api
-              .get("/Assessments")
-              .catch(() => api.get("/assessments").catch(() => [])),
-            api
-              .get("/PracticalChecklists")
-              .catch(() => api.get("/practicalchecklists").catch(() => [])),
-          ]);
+        const [
+          apiClasses,
+          apiCourses,
+          apiSubjects,
+          apiAssessments,
+          apiPracticalChecklists,
+          apiSessions,
+          apiEnrollments,
+        ] = await Promise.all([
+          api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
+          api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
+          api.get("/Subjects").catch(() => api.get("/subjects").catch(() => [])),
+          api
+            .get("/Assessments")
+            .catch(() => api.get("/assessments").catch(() => [])),
+          api
+            .get("/PracticalChecklists")
+            .catch(() => api.get("/practicalchecklists").catch(() => [])),
+          api.get("/Sessions").catch(() => api.get("/sessions").catch(() => [])),
+          api.get("/Enrollments").catch(() => api.get("/enrollments").catch(() => [])),
+        ]);
+
+        const rawClasses = Array.isArray(apiClasses) ? apiClasses : [];
+        const rawCourses = Array.isArray(apiCourses) ? apiCourses : [];
+        const rawSessions = Array.isArray(apiSessions) ? apiSessions : [];
+        const rawEnrollments = Array.isArray(apiEnrollments) ? apiEnrollments : [];
 
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
@@ -67,23 +127,143 @@ const InstructorClasses = () => {
           Array.isArray(apiPracticalChecklists) ? apiPracticalChecklists : [],
         );
 
-        const mapped = apiClasses.map((cls, idx) => {
-          const course = apiCourses.find((c) => c.courseId === cls.courseId);
+        const currentAccountId = getCurrentAccountId();
+        const storedOverrides = (() => {
+          try {
+            return JSON.parse(
+              localStorage.getItem("etr_class_instructors") || "{}",
+            );
+          } catch {
+            return {};
+          }
+        })();
+
+        // Kiểm tra xem lớp có thuộc về Giảng viên đang đăng nhập không
+        const isClassForMe = (cls) => {
+          if (!currentAccountId) return true; // Nếu không lấy được ID, hiển thị toàn bộ
+          // 1. Kiểm tra trực tiếp trên trường instructorAccountId của Class
+          if (
+            cls.instructorAccountId != null &&
+            String(cls.instructorAccountId) === String(currentAccountId)
+          ) {
+            return true;
+          }
+          if (
+            cls.InstructorAccountId != null &&
+            String(cls.InstructorAccountId) === String(currentAccountId)
+          ) {
+            return true;
+          }
+          // 2. Kiểm tra danh sách phân công môn học (instructorAssignments / classSubjects)
+          const assignments = Array.isArray(cls.instructorAssignments)
+            ? cls.instructorAssignments
+            : Array.isArray(cls.classSubjects)
+              ? cls.classSubjects
+              : Array.isArray(cls.ClassSubjects)
+                ? cls.ClassSubjects
+                : [];
+          if (
+            assignments.some(
+              (a) =>
+                (a.instructorAccountId != null &&
+                  String(a.instructorAccountId) === String(currentAccountId)) ||
+                (a.InstructorAccountId != null &&
+                  String(a.InstructorAccountId) === String(currentAccountId)),
+            )
+          ) {
+            return true;
+          }
+          // 3. Kiểm tra qua các buổi học (Sessions) của lớp này
+          const hasMySession = rawSessions.some(
+            (s) =>
+              String(s.classId) === String(cls.classId) &&
+              s.instructorAccountId != null &&
+              String(s.instructorAccountId) === String(currentAccountId),
+          );
+          if (hasMySession) return true;
+
+          // 4. Kiểm tra qua bộ nhớ đệm phân công phía client
+          const cached =
+            storedOverrides[String(cls.classId)] ||
+            (cls.classCode
+              ? storedOverrides[String(cls.classCode).trim().toUpperCase()]
+              : null);
+          if (
+            Array.isArray(cached) &&
+            cached.some(
+              (a) =>
+                (a.instructorAccountId != null &&
+                  String(a.instructorAccountId) === String(currentAccountId)) ||
+                (a.InstructorAccountId != null &&
+                  String(a.InstructorAccountId) === String(currentAccountId)),
+            )
+          ) {
+            return true;
+          }
+
+          return false;
+        };
+
+        const myClasses = rawClasses.filter(isClassForMe);
+
+        const mapped = rawClasses.map((cls, idx) => {
+          const course = rawCourses.find(
+            (c) => String(c.courseId) === String(cls.courseId),
+          );
+          const isMine = isClassForMe(cls);
+          const classEnrs = rawEnrollments.filter(
+            (enr) =>
+              String(enr.classId) === String(cls.classId) &&
+              enr.status !== "Withdrawn" &&
+              enr.status !== "Deleted" &&
+              !enr.isDeleted,
+          );
           return {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
             code: cls.classCode || `CL-${cls.classId}`,
             name: cls.className || tr("Lớp đào tạo"),
-            subName: course ? course.courseName : tr("Chuyên đề huấn luyện"),
+            subName: course
+              ? `${course.courseCode ? `${course.courseCode} · ` : ""}${course.courseName}`
+              : tr("Chuyên đề huấn luyện"),
             courseKey: course ? String(course.courseId) : "N/A",
+            courseCode: course ? course.courseCode : "",
+            courseName: course ? course.courseName : "",
             schedule: cls.schedule || tr("Chưa sắp lịch"),
             time: cls.time || "08:00 - 11:30",
-            studentsCount: "0/0",
-            status: cls.status || tr("Đang diễn ra"),
+            studentsCount: `${classEnrs.length} ${tr("học viên")}`,
+            status: (() => {
+              const raw = String(cls.status || "").toLowerCase();
+              if (raw.includes("inprogress") || raw.includes("active") || raw.includes("ongoing") || raw.includes("đang diễn ra")) return "Đang diễn ra";
+              if (raw.includes("planned") || raw.includes("upcoming") || raw.includes("sắp diễn ra") || raw.includes("sắp tới")) return "Sắp tới";
+              if (raw.includes("completed") || raw.includes("hoàn thành") || raw.includes("đã kết thúc")) return "Hoàn thành";
+              if (raw.includes("cancelled") || raw.includes("đã hủy")) return "Đã hủy";
+              return "Đang diễn ra";
+            })(),
             subjectId: cls.subjectId || 1,
+            instructorAssignments: cls.instructorAssignments || [],
+            isMine,
+            raw: cls,
           };
         });
+
+        // Ưu tiên đưa các lớp được phân công lên đầu, sau đó sắp xếp theo ID mới nhất
+        mapped.sort((a, b) => {
+          if (a.isMine && !b.isMine) return -1;
+          if (!a.isMine && b.isMine) return 1;
+          return Number(b.classId) - Number(a.classId);
+        });
+
         setClassesData(mapped);
+        setSelectedClass((prev) => {
+          if (prev) {
+            const matched = mapped.find(
+              (m) => String(m.classId) === String(prev.classId),
+            );
+            if (matched) return matched;
+          }
+          return null;
+        });
       } catch (err) {
         console.error("Lỗi khi tải danh sách lớp học:", err);
       }
@@ -94,9 +274,26 @@ const InstructorClasses = () => {
   const loadSessions = useCallback(async () => {
     if (!selectedClass) return;
     try {
-      const apiSessions = await api.get("/sessions").catch(() => []);
-      const filtered = apiSessions.filter(
-        (s) => s.classId === selectedClass.classId,
+      let currentSubjects = subjectsList;
+      if (!currentSubjects || currentSubjects.length === 0) {
+        try {
+          const fetchedSub = await api
+            .get("/Subjects")
+            .catch(() => api.get("/subjects").catch(() => []));
+          if (Array.isArray(fetchedSub) && fetchedSub.length > 0) {
+            currentSubjects = fetchedSub;
+            setSubjectsList(fetchedSub);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const apiSessions = await api
+        .get("/Sessions")
+        .catch(() => api.get("/sessions").catch(() => []));
+      const filtered = (Array.isArray(apiSessions) ? apiSessions : []).filter(
+        (s) => String(s.classId) === String(selectedClass.classId),
       );
 
       const mapped = filtered.map((s, idx) => {
@@ -105,21 +302,45 @@ const InstructorClasses = () => {
         let dateStr = "TBA";
         if (rawDate) {
           const d = new Date(rawDate);
-          dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+          if (!isNaN(d.getTime())) {
+            dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+          }
         }
+
+        const sid = s.subjectId ?? s.SubjectId ?? selectedClass.subjectId;
+        const foundSub = (currentSubjects || []).find(
+          (sub) =>
+            String(sub.subjectId ?? sub.SubjectId ?? sub.id) === String(sid),
+        );
+        const resolvedSubjectName =
+          s.subjectName ||
+          s.SubjectName ||
+          foundSub?.subjectName ||
+          foundSub?.SubjectName ||
+          "";
+        const resolvedSubjectCode =
+          s.subjectCode ||
+          s.SubjectCode ||
+          foundSub?.subjectCode ||
+          foundSub?.SubjectCode ||
+          "";
 
         return {
           sessionId: s.sessionId,
           stt: String(idx + 1).padStart(2, "0"),
           date: dateStr,
           name: s.sessionTitle || tr("Buổi học"),
+          subjectName:
+            resolvedSubjectName ||
+            (resolvedSubjectCode ? resolvedSubjectCode : tr("Môn học")),
+          subjectCode: resolvedSubjectCode,
           room: s.location || tr("Phòng học"),
-          instructor: "Nguyễn Văn A",
+          instructor: s.instructorName || "Giảng viên",
           attendanceCount: s.isConfirmed ? tr("Đã chốt") : tr("Chưa chốt"),
           isConfirmed: s.isConfirmed || false,
           rate: 100,
           sessionDateValue: s.sessionDate || "",
-          subjectId: s.subjectId || selectedClass.subjectId || 1,
+          subjectId: sid || 1,
           classId: s.classId || selectedClass.classId,
           assessmentId: s.assessmentId != null ? Number(s.assessmentId) : null,
           isAssessmentRequired: !!s.isAssessmentRequired,
@@ -134,7 +355,7 @@ const InstructorClasses = () => {
     } catch (err) {
       console.error("Lỗi khi tải danh sách buổi học:", err);
     }
-  }, [selectedClass]);
+  }, [selectedClass, tr, subjectsList]);
 
   useEffect(() => {
     if (!selectedClass) return;
@@ -166,7 +387,11 @@ const InstructorClasses = () => {
         cls.subName.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
-        statusFilter === "Tất cả" || cls.status === statusFilter;
+        statusFilter === "Tất cả" ||
+        cls.status === statusFilter ||
+        (statusFilter === "Sắp tới" && (cls.status === "Sắp tới" || cls.status === "Sắp diễn ra" || cls.status === "Planned" || cls.status === "Upcoming")) ||
+        (statusFilter === "Đang diễn ra" && (cls.status === "Đang diễn ra" || cls.status === "Active" || cls.status === "InProgress" || cls.status === "Ongoing")) ||
+        (statusFilter === "Hoàn thành" && (cls.status === "Hoàn thành" || cls.status === "Completed" || cls.status === "Đã kết thúc"));
       const matchesCourse = !courseKey || cls.courseKey === courseKey;
       const matchesSchedule =
         !hasScheduleOnly || cls.schedule !== "Chưa sắp lịch";
@@ -182,11 +407,15 @@ const InstructorClasses = () => {
 
   // Filter sessions
   const filteredSessions = useMemo(() => {
+    const q = sessionSearch.trim().toLowerCase();
+    if (!q) return sessions;
     return sessions.filter(
       (s) =>
-        s.name.toLowerCase().includes(sessionSearch.toLowerCase()) ||
-        s.instructor.toLowerCase().includes(sessionSearch.toLowerCase()) ||
-        s.room.toLowerCase().includes(sessionSearch.toLowerCase()),
+        (s.name && s.name.toLowerCase().includes(q)) ||
+        (s.subjectName && s.subjectName.toLowerCase().includes(q)) ||
+        (s.subjectCode && s.subjectCode.toLowerCase().includes(q)) ||
+        (s.instructor && s.instructor.toLowerCase().includes(q)) ||
+        (s.room && s.room.toLowerCase().includes(q)),
     );
   }, [sessions, sessionSearch]);
 
@@ -195,11 +424,12 @@ const InstructorClasses = () => {
     resetKey: sessionSearch,
   });
 
-  // Assessments for the selected subject that are not already signed to another session.
+  // Assessments for the selected subject and course that are not already assigned to another session.
   // While editing, keep the currently assigned assessment selectable.
   const availableAssessments = useMemo(() => {
     const subjectId = Number(sessionForm.subjectId);
     const selectedSubjectId = Number(selectedClass?.subjectId || 1);
+    const courseId = Number(selectedClass?.raw?.courseId || selectedClass?.courseKey || 0);
     const usedAssessmentIds = new Set(
       sessions
         .filter(
@@ -211,26 +441,56 @@ const InstructorClasses = () => {
     );
     return (assessmentsList || []).filter((a) => {
       const aSubject = Number(a.subjectId);
+      const aCourse = Number(a.courseId);
       const matchesSubject =
         subjectId > 0 ? aSubject === subjectId : aSubject === selectedSubjectId;
-      return matchesSubject && !usedAssessmentIds.has(Number(a.assessmentId));
+      const matchesCourse = courseId > 0 ? aCourse === courseId : true;
+      return matchesCourse && matchesSubject && !usedAssessmentIds.has(Number(a.assessmentId));
     });
   }, [assessmentsList, sessions, sessionForm.subjectId, selectedClass, editingSessionId]);
 
-  // Practical checklists scoped to the selected subject
+  // Practical checklists scoped to the selected subject and course
   const subjectPracticalChecklists = useMemo(() => {
     const subjectId = Number(sessionForm.subjectId);
     const selectedSubjectId = Number(selectedClass?.subjectId || 1);
+    const courseId = Number(selectedClass?.raw?.courseId || selectedClass?.courseKey || 0);
     return (practicalChecklistsList || []).filter((pc) => {
       const pcSubject = Number(pc.subjectId);
-      return subjectId > 0
+      const pcCourse = Number(pc.courseId);
+      const matchesSubject = subjectId > 0
         ? pcSubject === subjectId
         : pcSubject === selectedSubjectId;
+      const matchesCourse = courseId > 0 ? pcCourse === courseId : true;
+      return matchesCourse && matchesSubject;
     });
   }, [practicalChecklistsList, sessionForm.subjectId, selectedClass]);
 
-  // Lưu ý: BE đã KHÓA API tạo buổi học (Create Session) — Giảng viên chỉ được UPDATE các khung buổi
-  // do hệ thống tự sinh khi tạo Lớp (auto-provision theo RequiredSessions). Nút "+ Tạo buổi học" đã bị xóa.
+  // Mở modal tạo buổi học mới cho lớp đã chọn
+  const openCreateSessionModal = () => {
+    if (!selectedClass) {
+      toast.error(tr("Vui lòng chọn lớp học trước khi tạo buổi học"));
+      return;
+    }
+    setEditingSessionId(null);
+    setSessionError("");
+    const selectedSubject =
+      subjectsList.find(
+        (subject) =>
+          subject.subjectId === (selectedClass?.subjectId || 1),
+      ) || subjectsList[0];
+    setSessionForm({
+      classId: selectedClass?.classId || "",
+      subjectId: selectedSubject?.subjectId || 1,
+      sessionTitle: "",
+      sessionDate: new Date().toISOString(),
+      location: "Phòng Sim A320",
+      assessmentId: "",
+      practicalChecklistId: "",
+    });
+    setSelectedSubjectDescription(selectedSubject?.description || "");
+    setShowSessionModal(true);
+  };
+
   const openEditSessionModal = (session) => {
     setEditingSessionId(session.sessionId);
     setSessionError("");
@@ -280,10 +540,8 @@ const InstructorClasses = () => {
       return;
     }
 
-    // SessionDate hiển thị trống (TBA) khi chưa xếp lịch — nhưng UpdateSessionRequest của BE
-    // vẫn bắt buộc SessionDate (DateTime không nullable), nên phải chọn ngày trước khi lưu.
     if (!sessionForm.sessionDate) {
-      setSessionError(tr("Vui lòng chọn Ngày học trước khi lưu buổi học (buổi nháp hiển thị TBA cho đến khi có ngày)."));
+      setSessionError(tr("Vui lòng chọn Ngày học trước khi lưu buổi học."));
       return;
     }
 
@@ -291,10 +549,14 @@ const InstructorClasses = () => {
     setSessionError("");
 
     try {
+      const currentAccountId = getCurrentAccountId();
       const payload = {
+        classId: Number(sessionForm.classId || selectedClass?.classId),
+        subjectId: Number(sessionForm.subjectId || selectedClass?.subjectId || 1),
         sessionTitle: sessionForm.sessionTitle.trim(),
         sessionDate: sessionForm.sessionDate,
         location: sessionForm.location.trim(),
+        instructorAccountId: currentAccountId ? Number(currentAccountId) : null,
         assessmentId: sessionForm.assessmentId
           ? Number(sessionForm.assessmentId)
           : null,
@@ -305,12 +567,21 @@ const InstructorClasses = () => {
           : null,
       };
 
-      // Chỉ cho phép UPDATE (BE đã khóa tạo buổi học mới)
       if (editingSessionId) {
-        await api.put(`/sessions/${editingSessionId}`, payload);
+        const updatePayload = {
+          ...payload,
+          sessionId: Number(editingSessionId),
+          id: Number(editingSessionId),
+        };
+        await api
+          .put(`/Sessions/${editingSessionId}`, updatePayload)
+          .catch(() => api.put(`/sessions/${editingSessionId}`, updatePayload));
+        toast.success(tr("Cập nhật buổi học thành công!"));
       } else {
-        setSessionError(tr("Không thể tạo buổi học mới — hệ thống tự sinh buổi học khi tạo Lớp."));
-        return;
+        await api
+          .post("/Sessions", payload)
+          .catch(() => api.post("/sessions", payload));
+        toast.success(tr("Tạo buổi học thành công!"));
       }
 
       await loadSessions();
@@ -384,7 +655,7 @@ const InstructorClasses = () => {
         <nav className="breadcrumb-nav">
           <span
             className="breadcrumb-item"
-            onClick={() => setSelectedClass(null)}
+            onClick={handleBackToClasses}
             style={{ cursor: "pointer" }}
           >
             {tr('LỚP CỦA TÔI')}
@@ -401,7 +672,51 @@ const InstructorClasses = () => {
         {/* Page Header */}
         <section className="content-header">
           <div className="header-left">
-            <h1>{selectedClass.name}</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={handleBackToClasses}
+                aria-label={tr("Quay lại")}
+                title={tr("Quay lại danh sách lớp")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  border: "1px solid #dfe6f1",
+                  background: "#ffffff",
+                  color: "#c5a059",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#c5a059";
+                  e.currentTarget.style.background = "rgba(197, 160, 89, 0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#dfe6f1";
+                  e.currentTarget.style.background = "#ffffff";
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5" />
+                  <path d="M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h1 style={{ margin: 0 }}>{selectedClass.name}</h1>
+            </div>
             <div className="divider-gold" />
             <p className="header-description">
               {selectedClass.subName} · {tr('Mã lớp: ')}{selectedClass.code}
@@ -540,6 +855,24 @@ const InstructorClasses = () => {
                   />
                 </svg>
               </div>
+
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "9px 16px",
+                  background: "rgba(59,130,246,0.08)",
+                  color: "#2563eb",
+                  border: "1px solid rgba(59,130,246,0.2)",
+                  borderRadius: "10px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span>ℹ️</span> {tr('Buổi học được tự động tạo khi lớp được thiết lập')}
+              </span>
             </div>
           </div>
 
@@ -549,7 +882,7 @@ const InstructorClasses = () => {
               className="table-header"
               style={{
                 display: "grid",
-                gridTemplateColumns: "60px 100px 1fr 1fr 1fr 120px 120px",
+                gridTemplateColumns: "60px 105px 1.2fr 1.2fr 1fr 1fr 120px 120px",
                 alignItems: "center",
                 gap: "12px",
                 background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
@@ -559,126 +892,180 @@ const InstructorClasses = () => {
                 fontWeight: "700",
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
-                minWidth: "780px",
+                minWidth: "920px",
               }}
             >
               <div style={{ textAlign: "center" }}>{tr('STT')}</div>
               <div>{tr('Ngày học')}</div>
               <div>{tr('Tên buổi học')}</div>
+              <div>{tr('Tên môn học')}</div>
               <div>{tr('Phòng học')}</div>
               <div>{tr('Giảng viên')}</div>
               <div style={{ textAlign: "center" }}>{tr('Trạng thái')}</div>
               <div style={{ textAlign: "right" }}>{tr('Thao tác')}</div>
             </div>
 
-            <div className="table-body" style={{ minWidth: "780px" }}>
-              {sessionPager.pageItems.map((session) => (
+            <div className="table-body" style={{ minWidth: "920px" }}>
+              {sessionPager.pageItems.length === 0 ? (
                 <div
-                  key={session.sessionId}
-                  className="table-row"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "60px 100px 1fr 1fr 1fr 120px 120px",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "14px 20px",
-                    borderTop: "1px solid #e0e4e8",
-                    cursor: "default",
-                  }}
-                >
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "700",
-                    color: "rgba(0,33,71,0.4)",
+                    padding: "32px",
                     textAlign: "center",
-                  }}
-                >
-                  {session.stt}
-                </span>
-                <span
-                  style={{
+                    color: "rgba(0,33,71,0.4)",
                     fontSize: "13px",
-                    fontWeight: "600",
-                    color: "#002147",
                   }}
                 >
-                  {session.date}
-                </span>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    color: "#002147",
-                  }}
-                >
-                  {session.name}
-                </span>
-                <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
-                  {session.room}
-                </span>
-                <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
-                  {session.instructor}
-                </span>
-                <div style={{ textAlign: "center" }}>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      textTransform: "uppercase",
-                      padding: "4px 10px",
-                      borderRadius: "999px",
-                      backgroundColor: session.isConfirmed
-                        ? "rgba(239, 68, 68, 0.08)"
-                        : "rgba(34, 197, 94, 0.08)",
-                      color: session.isConfirmed ? "#ef4444" : "#16a34a",
-                    }}
-                  >
-                    {session.attendanceCount}
-                  </span>
+                  {tr('Không tìm thấy buổi học nào.')}
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: "8px",
-                  }}
-                >
-                  <button
-                    onClick={() => openEditSessionModal(session)}
-                    type="button"
+              ) : (
+                sessionPager.pageItems.map((session) => (
+                  <div
+                    key={session.sessionId}
+                    className="table-row"
                     style={{
-                      padding: "6px 10px",
-                      borderRadius: "8px",
-                      border: "1px solid #d9e1ec",
-                      backgroundColor: "#ffffff",
-                      color: "#002147",
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      fontWeight: "700",
+                      display: "grid",
+                      gridTemplateColumns: "60px 105px 1.2fr 1.2fr 1fr 1fr 120px 120px",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "14px 20px",
+                      borderTop: "1px solid #e0e4e8",
+                      cursor: "default",
                     }}
                   >
-                    {tr('Sửa')}
-                  </button>
-                  <button
-                    onClick={() => setConfirmDeleteSessionId(session.sessionId)}
-                    type="button"
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: "8px",
-                      border: "1px solid #fecaca",
-                      backgroundColor: "#fff1f2",
-                      color: "#b91c1c",
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                    }}
-                  >
-                    {tr('Xóa')}
-                  </button>
-                </div>
-              </div>
-            ))}
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        color: "rgba(0,33,71,0.4)",
+                        textAlign: "center",
+                      }}
+                    >
+                      {session.stt}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "#002147",
+                      }}
+                    >
+                      {session.date}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "#002147",
+                      }}
+                    >
+                      {session.name}
+                    </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "#002147",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        title={session.subjectName}
+                      >
+                        {session.subjectName || "—"}
+                      </span>
+                      {session.subjectCode &&
+                        session.subjectCode !== session.subjectName && (
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "rgba(0,33,71,0.45)",
+                              fontWeight: "500",
+                            }}
+                          >
+                            {session.subjectCode}
+                          </span>
+                        )}
+                    </div>
+                    <span
+                      style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}
+                    >
+                      {session.room}
+                    </span>
+                    <span
+                      style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}
+                    >
+                      {session.instructor}
+                    </span>
+                    <div style={{ textAlign: "center" }}>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                          padding: "4px 10px",
+                          borderRadius: "999px",
+                          backgroundColor: session.isConfirmed
+                            ? "rgba(239, 68, 68, 0.08)"
+                            : "rgba(34, 197, 94, 0.08)",
+                          color: session.isConfirmed ? "#ef4444" : "#16a34a",
+                        }}
+                      >
+                        {session.attendanceCount}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: "8px",
+                      }}
+                    >
+                      <button
+                        onClick={() => openEditSessionModal(session)}
+                        type="button"
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          border: "1px solid #d9e1ec",
+                          backgroundColor: "#ffffff",
+                          color: "#002147",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                        }}
+                      >
+                        {tr('Sửa')}
+                      </button>
+                      <button
+                        onClick={() =>
+                          setConfirmDeleteSessionId(session.sessionId)
+                        }
+                        type="button"
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          border: "1px solid #fecaca",
+                          backgroundColor: "#fff1f2",
+                          color: "#b91c1c",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                        }}
+                      >
+                        {tr('Xóa')}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -738,7 +1125,9 @@ const InstructorClasses = () => {
                     margin: 0,
                   }}
                 >
-                  {tr("Cập nhật buổi học")}
+                  {editingSessionId
+                    ? tr("Cập nhật buổi học")
+                    : tr("Tạo buổi học")}
                 </h3>
                 <button
                   onClick={() => setShowSessionModal(false)}
@@ -834,11 +1223,7 @@ const InstructorClasses = () => {
                   </label>
                   <input
                     type="datetime-local"
-                    value={
-                      sessionForm.sessionDate
-                        ? sessionForm.sessionDate.slice(0, 16)
-                        : ""
-                    }
+                    value={toDateTimeLocalValue(sessionForm.sessionDate)}
                     onChange={(e) =>
                       handleSessionFormChange(
                         "sessionDate",
@@ -934,20 +1319,26 @@ const InstructorClasses = () => {
                     }}
                   >
                     <option value="">{tr('Không chọn assessment')}</option>
-                    {availableAssessments.map((assessment) => (
-                      <option
-                        key={assessment.assessmentId}
-                        value={assessment.assessmentId}
-                      >
-                        {assessment.componentName ||
-                          assessment.assessmentName ||
-                          assessment.name ||
-                          `Assessment ${assessment.assessmentId}`}
-                        {assessment.assessmentType
-                          ? ` (${assessment.assessmentType})`
-                          : ""}
-                      </option>
-                    ))}
+                    {availableAssessments.map((assessment) => {
+                      const name =
+                        assessment.title ||
+                        assessment.componentName ||
+                        assessment.assessmentName ||
+                        assessment.itemName ||
+                        assessment.name ||
+                        `Assessment #${assessment.assessmentId}`;
+                      const type = assessment.assessmentType ? ` (${assessment.assessmentType})` : "";
+                      const passScore = assessment.passingScore != null ? ` · Đạt: ${assessment.passingScore}đ` : "";
+                      const weight = assessment.weight != null ? ` · Trọng số: ${assessment.weight}%` : "";
+                      return (
+                        <option
+                          key={assessment.assessmentId}
+                          value={assessment.assessmentId}
+                        >
+                          [#{assessment.assessmentId}] {name}{type}{passScore}{weight}
+                        </option>
+                      );
+                    })}
                   </select>
                   {availableAssessments.length === 0 && (
                     <div
@@ -998,16 +1389,22 @@ const InstructorClasses = () => {
                     <option value="">
                       {tr('Không yêu cầu kiểm tra thực hành')}
                     </option>
-                    {subjectPracticalChecklists.map((pc) => (
-                      <option
-                        key={pc.practicalChecklistId}
-                        value={pc.practicalChecklistId}
-                      >
-                        {pc.itemName ||
-                          pc.name ||
-                          `Practical Checklist ${pc.practicalChecklistId}`}
-                      </option>
-                    ))}
+                    {subjectPracticalChecklists.map((pc) => {
+                      const name =
+                        pc.itemName ||
+                        pc.name ||
+                        `Practical Checklist #${pc.practicalChecklistId}`;
+                      const passScore = pc.passingScore != null ? ` · Đạt: ${pc.passingScore}đ` : "";
+                      const req = pc.isRequired ? ` · Bắt buộc` : "";
+                      return (
+                        <option
+                          key={pc.practicalChecklistId}
+                          value={pc.practicalChecklistId}
+                        >
+                          [#{pc.practicalChecklistId}] {name}{passScore}{req}
+                        </option>
+                      );
+                    })}
                   </select>
                   {subjectPracticalChecklists.length === 0 && (
                     <div
@@ -1512,7 +1909,7 @@ const InstructorClasses = () => {
                     </span>
                     <div
                       style={{ cursor: "pointer" }}
-                      onClick={() => setSelectedClass(cls)}
+                      onClick={() => handleSelectClass(cls)}
                     >
                       <p
                         style={{
@@ -1586,7 +1983,7 @@ const InstructorClasses = () => {
                     </div>
                     <div style={{ textAlign: "right", paddingRight: "12px" }}>
                       <button
-                        onClick={() => setSelectedClass(cls)}
+                        onClick={() => handleSelectClass(cls)}
                         className="ghost-btn"
                         style={{
                           padding: "6px 12px",

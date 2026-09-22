@@ -1,24 +1,60 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
+import { isEtrCompleted } from '../utils/etrStatus';
+import { useSubViewBack } from '../utils/navigation';
 
 const STATUS_MAP = {
   'In Progress': 'progress',
+  'InProgress': 'progress',
   'Submitted': 'submitted',
   'Verified': 'verified',
   'Completed': 'completed',
   'Draft': 'draft',
   'Returned': 'returned',
+  // Giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
+  'Approved': 'completed',
+  'Rejected': 'returned',
+  'Pending': 'submitted',
+  'UnderReview': 'progress',
 };
 
 const STATUS_LABEL = {
   'In Progress': 'Đang đào tạo',
+  'InProgress': 'Đang đào tạo',
   'Submitted': 'Đã nộp',
   'Verified': 'Đã thẩm định',
   'Completed': 'Hoàn thành',
+  'Approved': 'Hoàn thành',
   'Draft': 'Nháp',
   'Returned': 'Trả lại',
+  'ReturnedForCorrection': 'Trả lại để chỉnh sửa',
+  'Rejected': 'Trả lại để chỉnh sửa',
+  'Pending': 'Đã nộp',
+  'UnderReview': 'Đang thẩm định',
 };
+
+// Thông điệp theo TỪNG trạng thái — trước đây mọi trạng thái khác Completed đều hiển thị
+// "Hồ sơ đang trong quá trình đào tạo." nên hồ sơ đã SUBMITTED/VERIFIED/LOCKED vẫn bị hiểu là
+// "đang xử lý" (kèm vòng tròn trạng thái giống loading vô tận).
+const STATUS_MESSAGE = {
+  'Completed': 'Hồ sơ đã hoàn thành và đóng băng. Dữ liệu đã được khóa vĩnh viễn.',
+  'Verified': 'Hồ sơ đã được QA thẩm định và đang chờ phê duyệt cuối cùng.',
+  'Submitted': 'Hồ sơ đã được nộp và đang chờ QA thẩm định.',
+  'Returned': 'Hồ sơ đã bị trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.',
+  'ReturnedForCorrection': 'Hồ sơ đã bị trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.',
+  'Rejected': 'Hồ sơ đã bị từ chối/trả lại để chỉnh sửa. Vui lòng kiểm tra ghi chú/phản hồi.',
+  'Draft': 'Hồ sơ đang ở dạng nháp, chưa được nộp.',
+  'In Progress': 'Hồ sơ đang trong quá trình đào tạo.',
+  'InProgress': 'Hồ sơ đang trong quá trình đào tạo.',
+  'Approved': 'Hồ sơ đã được phê duyệt và đóng băng. Dữ liệu đã được khóa vĩnh viễn.',
+  'Pending': 'Hồ sơ đã được nộp và đang chờ thẩm định.',
+  'UnderReview': 'Hồ sơ đang được thẩm định.',
+};
+
+// Trạng thái đã "chốt" (không còn quay vòng đào tạo) → icon ✓ và không hiển thị như đang tải.
+const DONE_STATUSES = ['Completed', 'Approved', 'Verified', 'Submitted'];
 
 const Badge = ({ status }) => {
   const { tr } = useLanguage();
@@ -117,16 +153,20 @@ const DetailView = ({ etr, onBack }) => {
           </div>
         </div>
 
-        {/* Status Summary */}
+        {/* Status Summary — render đúng theo TỪNG trạng thái (SUBMITTED/VERIFIED/LOCKED...),
+            không còn hiển thị chung chung "đang trong quá trình" cho mọi trạng thái. */}
         <div className="student-info-card student-info-card--center">
-          <div className={`student-status-icon ${s.status === 'Completed' ? 'student-status-icon--done' : 'student-status-icon--pending'}`}>
-            {s.status === 'Completed' ? '✓' : '○'}
+          <div className={`student-status-icon ${DONE_STATUSES.includes(s.status) || s.isLocked ? 'student-status-icon--done' : 'student-status-icon--pending'}`}>
+            {DONE_STATUSES.includes(s.status) || s.isLocked ? '✓' : '○'}
           </div>
           <p className="student-status-text">
-            {s.status === 'Completed'
-              ? tr('Hồ sơ đã hoàn thành và đóng băng. Dữ liệu đã được khóa vĩnh viễn.')
-              : tr('Hồ sơ đang trong quá trình đào tạo.')}
+            {tr(STATUS_MESSAGE[s.status] || STATUS_MESSAGE['In Progress'])}
           </p>
+          {s.isLocked && (
+            <p style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 700, color: '#15803d' }}>
+              🔒 {tr('Hồ sơ đã được KHÓA (Locked)!')}
+            </p>
+          )}
         </div>
       </section>
 
@@ -201,7 +241,9 @@ const DetailView = ({ etr, onBack }) => {
           </table>
         ) : (
           <p style={{ color: 'rgba(0,33,71,0.5)', fontSize: 13, marginTop: 8 }}>
-            {tr('Không có dữ liệu kết quả môn học.')}
+            {s.detailLoaded === false
+              ? tr('Kết quả môn học sẽ hiển thị khi hồ sơ được thẩm định xong.')
+              : tr('Không có dữ liệu kết quả môn học.')}
           </p>
         )}
       </section>
@@ -212,12 +254,28 @@ const DetailView = ({ etr, onBack }) => {
           <p className="info-eyebrow">{tr('Minh chứng')}</p>
           <h3>{tr('Tệp tin')}</h3>
           <div className="student-evidence-list">
-            {s.evidences.map((ev, idx) => (
-              <span key={idx} className="student-evidence-chip">
-                <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M0 14V0H8L12 4V14H0ZM7 5V1H1V13H11V5H7ZM1 1V5V1V5V13V1Z" fill="currentColor" opacity="0.5" /></svg>
-                {ev.FileName ?? ev.fileName ?? ev.EvidenceTypeName ?? ev.evidenceTypeName ?? `${tr('Tệp #')}${idx + 1}`}
-              </span>
-            ))}
+            {s.evidences.map((ev, idx) => {
+              const fUrl = ev.FileUrl ?? ev.fileUrl;
+              const fName = ev.FileName ?? ev.fileName ?? ev.EvidenceTypeName ?? ev.evidenceTypeName ?? `${tr('Tệp #')}${idx + 1}`;
+              return fUrl ? (
+                <a
+                  key={idx}
+                  href={fUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="student-evidence-chip"
+                  style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                >
+                  <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M0 14V0H8L12 4V14H0ZM7 5V1H1V13H11V5H7ZM1 1V5V1V5V13V1Z" fill="currentColor" opacity="0.5" /></svg>
+                  {fName} ↗
+                </a>
+              ) : (
+                <span key={idx} className="student-evidence-chip">
+                  <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M0 14V0H8L12 4V14H0ZM7 5V1H1V13H11V5H7ZM1 1V5V1V5V13V1Z" fill="currentColor" opacity="0.5" /></svg>
+                  {fName}
+                </span>
+              );
+            })}
           </div>
         </section>
       )}
@@ -293,7 +351,7 @@ const TrainingHistory = () => {
     <div className="student-history-timeline">
       {mapped.map((record, idx) => {
         const isFirst = idx === 0;
-        const isCompleted = record.status === 'Completed';
+        const isCompleted = isEtrCompleted(record.status);
         const isExpired = record.expiryDate && new Date(record.expiryDate) < new Date();
 
         return (
@@ -359,12 +417,35 @@ const TrainingHistory = () => {
 
 /* ── List View (default) ── */
 const StudentMyETR = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { tr } = useLanguage();
   const [etrs, setEtrs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEtr, setSelectedEtr] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'history'
+
+  const handleBackToList = () => {
+    setSelectedEtr(null);
+    if (location.state?.selectedEtrId) {
+      navigate(".", {
+        replace: true,
+        state: {
+          ...(location.state || {}),
+          selectedEtrId: null,
+        },
+      });
+    }
+  };
+
+  useSubViewBack(!!selectedEtr, handleBackToList);
+
+  useEffect(() => {
+    if (!location.state?.selectedEtrId && selectedEtr) {
+      setSelectedEtr(null);
+    }
+  }, [location.state?.selectedEtrId]);
 
   const loadData = async () => {
     setLoading(true);
@@ -383,34 +464,39 @@ const StudentMyETR = () => {
   const openDetail = async (row) => {
     const id = row?.ETRCourseRecordId ?? row?.etrCourseRecordId;
     let detail = row;
+    let loaded = false;
     try {
       if (id) {
         const enriched = await api
           .get(`/Etr/${id}`, { suppressAuthRedirect: true })
           .catch(() => null);
         if (enriched) {
+          loaded = true;
           // EtrDetailsResponse: SubjectResults, EvidenceFiles, ApprovalHistories →
           // DetailView expects subjectResults / evidences / historyLogs.
           const subjects = Array.isArray(enriched.SubjectResults ?? enriched.subjectResults)
             ? (enriched.SubjectResults ?? enriched.subjectResults).map((sr) => ({
                 ...sr,
                 SubjectId: sr.SubjectId ?? sr.subjectId,
-                Score: sr.Score ?? sr.score,
+                SubjectName: sr.SubjectName ?? sr.subjectName,
+                Score: sr.Score ?? sr.score ?? sr.AssessmentScore ?? sr.assessmentScore,
+                PracticalScore: sr.PracticalScore ?? sr.practicalScore,
                 AttendanceRate: sr.AttendanceRate ?? sr.attendanceRate,
-                IsPassed: sr.IsSignedOff ?? sr.isSignedOff,
+                IsPassed: sr.IsPassed ?? sr.isPassed ?? sr.IsSignedOff ?? sr.isSignedOff ?? (Number(sr.Score ?? sr.score ?? 0) >= 50),
               }))
             : null;
           const evidences = Array.isArray(enriched.EvidenceFiles ?? enriched.evidenceFiles)
             ? (enriched.EvidenceFiles ?? enriched.evidenceFiles).map((ev) => ({
                 ...ev,
                 FileName: ev.FileName ?? ev.fileName,
+                FileUrl: ev.FileUrl ?? ev.fileUrl,
               }))
             : null;
           const historyLogs = Array.isArray(enriched.ApprovalHistories ?? enriched.approvalHistories)
             ? (enriched.ApprovalHistories ?? enriched.approvalHistories).map((h) => ({
                 ...h,
-                Description: h.ActionType ?? h.actionType,
-                Timestamp: h.ActionAt ?? h.actionAt,
+                Description: h.ActionType ?? h.actionType ?? h.Comment ?? h.comments,
+                Timestamp: h.ActionAt ?? h.actionAt ?? h.CreatedAt ?? h.createdAt,
               }))
             : null;
           detail = {
@@ -424,7 +510,16 @@ const StudentMyETR = () => {
     } catch {
       // fall back to the list row
     }
-    setSelectedEtr(detail);
+    // Cờ cho biết đã lấy được chi tiết đầy đủ (/Etr/{id}) hay chưa — dùng để hiển thị thông báo
+    // chính xác thay vì "Không có dữ liệu kết quả môn học" gây hiểu nhầm khi API bị chặn (403).
+    setSelectedEtr({ ...detail, detailLoaded: loaded });
+    navigate(".", {
+      replace: false,
+      state: {
+        ...(location.state || {}),
+        selectedEtrId: id,
+      },
+    });
   };
 
   const mapped = etrs.map(mapEtr);
@@ -437,7 +532,7 @@ const StudentMyETR = () => {
 
   // Detail view
   if (selectedEtr) {
-    return <DetailView etr={selectedEtr} onBack={() => setSelectedEtr(null)} />;
+    return <DetailView etr={selectedEtr} onBack={handleBackToList} />;
   }
 
   // List view
@@ -452,7 +547,7 @@ const StudentMyETR = () => {
         </div>
         <div className="student-welcome-right">
           <span className="welcome-role">
-            {mapped.length} {tr('hồ sơ')} &middot; {mapped.filter(e => e.status === 'Completed').length} {tr('hoàn thành')}
+            {mapped.length} {tr('hồ sơ')} &middot; {mapped.filter(e => isEtrCompleted(e.status)).length} {tr('hoàn thành')}
           </span>
         </div>
       </section>

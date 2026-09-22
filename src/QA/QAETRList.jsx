@@ -5,6 +5,7 @@ import { buildSrToAccountMap } from "../utils/evidenceEnrich";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import { isEtrCompleted } from "../utils/etrStatus";
 
 // Trạng thái ETR → nhãn hiển thị + màu badge/chip
 const STATUS_META = {
@@ -15,6 +16,11 @@ const STATUS_META = {
   ReturnedForCorrection: { label: "Returned for Correction", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
   Reopened: { label: "Reopened", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
   Completed: { label: "Approved", color: "#15803d", bg: "rgba(34,197,94,0.12)" },
+  // 4 giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
+  Pending: { label: "Pending QA", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
+  UnderReview: { label: "Under Review", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
+  Approved: { label: "Approved", color: "#15803d", bg: "rgba(34,197,94,0.12)" },
+  Rejected: { label: "Returned for Correction", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
 };
 
 const QAETRList = () => {
@@ -88,7 +94,7 @@ const QAETRList = () => {
           completedAt: etr.completedAt
             ? new Date(etr.completedAt).toLocaleString("vi-VN")
             : "—",
-          locked: etr.isLocked === true || etr.status === "Completed",
+          locked: etr.isLocked === true || isEtrCompleted(etr.status),
         };
       });
 

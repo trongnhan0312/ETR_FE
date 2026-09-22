@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import { fetchApprovals, fetchEtrList } from './auditorApi';
+import { fetchApprovalHistory, fetchEtrList } from './auditorApi';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
 
@@ -12,7 +12,7 @@ const toNumericId = (value) => {
 };
 
 const AuditorApprovalHistory = () => {
-  const { trEn } = useLanguage();
+  const { tr, trEn } = useLanguage();
   const [searchParams] = useSearchParams();
   // Đọc id từ URL (?id=...) — trước đây trang bỏ qua tham số này nên luôn mặc định
   // 'ETR-2026-0891' (id giả) và timeline luôn rỗng.
@@ -25,9 +25,11 @@ const AuditorApprovalHistory = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [etrs, approvals] = await Promise.all([
+        const [etrs, history] = await Promise.all([
           fetchEtrList(),
-          fetchApprovals(selectedEtrId)
+          // Lấy TOÀN BỘ lịch sử thực thi (AuditLog + ApprovalRequest + mốc vòng đời ETR)
+          // thay vì chỉ GET /Approvals → trước đây mỗi ETR chỉ ra đúng 1 dòng log.
+          fetchApprovalHistory(selectedEtrId)
         ]);
 
         if (Array.isArray(etrs) && etrs.length > 0) {
@@ -37,7 +39,7 @@ const AuditorApprovalHistory = () => {
             setSelectedEtrId(etrs[0]?.etrCourseRecordId ?? null);
           }
         }
-        setTimeline(approvals);
+        setTimeline(Array.isArray(history) ? history : []);
       } catch (err) {
         console.error('Error fetching approval history:', err);
       } finally {
@@ -58,16 +60,16 @@ const AuditorApprovalHistory = () => {
       {/* Header */}
       <section className="content-header">
         <div className="header-left">
-          <h1>{trEn('Approval History & Workflow Verification')}</h1>
+          <h1>{tr('Approval History & Workflow Verification')}</h1>
           <div className="divider-gold"></div>
           <p className="header-description">
-            {trEn('Audit inspection of multi-stage approval workflows, personnel authorizations, timestamps, and cryptographic lock state.')}
+            {tr('Audit inspection of multi-stage approval workflows, personnel authorizations, timestamps, and cryptographic lock state.')}
           </p>
         </div>
 
         <div style={{ minWidth: '240px' }}>
           <label style={{ fontSize: '11px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
-            {trEn('Select Locked ETR')}
+            {tr('Select Locked ETR')}
           </label>
           <select
             className="search-input"
@@ -76,7 +78,7 @@ const AuditorApprovalHistory = () => {
             onChange={(e) => setSelectedEtrId(Number(e.target.value) || null)}
           >
             {etrList.map((item) => (
-              <option key={item.etrCourseRecordId} value={item.etrCourseRecordId}>
+               <option key={item.etrCourseRecordId} value={item.etrCourseRecordId}>
                 {item.id} - {item.learnerName} ({item.courseId})
               </option>
             ))}
@@ -87,36 +89,36 @@ const AuditorApprovalHistory = () => {
       {/* Workflow Diagram Banner */}
       <section className="table-card" style={{ padding: '24px' }}>
         <h2 style={{ fontSize: '14px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>
-          {trEn('Mandatory Aviation Approval Sequence Flow')}
+          {tr('Mandatory Aviation Approval Sequence Flow')}
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1', textAlign: 'center', flex: 1, minWidth: '140px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Step 1')}</div>
-            <div style={{ fontSize: '14px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{trEn('Academic Staff')}</div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{tr('Step 1')}</div>
+            <div style={{ fontSize: '14px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{tr('Academic Staff')}</div>
           </div>
-          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>↓</div>
+          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>→</div>
 
           <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1', textAlign: 'center', flex: 1, minWidth: '140px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Step 2')}</div>
-            <div style={{ fontSize: '14px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{trEn('QA Verification')}</div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{tr('Step 2')}</div>
+            <div style={{ fontSize: '14px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{tr('QA Verification')}</div>
           </div>
-          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>↓</div>
+          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>→</div>
 
           <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #dfe6f1', textAlign: 'center', flex: 1, minWidth: '140px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{trEn('Step 3')}</div>
-            <div style={{ fontSize: '14px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{trEn('Training Manager Approval')}</div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(0,33,71,0.5)', textTransform: 'uppercase' }}>{tr('Step 3')}</div>
+            <div style={{ fontSize: '14px', fontWeight: '700', color: '#002147', marginTop: '4px' }}>{tr('Training Manager Approval')}</div>
           </div>
-          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>↓</div>
+          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>→</div>
 
           <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#0a2c55', color: '#ffffff', textAlign: 'center', flex: 1, minWidth: '140px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#d4af37', textTransform: 'uppercase' }}>{trEn('Step 4')}</div>
-            <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{trEn('System Locked')}</div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: '#d4af37', textTransform: 'uppercase' }}>{tr('Step 4')}</div>
+            <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{tr('System Locked')}</div>
           </div>
-          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>↓</div>
+          <div style={{ color: '#c5a059', fontWeight: '900', fontSize: '18px' }}>→</div>
 
           <div style={{ padding: '12px 18px', borderRadius: '12px', background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', color: '#ffffff', textAlign: 'center', flex: 1, minWidth: '140px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#ffffff', textTransform: 'uppercase', opacity: 0.8 }}>{trEn('Step 5')}</div>
-            <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{trEn('Audited')}</div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: '#ffffff', textTransform: 'uppercase', opacity: 0.8 }}>{tr('Step 5')}</div>
+            <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{tr('Audited')}</div>
           </div>
         </div>
       </section>
@@ -124,11 +126,15 @@ const AuditorApprovalHistory = () => {
       {/* Approval Timeline Detail Card */}
       <section className="table-card" style={{ padding: '28px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#002147', marginTop: 0, marginBottom: '24px' }}>
-          {trEn('Detailed Execution Log for')} {selectedEtrId}
+          {tr('Detailed Execution Log for')} {selectedEtrId}
         </h2>
 
         {loading ? (
-          <div className="empty-table-state">{trEn('Loading approval history...')}</div>
+          <div className="empty-table-state">{tr('Loading approval history...')}</div>
+        ) : timeline.length === 0 ? (
+          <div className="empty-table-state">
+            {tr('No execution log recorded for this ETR yet.')}
+          </div>
         ) : (
           <div className="approval-timeline">
             {pageItems.map((step) => (

@@ -335,7 +335,7 @@ const ClassesRosterImportModal = ({ onClose, onSuccess }) => {
             }}
           >
             {tr(
-              "Tải template Excel (2 sheet: Classes tạo lớp mới, Students ghi danh học viên vào lớp). Học viên phải là tài khoản Student đã tồn tại. Sau đó kiểm tra và nhập — toàn bộ file sẽ thành công hoặc không có gì được ghi nếu có bất kỳ dòng lỗi.",
+              "Tải template Excel (3 sheet: Classes tạo lớp mới, Instructors phân công giảng viên theo môn, Students ghi danh học viên vào lớp). Sau đó kiểm tra và nhập — toàn bộ file sẽ thành công hoặc không có gì được ghi nếu có bất kỳ dòng lỗi.",
             )}
           </p>
 

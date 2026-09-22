@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
@@ -12,6 +13,7 @@ import { protectExcelTemplate } from "../utils/excelTemplateProtect";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { useLanguage } from '../context/LanguageContext';
+import { useSubViewBack } from "../utils/navigation";
 import "./instructor.scss";
 
 // Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login) —
@@ -40,17 +42,49 @@ const isLockedStatus = (status) => {
 };
 
 const InstructorAssessments = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { tr, trt } = useLanguage();
   const [classesData, setClassesData] = useState([]);
   const [subjectsList, setSubjectsList] = useState([]);
-  const [selectedClassId, setSelectedClassId] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState(() => {
+    return sessionStorage.getItem("instructor_assessments_class_id") || "";
+  });
   const [subjectFilter, setSubjectFilter] = useState(""); // "" = tất cả môn
   const [assessmentsForClass, setAssessmentsForClass] = useState([]);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
+
+  const handleBackToAssessments = () => {
+    setSelectedAssessment(null);
+    setIsEditingScores(false);
+    if (location.state?.assessmentGradingId) {
+      navigate(".", {
+        replace: true,
+        state: {
+          ...(location.state || {}),
+          assessmentGradingId: null,
+          assessmentClassId: selectedClassId,
+        },
+      });
+    }
+  };
+
+  useSubViewBack(!!selectedAssessment, handleBackToAssessments);
+
+  useEffect(() => {
+    if (!location.state?.assessmentGradingId && selectedAssessment) {
+      setSelectedAssessment(null);
+      setIsEditingScores(false);
+    }
+  }, [location.state?.assessmentGradingId]);
+
   // Trạng thái phân công giảng viên theo môn của lớp đang chọn — để hiển thị đúng thông báo
   // khi giảng viên không được phân công môn nào (thay vì nhầm tưởng "chưa có Assessment").
   const [classHasAssignments, setClassHasAssignments] = useState(false);
   const [myAssignedSubjectCount, setMyAssignedSubjectCount] = useState(0);
+  // Số buổi học (Session) của lớp đang chọn — dùng để phân biệt nguyên nhân "không thấy
+  // Assessment": lớp chưa có buổi nào vs. có buổi nhưng chưa gắn bài kiểm tra.
+  const [classSessionCount, setClassSessionCount] = useState(0);
 
   // Grading sheets state
   const [selectedAssessmentType, setSelectedAssessmentType] =
@@ -135,16 +169,42 @@ const InstructorAssessments = () => {
       try {
         const [apiClasses, apiCourses, apiAssessments, apiSubjects] =
           await Promise.all([
-            api.get("/classes").catch(() => []),
-            api.get("/courses").catch(() => []),
+            api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
+            api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
             api
               .get("/Assessments")
               .catch(() => api.get("/assessments").catch(() => [])),
-            api.get("/subjects").catch(() => []),
+            api.get("/Subjects").catch(() => api.get("/subjects").catch(() => [])),
           ]);
 
-        const mapped = apiClasses.map((cls, idx) => {
-          const course = apiCourses.find((c) => c.courseId === cls.courseId);
+        const storedOverrides = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("etr_class_instructors") || "{}");
+          } catch {
+            return {};
+          }
+        })();
+
+        const mapped = (Array.isArray(apiClasses) ? apiClasses : []).map((cls, idx) => {
+          const course = (Array.isArray(apiCourses) ? apiCourses : []).find(
+            (c) => String(c.courseId) === String(cls.courseId)
+          );
+          const cached =
+            storedOverrides[String(cls.classId)] ||
+            (cls.classCode ? storedOverrides[String(cls.classCode).trim().toUpperCase()] : null);
+          const resolvedAssignments =
+            Array.isArray(cls.instructorAssignments) && cls.instructorAssignments.length > 0
+              ? cls.instructorAssignments
+              : Array.isArray(cls.classSubjects) && cls.classSubjects.length > 0
+                ? cls.classSubjects
+                : Array.isArray(cls.ClassSubjects) && cls.ClassSubjects.length > 0
+                  ? cls.ClassSubjects
+                  : Array.isArray(cached) && cached.length > 0
+                    ? cached
+                    : cls.instructorAccountId || cls.InstructorAccountId
+                      ? [{ subjectId: cls.subjectId || 1, instructorAccountId: cls.instructorAccountId || cls.InstructorAccountId }]
+                      : [];
+
           return {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
@@ -157,18 +217,22 @@ const InstructorAssessments = () => {
             status: cls.status || tr("Đang diễn ra"),
             subjectId: cls.subjectId || 1,
             courseId: course ? course.courseId : (cls.courseId ?? null),
-            // Giữ nguyên danh sách phân công giảng viên theo môn của lớp (từ BE) —
-            // dùng để chỉ hiển thị assessment của môn mình được phân công (như Attendance).
-            assignments: Array.isArray(cls.instructorAssignments)
-              ? cls.instructorAssignments
-              : [],
+            assignments: resolvedAssignments,
           };
         });
-        setClassesData(mapped);
+        // Bỏ lớp đã khóa (Completed/Cancelled/Closed) khỏi màn nhập điểm — lớp này chỉ
+        // đọc (BE chặn mọi thay đổi điểm qua ImmutabilityValidator) nên không thể nhập/sửa.
+        const activeClasses = mapped.filter((c) => !isLockedStatus(c.status));
+        setClassesData(activeClasses);
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
         if (mapped.length > 0) {
-          setSelectedClassId(mapped[0].classId);
+          const savedClassId = location.state?.assessmentClassId || sessionStorage.getItem("instructor_assessments_class_id");
+          const matched = activeClasses.find((c) => String(c.classId) === String(savedClassId)) || activeClasses[0] || mapped[0];
+          if (matched) {
+            setSelectedClassId(matched.classId);
+            sessionStorage.setItem("instructor_assessments_class_id", String(matched.classId));
+          }
         }
       } catch (err) {
         console.error("Lỗi khi tải danh sách lớp học:", err);
@@ -212,11 +276,14 @@ const InstructorAssessments = () => {
         const classHasAssignments =
           (selectedClassInfo?.assignments || []).length > 0;
 
-        const classSessions = (Array.isArray(apiSessions) ? apiSessions : [])
-          .filter((s) => Number(s.classId) === classId)
-          .filter((s) => mySubjectIds.has(s.subjectId));
+        const allClassSessions = (Array.isArray(apiSessions) ? apiSessions : [])
+          .filter((s) => Number(s.classId) === classId);
+        const classSessions = allClassSessions.filter((s) =>
+          mySubjectIds.has(s.subjectId),
+        );
         setClassHasAssignments(classHasAssignments);
         setMyAssignedSubjectCount(mySubjectIds.size);
+        setClassSessionCount(allClassSessions.length);
 
         // Assessments/Checklists signed to sessions of this class — MỖI (buổi, đánh giá) là 1 dòng riêng.
         // Tự động nhận diện Assessment Type từ buổi đã tạo: có bài kiểm tra (assessmentId) và/hoặc bảng
@@ -265,6 +332,9 @@ const InstructorAssessments = () => {
             isRequired: detail?.isRequired,
             displayOrder: detail?.displayOrder,
             sessionId: s.sessionId,
+            // Nguồn entry: "session" = gắn vào buổi học cụ thể; "course" = fallback nhập
+            // trực tiếp theo môn của Course (không gắn buổi).
+            source: "session",
             sessionTitle: s.sessionTitle || `Buổi ${s.sessionId}`,
             // SessionDate có thể null (buổi nháp chưa xếp lịch) → hiển thị TBA
             sessionDate: s.sessionDate
@@ -272,6 +342,45 @@ const InstructorAssessments = () => {
               : "TBA",
           };
         });
+        // FALLBACK — nhập điểm trực tiếp theo môn của Course (không bắt buộc xếp lịch/tạo
+        // Session trước): khi KHÔNG có buổi nào được gắn assessment/checklist, kiểm tra
+        // Course của lớp còn Assessment nào thuộc môn giảng viên đang phụ trách không.
+        // Có → hiển thị danh sách để giảng viên chọn và nhập điểm luôn (sessionId = null).
+        if (entries.length === 0) {
+          const classCourseId = selectedClassInfo?.courseId ?? null;
+          const courseAssessments = (assessmentsList || []).filter((a) => {
+            const matchCourse =
+              classCourseId == null ||
+              a.courseId == null ||
+              String(a.courseId) === String(classCourseId);
+            const matchMySubject =
+              a.subjectId == null || mySubjectIds.has(a.subjectId);
+            return matchCourse && matchMySubject;
+          });
+          const fallbackEntries = courseAssessments.map((a) => ({
+            assessmentId: Number(a.assessmentId),
+            practicalChecklistId: null,
+            subjectId: a.subjectId,
+            courseId: a.courseId ?? classCourseId,
+            componentName:
+              a.componentName ||
+              a.assessmentName ||
+              `Assessment ${a.assessmentId}`,
+            // Fallback chỉ nhập điểm lý thuyết theo Assessment của Course — buổi không
+            // tồn tại nên không có bảng kiểm thực hành gắn kèm.
+            assessmentType: "assessment",
+            weight: a.weight,
+            passingScore: a.passingScore,
+            isRequired: a.isRequired,
+            displayOrder: a.displayOrder,
+            sessionId: null,
+            source: "course",
+            sessionTitle: tr("Nhập trực tiếp"),
+            sessionDate: "TBA",
+          }));
+          setAssessmentsForClass(fallbackEntries);
+          return;
+        }
         setAssessmentsForClass(entries);
       } catch (err) {
         console.error("Lỗi khi tải danh sách assessment:", err);
@@ -285,28 +394,41 @@ const InstructorAssessments = () => {
   const loadStudents = async () => {
     try {
       const [allEnrollments, allProfiles] = await Promise.all([
-        api.get("/enrollments").catch(() => []),
-        api.get("/userprofiles").catch(() => []),
+        api.get("/Enrollments").catch(() => api.get("/enrollments").catch(() => [])),
+        api.get("/UserProfiles").catch(() => api.get("/userprofiles").catch(() => [])),
       ]);
 
-      const classEnrollments = allEnrollments.filter(
-        (e) => e.classId === parseInt(selectedClassId),
+      const enrArr = Array.isArray(allEnrollments)
+        ? allEnrollments
+        : Array.isArray(allEnrollments?.items)
+          ? allEnrollments.items
+          : [];
+      const profArr = Array.isArray(allProfiles)
+        ? allProfiles
+        : Array.isArray(allProfiles?.items)
+          ? allProfiles.items
+          : [];
+
+      const classEnrollments = enrArr.filter(
+        (e) => String(e.classId) === String(selectedClassId),
       );
       const mappedStudents = classEnrollments.map((en) => {
-        const profile = allProfiles.find((p) => p.accountId === en.accountId);
+        const profile = profArr.find(
+          (p) => String(p.accountId) === String(en.accountId),
+        );
         return {
           code: profile
             ? profile.employeeCode || `HV${en.accountId}`
             : `HV${en.accountId}`,
           name: profile ? profile.fullName : tr("Học viên"),
           accountId: en.accountId,
-          enrollmentId: en.enrollmentId,
+          enrollmentId: en.enrollmentId ?? en.id ?? en.accountId,
         };
       });
 
       console.log("[InstructorAssessments] loadStudents:", {
         selectedClassId,
-        totalEnrollments: allEnrollments.length,
+        totalEnrollments: enrArr.length,
         matchedStudents: mappedStudents.length,
         students: mappedStudents,
       });
@@ -321,15 +443,25 @@ const InstructorAssessments = () => {
   // Load all assessment results at once — filter by accountId/assessmentId in caller
   const getAllAssessmentResults = async () => {
     // Backend: GET /api/AssessmentResults
-    const result = await api.get("/AssessmentResults").catch(() => []);
-    return Array.isArray(result) ? result : [];
+    const result = await api
+      .get("/AssessmentResults")
+      .catch(() => api.get("/assessmentresults").catch(() => []));
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result?.items)) return result.items;
+    if (Array.isArray(result?.Items)) return result.Items;
+    return [];
   };
 
   // Load all practical checklist results — filter by subjectResultId in caller
   const getAllPracticalResults = async () => {
     // Backend: GET /api/PracticalChecklistResults
-    const result = await api.get("/PracticalChecklistResults").catch(() => []);
-    return Array.isArray(result) ? result : [];
+    const result = await api
+      .get("/PracticalChecklistResults")
+      .catch(() => api.get("/practicalchecklistresults").catch(() => []));
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result?.items)) return result.items;
+    if (Array.isArray(result?.Items)) return result.Items;
+    return [];
   };
 
   // Load all assessment results for a given assessment (not session-based)
@@ -342,20 +474,35 @@ const InstructorAssessments = () => {
     try {
       const mappedStudents = await loadStudents();
       const scoresData = [];
-      const allEtrs = await api.get("/etr").catch(() => []);
+      const allEtrsRaw = await api.get("/etr").catch(() => []);
+      const allEtrs = Array.isArray(allEtrsRaw)
+        ? allEtrsRaw
+        : Array.isArray(allEtrsRaw?.items)
+          ? allEtrsRaw.items
+          : Array.isArray(allEtrsRaw?.Items)
+            ? allEtrsRaw.Items
+            : [];
       const selectedTypes = getSelectedTypes(type);
 
       // Data for Subject Signoff eligibility (4 validation rules)
       const currentCourseId = classesData.find(
-        (c) => c.classId === parseInt(selectedClassId),
+        (c) => String(c.classId) === String(selectedClassId),
       )?.courseId ?? 1;
       const [allEvidences, allPracticalChecklists, courseDetail] = await Promise.all([
         api.get("/Evidences").catch(() => api.get("/evidences").catch(() => [])),
         api.get("/PracticalChecklists").catch(() => api.get("/practicalchecklists").catch(() => [])),
         api.get(`/courses/${currentCourseId}`).catch(() => null),
       ]);
-      const evidencesArr = Array.isArray(allEvidences) ? allEvidences : [];
-      const checklistsArr = Array.isArray(allPracticalChecklists) ? allPracticalChecklists : [];
+      const evidencesArr = Array.isArray(allEvidences)
+        ? allEvidences
+        : Array.isArray(allEvidences?.items)
+          ? allEvidences.items
+          : [];
+      const checklistsArr = Array.isArray(allPracticalChecklists)
+        ? allPracticalChecklists
+        : Array.isArray(allPracticalChecklists?.items)
+          ? allPracticalChecklists.items
+          : [];
       const courseDetailArr = courseDetail
         ? (Array.isArray(courseDetail.subjects) ? courseDetail.subjects : (Array.isArray(courseDetail.courseSubjects) ? courseDetail.courseSubjects : []))
         : [];
@@ -387,7 +534,9 @@ const InstructorAssessments = () => {
 
       // [DIAG] Nếu buổi đang chọn KHÔNG có sessionId → backend sẽ coi mọi buổi là 1 buổi duy nhất
       // (sessionId=null), ghi đè chung 1 dòng và dễ kẹt lỗi 400 retake. Cảnh báo thật to để lộ ngay.
-      if (assessment?.sessionId == null) {
+      // Entry fallback (source="course") chủ đích không gắn buổi (sessionId=null) →
+      // KHÔNG phải lỗi dữ liệu, không cảnh báo.
+      if (assessment?.sessionId == null && assessment?.source !== "course") {
         console.warn(
           `[DIAG] ⚠️ CRITICAL: selectedAssessment KHÔNG có sessionId (assessmentId=${assessment?.assessmentId}, componentName=${assessment?.componentName}). ` +
             `Backend sẽ coi mọi buổi là sessionId=null → ghi đè chung 1 dòng trong DB + lỗi 400 retake. ` +
@@ -399,17 +548,22 @@ const InstructorAssessments = () => {
       const etrDetailsMap = {};
       await Promise.all(
         mappedStudents.map(async (student) => {
-          const studentEtr = allEtrs.find(
-            (e) =>
-              e.accountId === student.accountId ||
-              e.enrollmentId === student.enrollmentId,
-          );
+          const studentEtr = Array.isArray(allEtrs)
+            ? allEtrs.find(
+                (e) =>
+                  Number(e.accountId) === Number(student.accountId) ||
+                  Number(e.enrollmentId) === Number(student.enrollmentId),
+              )
+            : null;
           if (studentEtr) {
-            const details = await api
-              .get(`/etr/${studentEtr.etrCourseRecordId}`)
-              .catch(() => null);
-            if (details) {
-              etrDetailsMap[student.accountId] = details;
+            const etrId = studentEtr.etrCourseRecordId ?? studentEtr.ETRCourseRecordId;
+            if (etrId) {
+              const details = await api
+                .get(`/etr/${etrId}`)
+                .catch(() => null);
+              if (details) {
+                etrDetailsMap[student.accountId] = details;
+              }
             }
           }
         }),
@@ -584,19 +738,17 @@ const InstructorAssessments = () => {
           ),
         );
         const practicalOk = requiredChecklists.length === 0
-          ? false
+          ? true
           : practicalResultsForSubject.length === requiredChecklists.length;
 
-        // Rule 4: At least one evidence file uploaded & Verified for this subject result
+        // Rule 4: At least one evidence file uploaded for this subject result
         const evidencesForSubject = evidencesArr.filter(
-          (ev) => Number(ev.subjectResultId) === Number(subjectResultId),
+          (ev) => Number(ev.subjectResultId) === Number(subjectResultId) && !ev.isDeleted,
         );
-        const evidenceOk = evidencesForSubject.length > 0
-          && evidencesForSubject.every((ev) =>
-              ev.verificationStatus === "Verified"
-              || ev.status === "Verified"
-              || ev.verified === true,
-            );
+        const evidenceOk = evidencesForSubject.length > 0;
+        const evidenceVerified = evidenceOk && evidencesForSubject.every((ev) =>
+          ev.verificationStatus === "Verified" || ev.status === "Verified" || ev.verified === true
+        );
 
         const eligible = attendanceOk && theoryOk && practicalOk && evidenceOk;
 
@@ -604,7 +756,6 @@ const InstructorAssessments = () => {
           code: student.code,
           name: student.name,
           accountId: student.accountId,
-          enrollmentId: student.enrollmentId,
           enrollmentId: student.enrollmentId,
           subjectResultId,
           assessmentResultId,
@@ -619,7 +770,7 @@ const InstructorAssessments = () => {
           attendanceRate,
           subjectScore,
           passingScore,
-          eligibility: { attendanceOk, theoryOk, practicalOk, evidenceOk, eligible },
+          eligibility: { attendanceOk, theoryOk, practicalOk, evidenceOk, evidenceVerified, eligible },
         });
       }
 
@@ -656,6 +807,14 @@ const InstructorAssessments = () => {
     setSelectedAssessment(assessment);
     setIsEditingScores(false);
     loadAssessmentScores(assessment, autoType);
+    navigate(".", {
+      replace: false,
+      state: {
+        ...(location.state || {}),
+        assessmentGradingId: assessment.assessmentId ?? assessment.sessionId,
+        assessmentClassId: selectedClassId,
+      },
+    });
   };
 
   const handleStartEdit = () => {
@@ -693,7 +852,8 @@ const InstructorAssessments = () => {
       } else {
         const sessionId = selectedAssessment?.sessionId ?? null;
         // [DIAG] Cảnh báo nếu sessionId trống — payload lúc này sẽ bị backend coi là sessionId=null.
-        if (sessionId == null) {
+        // Fallback "course" chủ đích gửi sessionId=null → không phải lỗi dữ liệu.
+        if (sessionId == null && selectedAssessment?.source !== "course") {
           console.warn(
             `[DIAG] ⚠️ CRITICAL: POST /AssessmentResults/record gửi sessionId = null (selectedAssessment.sessionId trống, buổi ${selectedAssessment?.sessionTitle || "?"}). ` +
               `Hậu quả: mọi buổi bị backend ghi chung 1 dòng duy nhất → "lay chung 1 diem" + lỗi 400 retake khi dòng đó đã chốt.`,
@@ -911,31 +1071,6 @@ const InstructorAssessments = () => {
         }),
       );
 
-      // Chỉ ký xác nhận cho HV lưu điểm THÀNH CÔNG (bỏ qua HV bị lỗi — vd: 400 retake).
-      const signoffStudents = changedScores.filter(
-        (student) => !failedEnrollmentIds.has(student.enrollmentId),
-      );
-      if (signoffStudents.length !== changedScores.length) {
-        console.warn(
-          `[DIAG] Bỏ qua SubjectSignoff cho ${changedScores.length - signoffStudents.length} HV lưu điểm thất bại:`,
-          changedScores
-            .filter((s) => failedEnrollmentIds.has(s.enrollmentId))
-            .map((s) => `${s.code} ${s.name}`),
-        );
-      }
-      await Promise.all(
-        signoffStudents.map((student) => {
-          if (student.subjectResultId) {
-            return api
-              .post("/SubjectSignoff", {
-                subjectResultId: student.subjectResultId,
-                comment: tr("Đã hoàn thành đánh giá chuyên đề."),
-              })
-              .catch(() => null);
-          }
-          return Promise.resolve(null);
-        }),
-      );
 
       const syncedScores = editingScores.map((s) =>
         newResultIds[s.enrollmentId]
@@ -1077,8 +1212,15 @@ const InstructorAssessments = () => {
       const ineligible = eligibilityList.filter((e) => !e.eligible);
 
       if (ineligible.length > 0) {
-        const names = ineligible.map((e) => e.name).join(", ");
-        toast.warning(tr("Chưa đủ điều kiện ký xác nhận!"));
+        const details = ineligible.map((e) => {
+          const reasons = [];
+          if (!e.attendanceOk) reasons.push(tr("chuyên cần < 80%"));
+          if (!e.theoryOk) reasons.push(tr("điểm lý thuyết chưa đạt"));
+          if (!e.practicalOk) reasons.push(tr("thực hành chưa đạt"));
+          if (!e.evidenceOk) reasons.push(tr("chưa tải minh chứng"));
+          return `${e.name} (${reasons.join(", ")})`;
+        }).join("; ");
+        toast.warning(`${tr("Chưa đủ điều kiện ký xác nhận:")} ${details}`);
         setConfirmSignoffOpen(false);
         return;
       }
@@ -1105,7 +1247,7 @@ const InstructorAssessments = () => {
       }
     } catch (err) {
       console.error("Lỗi khi ký xác nhận:", err);
-      toast.error(tr("Ký xác nhận thất bại!"));
+      toast.error(err.response?.data?.message || err.message || tr("Ký xác nhận thất bại!"));
     } finally {
       setSigningOff(false);
     }
@@ -1274,31 +1416,6 @@ const InstructorAssessments = () => {
           }),
         );
 
-        // Chỉ ký xác nhận cho HV lưu điểm THÀNH CÔNG (bỏ qua HV bị lỗi — vd: 400 retake).
-        const signoffStudents = changedScores.filter(
-          (student) => !failedEnrollmentIds.has(student.enrollmentId),
-        );
-        if (signoffStudents.length !== changedScores.length) {
-          console.warn(
-            `[DIAG] Bỏ qua SubjectSignoff cho ${changedScores.length - signoffStudents.length} HV lưu điểm thất bại:`,
-            changedScores
-              .filter((s) => failedEnrollmentIds.has(s.enrollmentId))
-              .map((s) => `${s.code} ${s.name}`),
-          );
-        }
-        await Promise.all(
-          signoffStudents.map((student) => {
-            if (student.subjectResultId) {
-              return api
-                .post("/SubjectSignoff", {
-                  subjectResultId: student.subjectResultId,
-                  comment: tr("Đã hoàn thành đánh giá chuyên đề."),
-                })
-                .catch(() => null);
-            }
-            return Promise.resolve(null);
-          }),
-        );
 
         setStudentScores(editingScores);
       }
@@ -1650,14 +1767,15 @@ const InstructorAssessments = () => {
     }
   };
 
-  // Grading Spreadsheet View
-  if (selectedAssessment) {
-    const displayScores = isEditingScores ? editingScores : studentScores;
+  // Grading Spreadsheet View pagination — must be called unconditionally at top-level of component
+  const displayScores = isEditingScores ? editingScores : studentScores;
+  const scorePager = usePagination(selectedAssessment ? displayScores : [], {
+    pageSize: 10,
+    resetKey:
+      selectedAssessment?.sessionId ?? selectedAssessment?.assessmentId,
+  });
 
-    const scorePager = usePagination(displayScores, {
-      pageSize: 10,
-      resetKey: selectedAssessment?.sessionId,
-    });
+  if (selectedAssessment) {
 
     // Hình thức đánh giá buổi này THỰC SỰ có: lý thuyết (assessmentId) và/hoặc
     // thực hành (practicalChecklistId) — dùng để khoá dropdown chỉ cho nhập bài tồn tại.
@@ -1669,7 +1787,7 @@ const InstructorAssessments = () => {
         <nav className="breadcrumb-nav">
           <span
             className="breadcrumb-item"
-            onClick={() => setSelectedAssessment(null)}
+            onClick={handleBackToAssessments}
             style={{ cursor: "pointer" }}
           >
             {tr('ĐÁNH GIÁ')}
@@ -1686,22 +1804,52 @@ const InstructorAssessments = () => {
         </nav>
 
         <section className="content-header">
-          <div className="header-left">
-             <h1>{tr('Nhập điểm đánh giá')} — {selectedAssessment.componentName}</h1>
+          <div className="header-left" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+            <button
+              type="button"
+              onClick={handleBackToAssessments}
+              className="btn-back-inline"
+              title={tr("Quay lại danh sách bài đánh giá")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "36px",
+                height: "36px",
+                borderRadius: "8px",
+                border: "1px solid #dfe6f1",
+                background: "#fff",
+                color: "#002147",
+                cursor: "pointer",
+                fontSize: "18px",
+                lineHeight: 1,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                transition: "all 0.15s ease",
+                marginTop: "4px",
+                flexShrink: 0,
+              }}
+            >
+              ←
+            </button>
+            <div>
+              <h1>{tr('Nhập điểm đánh giá')} — {selectedAssessment.componentName}</h1>
             <div className="divider-gold" />
              <p className="header-description">
                {getAssessmentTypeLabel(selectedAssessmentType)} ·{" "}
                {selectedAssessment.assessmentId
                  ? `Assessment: ${selectedAssessment.componentName}`
                  : selectedAssessment.componentName}{" "}
-               · {tr('Buổi: ')}{" "}
-               {tr(selectedAssessment.sessionTitle)}
+               ·{" "}
+               {selectedAssessment.source === "course"
+                 ? tr("Nhập trực tiếp (không gắn buổi học)")
+                 : `${tr('Buổi: ')} ${tr(selectedAssessment.sessionTitle)}`}
                {selectedAssessment.sessionDate
                  ? ` (${selectedAssessment.sessionDate})`
                  : " (TBA)"}{" "}
                · {tr('Lớp: ')}{" "}
                {selectedClass ? selectedClass.code : "N/A"}
              </p>
+            </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -1966,7 +2114,7 @@ const InstructorAssessments = () => {
               <div style={{ textAlign: "center" }}>{tr('Điểm danh ≥ 80%')}</div>
               <div style={{ textAlign: "center" }}>{tr('Điểm lý thuyết ≥ Pass')}</div>
               <div style={{ textAlign: "center" }}>{tr('Thực hành bắt buộc đạt')}</div>
-              <div style={{ textAlign: "center" }}>{tr('Minh chứng đã xác thực')}</div>
+              <div style={{ textAlign: "center" }}>{tr('Minh chứng đã tải lên')}</div>
               <div style={{ textAlign: "center" }}>{tr('Đủ ĐK')}</div>
             </div>
             {eligibilityList.length === 0 ? (
@@ -1980,8 +2128,8 @@ const InstructorAssessments = () => {
                   {[
                     { ok: e.attendanceOk, label: e.attendanceRate != null ? `${e.attendanceRate}%` : tr("N/A") },
                     { ok: e.theoryOk, label: e.subjectScore != null ? `${e.subjectScore}/${e.passingScore}` : tr("N/A") },
-                    { ok: e.practicalOk, label: tr("Bắt buộc") },
-                    { ok: e.evidenceOk, label: tr("Xác thực") },
+                    { ok: e.practicalOk, label: e.practicalOk ? tr("Đạt") : tr("Chưa đạt") },
+                    { ok: e.evidenceOk, label: e.evidenceVerified ? tr("Đã duyệt") : (e.evidenceOk ? tr("Đã tải") : tr("Chưa có")) },
                   ].map((c, i) => (
                     <div key={i} style={{ textAlign: "center" }}>
                       <span style={{
@@ -2974,13 +3122,13 @@ const InstructorAssessments = () => {
           value={selectedClassId}
           onChange={(e) => {
             setSelectedClassId(e.target.value);
+            sessionStorage.setItem("instructor_assessments_class_id", e.target.value);
             setSubjectFilter("");
           }}
         >
           {classesData.map((c) => (
             <option key={c.classId} value={c.classId}>
-              {isLockedStatus(c.status) ? "🔒 " : ""}
-              {c.name} ({c.code}) — {getClassStatusLabel(c.status)}
+              {c.name} ({c.code}) · {c.subName} — {getClassStatusLabel(c.status)}
             </option>
           ))}
         </select>
@@ -3070,9 +3218,53 @@ const InstructorAssessments = () => {
                     )}
                   </div>
                 </div>
+              ) : classSessionCount === 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                    padding: "12px 18px",
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderLeft: "4px solid #3b82f6",
+                    borderRadius: "10px",
+                    fontSize: "12px",
+                    color: "#1e40af",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <span style={{ fontSize: "16px", lineHeight: 1 }}>📅</span>
+                  <div>
+                    <strong>{tr("Lớp này chưa có buổi học (Session) nào.")}</strong>{" "}
+                    {tr(
+                      "Và Course của lớp cũng chưa có Assessment phù hợp cho môn bạn phụ trách. Hãy liên hệ Academic để xếp lịch buổi học hoặc tạo Assessment Structure.",
+                    )}
+                  </div>
+                </div>
               ) : (
-                <div style={{ color: "rgba(0,33,71,0.5)", fontStyle: "italic" }}>
-                  {tr('Chưa có Assessment nào được tạo cho môn học này.')}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                    padding: "12px 18px",
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderLeft: "4px solid #3b82f6",
+                    borderRadius: "10px",
+                    fontSize: "12px",
+                    color: "#1e40af",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <span style={{ fontSize: "16px", lineHeight: 1 }}>📋</span>
+                  <div>
+                    <strong>{tr("Các buổi học của lớp chưa được gắn bài kiểm tra nào.")}</strong>{" "}
+                    {tr(
+                      "Và Course của lớp cũng chưa có Assessment phù hợp cho môn bạn phụ trách. Hãy gán Assessment vào buổi học ở màn Assessment Structure hoặc liên hệ Academic.",
+                    )}
+                  </div>
                 </div>
               )
             ) : (
@@ -3122,17 +3314,37 @@ const InstructorAssessments = () => {
                             {getSubjectName(assessment.subjectId)}
                           </p>
                         )}
-                        <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
-                          {tr('Buổi: ')}{tr(assessment.sessionTitle)}
-                          {assessment.sessionDate
-                            ? ` (${assessment.sessionDate})`
-                            : " (TBA)"}{" "}
-                          · {getAssessmentTypeLabel(assessment.assessmentType)}
-                          {assessment.assessmentId
-                            ? ` · ${tr('Trọng số')}: ${assessment.weight}% · ${tr('Điểm đạt')}: ${assessment.passingScore}`
-                            : ""}
-                          {assessment.isRequired ? ` · ${tr('Bắt buộc')}` : ""}
-                        </p>
+                        {assessment.source === "course" ? (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              margin: "0 0 6px",
+                              padding: "3px 10px",
+                              borderRadius: "999px",
+                              background: "#ecfdf5",
+                              border: "1px solid #a7f3d0",
+                              color: "#047857",
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
+                            }}
+                          >
+                            {tr("Nhập điểm trực tiếp (chưa gắn buổi học)")}
+                          </span>
+                        ) : (
+                          <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
+                            {tr('Buổi: ')}{tr(assessment.sessionTitle)}
+                            {assessment.sessionDate
+                              ? ` (${assessment.sessionDate})`
+                              : " (TBA)"}{" "}
+                            · {getAssessmentTypeLabel(assessment.assessmentType)}
+                            {assessment.assessmentId
+                              ? ` · ${tr('Trọng số')}: ${assessment.weight}% · ${tr('Điểm đạt')}: ${assessment.passingScore}`
+                              : ""}
+                            {assessment.isRequired ? ` · ${tr('Bắt buộc')}` : ""}
+                          </p>
+                        )}
                       </div>
                       <button
                         onClick={() => handleOpenGradingSheet(assessment)}
@@ -3158,47 +3370,6 @@ const InstructorAssessments = () => {
             )}
           </div>
         </section>
-      )}
-
-      {/* Grading Spreadsheet View */}
-      {selectedAssessment && (
-        <>
-          <nav className="breadcrumb-nav">
-            <span
-              className="breadcrumb-item"
-              onClick={() => setSelectedAssessment(null)}
-              style={{ cursor: "pointer" }}
-            >
-              {tr('ĐÁNH GIÁ')}
-            </span>
-            <svg width="4" height="6" viewBox="0 0 4 6" fill="none">
-              <path
-                d="M2.3 3L0 0.7L0.7 0L3.7 3L0.7 6L0 5.3L2.3 3Z"
-                fill="currentColor"
-              />
-            </svg>
-            <span className="breadcrumb-item active">
-              {selectedAssessment.componentName}
-            </span>
-          </nav>
-
-          <section className="content-header">
-            <div className="header-left">
-              <h1>{tr('Nhập điểm đánh giá')} — {selectedAssessment.componentName}</h1>
-              <div className="divider-gold" />
-              <p className="header-description">
-                {getAssessmentTypeLabel(selectedAssessmentType)} · Assessment:{" "}
-                {selectedAssessment.componentName} · {tr('Buổi: ')}{" "}
-                {tr(selectedAssessment.sessionTitle)}
-                {selectedAssessment.sessionDate
-                  ? ` (${selectedAssessment.sessionDate})`
-                  : " (TBA)"}{" "}
-                · {tr('Lớp: ')}{" "}
-                {selectedClass ? selectedClass.code : "N/A"}
-              </p>
-            </div>
-          </section>
-        </>
       )}
     </div>
   );

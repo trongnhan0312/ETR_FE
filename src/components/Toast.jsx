@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { useLanguage } from '../context/LanguageContext';
 
 const TOAST_TYPES = {
@@ -224,13 +225,21 @@ export const ToastContainer = () => {
 
   if (list.length === 0) return null;
 
-  return (
+  // PORTAL ra document.body — bắt buộc: nếu render trong cây trang (vd .academic-main
+  // có z-index:1 → tạo stacking context), toast sẽ bị GIAM trong stacking context đó
+  // và KHÔNG BAO GIỜ nằm trên được modal (portal ra body với z-index 99999+), dù có
+  // tăng zIndex đến mấy. Portal + z-index cao = luôn trên cùng, rõ nét, mọi vị trí cuộn.
+  return createPortal(
     <div
       style={{
         position: "fixed",
         top: "20px",
         right: "20px",
-        zIndex: 9999,
+        // PHẢI cao hơn mọi modal: .modal-overlay z-index 99999 + .modal-container
+        // 100000 (academic.scss). Nếu thấp hơn, toast bị chôn DƯỚI overlay → bị
+        // backdrop-filter blur(4px) làm mờ + tối màu (đúng lỗi "toast hiện ở dưới
+        // và làm mờ" khi bấm Update trong modal).
+        zIndex: 1000001,
         display: "flex",
         flexDirection: "column",
         gap: "10px",
@@ -248,7 +257,8 @@ export const ToastContainer = () => {
           <ToastItem toast={toast} onDismiss={store.dismiss} />
         </div>
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 };
 

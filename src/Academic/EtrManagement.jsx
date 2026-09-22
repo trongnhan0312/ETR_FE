@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { createPortal } from "react-dom";
@@ -9,9 +10,24 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
 import AuditLogDetailModal from "../components/AuditLogDetailModal";
+import {
+  isEtrCompleted,
+  areAllAttendanceRatesOk,
+  areSubjectScoresFinalized,
+  hasVerifiedEvidence,
+  subjectStatusBadge,
+} from "../utils/etrStatus";
+import {
+  evidenceCategoryFromMime,
+  evidenceCategoryFromTypeName,
+  formatEvidenceSize,
+} from "../utils/evidenceFiles";
+import { useSubViewBack } from "../utils/navigation";
 
-const EtrManagement = () => {
+const EtrManagement = ({ defaultView = "list" }) => {
   const { tr, trEn } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [etrRecords, setEtrRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [auditTrail, setAuditTrail] = useState([]);
@@ -22,7 +38,30 @@ const EtrManagement = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   // Sub-views & Filters
-  const [viewMode, setViewMode] = useState("list"); // 'list' or 'evidence'
+  const [viewMode, setViewMode] = useState(defaultView); // 'list' or 'evidence'
+  // View Evidence là view con của trang này chứ không phải route riêng: mỗi lần
+  // mở nó ta đẩy thêm 1 history entry cùng path, đánh dấu bằng state
+  // `etrEvidenceId` (xem handleOpenEvidence). Effect dưới đây giữ view khớp với
+  // history để nút Back (topbar + trình duyệt) trở về đúng màn hình:
+  //  - entry có đánh dấu   → mở view Evidence của đúng hồ sơ đó
+  //  - entry không đánh dấu → đóng view, quay về danh sách ETR
+  useEffect(() => {
+    const evidenceId = location.state?.etrEvidenceId;
+    if (!evidenceId) {
+      // Entry không đánh dấu → đóng view Evidence, quay về danh sách ETR
+      setViewMode("list");
+      return;
+    }
+    // Entry có đánh dấu (vừa mở, hoặc Back/Forward/reload vào lại) → mở view của
+    // đúng hồ sơ đó. Chờ danh sách ETR load xong mới có record để mở.
+    const record = etrRecords.find(
+      (item) => String(item.etrId) === String(evidenceId),
+    );
+    if (record) {
+      setSelectedRecord(record);
+      setViewMode("evidence");
+    }
+  }, [location.key, location.state, etrRecords]);
   const [fileSearchQuery, setFileSearchQuery] = useState("");
   const [fileCategoryFilter, setFileCategoryFilter] = useState("ALL");
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -41,6 +80,7 @@ const EtrManagement = () => {
   const [allEnrollments, setAllEnrollments] = useState([]);
   const [allAccounts, setAllAccounts] = useState([]);
   const [allProfiles, setAllProfiles] = useState([]);
+  const [allSubjects, setAllSubjects] = useState([]);
 
   // Học viên có ít nhất 1 ghi danh — options cho modal tra cứu ETR
   const enrollableLearners = useMemo(() => {
@@ -85,6 +125,7 @@ const EtrManagement = () => {
           accounts,
           profiles,
           evidenceTypes,
+          subjects,
         ] = await Promise.all([
           api.get("/Etr").catch(() => []),
           api.get("/Evidences").catch((err) => {
@@ -102,6 +143,7 @@ const EtrManagement = () => {
           api.get("/Accounts").catch(() => []),
           api.get("/UserProfiles/learners").catch(() => []),
           api.get("/EvidenceTypes").catch(() => []),
+          api.get("/Subjects").catch(() => []),
         ]);
 
         const extractList = (data) => {
@@ -113,6 +155,14 @@ const EtrManagement = () => {
 
         const etrsArr = extractList(etrs);
         const evfsArr = extractList(evfs);
+        const evidenceTypeList = Array.isArray(evidenceTypes)
+          ? evidenceTypes
+          : [];
+        const evidenceTypeNameById = {};
+        evidenceTypeList.forEach((t) => {
+          const id = t.evidenceTypeId ?? t.EvidenceTypeId;
+          if (id != null) evidenceTypeNameById[id] = t.typeName ?? t.TypeName ?? "";
+        });
         const accountsArr = extractList(accounts);
         const profilesArr = extractList(profiles);
         const enrollmentsArr = extractList(enrollments);
@@ -121,6 +171,7 @@ const EtrManagement = () => {
         setAllAccounts(accountsArr);
         setAllProfiles(profilesArr);
         setAllEnrollments(enrollmentsArr);
+        setAllSubjects(Array.isArray(subjects) ? subjects : []);
         setUploadEvidenceTypes(
           Array.isArray(evidenceTypes) ? evidenceTypes : [],
         );
@@ -139,22 +190,23 @@ const EtrManagement = () => {
         const srMap = {};
         const attendanceOkMap = {};
         const resultsOkMap = {};
+        const returnReasonMap = {};
         etrsArr.forEach((e, i) => {
           const id = e.etrCourseRecordId || e.eTRCourseRecordId;
-          const srs = detailsArr[i]?.subjectResults || [];
+          const detail = detailsArr[i];
+          const srs = detail?.subjectResults || [];
           srMap[id] = srs.map((sr) => sr.subjectResultId);
-          attendanceOkMap[id] =
-            srs.length > 0 && srs.every((sr) => (sr.attendanceRate ?? 0) >= 80);
-          resultsOkMap[id] =
-            srs.length > 0 &&
-            srs.every((sr) => {
-              const all = [
-                ...(sr.assessmentResults || []),
-                ...(sr.practicalChecklistResults || []),
-              ];
-              if (sr.status === "Exempted" || all.length === 0) return true;
-              return all.every((r) => r.isPublished === true);
-            });
+          // Bước 2 & 3 — logic dùng chung ở utils/etrStatus.js (xem unit test
+          // src/test/EtrWorkflowSteps.test.jsx): mọi môn >= 80% chuyên cần và mọi
+          // kết quả đã CHỐT ĐIỂM thì mới "✓ ĐÃ XÁC THỰC".
+          attendanceOkMap[id] = areAllAttendanceRatesOk(srs);
+          resultsOkMap[id] = areSubjectScoresFinalized(srs);
+          const returnHistory = (detail?.approvalHistories || [])
+            .filter((h) => /return|reject/i.test(h.actionType || ""))
+            .sort((a, b) => new Date(b.actionAt || 0) - new Date(a.actionAt || 0))[0];
+          if (returnHistory?.comments || returnHistory?.comment) {
+            returnReasonMap[id] = returnHistory.comments || returnHistory.comment;
+          }
         });
         setSubjectResultIdsByEtr(srMap);
 
@@ -168,6 +220,8 @@ const EtrManagement = () => {
           srMap,
           attendanceOkMap,
           resultsOkMap,
+          evidenceTypeNameById,
+          returnReasonMap,
         );
         setEtrRecords(merged);
         if (merged.length > 0) {
@@ -246,6 +300,11 @@ const EtrManagement = () => {
     subjectResultIdsByEtr = {},
     attendanceOkMap = {},
     resultsOkMap = {},
+    // Map evidenceTypeId → typeName (nạp từ GET /EvidenceTypes) — dùng để phân loại
+    // minh chứng khi BE thiếu mimeType. Truyền tường minh để không phụ thuộc state
+    // (state update là bất đồng bộ, lần load đầu sẽ bị rỗng nếu đọc trực tiếp).
+    evidenceTypeNameById = {},
+    returnReasonMap = {},
   ) => {
     const evfsArr = Array.isArray(evidenceFiles) ? evidenceFiles : [];
 
@@ -270,41 +329,66 @@ const EtrManagement = () => {
         ReturnedForCorrection: "RETURNED FOR CORRECTION",
         Reopened: "UNDER REVIEW",
         Completed: "APPROVED",
+        // Giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
+        Pending: "PENDING QA",
+        UnderReview: "UNDER REVIEW",
+        Approved: "APPROVED",
+        Rejected: "RETURNED FOR CORRECTION",
       };
 
       // Evidence liên kết qua SubjectResultId (không có ETR id trực tiếp trên EvidenceFile)
       const subjectResultIds = subjectResultIdsByEtr[etrId] || [];
       const etrEvidences = evfsArr
         .filter((ev) => subjectResultIds.includes(ev.subjectResultId))
-        .map((ev) => ({
-          id: ev.evidenceFileId,
-          name: ev.fileName || `evidence-${ev.evidenceFileId}`,
-          type:
-            ev.mimeType === "application/pdf"
-              ? "PDF DOC"
-              : ev.mimeType?.startsWith("image/")
-                ? "PHOTO"
-                : "SIGNATURE",
-          tag: ev.fileExtension?.toUpperCase() || "DOCUMENT",
-          date: ev.uploadedAt
-            ? new Date(ev.uploadedAt).toLocaleDateString("vi-VN")
-            : "",
-          size: ev.fileSize
-            ? `${(ev.fileSize / (1024 * 1024)).toFixed(1)} MB`
-            : "0 MB",
-          status:
-            ev.verificationStatus === "Verified"
-              ? "Verified"
-              : ev.verificationStatus === "Rejected"
-                ? "Rejected"
-                : "Pending QA",
-          rejectReason: ev.verificationComment || "",
-          mimeType: ev.mimeType || "",
-          fileExtension: ev.fileExtension || "",
-          // BE đã đổi FilePath → FileUrl (lưu trữ Cloudinary)
-          filePath: ev.fileUrl || ev.filePath || "",
-          fileUrl: ev.fileUrl || ev.filePath || "",
-        }));
+        .map((ev) => {
+          // Phân loại: ưu tiên mimeType, khi thiếu dùng tên loại minh chứng (evidenceTypeId).
+          const typeName = evidenceTypeNameById[ev.evidenceTypeId] || "";
+          const category =
+            evidenceCategoryFromMime(ev.mimeType) ||
+            evidenceCategoryFromTypeName(typeName);
+          const url = ev.fileUrl || ev.filePath || "";
+          const ext = (String(ev.fileName || "").match(/\.([a-z0-9]+)$/i) || [
+            "",
+          ])[1];
+
+          return {
+            id: ev.evidenceFileId,
+            // BE chưa trả tên file (thiếu dữ liệu Attachment) → đặt nhãn trung tính,
+            // KHÔNG bịa ra "evidence-<id>" như tên tệp thật nữa.
+            name: ev.fileName || `${tr("Minh chứng")} #${ev.evidenceFileId}`,
+            type: category || "UNKNOWN",
+            // Nhãn hiển thị ở cột PHÂN LOẠI: tên loại thật từ /EvidenceTypes
+            typeLabel:
+              typeName ||
+              (category === "PHOTO"
+                ? tr("HÌNH ẢNH")
+                : category === "PDF DOC"
+                  ? tr("TÀI LIỆU PDF")
+                  : category === "SIGNATURE"
+                    ? tr("CHỮ KÝ SỐ")
+                    : "—"),
+            tag: (ext || "").toUpperCase(),
+            date: ev.uploadedAt
+              ? new Date(ev.uploadedAt).toLocaleDateString("vi-VN")
+              : "",
+            // Rỗng khi BE không có dữ liệu (trước đây luôn hiện "0 MB").
+            size: formatEvidenceSize(ev.fileSize),
+            status:
+              ev.verificationStatus === "Verified"
+                ? "Verified"
+                : ev.verificationStatus === "Rejected"
+                  ? "Rejected"
+                  : "Pending QA",
+            rejectReason: ev.verificationComment || "",
+            mimeType: ev.mimeType || "",
+            fileExtension: ev.fileExtension || ext || "",
+            // BE đã đổi FilePath → FileUrl (lưu trữ Cloudinary)
+            filePath: url,
+            fileUrl: url,
+            // Không có URL → không thể xem/tải: nút thao tác sẽ bị vô hiệu hóa.
+            hasFile: !!url,
+          };
+        });
 
       return {
         id: `#ETR-${String(etrId).padStart(4, "0")}`,
@@ -330,13 +414,16 @@ const EtrManagement = () => {
           // môn (backend tự tính khi Instructor điểm danh) — mọi môn >= 80% mới đạt.
           attendance: attendanceOkMap[etrId] === true,
           // Bước 3: "đã chốt điểm" khi MỌI kết quả đánh giá của mọi môn đều isPublished = true
-          // (giảng viên bấm "CHỐT ĐIỂM"). Không gắn vào ETR status Verified/Completed nữa nên
-          // đã chốt điểm mà ETR chưa được QA duyệt vẫn hiển thị "✓ ĐÃ XÁC THỰC" đúng.
+          // (giảng viên bấm "CHỐT ĐIỂM") → đã chốt điểm mà ETR chưa được QA duyệt vẫn hiển thị
+          // "✓ ĐÃ XÁC THỰC" đúng. Vẫn giữ fallback theo trạng thái ETR đã duyệt/hoàn thành vì
+          // hồ sơ submit được thì buộc mọi môn đã Passed/Exempted (tức đã có điểm).
           results:
             resultsOkMap[etrId] === true ||
             etr.status === "Verified" ||
-            etr.status === "Completed",
-          evidence: etr.status === "Verified" || etr.status === "Completed",
+            isEtrCompleted(etr.status),
+          // Bước 4: có ít nhất 1 minh chứng và tất cả đã được QA verify (hoặc ETR đã
+          // Verified/Completed). Hồ sơ mới chưa có minh chứng nào → "⌛ ĐANG CHỜ".
+          evidence: hasVerifiedEvidence(etrEvidences, etr.status),
         },
         evidenceList: etrEvidences,
         // Bước chặn "Evidence phải được QA verify xong Academic mới được Submit ETR":
@@ -344,13 +431,14 @@ const EtrManagement = () => {
         // submit khi KHÔNG còn evidence nào chưa Verified. Mảng rỗng → .every() trả true
         // (giống backend: không có evidence thì không có file chưa verified).
         evidenceReady: etrEvidences.every((ev) => ev.status === "Verified"),
+        returnReason: returnReasonMap[etrId] || etr.returnReason || etr.ReturnReason || etr.rejectionReason || etr.RejectionReason || "",
       };
     });
   };
 
   const refreshData = async () => {
     try {
-      const [etrs, evfs, audits] = await Promise.all([
+      const [etrs, evfs, audits, evidenceTypes] = await Promise.all([
         api.get("/Etr").catch(() => []),
         api.get("/Evidences").catch((err) => {
           if (
@@ -363,8 +451,16 @@ const EtrManagement = () => {
           return [];
         }),
         api.get("/Audit?page=1&pageSize=50").catch(() => []),
+        // Cần map evidenceTypeId → typeName để phân loại minh chứng sau mỗi lần refresh
+        api.get("/EvidenceTypes").catch(() => []),
       ]);
       const etrsArr = Array.isArray(etrs) ? etrs : [];
+      const evidenceTypeNameById = {};
+      (Array.isArray(evidenceTypes) ? evidenceTypes : []).forEach((t) => {
+        const typeId = t.evidenceTypeId ?? t.EvidenceTypeId;
+        if (typeId != null)
+          evidenceTypeNameById[typeId] = t.typeName ?? t.TypeName ?? "";
+      });
 
       // Cập nhật lại bản đồ SubjectResultId (có thể thay đổi sau khi tải thêm evidence)
       const detailsArr = await Promise.all(
@@ -377,25 +473,23 @@ const EtrManagement = () => {
       const srMap = {};
       const attendanceOkMap = {};
       const resultsOkMap = {};
+      const returnReasonMap = {};
       etrsArr.forEach((e, i) => {
         const id = e.etrCourseRecordId || e.eTRCourseRecordId;
-        const srs = detailsArr[i]?.subjectResults || [];
+        const detail = detailsArr[i];
+        const srs = detail?.subjectResults || [];
         srMap[id] = srs.map((sr) => sr.subjectResultId);
         // Điểm danh/Chuyên cần chỉ "đạt" khi MỌI môn đã có AttendanceRate >= 80 (khớp quy tắc
         // backend khi Submit ETR). ETR mới chưa điểm danh → attendanceRate null → false.
-        attendanceOkMap[id] =
-          srs.length > 0 && srs.every((sr) => (sr.attendanceRate ?? 0) >= 80);
+        attendanceOkMap[id] = areAllAttendanceRatesOk(srs);
         // Bước 3 "Điểm số kết quả kiểm tra" tính từ dữ liệu thật (isPublished sau khi CHỐT ĐIỂM).
-        resultsOkMap[id] =
-          srs.length > 0 &&
-          srs.every((sr) => {
-            const all = [
-              ...(sr.assessmentResults || []),
-              ...(sr.practicalChecklistResults || []),
-            ];
-            if (sr.status === "Exempted" || all.length === 0) return true;
-            return all.every((r) => r.isPublished === true);
-          });
+        resultsOkMap[id] = areSubjectScoresFinalized(srs);
+        const returnHistory = (detail?.approvalHistories || [])
+          .filter((h) => /return|reject/i.test(h.actionType || ""))
+          .sort((a, b) => new Date(b.actionAt || 0) - new Date(a.actionAt || 0))[0];
+        if (returnHistory?.comments || returnHistory?.comment) {
+          returnReasonMap[id] = returnHistory.comments || returnHistory.comment;
+        }
       });
       setSubjectResultIdsByEtr(srMap);
 
@@ -408,6 +502,8 @@ const EtrManagement = () => {
         srMap,
         attendanceOkMap,
         resultsOkMap,
+        evidenceTypeNameById,
+        returnReasonMap,
       );
       setEtrRecords(merged);
       const auditsArr = Array.isArray(audits)
@@ -452,7 +548,7 @@ const EtrManagement = () => {
       const enrIds = allEnrollments
         .filter((enr) => Number(enr.accountId) === accId)
         .map((enr) => enr.enrollmentId);
-      const matchedEtr = etrs.find((rec) => enrIds.includes(rec.enrollmentId));
+      const matchedEtr = etrRecords.find((rec) => enrIds.includes(rec.enrollmentId));
 
       if (!matchedEtr) {
         toast.warning(
@@ -463,11 +559,11 @@ const EtrManagement = () => {
         return;
       }
 
-      await refreshData();
       setIsCreateOpen(false);
       setNewAccountId("");
+      setSelectedRecord(matchedEtr);
       // Lọc thẳng đến hồ sơ vừa tra cứu
-      setSearchTerm(String(matchedEtr.etrId));
+      setSearchTerm(String(matchedEtr.studentName || matchedEtr.studentCode || matchedEtr.id || ""));
       toast.success(
         tr("Đã tìm thấy hồ sơ ETR của học viên"),
         announce("add", tr("Hồ sơ")),
@@ -485,7 +581,25 @@ const EtrManagement = () => {
     setFileSearchQuery("");
     setFileCategoryFilter("ALL");
     setSelectedFiles([]);
+    // Trước đây view Evidence chỉ là state nên nút Back (topbar + trình duyệt)
+    // thoát thẳng ra route đã truy cập trước đó (thường là trang Student).
+    if (!location.state?.etrEvidenceId) {
+      navigate(location.pathname, {
+        state: { ...(location.state || {}), etrEvidenceId: record.etrId },
+      });
+    }
   };
+
+  // Đóng view Evidence để quay về danh sách ETR (breadcrumb / nút quay lại)
+  const handleBackToList = () => {
+    setViewMode("list");
+    if (location.state?.etrEvidenceId) {
+      // Trả lại history entry đã đẩy khi mở view, tránh để lại entry mồ côi
+      navigate(-1);
+    }
+  };
+
+  useSubViewBack(viewMode === "evidence", handleBackToList);
 
   const handleUploadEvidence = async (e) => {
     e.preventDefault();
@@ -546,10 +660,102 @@ const EtrManagement = () => {
     }
   };
 
-  const handleOpenFinalView = (record, e) => {
+  const [finalViewDetail, setFinalViewDetail] = useState(null);
+
+  const handleOpenFinalView = async (record, e) => {
     e.stopPropagation();
     setFinalViewRecord(record);
     setIsFinalViewOpen(true);
+    setFinalViewDetail(null);
+    try {
+      const detail = await api.get(`/Etr/${record.etrId}`).catch(() => null);
+      setFinalViewDetail(detail);
+    } catch {}
+  };
+
+  // Nhãn hiển thị trạng thái verification của EvidenceFile (BE trả string enum:
+  // Pending/Verified/Rejected — EtrEvidenceFileResponse chỉ có các field cơ bản).
+  const evidenceVerificationLabel = (file) => {
+    const st = String(file.verificationStatus || file.status || "").toLowerCase();
+    if (st === "verified") return { label: tr("✓ Đã xác thực"), color: "#15803d", bg: "#dcfce7" };
+    if (st === "rejected") return { label: tr("✗ Bị từ chối"), color: "#b91c1c", bg: "#fee2e2" };
+    return { label: tr("Chờ xác thực"), color: "#d97706", bg: "#fef3c7" };
+  };
+
+  // Tên môn học cho View Final — BE (EtrSubjectDetailResponse) chỉ trả subjectId,
+  // không trả tên môn → tra từ danh sách /Subjects đã load.
+  const lookupSubjectName = (sr) => {
+    if (!sr) return "";
+    const sub = (allSubjects || []).find(
+      (s) => String(s.subjectId ?? s.SubjectId) === String(sr.subjectId ?? sr.SubjectId),
+    );
+    if (!sub) return "";
+    const code = sub.subjectCode || sub.SubjectCode || "";
+    const name = sub.subjectName || sub.SubjectName || "";
+    return code ? `[${code}] ${name}` : name;
+  };
+
+  // Nhãn + màu cột "Trạng thái" của bảng điểm chi tiết từng môn — dùng chung với trang QA
+  // qua utils/etrStatus.js (subjectStatusBadge), chỉ cần bọc `tr(...)` cho nhãn.
+
+  // ── Tra cứu ETR (GET /api/Search/etrs?query=) ────────────────────────────
+  // Nút "Tra cứu ETR" trước đây không có handler (không làm gì khi bấm) → cảm giác
+  // "bị lỗi". Giờ mở modal tra cứu gọi thẳng API Search hệ thống: tìm được cả hồ sơ
+  // KHÔNG nằm trong danh sách đang map FE (điểm danh/dữ liệu chưa load đủ).
+  const [lookupOpen, setLookupOpen] = useState(false);
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupSearching, setLookupSearching] = useState(false);
+  const [lookupResults, setLookupResults] = useState(null);
+  const [lookupError, setLookupError] = useState("");
+
+  const handleEtrLookup = () => {
+    setLookupOpen(true);
+    setLookupError("");
+  };
+
+  const runEtrLookup = async () => {
+    const q = lookupQuery.trim();
+    if (!q) {
+      setLookupError(tr("Vui lòng nhập từ khóa: mã ETR, tên học viên hoặc trạng thái."));
+      return;
+    }
+    setLookupSearching(true);
+    setLookupError("");
+    try {
+      const data = await api.get(`/Search/etrs?query=${encodeURIComponent(q)}`);
+      const rows = Array.isArray(data)
+        ? data
+        : data && Array.isArray(data.items)
+          ? data.items
+          : [];
+      setLookupResults(rows);
+    } catch (err) {
+      console.error("ETR lookup failed:", err);
+      setLookupResults([]);
+      setLookupError(
+        `${tr("Tra cứu thất bại")}: ${err?.message || tr("Lỗi không xác định từ máy chủ")}`,
+      );
+    } finally {
+      setLookupSearching(false);
+    }
+  };
+
+  const etrStatusDisplay = (s) => {
+    const map = {
+      Draft: "UNDER REVIEW",
+      InProgress: "UNDER REVIEW",
+      Submitted: "PENDING QA",
+      Verified: "QA VERIFIED",
+      Completed: "APPROVED",
+      ReturnedForCorrection: "RETURNED FOR CORRECTION",
+      Cancelled: "CANCELLED",
+      // Giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
+      Pending: "PENDING QA",
+      UnderReview: "UNDER REVIEW",
+      Approved: "APPROVED",
+      Rejected: "RETURNED FOR CORRECTION",
+    };
+    return map[s] || s || "—";
   };
 
   const handleSubmitEtr = async () => {
@@ -776,7 +982,7 @@ const EtrManagement = () => {
 
                     <p
                       className="text-[10px] font-bold text-left uppercase text-white cursor-pointer hover:text-[#c5a059]"
-                      onClick={() => setViewMode("list")}
+                      onClick={handleBackToList}
                       style={{ margin: 0 }}
                     >
                       {tr("ETR LOGS")}
@@ -1147,7 +1353,7 @@ const EtrManagement = () => {
                                 )}
                               </div>
                               <span className="text-xs font-bold text-[#002147]">
-                                {file.type}
+                                {file.typeLabel || file.type}
                               </span>
                             </div>
 
@@ -1159,9 +1365,14 @@ const EtrManagement = () => {
                               >
                                 {file.name}
                               </span>
-                              <span className="text-[10px] font-semibold text-[#002147]/40 uppercase truncate">
-                                {file.size} • {file.tag}
-                              </span>
+                              {/* Chỉ hiện phần nào BE thực sự có dữ liệu (trước đây luôn "0 MB • DOCUMENT") */}
+                              {[file.size, file.tag].filter(Boolean).length > 0 && (
+                                <span className="text-[10px] font-semibold text-[#002147]/40 uppercase truncate">
+                                  {[file.size, file.tag]
+                                    .filter(Boolean)
+                                    .join(" • ")}
+                                </span>
+                              )}
                             </div>
 
                             {/* Date Uploaded */}
@@ -1257,9 +1468,19 @@ const EtrManagement = () => {
                             <div className="flex justify-end items-center gap-3 pr-6">
                               <button
                                 type="button"
+                                disabled={!file.hasFile}
                                 className="p-2 rounded-lg bg-[#f5f7fa] border border-slate-200 text-[#002147] hover:bg-slate-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
-                                onClick={() => setPreviewFile(file)}
-                                title={tr("Xem chi tiết")}
+                                style={
+                                  file.hasFile
+                                    ? undefined
+                                    : { opacity: 0.4, cursor: "not-allowed" }
+                                }
+                                onClick={() => file.hasFile && setPreviewFile(file)}
+                                title={
+                                  file.hasFile
+                                    ? tr("Xem chi tiết")
+                                    : tr("Chưa có tệp để xem.")
+                                }
                               >
                                 <svg
                                   width={15}
@@ -1276,11 +1497,22 @@ const EtrManagement = () => {
                               </button>
                               <button
                                 type="button"
+                                disabled={!file.hasFile}
                                 className="p-2 rounded-lg bg-[#f5f7fa] border border-slate-200 text-[#002147] hover:bg-slate-100 transition shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
+                                style={
+                                  file.hasFile
+                                    ? undefined
+                                    : { opacity: 0.4, cursor: "not-allowed" }
+                                }
                                 onClick={() =>
+                                  file.hasFile &&
                                   handleDownloadFile(file.id, file.name)
                                 }
-                                title={tr("Tải xuống")}
+                                title={
+                                  file.hasFile
+                                    ? tr("Tải xuống")
+                                    : tr("Chưa có tệp để tải.")
+                                }
                               >
                                 <svg
                                   width={14}
@@ -1373,9 +1605,13 @@ const EtrManagement = () => {
                           backgroundColor: "#ffffff",
                         }}
                       >
-                        {tr(
-                          "Không tìm thấy tập tin minh chứng nào khớp với bộ lọc.",
-                        )}
+                        {/* Phân biệt rõ: hồ sơ KHÔNG có minh chứng nào (như ETR mới) với
+                            trường hợp có minh chứng nhưng không khớp ô tìm kiếm/bộ lọc. */}
+                        {totalCount === 0
+                          ? tr("Chưa có minh chứng.")
+                          : tr(
+                              "Không tìm thấy tập tin minh chứng nào khớp với bộ lọc.",
+                            )}
                       </div>
                     )}
                   </div>
@@ -1570,7 +1806,9 @@ const EtrManagement = () => {
                           className="text-xs font-bold text-[#002147]"
                           style={{ margin: 0 }}
                         >
-                          {previewFile.type} • {previewFile.tag}
+                          {[previewFile.typeLabel || previewFile.type, previewFile.tag]
+                            .filter(Boolean)
+                            .join(" • ")}
                         </span>
                       </div>
                       <div className="flex justify-between items-center gap-3">
@@ -1584,7 +1822,7 @@ const EtrManagement = () => {
                           className="text-xs font-bold text-[#002147]"
                           style={{ margin: 0 }}
                         >
-                          {previewFile.size}
+                          {previewFile.size || "—"}
                         </span>
                       </div>
                       <div className="flex justify-between items-center gap-3">
@@ -1674,7 +1912,9 @@ const EtrManagement = () => {
                         className="text-xs text-[#002147]/60 font-semibold uppercase mt-0.5"
                         style={{ margin: 0 }}
                       >
-                        {previewFile.size} • {previewFile.tag}
+                        {[previewFile.size, previewFile.tag]
+                          .filter(Boolean)
+                          .join(" • ") || "—"}
                       </p>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -2150,7 +2390,14 @@ const EtrManagement = () => {
                   <button
                     className="modal-submit-btn"
                     type="button"
+                    disabled={!previewFile.hasFile}
+                    style={
+                      previewFile.hasFile
+                        ? undefined
+                        : { opacity: 0.5, cursor: "not-allowed" }
+                    }
                     onClick={() => {
+                      if (!previewFile.hasFile) return;
                       handleDownloadFile(previewFile.id, previewFile.name);
                       setPreviewFile(null);
                     }}
@@ -2251,10 +2498,17 @@ const EtrManagement = () => {
                 position: "relative",
                 width: "100%",
                 maxWidth: "900px",
+                minHeight: "110px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "16px",
                 margin: "20px 0 0",
+                padding: "0 12px",
+                overflow: "visible",
+                // BẮT BUỘC: .etr-workflow-line-bg dùng position:absolute (top:24px) —
+                // thiếu position:relative ở đây khiến line trượt ra gốc trang và đè lên
+                // nội dung khác → "giao diện tiến độ nhìn bị lỗi".
+                position: "relative",
               }}
             >
               <div
@@ -2551,6 +2805,46 @@ const EtrManagement = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              {/* Tra cứu ETR — gọi API tra cứu hệ thống GET /Search/etrs (khác ô lọc cục bộ
+                  phía trên: ô này tra cứu theo mã ETR/tên học viên trên toàn bộ dữ liệu
+                  backend và trả kết quả trong modal, kể cả hồ sơ không nằm trong danh sách
+                  đang được map ở FE). */}
+              <button
+                className="outline-btn font-gold-btn"
+                type="button"
+                disabled={lookupSearching}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 14px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "4px",
+                  background: "#fff",
+                  color: "#002147",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  cursor: lookupSearching ? "wait" : "pointer",
+                  whiteSpace: "nowrap",
+                }}
+                onClick={handleEtrLookup}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M11.5 6.5C11.5 9.26142 9.26142 11.5 6.5 11.5C3.73858 11.5 1.5 9.26142 1.5 6.5C1.5 3.73858 3.73858 1.5 6.5 1.5C9.26142 11.5 11.5 9.26142 11.5 6.5ZM16 14.5L11.5 10"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                {lookupSearching ? tr("Đang tra cứu...") : tr("Tra cứu ETR")}
+              </button>
               <div
                 className="flex justify-start items-center relative gap-2 px-5 py-2.5 rounded-lg border border-slate-200 cursor-pointer"
                 onClick={() =>
@@ -2684,19 +2978,31 @@ const EtrManagement = () => {
                               ? "#dcfce7"
                               : record.status === "PENDING QA"
                                 ? "#fef3c7"
-                                : "#f1f5f9",
+                                : record.status === "QA VERIFIED"
+                                  ? "#dbeafe"
+                                  : record.status === "RETURNED FOR CORRECTION"
+                                    ? "#fee2e2"
+                                    : "#f1f5f9",
                           border:
                             record.status === "APPROVED"
                               ? "1px solid #bbf7d0"
                               : record.status === "PENDING QA"
                                 ? "1px solid #fde68a"
-                                : "1px solid #e2e8f0",
+                                : record.status === "QA VERIFIED"
+                                  ? "1px solid #bfdbfe"
+                                  : record.status === "RETURNED FOR CORRECTION"
+                                    ? "1px solid #fca5a5"
+                                    : "1px solid #e2e8f0",
                           color:
                             record.status === "APPROVED"
                               ? "#15803d"
                               : record.status === "PENDING QA"
                                 ? "#d97706"
-                                : "#475569",
+                                : record.status === "QA VERIFIED"
+                                  ? "#1d4ed8"
+                                  : record.status === "RETURNED FOR CORRECTION"
+                                    ? "#b91c1c"
+                                    : "#475569",
                           padding: "4px 8px",
                           borderRadius: "4px",
                           fontSize: "10px",
@@ -2705,6 +3011,25 @@ const EtrManagement = () => {
                       >
                         {record.status}
                       </span>
+                      {record.status === "RETURNED FOR CORRECTION" && record.returnReason && (
+                        <div
+                          style={{
+                            marginTop: '4px',
+                            padding: '4px 8px',
+                            backgroundColor: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            color: '#991b1b',
+                            maxWidth: '200px',
+                            lineHeight: '1.3',
+                          }}
+                          title={record.returnReason}
+                        >
+                          📋 {record.returnReason.length > 60 ? record.returnReason.slice(0, 60) + '…' : record.returnReason}
+                        </div>
+                      )}
                     </div>
                     <div
                       className="col-updated"
@@ -3221,6 +3546,81 @@ const EtrManagement = () => {
                     />
                   </div>
 
+                  {/* Returned For Correction / Rejection Feedback Notice */}
+                  {(finalViewRecord?.status === "RETURNED FOR CORRECTION" ||
+                    finalViewDetail?.status === "ReturnedForCorrection" ||
+                    finalViewDetail?.status === "Rejected" ||
+                    finalViewRecord?.returnReason ||
+                    finalViewDetail?.rejectionReason ||
+                    finalViewDetail?.returnReason ||
+                    finalViewDetail?.comment ||
+                    (Array.isArray(finalViewDetail?.approvalHistories) &&
+                      finalViewDetail.approvalHistories.some((h) =>
+                        /return|reject/i.test(h.actionType || "")
+                      ))) && (
+                    <div
+                      style={{
+                        backgroundColor: "#fff1f2",
+                        border: "1px solid #fecdd3",
+                        borderLeft: "4px solid #e11d48",
+                        borderRadius: "8px",
+                        padding: "16px 20px",
+                        marginBottom: "24px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          color: "#be123c",
+                          fontWeight: 700,
+                          fontSize: "13px",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        <span>⚠️ {tr("Ý KIẾN PHẢN HỒI / LÝ DO TRẢ VỀ (RETURN FEEDBACK)")}</span>
+                      </div>
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          fontSize: "14px",
+                          color: "#881337",
+                          lineHeight: "1.6",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {(() => {
+                          const histories = Array.isArray(finalViewDetail?.approvalHistories)
+                            ? finalViewDetail.approvalHistories
+                            : [];
+                          const returnHistory = histories
+                            .filter(
+                              (h) =>
+                                /return|reject/i.test(h.actionType || "") ||
+                                /returned/i.test(h.action || "")
+                            )
+                            .sort(
+                              (a, b) =>
+                                new Date(b.actionAt || b.createdAt || 0).getTime() -
+                                new Date(a.actionAt || a.createdAt || 0).getTime()
+                            )[0];
+
+                          return (
+                            returnHistory?.comments ||
+                            returnHistory?.comment ||
+                            finalViewRecord?.returnReason ||
+                            finalViewDetail?.rejectionReason ||
+                            finalViewDetail?.returnReason ||
+                            finalViewDetail?.comment ||
+                            finalViewRecord?.rejectionReason ||
+                            tr("Hồ sơ đã được thẩm định trả về để chỉnh sửa hoặc bổ sung minh chứng trước khi ký duyệt chính thức.")
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Grid 2 column Info */}
                   <div
                     style={{
@@ -3430,6 +3830,86 @@ const EtrManagement = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Subject Results Table */}
+                  {finalViewDetail?.subjectResults && finalViewDetail.subjectResults.length > 0 && (
+                    <div style={{ border: '1px solid #e0e4e8', borderRadius: '8px', padding: '20px', backgroundColor: '#ffffff', marginBottom: '24px' }}>
+                      <div style={{ fontWeight: '700', fontSize: '12px', color: '#002147', textTransform: 'uppercase', marginBottom: '12px' }}>
+                        {tr('BẢNG ĐIỂM CHI TIẾT TỪNG MÔN')}
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                            <th style={{ textAlign: 'left', padding: '8px 6px', color: '#64748b', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{tr('Môn học')}</th>
+                            <th style={{ textAlign: 'center', padding: '8px 6px', color: '#64748b', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{tr('Điểm')}</th>
+                            <th style={{ textAlign: 'center', padding: '8px 6px', color: '#64748b', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{tr('Trạng thái')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {finalViewDetail.subjectResults.map((sr, idx) => {
+                            const badge = subjectStatusBadge(sr);
+                            const badgeLabel = tr(badge.label);
+                            return (
+                            <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '8px 6px', fontWeight: 600, color: '#334155' }}>
+                                {lookupSubjectName(sr) || sr.subjectName || sr.subjectCode || `${tr('Môn #')}${sr.subjectId}`}
+                              </td>
+                              <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, color: '#002147' }}>{sr.score != null ? sr.score : '—'}</td>
+                              <td style={{ padding: '8px 6px', textAlign: 'center' }}>
+                                <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, backgroundColor: badge.bg, color: badge.color }}>
+                                  {badgeLabel}
+                                </span>
+                              </td>
+                            </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Attendance Rate per Subject */}
+                  {finalViewDetail?.subjectResults && finalViewDetail.subjectResults.length > 0 && (
+                    <div style={{ border: '1px solid #e0e4e8', borderRadius: '8px', padding: '20px', backgroundColor: '#ffffff', marginBottom: '24px' }}>
+                      <div style={{ fontWeight: '700', fontSize: '12px', color: '#002147', textTransform: 'uppercase', marginBottom: '12px' }}>
+                        {tr('TRẠNG THÁI ĐIỂM DANH TỪNG MÔN')}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {finalViewDetail.subjectResults.map((sr, idx) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                              {lookupSubjectName(sr) || sr.subjectName || sr.subjectCode || `${tr('Môn #')}${sr.subjectId}`}
+                            </span>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: (sr.attendanceRate ?? 0) >= 80 ? '#15803d' : '#b91c1c' }}>
+                              {sr.attendanceRate != null ? `${sr.attendanceRate}%` : '—'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Evidence Files */}
+                  {finalViewDetail?.evidenceFiles && finalViewDetail.evidenceFiles.length > 0 && (
+                    <div style={{ border: '1px solid #e0e4e8', borderRadius: '8px', padding: '20px', backgroundColor: '#ffffff', marginBottom: '24px' }}>
+                      <div style={{ fontWeight: '700', fontSize: '12px', color: '#002147', textTransform: 'uppercase', marginBottom: '12px' }}>
+                        {tr('MINH CHỨNG ĐÀO TẠO ĐÃ UPLOAD')}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {finalViewDetail.evidenceFiles.map((file, idx) => {
+                          const vInfo = evidenceVerificationLabel(file);
+                          return (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>📄 {file.fileName || file.name || `${tr('File #')}${idx + 1}`}</span>
+                              <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', backgroundColor: vInfo.bg, color: vInfo.color }}>
+                                {vInfo.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <footer className="modal-footer">
@@ -3438,7 +3918,7 @@ const EtrManagement = () => {
                     type="button"
                     onClick={() => setIsFinalViewOpen(false)}
                   >
-                    ĐÓNG HỒ SƠ
+                    {tr('ĐÓNG HỒ SƠ')}
                   </button>
                 </footer>
               </div>
@@ -3452,6 +3932,97 @@ const EtrManagement = () => {
             log={selectedAuditModalLog}
             onClose={() => setSelectedAuditModalLog(null)}
           />
+        )}
+
+        {/* Modal: Tra cứu ETR (GET /api/Search/etrs) */}
+        {lookupOpen && createPortal(
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+            <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '640px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>{tr('Tra cứu ETR')}</h2>
+                <button
+                  type="button"
+                  onClick={() => setLookupOpen(false)}
+                  style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
+                  aria-label={tr('Đóng')}
+                >✕</button>
+              </div>
+
+              <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#64748b' }}>
+                {tr('Nhập mã ETR (số), tên học viên hoặc trạng thái (VD: Completed) để tra cứu trên toàn hệ thống.')}
+              </p>
+
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
+                <input
+                  type="text"
+                  value={lookupQuery}
+                  onChange={(e) => setLookupQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && runEtrLookup()}
+                  placeholder={tr('VD: 42, Nguyễn Văn A, Completed...')}
+                  style={{ flex: 1, padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
+                />
+                <button
+                  type="button"
+                  disabled={lookupSearching}
+                  onClick={runEtrLookup}
+                  style={{ padding: '9px 18px', background: '#002147', border: 'none', borderRadius: '8px', color: '#c5a059', fontWeight: '700', fontSize: '13px', cursor: lookupSearching ? 'wait' : 'pointer' }}
+                >
+                  {lookupSearching ? tr('Đang tra cứu...') : tr('TRA CỨU')}
+                </button>
+              </div>
+
+              {lookupError && (
+                <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '12px' }}>
+                  {lookupError}
+                </div>
+              )}
+
+              {lookupResults !== null && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {lookupResults.length === 0 && !lookupError ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontStyle: 'italic' }}>
+                      {tr('Không tìm thấy hồ sơ ETR phù hợp.')}
+                    </div>
+                  ) : (
+                    lookupResults.map((r, idx) => (
+                      <div key={r.etrCourseRecordId || r.eTRCourseRecordId || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#002147' }}>
+                            ETR #{r.etrCourseRecordId || r.eTRCourseRecordId || '—'} — {r.studentName || '-'}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                            {r.classCode && r.classCode !== '-' ? `${r.classCode} · ` : ''}
+                            {r.className && r.className !== '-' ? `${r.className} · ` : ''}
+                            {r.courseCode && r.courseCode !== '-' ? r.courseCode : ''}
+                          </div>
+                        </div>
+                        <span style={{
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          fontSize: '10px',
+                          fontWeight: 900,
+                          whiteSpace: 'nowrap',
+                          backgroundColor: (isEtrCompleted(r.status) || r.status === 'Verified') ? '#dcfce7' : (r.status === 'ReturnedForCorrection' || r.status === 'Rejected') ? '#fef3c7' : '#e2e8f0',
+                          color: (isEtrCompleted(r.status) || r.status === 'Verified') ? '#15803d' : (r.status === 'ReturnedForCorrection' || r.status === 'Rejected') ? '#d97706' : '#475569',
+                        }}>
+                          {etrStatusDisplay(r.status)}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px' }}>
+                <button
+                  type="button"
+                  onClick={() => setLookupOpen(false)}
+                  style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                >{tr('Đóng')}</button>
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>

@@ -8,6 +8,12 @@ import { useLanguage } from '../context/LanguageContext';
 import ApprovalHistory from "../components/ApprovalHistory";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import {
+  isEtrCompleted,
+  areAllAttendanceRatesOk,
+  areSubjectScoresFinalized,
+  subjectStatusBadge,
+} from "../utils/etrStatus";
 
 // Dòng hiển thị 1 bước kiểm duyệt trong modal chi tiết ETR
 const StepStatusRow = ({ label, ok }) => {
@@ -138,7 +144,11 @@ const QARETRReviewQueue = () => {
             outcome = "returned";
           } else if (rawStatus === "Verified") {
             outcome = "verified";
-          } else if (rawStatus === "Submitted" || rawStatus === "Pending") {
+          } else if (
+            rawStatus === "Submitted" ||
+            rawStatus === "Pending" ||
+            rawStatus === "UnderReview"
+          ) {
             outcome = "pending";
           }
 
@@ -262,19 +272,10 @@ const QARETRReviewQueue = () => {
   const detailSubjectResults = Array.isArray(etrDetail?.subjectResults)
     ? etrDetail.subjectResults
     : [];
-  const detailAttendanceOk =
-    detailSubjectResults.length > 0 &&
-    detailSubjectResults.every((sr) => (sr.attendanceRate ?? 0) >= 80);
-  const detailResultsOk =
-    detailSubjectResults.length > 0 &&
-    detailSubjectResults.every((sr) => {
-      const all = [
-        ...(sr.assessmentResults || []),
-        ...(sr.practicalChecklistResults || []),
-      ];
-      if (sr.status === "Exempted" || all.length === 0) return true;
-      return all.every((r) => r.isPublished === true);
-    });
+  // Logic dùng chung với trang Academic — xem utils/etrStatus.js +
+  // src/test/EtrWorkflowSteps.test.jsx (ETR mới: chưa điểm danh/chưa chốt điểm → ⌛).
+  const detailAttendanceOk = areAllAttendanceRatesOk(detailSubjectResults);
+  const detailResultsOk = areSubjectScoresFinalized(detailSubjectResults);
   const detailEvidenceTotal = detailSubjectResults.reduce(
     (n, sr) => n + (evidenceBySrId[sr.subjectResultId]?.length || 0),
     0
@@ -291,7 +292,7 @@ const QARETRReviewQueue = () => {
     (detailEvidenceTotal > 0 &&
       detailEvidenceVerified === detailEvidenceTotal) ||
     etrDetail?.status === "Verified" ||
-    etrDetail?.status === "Completed";
+    isEtrCompleted(etrDetail?.status);
 
   // Lọc lịch sử duyệt theo từ khóa: mã ETR (ETR-0001 / 1), tên học viên, khóa, trạng thái
   const filteredHistoryRecords = historyRecords.filter((record) => {
@@ -402,31 +403,28 @@ const QARETRReviewQueue = () => {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    cursor: "pointer",
+                    flexWrap: "wrap",
+                    gap: "12px",
                   }}
-                  onClick={() =>
-                    setSelectedEtr(
-                      selectedEtr?.etrId === record.etrId ? null : record
-                    )
-                  }
                 >
-                  <div>
-                    <p className="qa-list-title">
-                      {record.id} - {record.learner}
+                  <div
+                    style={{ cursor: "pointer", flex: "1 1 240px" }}
+                    onClick={() => handleViewDetails(record)}
+                  >
+                    <p className="qa-list-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span>{record.id} - {record.learner}</span>
+                      <span className="qa-status pending">{trEn(record.stage)}</span>
                     </p>
                     <p className="qa-list-desc">{record.course}</p>
                   </div>
-                  <span className="qa-status pending">{trEn(record.stage)}</span>
-                </div>
 
-                {selectedEtr?.etrId === record.etrId && (
                   <div
                     className="qa-actions"
                     style={{
-                      paddingTop: "8px",
-                      borderTop: "1px solid #e2e8f0",
                       display: "flex",
                       gap: "8px",
+                      flexWrap: "wrap",
+                      alignItems: "center",
                     }}
                   >
                     <button
@@ -443,21 +441,23 @@ const QARETRReviewQueue = () => {
                     <button
                       className="qa-btn"
                       type="button"
+                      style={{ backgroundColor: "#15803d", borderColor: "#15803d", color: "#ffffff", fontWeight: "600" }}
                       onClick={() => setConfirmVerifyId(record.etrId)}
                       disabled={verifying}
                     >
-                      {trEn('Verify ETR')}
+                      ✓ {trEn('Verify ETR')}
                     </button>
                     <button
                       className="qa-btn-secondary"
                       type="button"
+                      style={{ color: "#b91c1c", borderColor: "#fca5a5" }}
                       onClick={() => setReturnTarget(record.etrId)}
                       disabled={verifying}
                     >
-                      {trEn('Return for Correction')}
+                      ↺ {trEn('Return for Correction')}
                     </button>
                   </div>
-                )}
+                </div>
               </div>
             ))
           )}
@@ -836,7 +836,7 @@ const QARETRReviewQueue = () => {
                       </div>
                       <span
                         className={`qa-status ${
-                          etrDetail.status === "Completed" ||
+                          isEtrCompleted(etrDetail.status) ||
                           etrDetail.status === "Verified"
                             ? "reviewed"
                             : "pending"
@@ -958,17 +958,15 @@ const QARETRReviewQueue = () => {
                                   }}
                                 >
                                   {tr('Trạng thái')}:{" "}
+                                  {/* Nhãn/màu dùng chung với trang Academic (utils/etrStatus.js)
+                                      để không hiển thị enum thô (Pending/Passed/...) ở đây nữa. */}
                                   <span
                                     style={{
-                                      color:
-                                        sr.status === "Passed"
-                                          ? "#15803d"
-                                          : sr.status === "Failed"
-                                            ? "#b91c1c"
-                                            : "#b45309",
+                                      color: subjectStatusBadge(sr).color,
+                                      fontWeight: 700,
                                     }}
                                   >
-                                    {sr.status}
+                                    {tr(subjectStatusBadge(sr).label)}
                                   </span>
                                   {" "}
                                   · {tr('Chuyên cần')}:{" "}
@@ -1175,6 +1173,36 @@ const QARETRReviewQueue = () => {
                     </div>
                     <ApprovalHistory etrId={detailTarget.etrId} />
                   </div>
+
+                  {/* Action buttons inside detail modal for Submitted ETRs */}
+                  {etrDetail?.status === "Submitted" && (
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px", padding: "14px 0", borderTop: "1px solid #e0e4e8" }}>
+                      <button
+                        className="qa-btn-secondary"
+                        type="button"
+                        style={{ color: "#b91c1c", borderColor: "#fca5a5", padding: "8px 16px" }}
+                        onClick={() => {
+                          setReturnTarget(detailTarget.etrId);
+                          setDetailTarget(null);
+                        }}
+                        disabled={verifying}
+                      >
+                        ↺ {trEn('Return for Correction')}
+                      </button>
+                      <button
+                        className="qa-btn"
+                        type="button"
+                        style={{ backgroundColor: "#15803d", borderColor: "#15803d", color: "#ffffff", fontWeight: "600", padding: "8px 18px" }}
+                        onClick={() => {
+                          setConfirmVerifyId(detailTarget.etrId);
+                          setDetailTarget(null);
+                        }}
+                        disabled={verifying}
+                      >
+                        ✓ {trEn('Verify ETR')}
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
