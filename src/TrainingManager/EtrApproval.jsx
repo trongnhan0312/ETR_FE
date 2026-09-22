@@ -487,23 +487,24 @@ const EtrApproval = () => {
               </svg>
             </button>
             {viewingHistory.status === "PENDING" && (
-              <>
-                <button
-                  onClick={() => handleReturn(viewingHistory)}
-                  className="tm-btn-secondary"
-                  style={{
-                    padding: "8px 14px",
-                    color: "#b91c1c",
-                    border: "1px solid #fca5a5",
-                    backgroundColor: "#fef2f2",
-                    fontWeight: 600,
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  ↺ {tr('Return for Correction')}
-                </button>
-                {viewingHistory.qaVerified ? (
+              viewingHistory.qaVerified ? (
+                <>
+                  <button
+                    onClick={() => handleReturn(viewingHistory)}
+                    className="tm-btn-secondary"
+                    style={{
+                      padding: "8px 14px",
+                      color: "#b91c1c",
+                      border: "1px solid #fca5a5",
+                      backgroundColor: "#fef2f2",
+                      fontWeight: 600,
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                    }}
+                    title={tr("Hồ sơ đã qua QA nhưng chưa đạt, trả lại để chỉnh sửa")}
+                  >
+                    ↺ {tr('Return for Correction')}
+                  </button>
                   <button
                     className="grant-cert-btn"
                     onClick={() => {
@@ -514,21 +515,21 @@ const EtrApproval = () => {
                   >
                     ✓ {tr('Approve & Grant Certification')}
                   </button>
-                ) : (
-                  <button
-                    disabled
-                    className="grant-cert-btn"
-                    style={{
-                      opacity: 0.6,
-                      cursor: "not-allowed",
-                      backgroundColor: "#94a3b8",
-                    }}
-                    title={tr("Hồ sơ đang chờ QA thẩm định trước khi Training Manager phê duyệt và cấp chứng chỉ")}
-                  >
-                    ⏳ {tr('Awaiting QA Verification')}
-                  </button>
-                )}
-              </>
+                </>
+              ) : (
+                <button
+                  disabled
+                  className="grant-cert-btn"
+                  style={{
+                    opacity: 0.6,
+                    cursor: "not-allowed",
+                    backgroundColor: "#94a3b8",
+                  }}
+                  title={tr("Hồ sơ đang chờ QA thẩm định tại ETR Review Queue. Training Manager chỉ duyệt hoặc trả về khi QA đã thẩm định xong.")}
+                >
+                  ⏳ {tr('Awaiting QA Verification')}
+                </button>
+              )
             )}
             {viewingHistory.status === "APPROVED" && (
               <span
