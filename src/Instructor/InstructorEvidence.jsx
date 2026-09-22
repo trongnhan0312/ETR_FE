@@ -191,6 +191,12 @@ const InstructorEvidence = () => {
         .filter((e) => e.classId === parseInt(selectedClassId))
         .map((e) => e.enrollmentId);
 
+      if (classEnrollmentIds.length === 0) {
+        setEvidences([]);
+        setLoading(false);
+        return;
+      }
+
       // ETR API returns enrollmentId (not accountId), so match by enrollmentId
       const classEtrs = allEtrs.filter((e) =>
         classEnrollmentIds.includes(e.enrollmentId),
@@ -232,22 +238,13 @@ const InstructorEvidence = () => {
         }),
       );
 
-      // Debug: log what we got
-      console.log("[loadEvidences] allEvidences:", allEvidences?.length || 0);
-      console.log("[loadEvidences] allEtrs:", allEtrs?.length || 0);
-      console.log("[loadEvidences] classEnrollmentIds:", classEnrollmentIds);
-      console.log("[loadEvidences] classEtrs:", classEtrs?.length || 0);
-      console.log("[loadEvidences] subjectResultIds found:", subjectResultIds);
-
-      // If we have subjectResultIds, filter by them; otherwise show all evidences
+      // If we have subjectResultIds, filter by them; otherwise show empty list
       const filteredEvidences =
         subjectResultIds.length > 0
           ? allEvidences.filter((ev) =>
               subjectResultIds.includes(ev.subjectResultId),
             )
-          : allEvidences;
-
-      console.log("[loadEvidences] filteredEvidences:", filteredEvidences?.length || 0);
+          : [];
 
       const mappedEvidences = filteredEvidences.map((ev, idx) => {
         const typeName =
