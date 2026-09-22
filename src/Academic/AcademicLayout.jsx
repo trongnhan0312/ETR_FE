@@ -4,6 +4,7 @@ import NotificationsDropdown from "../components/NotificationsDropdown";
 import { useLanguage } from "../context/LanguageContext";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
+import { handleAppBack } from "../utils/navigation";
 import "./academic.scss";
 
 const navigationItems = [
@@ -131,9 +132,7 @@ const navigationItems = [
 const AcademicLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isHomePage =
-    location.pathname === "/academic" ||
-    location.pathname === "/academic/learners";
+  const isHomePage = location.pathname === "/academic";
   const [expandedMenu, setExpandedMenu] = useState("");
   const { tr } = useLanguage();
 
@@ -275,7 +274,7 @@ const AcademicLayout = () => {
             {/* Back button - hidden when on home page */}
             {!isHomePage && (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => handleAppBack(navigate, "/academic")}
                 type="button"
                 aria-label={tr("Quay lại")}
                 style={{

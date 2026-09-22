@@ -22,6 +22,7 @@ import {
   evidenceCategoryFromTypeName,
   formatEvidenceSize,
 } from "../utils/evidenceFiles";
+import { useSubViewBack } from "../utils/navigation";
 
 const EtrManagement = ({ defaultView = "list" }) => {
   const { tr, trEn } = useLanguage();
@@ -578,6 +579,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
       navigate(-1);
     }
   };
+
+  useSubViewBack(viewMode === "evidence", handleBackToList);
 
   const handleUploadEvidence = async (e) => {
     e.preventDefault();

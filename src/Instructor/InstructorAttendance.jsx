@@ -1,4 +1,5 @@
-import { Fragment, useState, useEffect, useMemo } from "react";
+import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
@@ -11,6 +12,7 @@ import { protectExcelTemplate } from "../utils/excelTemplateProtect";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { useLanguage } from "../context/LanguageContext";
+import { useSubViewBack } from "../utils/navigation";
 import {
   groupSessionsBySubject,
   sessionGroupsBySubjectId,
@@ -73,12 +75,30 @@ const isBeyondAttendanceGrace = (rawSessionDate) => {
 
 const InstructorAttendance = () => {
   const { tr } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [classesData, setClassesData] = useState([]);
   const [subjectsList, setSubjectsList] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [sessions, setSessions] = useState([]);
   const [subjectFilter, setSubjectFilter] = useState(""); // "" = tất cả môn
   const [selectedSession, setSelectedSession] = useState(null);
+
+  const handleBackToSessions = useCallback(() => {
+    setSelectedSession(null);
+    if (location.state?.attendanceSessionId) {
+      navigate(-1);
+    }
+  }, [location.state, navigate]);
+
+  useSubViewBack(!!selectedSession, handleBackToSessions);
+
+  // Sync if browser back button was clicked
+  useEffect(() => {
+    if (selectedSession && !location.state?.attendanceSessionId) {
+      setSelectedSession(null);
+    }
+  }, [location.state, selectedSession]);
 
   // Student list and attendance records
   const [students, setStudents] = useState([]);
@@ -172,7 +192,17 @@ const InstructorAttendance = () => {
         setClassesData(activeClasses);
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         if (activeClasses.length > 0) {
-          setSelectedClassId(activeClasses[0].classId);
+          const savedClassId =
+            location.state?.attendanceClassId ||
+            sessionStorage.getItem("etr_attendance_class_id");
+          if (
+            savedClassId &&
+            activeClasses.some((c) => String(c.classId) === String(savedClassId))
+          ) {
+            setSelectedClassId(Number(savedClassId));
+          } else {
+            setSelectedClassId(activeClasses[0].classId);
+          }
         }
       } catch (err) {
         console.error("Lỗi khi tải danh sách lớp học:", err);
@@ -181,7 +211,13 @@ const InstructorAttendance = () => {
       }
     };
     fetchClasses();
-  }, []);
+  }, [location.state?.attendanceClassId]);
+
+  useEffect(() => {
+    if (selectedClassId) {
+      sessionStorage.setItem("etr_attendance_class_id", String(selectedClassId));
+    }
+  }, [selectedClassId]);
 
   // Fetch sessions when a class is selected
   useEffect(() => {
@@ -259,6 +295,15 @@ const InstructorAttendance = () => {
   // Load students and attendance records when a session is selected
   const loadAttendance = async (session) => {
     setSelectedSession(session);
+    if (!location.state?.attendanceSessionId) {
+      navigate(location.pathname, {
+        state: {
+          ...(location.state || {}),
+          attendanceSessionId: session.sessionId,
+          attendanceClassId: selectedClassId,
+        },
+      });
+    }
     setLoading(true);
     try {
       // 1. Get class details, enrollments
@@ -785,7 +830,7 @@ const InstructorAttendance = () => {
         <nav className="breadcrumb-nav">
           <span
             className="breadcrumb-item"
-            onClick={() => setSelectedSession(null)}
+            onClick={handleBackToSessions}
             style={{ cursor: "pointer", color: "white" }}
           >
             {tr("ĐIỂM DANH")}
@@ -857,9 +902,53 @@ const InstructorAttendance = () => {
 
         <section className="content-header">
           <div className="header-left">
-            <h1>
-              {tr("Điểm danh")} — {tr(selectedSession.name)}
-            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={handleBackToSessions}
+                aria-label={tr("Quay lại")}
+                title={tr("Quay lại")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  border: "1px solid #dfe6f1",
+                  background: "#ffffff",
+                  color: "#c5a059",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#c5a059";
+                  e.currentTarget.style.background = "rgba(197, 160, 89, 0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#dfe6f1";
+                  e.currentTarget.style.background = "#ffffff";
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5" />
+                  <path d="M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h1 style={{ margin: 0 }}>
+                {tr("Điểm danh")} — {tr(selectedSession.name)}
+              </h1>
+            </div>
             <div className="divider-gold" />
             <p className="header-description">
               {selectedSession.date} · {selectedSession.room} · {tr("Lớp: ")}

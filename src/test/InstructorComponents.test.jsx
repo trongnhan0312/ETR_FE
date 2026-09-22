@@ -368,3 +368,71 @@ describe('InstructorSchedule - Session structure', () => {
     expect(dayMap[1].sessions).toHaveLength(0)
   })
 })
+
+// ---------------------------------------------------------------------------
+// InstructorClasses - Session subject column mapping & search
+// ---------------------------------------------------------------------------
+describe('InstructorClasses - Session subject column mapping', () => {
+  const mockSubjects = [
+    { subjectId: 101, subjectCode: 'A320-SYS', subjectName: 'Aircraft Systems' },
+    { subjectId: 102, subjectCode: 'AV-REG', subjectName: 'Aviation Regulations' },
+  ]
+
+  it('resolves subjectName directly from session response when available', () => {
+    const session = {
+      sessionId: 1,
+      subjectId: 101,
+      subjectName: 'Aircraft Systems',
+      subjectCode: 'A320-SYS',
+    }
+
+    const sid = session.subjectId
+    const foundSub = mockSubjects.find((s) => s.subjectId === sid)
+    const resolvedName = session.subjectName || foundSub?.subjectName || ''
+    const resolvedCode = session.subjectCode || foundSub?.subjectCode || ''
+
+    expect(resolvedName).toBe('Aircraft Systems')
+    expect(resolvedCode).toBe('A320-SYS')
+  })
+
+  it('falls back to subjectsList lookup when session does not have subjectName populated', () => {
+    const session = {
+      sessionId: 2,
+      subjectId: 102,
+    }
+
+    const sid = session.subjectId
+    const foundSub = mockSubjects.find((s) => s.subjectId === sid)
+    const resolvedName = session.subjectName || foundSub?.subjectName || ''
+    const resolvedCode = session.subjectCode || foundSub?.subjectCode || ''
+
+    expect(resolvedName).toBe('Aviation Regulations')
+    expect(resolvedCode).toBe('AV-REG')
+  })
+
+  it('filters sessions by subjectName and subjectCode in search filter', () => {
+    const sessions = [
+      { name: 'Buoi 1', subjectName: 'Aircraft Systems', subjectCode: 'A320-SYS', instructor: 'Thầy Nam', room: 'Phòng A1' },
+      { name: 'Buoi 2', subjectName: 'Aviation Regulations', subjectCode: 'AV-REG', instructor: 'Cô Lan', room: 'Phòng B2' },
+    ]
+
+    const filter = (query) => {
+      const q = query.trim().toLowerCase()
+      if (!q) return sessions
+      return sessions.filter(
+        (s) =>
+          (s.name && s.name.toLowerCase().includes(q)) ||
+          (s.subjectName && s.subjectName.toLowerCase().includes(q)) ||
+          (s.subjectCode && s.subjectCode.toLowerCase().includes(q)) ||
+          (s.instructor && s.instructor.toLowerCase().includes(q)) ||
+          (s.room && s.room.toLowerCase().includes(q)),
+      )
+    }
+
+    expect(filter('Aircraft')).toHaveLength(1)
+    expect(filter('AV-REG')).toHaveLength(1)
+    expect(filter('Regulations')).toHaveLength(1)
+    expect(filter('Nonexistent')).toHaveLength(0)
+  })
+})
+

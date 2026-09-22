@@ -30,3 +30,4 @@ dist-ssr
 
 # E2E test artifacts
 /e2e-screenshots
+/e2e-tmp

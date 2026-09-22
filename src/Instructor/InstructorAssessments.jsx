@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import * as XLSX from "xlsx";
 import { api, parseApiError } from "../utils/api";
@@ -12,6 +13,7 @@ import { protectExcelTemplate } from "../utils/excelTemplateProtect";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { useLanguage } from '../context/LanguageContext';
+import { useSubViewBack } from "../utils/navigation";
 import "./instructor.scss";
 
 // Giảng viên hiện tại = người đang đăng nhập (lưu trong localStorage khi login) —
@@ -40,13 +42,42 @@ const isLockedStatus = (status) => {
 };
 
 const InstructorAssessments = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { tr, trt } = useLanguage();
   const [classesData, setClassesData] = useState([]);
   const [subjectsList, setSubjectsList] = useState([]);
-  const [selectedClassId, setSelectedClassId] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState(() => {
+    return sessionStorage.getItem("instructor_assessments_class_id") || "";
+  });
   const [subjectFilter, setSubjectFilter] = useState(""); // "" = tất cả môn
   const [assessmentsForClass, setAssessmentsForClass] = useState([]);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
+
+  const handleBackToAssessments = () => {
+    setSelectedAssessment(null);
+    setIsEditingScores(false);
+    if (location.state?.assessmentGradingId) {
+      navigate(".", {
+        replace: true,
+        state: {
+          ...(location.state || {}),
+          assessmentGradingId: null,
+          assessmentClassId: selectedClassId,
+        },
+      });
+    }
+  };
+
+  useSubViewBack(!!selectedAssessment, handleBackToAssessments);
+
+  useEffect(() => {
+    if (!location.state?.assessmentGradingId && selectedAssessment) {
+      setSelectedAssessment(null);
+      setIsEditingScores(false);
+    }
+  }, [location.state?.assessmentGradingId]);
+
   // Trạng thái phân công giảng viên theo môn của lớp đang chọn — để hiển thị đúng thông báo
   // khi giảng viên không được phân công môn nào (thay vì nhầm tưởng "chưa có Assessment").
   const [classHasAssignments, setClassHasAssignments] = useState(false);
@@ -196,7 +227,12 @@ const InstructorAssessments = () => {
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
         if (mapped.length > 0) {
-          setSelectedClassId(mapped[0].classId);
+          const savedClassId = location.state?.assessmentClassId || sessionStorage.getItem("instructor_assessments_class_id");
+          const matched = activeClasses.find((c) => String(c.classId) === String(savedClassId)) || activeClasses[0] || mapped[0];
+          if (matched) {
+            setSelectedClassId(matched.classId);
+            sessionStorage.setItem("instructor_assessments_class_id", String(matched.classId));
+          }
         }
       } catch (err) {
         console.error("Lỗi khi tải danh sách lớp học:", err);
@@ -771,6 +807,14 @@ const InstructorAssessments = () => {
     setSelectedAssessment(assessment);
     setIsEditingScores(false);
     loadAssessmentScores(assessment, autoType);
+    navigate(".", {
+      replace: false,
+      state: {
+        ...(location.state || {}),
+        assessmentGradingId: assessment.assessmentId ?? assessment.sessionId,
+        assessmentClassId: selectedClassId,
+      },
+    });
   };
 
   const handleStartEdit = () => {
@@ -1743,7 +1787,7 @@ const InstructorAssessments = () => {
         <nav className="breadcrumb-nav">
           <span
             className="breadcrumb-item"
-            onClick={() => setSelectedAssessment(null)}
+            onClick={handleBackToAssessments}
             style={{ cursor: "pointer" }}
           >
             {tr('ĐÁNH GIÁ')}
@@ -1760,8 +1804,35 @@ const InstructorAssessments = () => {
         </nav>
 
         <section className="content-header">
-          <div className="header-left">
-             <h1>{tr('Nhập điểm đánh giá')} — {selectedAssessment.componentName}</h1>
+          <div className="header-left" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+            <button
+              type="button"
+              onClick={handleBackToAssessments}
+              className="btn-back-inline"
+              title={tr("Quay lại danh sách bài đánh giá")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "36px",
+                height: "36px",
+                borderRadius: "8px",
+                border: "1px solid #dfe6f1",
+                background: "#fff",
+                color: "#002147",
+                cursor: "pointer",
+                fontSize: "18px",
+                lineHeight: 1,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                transition: "all 0.15s ease",
+                marginTop: "4px",
+                flexShrink: 0,
+              }}
+            >
+              ←
+            </button>
+            <div>
+              <h1>{tr('Nhập điểm đánh giá')} — {selectedAssessment.componentName}</h1>
             <div className="divider-gold" />
              <p className="header-description">
                {getAssessmentTypeLabel(selectedAssessmentType)} ·{" "}
@@ -1778,6 +1849,7 @@ const InstructorAssessments = () => {
                · {tr('Lớp: ')}{" "}
                {selectedClass ? selectedClass.code : "N/A"}
              </p>
+            </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -3050,6 +3122,7 @@ const InstructorAssessments = () => {
           value={selectedClassId}
           onChange={(e) => {
             setSelectedClassId(e.target.value);
+            sessionStorage.setItem("instructor_assessments_class_id", e.target.value);
             setSubjectFilter("");
           }}
         >

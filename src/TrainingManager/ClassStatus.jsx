@@ -1,20 +1,56 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate, useLocation } from "react-router-dom";
 import { api, parseApiError } from "../utils/api";
 import { announce } from "../utils/crudNotify";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import { useSubViewBack } from "../utils/navigation";
 import "./training-manager.scss";
 
 const ClassStatus = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { tr, trt } = useLanguage();
   const toast = useToast();
   const { searchQuery = "" } = useOutletContext();
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedClassDetails, setSelectedClassDetails] = useState(null);
+
+  const handleSelectClassDetails = (cls) => {
+    setSelectedClassDetails(cls);
+    navigate(".", {
+      replace: false,
+      state: {
+        ...(location.state || {}),
+        tmClassDetailsId: cls?.id,
+      },
+    });
+  };
+
+  const handleBackFromDetails = () => {
+    setSelectedClassDetails(null);
+    if (location.state?.tmClassDetailsId) {
+      navigate(".", {
+        replace: true,
+        state: {
+          ...(location.state || {}),
+          tmClassDetailsId: null,
+        },
+      });
+    }
+  };
+
+  useSubViewBack(!!selectedClassDetails, handleBackFromDetails);
+
+  useEffect(() => {
+    if (!location.state?.tmClassDetailsId && selectedClassDetails) {
+      setSelectedClassDetails(null);
+    }
+  }, [location.state?.tmClassDetailsId]);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creatingClass, setCreatingClass] = useState(false);
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
@@ -402,7 +438,7 @@ const ClassStatus = () => {
             <div className="flex flex-col justify-start items-start gap-2">
               <div className="flex justify-start items-center gap-1">
                 <span
-                  onClick={() => setSelectedClassDetails(null)}
+                  onClick={handleBackFromDetails}
                   className="text-xs font-semibold uppercase text-[#495057] cursor-pointer hover:text-[#002147] transition-all"
                 >
                   {tr('TRẠNG THÁI LỚP HỌC')}
@@ -423,9 +459,36 @@ const ClassStatus = () => {
                   {tr('CHI TIẾT ĐIỂM DANH')}
                 </span>
               </div>
-              <h2 className="text-3xl font-bold text-left text-[#002147] m-0">
-                {tr('Kiểm tra dữ liệu điểm danh')}
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={handleBackFromDetails}
+                  className="btn-back-inline"
+                  title={tr("Quay lại Trạng thái lớp học")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "8px",
+                    border: "1px solid #dfe6f1",
+                    background: "#fff",
+                    color: "#002147",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    lineHeight: 1,
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                    transition: "all 0.15s ease",
+                    flexShrink: 0,
+                  }}
+                >
+                  ←
+                </button>
+                <h2 className="text-3xl font-bold text-left text-[#002147] m-0">
+                  {tr('Kiểm tra dữ liệu điểm danh')}
+                </h2>
+              </div>
             </div>
 
             <button
@@ -1042,7 +1105,7 @@ const ClassStatus = () => {
                     return (
                       <tr
                         key={cls.id}
-                        onClick={() => setSelectedClassDetails(cls)}
+                        onClick={() => handleSelectClassDetails(cls)}
                         className="hover:bg-slate-50/50 cursor-pointer transition-colors"
                       >
                         {/* Mã lớp */}
