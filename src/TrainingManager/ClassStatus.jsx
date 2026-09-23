@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { useOutletContext, useNavigate, useLocation } from "react-router-dom";
-import { api, parseApiError } from "../utils/api";
-import { announce } from "../utils/crudNotify";
+import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
@@ -51,67 +49,11 @@ const ClassStatus = () => {
     }
   }, [location.state?.tmClassDetailsId]);
 
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [creatingClass, setCreatingClass] = useState(false);
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
-
-  // Form states for creating a new class
-  const [newClassId, setNewClassId] = useState("");
-  const [newClassName, setNewClassName] = useState("");
-  const [newClassSub, setNewClassSub] = useState("");
-  const [newStartDate, setNewStartDate] = useState("");
-  const [newEndDate, setNewEndDate] = useState("");
-  const [newRoom, setNewRoom] = useState("");
-  const [newTraineesCount, setNewTraineesCount] = useState(15);
-  const [newClassType, setNewClassType] = useState("Type Rating");
-  const [newCourseId, setNewCourseId] = useState("");
-
-  // Options for Class creation form (Course dropdown + Instructor dropdown)
-  const [coursesList, setCoursesList] = useState([]);
-  const [instructorsList, setInstructorsList] = useState([]);
 
   // Load classes from API
   const [classes, setClasses] = useState([]);
-  const [rawClasses, setRawClasses] = useState([]);
   const [classesLoading, setClassesLoading] = useState(true);
-
-
-  // Load Courses + Instructor accounts for the Create Class form.
-  // InstructorAccountId must point to an Account whose Role is exactly "Instructor"
-  // (roleId === 2) — backend validates this, so we only offer valid accounts.
-  const loadClassFormOptions = async () => {
-    try {
-      const [courseData, accountData, profileData] = await Promise.all([
-        api.get("/Courses").catch(() => []),
-        api.get("/Accounts").catch(() => []),
-        api.get("/UserProfiles").catch(() => []),
-      ]);
-
-      const coursesArr = Array.isArray(courseData) ? courseData : [];
-      const accountsArr = Array.isArray(accountData) ? accountData : [];
-      const profilesArr = Array.isArray(profileData) ? profileData : [];
-
-      setCoursesList(coursesArr);
-      if (coursesArr.length > 0) {
-        setNewCourseId(String(coursesArr[0].courseId));
-      }
-
-      const instructors = accountsArr
-        .filter((a) => a.roleId === 2 || a.roleName === "Instructor")
-        .map((a) => {
-          const profile = profilesArr.find(
-            (p) => p.accountId === a.accountId,
-          );
-          return {
-            accountId: a.accountId,
-            fullName: profile?.fullName || a.username || `Instructor #${a.accountId}`,
-          };
-        });
-      setInstructorsList(instructors);
-    } catch (err) {
-      console.error("Error loading class form options:", err);
-    }
-  };
 
   const loadClasses = async () => {
     setClassesLoading(true);
@@ -125,7 +67,6 @@ const ClassStatus = () => {
       const clsArr = Array.isArray(classData) ? classData : [];
       const enrArr = Array.isArray(enrollmentData) ? enrollmentData : [];
       const profArr = Array.isArray(profileData) ? profileData : [];
-      setRawClasses(clsArr);
 
       // Toàn bộ lớp (không slice) — phân trang xử lý hiển thị tối đa 10 dòng/trang
       const mapped = clsArr.map((cls) => {
@@ -165,7 +106,6 @@ const ClassStatus = () => {
 
   useEffect(() => {
     loadClasses();
-    loadClassFormOptions();
   }, []);
 
   const getFallbackClasses = () => [];
@@ -194,72 +134,7 @@ const ClassStatus = () => {
   const activeCount = classes.filter((c) => c.status === "IN PROGRESS").length;
   const urgentCount = classes.filter((c) => c.status === "DELAYED").length;
 
-  const handleCreateClass = async (e) => {
-    e.preventDefault();
-    // Chống submit 2 lần liên tiếp (double-click) — tránh trùng mã → DbUpdateException
-    if (creatingClass) return;
-    if (!newClassId || !newClassName || !newCourseId) {
-      toast.warning(tr("Thiếu thông tin bắt buộc"));
-      return;
-    }
 
-    // Chặn trùng Mã lớp ngay tại FE (khớp unique index IX_Classes_ClassCode của CSDL)
-    const codeUpper = newClassId.trim().toUpperCase();
-    if (rawClasses.some((c) => String(c.classCode || "").trim().toUpperCase() === codeUpper)) {
-      toast.error(tr("Mã lớp học đã tồn tại. Vui lòng nhập một Mã lớp khác."));
-      return;
-    }
-
-    // BE bắt buộc StartDate/EndDate là DateTime (không chấp nhận null) —
-    // nếu người dùng để trống/không hợp lệ, mặc định Hôm nay / Hôm nay + 30 ngày
-    // để tránh DbUpdateException khi lưu vào CSDL.
-    const todayIso = new Date().toISOString();
-    const nextMonthIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-    const toIso = (val, fallback) => {
-      if (!val) return fallback;
-      const d = new Date(val);
-      if (isNaN(d.getTime())) return fallback;
-      return d.toISOString();
-    };
-
-    setCreatingClass(true);
-    try {
-      // Call API to create class — khớp CreateClassRequest của backend:
-      // { classCode, className, courseId, startDate, endDate, location, capacity, status, instructorAssignments? }
-      // Lưu ý: Class KHÔNG còn InstructorAccountId cấp lớp — Giảng viên được phân công theo Môn học
-      // (InstructorAssignments) thông qua màn hình Khóa & Lớp học (Academic).
-      await api.post("/Classes", {
-        classCode: newClassId.toUpperCase(),
-        className: newClassName,
-        courseId: Number(newCourseId),
-        startDate: toIso(newStartDate, todayIso),
-        endDate: toIso(newEndDate, nextMonthIso),
-        location: newRoom || "",
-        capacity: Number(newTraineesCount) || 15,
-        status: "Planned",
-        instructorAssignments: []
-      });
-
-      // Reload classes from API after creation
-      await loadClasses();
-      setShowCreateModal(false);
-      toast.success(tr("Tạo lớp học thành công!"), announce("add", tr("Lớp học")));
-
-      // Reset fields
-      setNewClassId("");
-      setNewClassName("");
-      setNewClassSub("");
-      setNewStartDate("");
-      setNewEndDate("");
-      setNewRoom("");
-      setNewTraineesCount(15);
-    } catch (error) {
-      console.error("Error creating class:", error);
-      toast.error(parseApiError(error, tr("Tạo lớp học thất bại")));
-    } finally {
-      setCreatingClass(false);
-    }
-  };
 
   const getStudentsForClass = (classId) => {
     return studentsData[classId] || [];
@@ -886,20 +761,6 @@ const ClassStatus = () => {
               {tr('Quản lý và giám sát tiến độ các lớp đào tạo hàng không')}
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex justify-start items-center gap-2 px-6 py-3 rounded bg-[#012248] text-white border-none cursor-pointer hover:bg-[#012248]/90 transition-all font-semibold"
-          >
-            <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-              <path
-                d="M5 6.66667H0V5H5V0H6.66667V5H11.6667V6.66667H6.66667V11.6667H5V6.66667Z"
-                fill="white"
-              />
-            </svg>
-            <span className="text-base text-center text-white ">
-              {tr('Tạo lớp học mới')}
-            </span>
-          </button>
         </div>
 
         {/* QUICK OVERVIEW SUMMARY CARDS */}
@@ -1206,188 +1067,7 @@ const ClassStatus = () => {
         </div>
       </div>
 
-      {/* CREATE NEW CLASS MODAL */}
-      {showCreateModal && createPortal(
-        <div className="tm-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 33, 71, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, backdropFilter: 'blur(4px)' }}>
-          <div className="tm-modal-card max-w-lg w-full bg-white rounded-lg shadow-xl overflow-hidden" style={{ margin: 'auto' }}>
-            <div className="modal-header bg-[#002147] text-white p-6 flex justify-between items-center">
-              <div>
-                <h3 className="m-0 text-xl font-bold text-[#ffe088]">
-                  {tr('Tạo Lớp Học Mới')}
-                </h3>
-                <p className="m-0 text-xs text-slate-300 mt-1">
-                  {tr('Điền thông tin chi tiết cho lớp đào tạo hàng không mới')}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="bg-transparent border-none text-white text-2xl cursor-pointer hover:text-[#ffe088]"
-              >
-                &times;
-              </button>
-            </div>
 
-            <form
-              onSubmit={handleCreateClass}
-              className="p-6 flex flex-col gap-4"
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-gray-600">
-                    {tr('MÃ LỚP (Bắt buộc) *')}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={tr('E.g. BATCH-320-B')}
-                    value={newClassId}
-                    onChange={(e) => setNewClassId(e.target.value)}
-                    className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-gray-600">
-                    PHÂN LOẠI LỚP
-                  </label>
-                  <select
-                    value={newClassType}
-                    onChange={(e) => setNewClassType(e.target.value)}
-                    className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                  >
-                    <option value="Type Rating">{tr('Type Rating')}</option>
-                    <option value="Conversion">{tr('Conversion')}</option>
-                    <option value="Workshop">{tr('Workshop')}</option>
-                    <option value="Certification">{tr('Certification')}</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-gray-600">                  {tr('KHÓA ĐÀO TẠO (Bắt buộc) *')}
-                  </label>
-                <select
-                  required
-                  value={newCourseId}
-                  onChange={(e) => setNewCourseId(e.target.value)}
-                  className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                >
-                  <option value="">{tr('Chọn khóa đào tạo...')}</option>
-                  {coursesList.map((course) => (
-                    <option key={course.courseId} value={course.courseId}>
-                      {course.courseCode} - {course.courseName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-gray-600">                  {tr('TÊN LỚP (Bắt buộc) *')}
-                  </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={tr('E.g. A320 Type Rating Class 03')}
-                  value={newClassName}
-                  onChange={(e) => setNewClassName(e.target.value)}
-                  className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-gray-600">
-                  PHÂN ĐOẠN/MÔ ĐUN ĐÀO TẠO
-                </label>
-                <input
-                  type="text"
-                  placeholder={tr('E.g. Sim Phase: Final Check, Ground School...')}
-                  value={newClassSub}
-                  onChange={(e) => setNewClassSub(e.target.value)}
-                  className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-gray-600">
-                  GIẢNG VIÊN PHỤ TRÁCH
-                </label>
-                <div className="p-2 border border-dashed border-gray-300 rounded bg-gray-50 text-xs text-gray-500">
-                  {tr('Giảng viên được phân công theo từng Môn học (ClassSubjects) tại màn hình Khóa & Lớp học (Academic).')}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-gray-600">
-                    THỜI GIAN BẮT ĐẦU
-                  </label>
-                  <input
-                    type="date"
-                    value={newStartDate}
-                    onChange={(e) => setNewStartDate(e.target.value)}
-                    className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-gray-600">
-                    THỜI GIAN KẾT THÚC
-                  </label>
-                  <input
-                    type="date"
-                    value={newEndDate}
-                    onChange={(e) => setNewEndDate(e.target.value)}
-                    className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-gray-600">
-                    PHÒNG HỌC / BUỒNG LÁI MÔ PHỎNG
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={tr('E.g. SIM-04')}
-                    value={newRoom}
-                    onChange={(e) => setNewRoom(e.target.value)}
-                    className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-gray-600">
-                    SỐ HỌC VIÊN
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={newTraineesCount}
-                    onChange={(e) => setNewTraineesCount(e.target.value)}
-                    className="p-2 border border-gray-300 rounded focus:outline-none focus:border-[#002147]"
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer border-t border-gray-200 pt-4 flex justify-end gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 border-none rounded cursor-pointer text-gray-700 font-semibold"
-                >
-                  {tr('Hủy bỏ')}
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#002147] hover:bg-[#002147]/95 border-none rounded cursor-pointer text-white font-semibold"
-                >
-                  {tr('Tạo lớp')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* Toast notifications */}
       <toast.ToastContainer />
