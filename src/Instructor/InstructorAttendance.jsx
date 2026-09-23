@@ -95,10 +95,10 @@ const InstructorAttendance = () => {
 
   // Sync if browser back button was clicked
   useEffect(() => {
-    if (selectedSession && !location.state?.attendanceSessionId) {
+    if (!location.state?.attendanceSessionId && selectedSession) {
       setSelectedSession(null);
     }
-  }, [location.state, selectedSession]);
+  }, [location.state?.attendanceSessionId]);
 
   // Student list and attendance records
   const [students, setStudents] = useState([]);

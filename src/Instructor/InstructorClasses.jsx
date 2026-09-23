@@ -29,10 +29,10 @@ const InstructorClasses = () => {
   useSubViewBack(!!selectedClass, handleBackToClasses);
 
   useEffect(() => {
-    if (selectedClass && !location.state?.classExplorerId) {
+    if (!location.state?.classExplorerId && selectedClass) {
       setSelectedClass(null);
     }
-  }, [location.state, selectedClass]);
+  }, [location.state?.classExplorerId]);
 
   const handleSelectClass = (cls) => {
     setSelectedClass(cls);
