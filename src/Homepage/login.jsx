@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import {
   FaArrowLeft,
   FaArrowRight,
+  FaCheckCircle,
   FaEye,
   FaEyeSlash,
   FaExclamationCircle,
+  FaKey,
   FaLock,
   FaPaperPlane,
   FaShieldAlt,
@@ -76,11 +78,27 @@ const Login = () => {
     }
   }, []);
 
-  // Forgot password state
+  // Forgot password state (2-step flow: 1. Request OTP, 2. Enter OTP & Reset Password)
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
   const [forgotMessage, setForgotMessage] = useState({ type: "", text: "" });
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+
+  // Countdown timer for resend OTP
+  useEffect(() => {
+    let timer;
+    if (resendCountdown > 0) {
+      timer = setTimeout(() => setResendCountdown((c) => c - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCountdown]);
 
   const validateField = (field, value) => {
     const rules = VALIDATION_RULES[field];
@@ -242,8 +260,8 @@ const Login = () => {
     }
   };
 
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
+  const handleSendForgotOtp = async (e) => {
+    if (e) e.preventDefault();
     if (!forgotEmail.trim()) {
       setForgotMessage({
         type: "error",
@@ -272,17 +290,98 @@ const Login = () => {
     }
 
     if (response.ok) {
+      setForgotStep(2);
+      setResendCountdown(60);
       setForgotMessage({
         type: "success",
         text: tr(
-          "Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
+          "Mã OTP xác thực đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
         ),
       });
     } else {
-      const errText = await response.text().catch(() => "");
+      const data = await response.json().catch(() => null);
       setForgotMessage({
         type: "error",
-        text: errText || tr("Không thể gửi yêu cầu. Vui lòng thử lại sau."),
+        text:
+          data?.detail ||
+          data?.message ||
+          tr("Không thể gửi yêu cầu. Vui lòng thử lại sau."),
+      });
+    }
+    setForgotLoading(false);
+  };
+
+  const handleResetPasswordWithOtp = async (e) => {
+    e.preventDefault();
+    if (!forgotOtp.trim()) {
+      setForgotMessage({
+        type: "error",
+        text: tr("Vui lòng nhập mã xác thực OTP 6 số từ email."),
+      });
+      return;
+    }
+    if (!forgotNewPassword || forgotNewPassword.length < 6) {
+      setForgotMessage({
+        type: "error",
+        text: tr("Mật khẩu mới phải có ít nhất 6 ký tự."),
+      });
+      return;
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotMessage({
+        type: "error",
+        text: tr("Mật khẩu xác nhận không khớp."),
+      });
+      return;
+    }
+
+    setForgotLoading(true);
+    setForgotMessage({ type: "", text: "" });
+
+    const response = await tryFetchWithFallback("/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: forgotEmail.trim(),
+        token: forgotOtp.trim(),
+        newPassword: forgotNewPassword,
+      }),
+    });
+
+    if (!response) {
+      setForgotMessage({
+        type: "error",
+        text: tr("Không thể kết nối đến máy chủ. Vui lòng thử lại."),
+      });
+      setForgotLoading(false);
+      return;
+    }
+
+    const data = await response.json().catch(() => null);
+
+    if (response.ok) {
+      setForgotMessage({
+        type: "success",
+        text: tr(
+          "Mật khẩu đã được đặt lại thành công! Đang chuyển về trang đăng nhập...",
+        ),
+      });
+      setUsername(forgotEmail.trim());
+      setTimeout(() => {
+        setShowForgotPassword(false);
+        setForgotStep(1);
+        setForgotOtp("");
+        setForgotNewPassword("");
+        setForgotConfirmPassword("");
+        setForgotMessage({ type: "", text: "" });
+      }, 2000);
+    } else {
+      setForgotMessage({
+        type: "error",
+        text:
+          data?.detail ||
+          data?.message ||
+          tr("Mã OTP không hợp lệ hoặc đã hết hạn (15 phút)."),
       });
     }
     setForgotLoading(false);
@@ -374,68 +473,274 @@ const Login = () => {
                 className="forgot-back-btn"
                 onClick={() => {
                   setShowForgotPassword(false);
+                  setForgotStep(1);
                   setForgotMessage({ type: "", text: "" });
                   setForgotEmail("");
+                  setForgotOtp("");
+                  setForgotNewPassword("");
+                  setForgotConfirmPassword("");
                 }}
               >
                 <FaArrowLeft />
                 <span>{tr("Quay lại đăng nhập")}</span>
               </button>
 
-              <h2 className="login-title">{tr("Quên mật khẩu")}</h2>
+              <h2 className="login-title">
+                {forgotStep === 1 ? tr("Quên mật khẩu") : tr("Đặt lại mật khẩu")}
+              </h2>
               <p className="login-subtitle">
-                {tr("Nhập email của bạn để nhận hướng dẫn đặt lại mật khẩu")}
+                {forgotStep === 1
+                  ? tr("Nhập email của bạn để nhận mã xác thực OTP đặt lại mật khẩu")
+                  : tr("Nhập mã OTP 6 số được gửi về email và thiết lập mật khẩu mới")}
               </p>
 
               {forgotMessage.text && (
-                <div className={`forgot-message ${forgotMessage.type}`}>
-                  <FaExclamationCircle className="forgot-message-icon" />
+                <div
+                  className={`forgot-message ${forgotMessage.type}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "12px 16px",
+                    borderRadius: "10px",
+                    marginBottom: "18px",
+                    backgroundColor:
+                      forgotMessage.type === "success"
+                        ? "rgba(34, 197, 94, 0.12)"
+                        : "rgba(239, 68, 68, 0.12)",
+                    color: forgotMessage.type === "success" ? "#15803d" : "#dc2626",
+                    border: `1px solid ${
+                      forgotMessage.type === "success"
+                        ? "rgba(34, 197, 94, 0.3)"
+                        : "rgba(239, 68, 68, 0.3)"
+                    }`,
+                  }}
+                >
+                  {forgotMessage.type === "success" ? (
+                    <FaCheckCircle style={{ fontSize: "1.1rem", flexShrink: 0 }} />
+                  ) : (
+                    <FaExclamationCircle style={{ fontSize: "1.1rem", flexShrink: 0 }} />
+                  )}
                   <span>{forgotMessage.text}</span>
                 </div>
               )}
 
-              <form
-                className="login-form"
-                onSubmit={handleForgotPassword}
-                noValidate
-              >
-                <div className="form-group">
-                  <label htmlFor="forgot-email">{tr("Email của bạn")}</label>
-                  <div className="input-shell">
-                    <FaPaperPlane className="input-icon" aria-hidden="true" />
-                    <input
-                      id="forgot-email"
-                      type="email"
-                      placeholder={tr("Nhập địa chỉ email")}
-                      value={forgotEmail}
-                      onChange={(e) => {
-                        setForgotEmail(e.target.value);
+              {forgotStep === 1 ? (
+                /* Step 1: Input Email */
+                <form
+                  className="login-form"
+                  onSubmit={handleSendForgotOtp}
+                  noValidate
+                >
+                  <div className="form-group">
+                    <label htmlFor="forgot-email">{tr("Email tài khoản")}</label>
+                    <div className="input-shell">
+                      <FaPaperPlane className="input-icon" aria-hidden="true" />
+                      <input
+                        id="forgot-email"
+                        type="email"
+                        placeholder={tr("Nhập địa chỉ email")}
+                        value={forgotEmail}
+                        onChange={(e) => {
+                          setForgotEmail(e.target.value);
+                          setForgotMessage({ type: "", text: "" });
+                        }}
+                        disabled={forgotLoading}
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="login-submit-btn"
+                    disabled={forgotLoading}
+                  >
+                    {forgotLoading ? (
+                      <span className="btn-loading">
+                        <span className="spinner" aria-hidden="true" />
+                        {tr("Đang gửi...")}
+                      </span>
+                    ) : (
+                      <>
+                        <span>{tr("Gửi mã xác thực OTP")}</span>
+                        <FaArrowRight aria-hidden="true" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Step 2: Input OTP + New Password */
+                <form
+                  className="login-form"
+                  onSubmit={handleResetPasswordWithOtp}
+                  noValidate
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "8px 12px",
+                      background: "rgba(10, 44, 85, 0.06)",
+                      borderRadius: "8px",
+                      fontSize: "0.85rem",
+                      color: "#334155",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    <span>
+                      {tr("Gửi đến")}: <strong>{forgotEmail}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotStep(1);
                         setForgotMessage({ type: "", text: "" });
                       }}
-                      disabled={forgotLoading}
-                      autoComplete="email"
-                    />
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#0a2c55",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        padding: 0,
+                      }}
+                    >
+                      {tr("Đổi email")}
+                    </button>
                   </div>
-                </div>
 
-                <button
-                  type="submit"
-                  className="login-submit-btn"
-                  disabled={forgotLoading}
-                >
-                  {forgotLoading ? (
-                    <span className="btn-loading">
-                      <span className="spinner" aria-hidden="true" />
-                      {tr("Đang gửi...")}
+                  <div className="form-group">
+                    <label htmlFor="forgot-otp">{tr("Mã OTP (6 chữ số)")}</label>
+                    <div className="input-shell">
+                      <FaKey className="input-icon" aria-hidden="true" />
+                      <input
+                        id="forgot-otp"
+                        type="text"
+                        placeholder={tr("Nhập mã OTP 6 số")}
+                        value={forgotOtp}
+                        onChange={(e) => {
+                          setForgotOtp(e.target.value);
+                          setForgotMessage({ type: "", text: "" });
+                        }}
+                        maxLength={8}
+                        disabled={forgotLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="forgot-new-pwd">
+                      {tr("Mật khẩu mới (tối thiểu 6 ký tự)")}
+                    </label>
+                    <div className="input-shell input-shell--password">
+                      <FaLock className="input-icon" aria-hidden="true" />
+                      <input
+                        id="forgot-new-pwd"
+                        type={showForgotNewPassword ? "text" : "password"}
+                        placeholder={tr("Nhập mật khẩu mới")}
+                        value={forgotNewPassword}
+                        onChange={(e) => {
+                          setForgotNewPassword(e.target.value);
+                          setForgotMessage({ type: "", text: "" });
+                        }}
+                        disabled={forgotLoading}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                        tabIndex={-1}
+                      >
+                        {showForgotNewPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="forgot-confirm-pwd">
+                      {tr("Xác nhận mật khẩu mới")}
+                    </label>
+                    <div className="input-shell input-shell--password">
+                      <FaShieldAlt className="input-icon" aria-hidden="true" />
+                      <input
+                        id="forgot-confirm-pwd"
+                        type={showForgotConfirmPassword ? "text" : "password"}
+                        placeholder={tr("Nhập lại mật khẩu mới")}
+                        value={forgotConfirmPassword}
+                        onChange={(e) => {
+                          setForgotConfirmPassword(e.target.value);
+                          setForgotMessage({ type: "", text: "" });
+                        }}
+                        disabled={forgotLoading}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() =>
+                          setShowForgotConfirmPassword(!showForgotConfirmPassword)
+                        }
+                        tabIndex={-1}
+                      >
+                        {showForgotConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "16px",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    <span style={{ color: "#64748b" }}>
+                      {tr("Chưa nhận được mã?")}
                     </span>
-                  ) : (
-                    <>
-                      <span>{tr("Gửi yêu cầu")}</span>
-                      <FaArrowRight aria-hidden="true" />
-                    </>
-                  )}
-                </button>
-              </form>
+                    <button
+                      type="button"
+                      disabled={resendCountdown > 0 || forgotLoading}
+                      onClick={handleSendForgotOtp}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: resendCountdown > 0 ? "#94a3b8" : "#0a2c55",
+                        fontWeight: "700",
+                        cursor: resendCountdown > 0 ? "not-allowed" : "pointer",
+                        padding: 0,
+                      }}
+                    >
+                      {resendCountdown > 0
+                        ? `${tr("Gửi lại sau")} (${resendCountdown}s)`
+                        : tr("Gửi lại mã OTP")}
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="login-submit-btn"
+                    disabled={forgotLoading}
+                  >
+                    {forgotLoading ? (
+                      <span className="btn-loading">
+                        <span className="spinner" aria-hidden="true" />
+                        {tr("Đang xác thực...")}
+                      </span>
+                    ) : (
+                      <>
+                        <span>{tr("Xác nhận đặt lại mật khẩu")}</span>
+                        <FaArrowRight aria-hidden="true" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           ) : (
             /* ── Login Form ── */

@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 import Homepage from './Homepage/homepage';
 import Login from './Homepage/login';
+import ResetPasswordPage from './Homepage/pages/ResetPasswordPage';
+import VerifyEmailPage from './Homepage/pages/VerifyEmailPage';
 import PublicLayout from './Homepage/PublicLayout';
 import RecordsPage from './Homepage/pages/RecordsPage';
 import CompetencyPage from './Homepage/pages/CompetencyPage';
@@ -144,6 +146,8 @@ function App() {
 			<Routes>
 				<Route path="/" element={<RouteErrorBoundary><Homepage /></RouteErrorBoundary>} />
 				<Route path="/login" element={<RouteErrorBoundary><Login /></RouteErrorBoundary>} />
+				<Route path="/reset-password" element={<RouteErrorBoundary><ResetPasswordPage /></RouteErrorBoundary>} />
+				<Route path="/verify-email" element={<RouteErrorBoundary><VerifyEmailPage /></RouteErrorBoundary>} />
 
 				{/* Public Footer Routes */}
 				<Route element={<RouteErrorBoundary><PublicLayout /></RouteErrorBoundary>}>
