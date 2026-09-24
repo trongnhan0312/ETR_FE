@@ -1772,6 +1772,23 @@ const EtrApproval = () => {
                   </span>
                 )
               )}
+              {selectedEtr.status === "APPROVED" && isAdmin && (
+                <button
+                  onClick={() => {
+                    const targetId = selectedEtr.etrId;
+                    setSelectedEtr(null);
+                    handleReopen(targetId);
+                  }}
+                  className="tm-btn-secondary"
+                  style={{
+                    color: "#b45309",
+                    border: "1px solid rgba(180,83,9,0.35)",
+                    fontWeight: 600,
+                  }}
+                >
+                  {tr('REOPEN')}
+                </button>
+              )}
             </div>
           </div>
         </div>,

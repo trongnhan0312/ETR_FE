@@ -2848,6 +2848,7 @@ export const EN_TO_VN = {
     "Điều khiển giữ chỗ cho tích hợp backend trong tương lai. Trang này sẽ được cập nhật khi các endpoint cấu hình sẵn sàng.",
   "ANALYTICS DASHBOARD": "BẢNG ĐIỀU KHIỂN PHÂN TÍCH",
   "ETR FINAL APPROVAL": "PHÊ DUYỆT ETR CUỐI CÙNG",
+  "ETR APPROVAL & REOPEN": "DUYỆT & MỞ LẠI ETR",
   "TRẠNG THÁI LỚP HỌC": "TRẠNG THÁI LỚP HỌC",
   "CHỨNG CHỈ HẾT HẠN": "CHỨNG CHỈ HẾT HẠN",
   "Training Manager Portal": "Cổng Trưởng Phòng Đào Tạo",
