@@ -332,6 +332,7 @@ const InstructorAssessments = () => {
             isRequired: detail?.isRequired,
             displayOrder: detail?.displayOrder,
             sessionId: s.sessionId,
+            isConfirmed: s.isConfirmed === true || s.IsConfirmed === true,
             // Nguồn entry: "session" = gắn vào buổi học cụ thể; "course" = fallback nhập
             // trực tiếp theo môn của Course (không gắn buổi).
             source: "session",
@@ -488,11 +489,15 @@ const InstructorAssessments = () => {
       const currentCourseId = classesData.find(
         (c) => String(c.classId) === String(selectedClassId),
       )?.courseId ?? 1;
-      const [allEvidences, allPracticalChecklists, courseDetail] = await Promise.all([
+      const [allEvidences, allPracticalChecklists, courseDetail, sessionDetail] = await Promise.all([
         api.get("/Evidences").catch(() => api.get("/evidences").catch(() => [])),
         api.get("/PracticalChecklists").catch(() => api.get("/practicalchecklists").catch(() => [])),
         api.get(`/courses/${currentCourseId}`).catch(() => null),
+        assessment?.sessionId ? api.get(`/sessions/${assessment.sessionId}`).catch(() => null) : null,
       ]);
+      if (sessionDetail && assessment) {
+        assessment.isConfirmed = sessionDetail.isConfirmed === true || sessionDetail.IsConfirmed === true;
+      }
       const evidencesArr = Array.isArray(allEvidences)
         ? allEvidences
         : Array.isArray(allEvidences?.items)
@@ -1191,6 +1196,91 @@ const InstructorAssessments = () => {
     return eligibilityStats.allEligible;
   }, [loading, signingOff, allPublished, eligibilityList, eligibilityStats]);
 
+  // Finalize Score (Chốt điểm) eligibility:
+  // 1. Phải có học viên trong danh sách.
+  // 2. Buổi học phải được chốt điểm danh trước (nếu bài đánh giá gắn với Buổi học cụ thể).
+  // 3. Toàn bộ học viên phải được nhập điểm đầy đủ và hợp lệ (không để trống điểm).
+  const finalizeEligibility = useMemo(() => {
+    const displayScores = isEditingScores ? editingScores : studentScores;
+    if (displayScores.length === 0) {
+      return {
+        canFinalize: false,
+        btnLabel: tr("CHỐT ĐIỂM"),
+        reason: tr("Không có học viên trong danh sách để chốt điểm."),
+      };
+    }
+
+    // 1. Kiểm tra điểm danh buổi học đã chốt chưa (nếu bài đánh giá thuộc buổi học cụ thể)
+    if (selectedAssessment?.sessionId && selectedAssessment?.isConfirmed === false) {
+      return {
+        canFinalize: false,
+        btnLabel: tr("CHƯA CHỐT ĐIỂM DANH"),
+        reason: tr("Buổi học chưa được chốt điểm danh. Vui lòng chốt điểm danh buổi học trước khi chốt điểm đánh giá."),
+      };
+    }
+
+    // 2. Kiểm tra tất cả học viên đã được nhập điểm đầy đủ hay chưa
+    const selectedTypes = getSelectedTypes(selectedAssessmentType);
+    const unentered = displayScores.filter((s) => {
+      if (s.isPublished) return false;
+      if (selectedTypes.includes("assessment")) {
+        const val = s.assessmentScore;
+        if (val === null || val === undefined || val === "" || Number.isNaN(Number(val))) {
+          return true;
+        }
+      }
+      if (selectedTypes.includes("practical")) {
+        const val = s.practicalScore;
+        if (val === null || val === undefined || val === "" || Number.isNaN(Number(val))) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (unentered.length > 0) {
+      return {
+        canFinalize: false,
+        unenteredCount: unentered.length,
+        btnLabel: `${unentered.length} ${tr("HV CHƯA CÓ ĐIỂM")}`,
+        reason: `${tr("Còn")} ${unentered.length} ${tr("học viên chưa được nhập điểm. Vui lòng nhập đủ điểm cho toàn bộ học viên trước khi chốt.")}`,
+      };
+    }
+
+    // 3. Kiểm tra tính hợp lệ của điểm số (0 <= score <= 100)
+    const invalidScores = displayScores.filter((s) => {
+      if (s.isPublished) return false;
+      if (selectedTypes.includes("assessment")) {
+        const num = Number(s.assessmentScore);
+        if (num < 0 || num > 100) return true;
+      }
+      if (selectedTypes.includes("practical")) {
+        const num = Number(s.practicalScore);
+        if (num < 0 || num > 100) return true;
+      }
+      return false;
+    });
+
+    if (invalidScores.length > 0) {
+      return {
+        canFinalize: false,
+        btnLabel: tr("ĐIỂM KHÔNG HỢP LỆ"),
+        reason: tr("Có điểm số không hợp lệ (điểm phải từ 0 đến 100)."),
+      };
+    }
+
+    return {
+      canFinalize: true,
+      btnLabel: tr("CHỐT ĐIỂM"),
+      reason: "",
+    };
+  }, [isEditingScores, editingScores, studentScores, selectedAssessment, selectedAssessmentType, tr]);
+
+  const canFinalize = useMemo(() => {
+    if (loading || saving || publishing || allPublished) return false;
+    return finalizeEligibility.canFinalize;
+  }, [loading, saving, publishing, allPublished, finalizeEligibility]);
+
   // Publish (confirm + lock) all scores — called after ConfirmModal confirms
   // Subject Signoff handler
   const handleSignoffAllSubjects = async () => {
@@ -1283,6 +1373,11 @@ const InstructorAssessments = () => {
 
   const handlePublishScores = async () => {
     if (allPublished) return;
+    if (!finalizeEligibility.canFinalize) {
+      toast.warning(finalizeEligibility.reason);
+      setConfirmPublishOpen(false);
+      return;
+    }
 
     setPublishing(true);
     try {
@@ -1939,18 +2034,25 @@ const InstructorAssessments = () => {
               </span>
             </button>
 
-            {/* Publish / Lock button — always visible, matching attendance style */}
+            {/* Publish / Lock button — gated by finalizeEligibility */}
             <button
-              onClick={() => setConfirmPublishOpen(true)}
+              onClick={() => {
+                if (!finalizeEligibility.canFinalize) {
+                  toast.warning(finalizeEligibility.reason);
+                  return;
+                }
+                setConfirmPublishOpen(true);
+              }}
               className="create-btn"
               type="button"
-              disabled={allPublished || saving || publishing}
+              disabled={allPublished || saving || publishing || !finalizeEligibility.canFinalize}
+              title={!finalizeEligibility.canFinalize ? finalizeEligibility.reason : tr("Chốt và khóa bảng điểm này")}
               style={{
-                background: allPublished
+                background: allPublished || !finalizeEligibility.canFinalize
                   ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
                   : "linear-gradient(159.93deg, #e11d48 -27.55%, #be123c 127.55%)",
-                opacity: allPublished ? 0.9 : 1,
-                cursor: allPublished ? "not-allowed" : "pointer",
+                opacity: allPublished ? 0.9 : !finalizeEligibility.canFinalize ? 0.7 : 1,
+                cursor: allPublished || !finalizeEligibility.canFinalize ? "not-allowed" : "pointer",
               }}
             >
               <svg
@@ -1973,7 +2075,7 @@ const InstructorAssessments = () => {
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
               <span>
-                {allPublished ? tr("ĐÃ KHÓA ĐIỂM") : tr("CHỐT ĐIỂM")}
+                {allPublished ? tr("ĐÃ KHÓA ĐIỂM") : finalizeEligibility.btnLabel}
               </span>
             </button>
 
@@ -2082,6 +2184,32 @@ const InstructorAssessments = () => {
             </span>
           )}
         </div>
+
+        {/* Banner thông báo điều kiện chốt điểm (Finalize Scores) */}
+        {!allPublished && !finalizeEligibility.canFinalize && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "10px 16px",
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            borderRadius: "8px",
+            color: "#b45309",
+            fontSize: "12px",
+            fontWeight: "600",
+            marginBottom: "16px",
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>
+              <strong>{tr("ĐIỀU KIỆN CHỐT ĐIỂM:")}</strong> {finalizeEligibility.reason}
+            </span>
+          </div>
+        )}
 
         {/* Subject Signoff Eligibility panel */}
         <section className="table-card" style={{ border: eligibilityStats.allEligible && eligibilityList.length > 0 ? '1px solid #16a34a' : '1px solid #eab308' }}>

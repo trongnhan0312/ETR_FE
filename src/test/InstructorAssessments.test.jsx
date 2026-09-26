@@ -636,3 +636,87 @@ describe('Subject Signoff eligibility', () => {
     expect(result.eligible).toBe(false)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Logic: Finalize Score (Chốt điểm) eligibility validation
+// ---------------------------------------------------------------------------
+describe('Finalize Score (Chốt điểm) eligibility validation', () => {
+  const checkFinalize = ({ displayScores, selectedAssessment, selectedAssessmentType = 'assessment' }) => {
+    if (!displayScores || displayScores.length === 0) {
+      return { canFinalize: false, reason: 'EMPTY' }
+    }
+    if (selectedAssessment?.sessionId && selectedAssessment?.isConfirmed === false) {
+      return { canFinalize: false, reason: 'ATTENDANCE_NOT_CONFIRMED' }
+    }
+    const isPractical = selectedAssessmentType === 'practical'
+    const isBoth = selectedAssessmentType === 'both'
+    const unentered = displayScores.filter((s) => {
+      if (s.isPublished) return false
+      if (selectedAssessmentType === 'assessment' || isBoth) {
+        const val = s.assessmentScore
+        if (val === null || val === undefined || val === '' || Number.isNaN(Number(val))) return true
+      }
+      if (isPractical || isBoth) {
+        const val = s.practicalScore
+        if (val === null || val === undefined || val === '' || Number.isNaN(Number(val))) return true
+      }
+      return false
+    })
+    if (unentered.length > 0) {
+      return { canFinalize: false, reason: 'UNENTERED_SCORES', unenteredCount: unentered.length }
+    }
+    const invalid = displayScores.filter((s) => {
+      if (s.isPublished) return false
+      const num = Number(s.assessmentScore)
+      return num < 0 || num > 100
+    })
+    if (invalid.length > 0) {
+      return { canFinalize: false, reason: 'INVALID_SCORE' }
+    }
+    return { canFinalize: true, reason: '' }
+  }
+
+  it('chặn chốt điểm khi buổi học chưa được chốt điểm danh (isConfirmed = false)', () => {
+    const result = checkFinalize({
+      displayScores: [{ code: 'HV001', assessmentScore: 85, isPublished: false }],
+      selectedAssessment: { sessionId: 10, isConfirmed: false },
+    })
+    expect(result.canFinalize).toBe(false)
+    expect(result.reason).toBe('ATTENDANCE_NOT_CONFIRMED')
+  })
+
+  it('chặn chốt điểm khi còn học viên chưa nhập điểm (score để trống)', () => {
+    const result = checkFinalize({
+      displayScores: [
+        { code: 'HV001', assessmentScore: 85, isPublished: false },
+        { code: 'HV002', assessmentScore: '', isPublished: false },
+      ],
+      selectedAssessment: { sessionId: 10, isConfirmed: true },
+    })
+    expect(result.canFinalize).toBe(false)
+    expect(result.reason).toBe('UNENTERED_SCORES')
+    expect(result.unenteredCount).toBe(1)
+  })
+
+  it('chặn chốt điểm khi điểm không hợp lệ (< 0 hoặc > 100)', () => {
+    const result = checkFinalize({
+      displayScores: [
+        { code: 'HV001', assessmentScore: 105, isPublished: false },
+      ],
+      selectedAssessment: { sessionId: 10, isConfirmed: true },
+    })
+    expect(result.canFinalize).toBe(false)
+    expect(result.reason).toBe('INVALID_SCORE')
+  })
+
+  it('cho phép chốt điểm khi buổi học đã chốt điểm danh và tất cả học viên đã có điểm hợp lệ', () => {
+    const result = checkFinalize({
+      displayScores: [
+        { code: 'HV001', assessmentScore: 85, isPublished: false },
+        { code: 'HV002', assessmentScore: 90, isPublished: false },
+      ],
+      selectedAssessment: { sessionId: 10, isConfirmed: true },
+    })
+    expect(result.canFinalize).toBe(true)
+  })
+})

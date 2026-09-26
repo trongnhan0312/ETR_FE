@@ -84,6 +84,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
   const [allAccounts, setAllAccounts] = useState([]);
   const [allProfiles, setAllProfiles] = useState([]);
   const [allSubjects, setAllSubjects] = useState([]);
+  const [allClasses, setAllClasses] = useState([]);
+  const [allCourses, setAllCourses] = useState([]);
 
   // Học viên có ít nhất 1 ghi danh — options cho modal tra cứu ETR
   const enrollableLearners = useMemo(() => {
@@ -115,6 +117,13 @@ const EtrManagement = ({ defaultView = "list" }) => {
   // danh sách minh chứng (vẫn upload/xóa được). Hiển thị thông báo rõ ràng thay vì danh sách trống.
   const [evidenceAccessDenied, setEvidenceAccessDenied] = useState(false);
 
+  const extractList = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.Items)) return data.Items;
+    return [];
+  };
+
   // Load data from APIs
   useEffect(() => {
     const loadData = async () => {
@@ -129,6 +138,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
           profiles,
           evidenceTypes,
           subjects,
+          classes,
+          courses,
         ] = await Promise.all([
           api.get("/Etr").catch(() => []),
           api.get("/Evidences").catch((err) => {
@@ -147,14 +158,9 @@ const EtrManagement = ({ defaultView = "list" }) => {
           api.get("/UserProfiles/learners").catch(() => []),
           api.get("/EvidenceTypes").catch(() => []),
           api.get("/Subjects").catch(() => []),
+          api.get("/Classes").catch(() => []),
+          api.get("/Courses").catch(() => []),
         ]);
-
-        const extractList = (data) => {
-          if (Array.isArray(data)) return data;
-          if (data && Array.isArray(data.items)) return data.items;
-          if (data && Array.isArray(data.Items)) return data.Items;
-          return [];
-        };
 
         const etrsArr = extractList(etrs);
         const evfsArr = extractList(evfs);
@@ -170,11 +176,15 @@ const EtrManagement = ({ defaultView = "list" }) => {
         const profilesArr = extractList(profiles);
         const enrollmentsArr = extractList(enrollments);
         const auditsArr = extractList(audits);
+        const classesArr = extractList(classes);
+        const coursesArr = extractList(courses);
 
         setAllAccounts(accountsArr);
         setAllProfiles(profilesArr);
         setAllEnrollments(enrollmentsArr);
         setAllSubjects(Array.isArray(subjects) ? subjects : []);
+        setAllClasses(classesArr);
+        setAllCourses(coursesArr);
         setUploadEvidenceTypes(
           Array.isArray(evidenceTypes) ? evidenceTypes : [],
         );
@@ -225,6 +235,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
           resultsOkMap,
           evidenceTypeNameById,
           returnReasonMap,
+          classesArr,
+          coursesArr,
         );
         setEtrRecords(merged);
         if (merged.length > 0) {
@@ -308,13 +320,24 @@ const EtrManagement = ({ defaultView = "list" }) => {
     // (state update là bất đồng bộ, lần load đầu sẽ bị rỗng nếu đọc trực tiếp).
     evidenceTypeNameById = {},
     returnReasonMap = {},
+    classes = [],
+    courses = [],
   ) => {
     const evfsArr = Array.isArray(evidenceFiles) ? evidenceFiles : [];
+    const classesList = Array.isArray(classes) && classes.length > 0 ? classes : allClasses;
+    const coursesList = Array.isArray(courses) && courses.length > 0 ? courses : allCourses;
 
     return etrs.map((etr) => {
       const enrollment = enrollments.find(
         (e) => e.enrollmentId === etr.enrollmentId,
       );
+      const classObj = classesList.find(
+        (c) => c.classId === enrollment?.classId,
+      );
+      const courseObj = coursesList.find(
+        (c) => c.courseId === classObj?.courseId,
+      );
+      const courseName = courseObj?.courseName || classObj?.className || (enrollment?.classId ? `Class #${enrollment.classId}` : "—");
       const account = enrollment
         ? accounts.find((a) => a.accountId === enrollment.accountId)
         : null;
@@ -389,7 +412,9 @@ const EtrManagement = ({ defaultView = "list" }) => {
           profile?.fullName ||
           account?.username ||
           `${tr("Học viên #")}${enrollment?.accountId || ""}`,
-        course: `${tr("Khóa học #")}${enrollment?.classId || ""}`,
+        course: courseName,
+        className: classObj?.className || classObj?.classCode || "",
+        classCode: classObj?.classCode || "",
         status: canonicalStatus,
         rawStatus: etr.status,
         lastUpdated: etr.submittedAt
@@ -404,12 +429,11 @@ const EtrManagement = ({ defaultView = "list" }) => {
           // môn (backend tự tính khi Instructor điểm danh) — mọi môn >= 80% mới đạt.
           attendance: attendanceOkMap[etrId] === true,
           // Bước 3: "đã chốt điểm" khi MỌI kết quả đánh giá của mọi môn đều isPublished = true
-          // (giảng viên bấm "CHỐT ĐIỂM") → đã chốt điểm mà ETR chưa được QA duyệt vẫn hiển thị
-          // "✓ ĐÃ XÁC THỰC" đúng. Vẫn giữ fallback theo trạng thái ETR đã duyệt/hoàn thành vì
-          // hồ sơ submit được thì buộc mọi môn đã Passed/Exempted (tức đã có điểm).
+          // hoặc môn đã Passed / Sign-off / ETR đã Submitted / Verified / Completed.
           results:
             resultsOkMap[etrId] === true ||
             etr.status === "Verified" ||
+            etr.status === "Submitted" ||
             isEtrCompleted(etr.status),
           // Bước 4: có ít nhất 1 minh chứng và tất cả đã được QA verify (hoặc ETR đã
           // Verified/Completed). Hồ sơ mới chưa có minh chứng nào → "⌛ ĐANG CHỜ".
@@ -428,7 +452,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
 
   const refreshData = async () => {
     try {
-      const [etrs, evfs, audits, evidenceTypes] = await Promise.all([
+      const [etrs, evfs, audits, evidenceTypes, classes, courses] = await Promise.all([
         api.get("/Etr").catch(() => []),
         api.get("/Evidences").catch((err) => {
           if (
@@ -443,8 +467,15 @@ const EtrManagement = ({ defaultView = "list" }) => {
         api.get("/Audit?page=1&pageSize=50").catch(() => []),
         // Cần map evidenceTypeId → typeName để phân loại minh chứng sau mỗi lần refresh
         api.get("/EvidenceTypes").catch(() => []),
+        api.get("/Classes").catch(() => []),
+        api.get("/Courses").catch(() => []),
       ]);
       const etrsArr = Array.isArray(etrs) ? etrs : [];
+      const classesArr = extractList ? extractList(classes) : (Array.isArray(classes) ? classes : []);
+      const coursesArr = extractList ? extractList(courses) : (Array.isArray(courses) ? courses : []);
+      if (classesArr.length > 0) setAllClasses(classesArr);
+      if (coursesArr.length > 0) setAllCourses(coursesArr);
+
       const evidenceTypeNameById = {};
       (Array.isArray(evidenceTypes) ? evidenceTypes : []).forEach((t) => {
         const typeId = t.evidenceTypeId ?? t.EvidenceTypeId;
@@ -494,6 +525,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
         resultsOkMap,
         evidenceTypeNameById,
         returnReasonMap,
+        classesArr,
+        coursesArr,
       );
       setEtrRecords(merged);
       const auditsArr = Array.isArray(audits)
