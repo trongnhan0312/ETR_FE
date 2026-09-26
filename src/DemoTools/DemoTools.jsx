@@ -26,15 +26,22 @@ export default function DemoTools() {
       const res = await fetch(`${apiUrl}/demo/summary`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
-      setSummary(data);
-      if (data.RecentETRs?.length > 0 && !selectedEtrId) {
-        setSelectedEtrId(data.RecentETRs[0].etrCourseRecordId);
+      const normalizedData = {
+        totalETRs: data.totalETRs ?? data.TotalETRs ?? 0,
+        statusCounts: data.statusCounts ?? data.StatusCounts ?? [],
+        recentETRs: data.recentETRs ?? data.RecentETRs ?? [],
+        recentSessions: data.recentSessions ?? data.RecentSessions ?? [],
+        recentAssessments: data.recentAssessments ?? data.RecentAssessments ?? [],
+      };
+      setSummary(normalizedData);
+      if (normalizedData.recentETRs.length > 0 && (!selectedEtrId || !normalizedData.recentETRs.some(e => e.etrCourseRecordId == selectedEtrId))) {
+        setSelectedEtrId(normalizedData.recentETRs[0].etrCourseRecordId);
       }
-      if (data.RecentSessions?.length > 0 && !selectedSessionId) {
-        setSelectedSessionId(data.RecentSessions[0].sessionId);
+      if (normalizedData.recentSessions.length > 0 && (!selectedSessionId || !normalizedData.recentSessions.some(s => s.sessionId == selectedSessionId))) {
+        setSelectedSessionId(normalizedData.recentSessions[0].sessionId);
       }
-      if (data.RecentAssessments?.length > 0 && !selectedAssessmentId) {
-        setSelectedAssessmentId(data.RecentAssessments[0].assessmentId);
+      if (normalizedData.recentAssessments.length > 0 && (!selectedAssessmentId || !normalizedData.recentAssessments.some(a => a.assessmentId == selectedAssessmentId))) {
+        setSelectedAssessmentId(normalizedData.recentAssessments[0].assessmentId);
       }
       addLog("Đã cập nhật dữ liệu tổng quan ETR thành công!", "success");
     } catch (err) {
@@ -190,9 +197,9 @@ export default function DemoTools() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "12px" }}>
               <div style={{ backgroundColor: "#1e293b", padding: "12px", borderRadius: "8px", border: "1px solid #334155", textAlign: "center" }}>
                 <div style={{ fontSize: "11px", color: "#94a3b8" }}>Tổng ETR</div>
-                <div style={{ fontSize: "20px", fontWeight: "bold", color: "#f8fafc" }}>{summary.TotalETRs}</div>
+                <div style={{ fontSize: "20px", fontWeight: "bold", color: "#f8fafc" }}>{summary.totalETRs}</div>
               </div>
-              {summary.StatusCounts?.map((s) => {
+              {summary.statusCounts?.map((s) => {
                 let badgeColor = "#94a3b8";
                 if (s.status === "Draft") badgeColor = "#38bdf8";
                 if (s.status === "Submitted") badgeColor = "#eab308";
@@ -225,7 +232,7 @@ export default function DemoTools() {
                 onChange={(e) => setSelectedEtrId(e.target.value)}
                 style={{ width: "100%", backgroundColor: "#0f172a", color: "#f8fafc", border: "1px solid #475569", padding: "8px", borderRadius: "6px", fontSize: "13px", outline: "none" }}
               >
-                {summary?.RecentETRs?.map((e) => (
+                {summary?.recentETRs?.map((e) => (
                   <option key={e.etrCourseRecordId} value={e.etrCourseRecordId}>
                     #{e.etrCourseRecordId} - {e.studentName} ({e.userCode}) | Lớp: {e.classCode} | Trạng thái: [{e.status}] {e.isLocked ? "🔒 Locked" : ""}
                   </option>
@@ -366,7 +373,7 @@ export default function DemoTools() {
                   onChange={(e) => setSelectedSessionId(e.target.value)}
                   style={{ width: "100%", backgroundColor: "#0f172a", color: "#f8fafc", border: "1px solid #475569", padding: "6px", borderRadius: "4px", fontSize: "12px", marginBottom: "8px" }}
                 >
-                  {summary?.RecentSessions?.map((s) => (
+                  {summary?.recentSessions?.map((s) => (
                     <option key={s.sessionId} value={s.sessionId}>
                       #{s.sessionId} - {s.sessionTitle} ({s.classCode})
                     </option>
@@ -389,7 +396,7 @@ export default function DemoTools() {
                   onChange={(e) => setSelectedAssessmentId(e.target.value)}
                   style={{ width: "100%", backgroundColor: "#0f172a", color: "#f8fafc", border: "1px solid #475569", padding: "6px", borderRadius: "4px", fontSize: "12px", marginBottom: "8px" }}
                 >
-                  {summary?.RecentAssessments?.map((a) => (
+                  {summary?.recentAssessments?.map((a) => (
                     <option key={a.assessmentId} value={a.assessmentId}>
                       #{a.assessmentId} - {a.assessmentName} ({a.subjectName})
                     </option>
