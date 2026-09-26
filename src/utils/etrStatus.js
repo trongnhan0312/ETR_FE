@@ -29,6 +29,102 @@ export const isEtrPendingApproval = (status) => ETR_PENDING_APPROVAL_STATUSES.in
 
 export const isEtrReturned = (status) => ETR_RETURNED_STATUSES.includes(status);
 
+/**
+ * Chuẩn hóa trạng thái ETR về đúng tên enum Backend (ETR.Domain.Enums.EtrStatus):
+ *   Draft | InProgress | Submitted | Verified | Completed | ReturnedForCorrection | Cancelled
+ */
+export const normalizeEtrStatus = (status) => {
+  if (!status) return 'Draft';
+  const s = String(status).trim().toLowerCase();
+  if (s === 'draft') return 'Draft';
+  if (s === 'inprogress' || s === 'in progress' || s === 'under review' || s === 'underreview') return 'InProgress';
+  if (s === 'submitted' || s === 'pending' || s === 'pending qa' || s === 'pendingqa') return 'Submitted';
+  if (s === 'verified' || s === 'qa verified' || s === 'qa_verified') return 'Verified';
+  if (s === 'completed' || s === 'approved' || s === 'locked') return 'Completed';
+  if (s === 'returnedforcorrection' || s === 'returned for correction' || s === 'returned' || s === 'rejected') return 'ReturnedForCorrection';
+  if (s === 'cancelled' || s === 'canceled') return 'Cancelled';
+  return String(status).trim();
+};
+
+/** Cấu hình nhãn & màu sắc chuẩn cho từng trạng thái ETR */
+export const ETR_STATUS_CONFIG = {
+  Draft: {
+    key: 'Draft',
+    labelEn: 'Draft',
+    labelVi: 'Bản nháp',
+    color: '#475569',
+    bg: '#f1f5f9',
+    border: '#cbd5e1',
+  },
+  InProgress: {
+    key: 'InProgress',
+    labelEn: 'In Progress',
+    labelVi: 'Đang đào tạo',
+    color: '#1d4ed8',
+    bg: '#eff6ff',
+    border: '#bfdbfe',
+  },
+  Submitted: {
+    key: 'Submitted',
+    labelEn: 'Submitted',
+    labelVi: 'Đã nộp (Chờ QA)',
+    color: '#b45309',
+    bg: '#fef3c7',
+    border: '#fde68a',
+  },
+  Verified: {
+    key: 'Verified',
+    labelEn: 'QA Verified',
+    labelVi: 'QA đã duyệt',
+    color: '#0369a1',
+    bg: '#e0f2fe',
+    border: '#7dd3fc',
+  },
+  Completed: {
+    key: 'Completed',
+    labelEn: 'Completed',
+    labelVi: 'Hoàn thành',
+    color: '#15803d',
+    bg: '#dcfce7',
+    border: '#86efac',
+  },
+  ReturnedForCorrection: {
+    key: 'ReturnedForCorrection',
+    labelEn: 'Returned for Correction',
+    labelVi: 'Trả về chỉnh sửa',
+    color: '#b91c1c',
+    bg: '#fee2e2',
+    border: '#fca5a5',
+  },
+  Cancelled: {
+    key: 'Cancelled',
+    labelEn: 'Cancelled',
+    labelVi: 'Đã hủy',
+    color: '#64748b',
+    bg: '#f8fafc',
+    border: '#e2e8f0',
+  },
+};
+
+/** Lấy metadata nhãn & màu badge của ETR theo trạng thái */
+export const getEtrStatusMeta = (status) => {
+  const norm = normalizeEtrStatus(status);
+  return ETR_STATUS_CONFIG[norm] || {
+    key: norm,
+    labelEn: norm,
+    labelVi: norm,
+    color: '#475569',
+    bg: '#f1f5f9',
+    border: '#cbd5e1',
+  };
+};
+
+/** Hồ sơ ETR có thể nộp (Submit) lên QA: chỉ khi ở Draft, InProgress hoặc ReturnedForCorrection */
+export const isEtrSubmittable = (status) => {
+  const norm = normalizeEtrStatus(status);
+  return norm === 'Draft' || norm === 'InProgress' || norm === 'ReturnedForCorrection';
+};
+
 // ── Trạng thái các bước trong "CHI TIẾT KIỂM DUYỆT CÁC BƯỚC HỒ SƠ" ────────────────
 // Dùng chung cho trang Academic (EtrManagement) và QA (QARETRReviewQueue) để 2 nơi
 // không bao giờ lệch nhau. Đầu vào là `subjectResults` của GET /Etr/{id}

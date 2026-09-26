@@ -9,17 +9,17 @@ import { isEtrCompleted } from "../utils/etrStatus";
 
 // Trạng thái ETR → nhãn hiển thị + màu badge/chip
 const STATUS_META = {
-  InProgress: { label: "Under Review", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
-  Draft: { label: "Draft", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
-  Submitted: { label: "Pending QA", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
-  Verified: { label: "QA Verified", color: "#15803d", bg: "rgba(34,197,94,0.12)" },
+  InProgress: { label: "In Progress", color: "#1d4ed8", bg: "rgba(37,99,235,0.1)" },
+  Draft: { label: "Draft", color: "#64748b", bg: "rgba(100,116,139,0.1)" },
+  Submitted: { label: "Submitted", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
+  Verified: { label: "QA Verified", color: "#0284c7", bg: "rgba(2,132,199,0.12)" },
   ReturnedForCorrection: { label: "Returned for Correction", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
   Reopened: { label: "Reopened", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
-  Completed: { label: "Approved", color: "#15803d", bg: "rgba(34,197,94,0.12)" },
+  Completed: { label: "Completed", color: "#15803d", bg: "rgba(34,197,94,0.12)" },
   // 4 giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
-  Pending: { label: "Pending QA", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
-  UnderReview: { label: "Under Review", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
-  Approved: { label: "Approved", color: "#15803d", bg: "rgba(34,197,94,0.12)" },
+  Pending: { label: "Submitted", color: "#d97706", bg: "rgba(217,119,6,0.1)" },
+  UnderReview: { label: "In Progress", color: "#1d4ed8", bg: "rgba(37,99,235,0.1)" },
+  Approved: { label: "Completed", color: "#15803d", bg: "rgba(34,197,94,0.12)" },
   Rejected: { label: "Returned for Correction", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
 };
 

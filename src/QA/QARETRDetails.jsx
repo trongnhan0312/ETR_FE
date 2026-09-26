@@ -241,7 +241,7 @@ const QARETRDetails = () => {
                 <span
                   className={`qa-status ${etr.status === "Verified" ? "verified" : "pending"}`}
                 >
-                  {etr.status === "Submitted" ? trEn('Pending QA') : trEn('Verified')}
+                  {etr.status === "Submitted" ? trEn('Submitted') : etr.status === "Verified" ? trEn('QA Verified') : trEn(etr.status)}
                 </span>
               </div>
             ))

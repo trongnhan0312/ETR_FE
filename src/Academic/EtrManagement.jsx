@@ -16,6 +16,9 @@ import {
   areSubjectScoresFinalized,
   hasVerifiedEvidence,
   subjectStatusBadge,
+  getEtrStatusMeta,
+  normalizeEtrStatus,
+  isEtrSubmittable,
 } from "../utils/etrStatus";
 import {
   evidenceCategoryFromMime,
@@ -320,21 +323,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
         : null;
       const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
 
-      const statusMap = {
-        InProgress: "UNDER REVIEW",
-        Draft: "UNDER REVIEW",
-        Active: "UNDER REVIEW",
-        Submitted: "PENDING QA",
-        Verified: "QA VERIFIED",
-        ReturnedForCorrection: "RETURNED FOR CORRECTION",
-        Reopened: "UNDER REVIEW",
-        Completed: "APPROVED",
-        // Giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
-        Pending: "PENDING QA",
-        UnderReview: "UNDER REVIEW",
-        Approved: "APPROVED",
-        Rejected: "RETURNED FOR CORRECTION",
-      };
+      const canonicalStatus = normalizeEtrStatus(etr.status);
 
       // Evidence liên kết qua SubjectResultId (không có ETR id trực tiếp trên EvidenceFile)
       const subjectResultIds = subjectResultIdsByEtr[etrId] || [];
@@ -401,7 +390,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
           account?.username ||
           `${tr("Học viên #")}${enrollment?.accountId || ""}`,
         course: `${tr("Khóa học #")}${enrollment?.classId || ""}`,
-        status: statusMap[etr.status] || etr.status || "UNDER REVIEW",
+        status: canonicalStatus,
+        rawStatus: etr.status,
         lastUpdated: etr.submittedAt
           ? new Date(etr.submittedAt).toLocaleString("vi-VN")
           : etr.verifiedAt
@@ -741,21 +731,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
   };
 
   const etrStatusDisplay = (s) => {
-    const map = {
-      Draft: "UNDER REVIEW",
-      InProgress: "UNDER REVIEW",
-      Submitted: "PENDING QA",
-      Verified: "QA VERIFIED",
-      Completed: "APPROVED",
-      ReturnedForCorrection: "RETURNED FOR CORRECTION",
-      Cancelled: "CANCELLED",
-      // Giá trị legacy BE vẫn trả về từ dữ liệu cũ (xem utils/etrStatus.js)
-      Pending: "PENDING QA",
-      UnderReview: "UNDER REVIEW",
-      Approved: "APPROVED",
-      Rejected: "RETURNED FOR CORRECTION",
-    };
-    return map[s] || s || "—";
+    return normalizeEtrStatus(s);
   };
 
   const handleSubmitEtr = async () => {
@@ -864,7 +840,10 @@ const EtrManagement = ({ defaultView = "list" }) => {
       rec.studentCode.toLowerCase().includes(searchTerm.toLowerCase());
 
     if (statusFilter === "ALL") return matchesSearch;
-    return matchesSearch && rec.status === statusFilter;
+    return (
+      matchesSearch &&
+      normalizeEtrStatus(rec.status) === normalizeEtrStatus(statusFilter)
+    );
   });
 
   const { page, setPage, pageCount, pageItems, total } = usePagination(filteredRecords, {
@@ -2526,12 +2505,14 @@ const EtrManagement = ({ defaultView = "list" }) => {
                   className="etr-workflow-line-fill"
                   style={{
                     height: "100%",
-                    width:
-                      selectedRecord.status === "APPROVED"
-                        ? "100%"
-                        : selectedRecord.status === "PENDING QA"
-                          ? "66%"
-                          : "33%",
+                    width: (() => {
+                      const st = normalizeEtrStatus(selectedRecord.status);
+                      if (st === "Completed") return "100%";
+                      if (st === "Verified") return "75%";
+                      if (st === "Submitted") return "50%";
+                      if (st === "InProgress") return "25%";
+                      return "10%";
+                    })(),
                     background: "linear-gradient(90deg, #c5a059, #d4af37)",
                     boxShadow: "0px 0px 10px rgba(197, 160, 89, 0.5)",
                   }}
@@ -2850,14 +2831,18 @@ const EtrManagement = ({ defaultView = "list" }) => {
                 onClick={() =>
                   setStatusFilter(
                     statusFilter === "ALL"
-                      ? "APPROVED"
-                      : statusFilter === "APPROVED"
-                        ? "PENDING QA"
-                        : statusFilter === "PENDING QA"
-                          ? "UNDER REVIEW"
-                          : statusFilter === "UNDER REVIEW"
-                            ? "RETURNED FOR CORRECTION"
-                            : "ALL",
+                      ? "Draft"
+                      : statusFilter === "Draft"
+                        ? "InProgress"
+                        : statusFilter === "InProgress"
+                          ? "Submitted"
+                          : statusFilter === "Submitted"
+                            ? "Verified"
+                            : statusFilter === "Verified"
+                              ? "Completed"
+                              : statusFilter === "Completed"
+                                ? "ReturnedForCorrection"
+                                : "ALL",
                   )
                 }
               >
@@ -2877,7 +2862,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
                   className="text-xs font-bold text-center uppercase text-[#002147]"
                   style={{ margin: 0 }}
                 >
-                  LỌC: {statusFilter}
+                  {tr("LỌC")}: {statusFilter === "ALL" ? tr("TẤT CẢ") : tr(getEtrStatusMeta(statusFilter).labelVi)}
                 </p>
               </div>
               <div
@@ -2964,54 +2949,27 @@ const EtrManagement = ({ defaultView = "list" }) => {
                       {record.course}
                     </div>
                     <div className="col-status-badge">
-                      <span
-                        className={`class-status ${
-                          record.status === "APPROVED"
-                            ? "status-active"
-                            : record.status === "PENDING QA"
-                              ? "status-pending"
-                              : "status-completed"
-                        }`}
-                        style={{
-                          backgroundColor:
-                            record.status === "APPROVED"
-                              ? "#dcfce7"
-                              : record.status === "PENDING QA"
-                                ? "#fef3c7"
-                                : record.status === "QA VERIFIED"
-                                  ? "#dbeafe"
-                                  : record.status === "RETURNED FOR CORRECTION"
-                                    ? "#fee2e2"
-                                    : "#f1f5f9",
-                          border:
-                            record.status === "APPROVED"
-                              ? "1px solid #bbf7d0"
-                              : record.status === "PENDING QA"
-                                ? "1px solid #fde68a"
-                                : record.status === "QA VERIFIED"
-                                  ? "1px solid #bfdbfe"
-                                  : record.status === "RETURNED FOR CORRECTION"
-                                    ? "1px solid #fca5a5"
-                                    : "1px solid #e2e8f0",
-                          color:
-                            record.status === "APPROVED"
-                              ? "#15803d"
-                              : record.status === "PENDING QA"
-                                ? "#d97706"
-                                : record.status === "QA VERIFIED"
-                                  ? "#1d4ed8"
-                                  : record.status === "RETURNED FOR CORRECTION"
-                                    ? "#b91c1c"
-                                    : "#475569",
-                          padding: "4px 8px",
-                          borderRadius: "4px",
-                          fontSize: "10px",
-                          fontWeight: "900",
-                        }}
-                      >
-                        {record.status}
-                      </span>
-                      {record.status === "RETURNED FOR CORRECTION" && record.returnReason && (
+                      {(() => {
+                        const meta = getEtrStatusMeta(record.status);
+                        return (
+                          <span
+                            className="class-status"
+                            style={{
+                              backgroundColor: meta.bg,
+                              border: `1px solid ${meta.border}`,
+                              color: meta.color,
+                              padding: "4px 8px",
+                              borderRadius: "4px",
+                              fontSize: "10px",
+                              fontWeight: "900",
+                              display: "inline-block",
+                            }}
+                          >
+                            {tr(meta.labelVi)}
+                          </span>
+                        );
+                      })()}
+                      {normalizeEtrStatus(record.status) === "ReturnedForCorrection" && record.returnReason && (
                         <div
                           style={{
                             marginTop: '4px',
@@ -3088,8 +3046,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
                         Chỉ cho phép bấm khi toàn bộ evidence đã được QA verify (evidenceReady)
                         — khớp quy tắc backend "Evidence phải được QA verify xong Academic mới
                         được Submit ETR". */}
-                      {(record.status === "UNDER REVIEW" ||
-                        record.status === "RETURNED FOR CORRECTION") && (
+                      {isEtrSubmittable(record.status) && (
                         // Tooltip phải nằm trên phần tử BÊN NGOÀI nút: button bị disabled sẽ
                         // chặn pointer event nên title không hiển thị được trên chính nút đó.
                         <span
