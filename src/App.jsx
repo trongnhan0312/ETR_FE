@@ -73,6 +73,7 @@ import AuditorApprovalHistory from './Auditor/AuditorApprovalHistory';
 import AuditorAuditLogs from './Auditor/AuditorAuditLogs';
 import AuditorExportPackages from './Auditor/AuditorExportPackages';
 import AuditorProfile from './Auditor/AuditorProfile';
+import DemoTools from './DemoTools/DemoTools';
 import './App.css';
 
 import { useEffect } from 'react';
@@ -148,6 +149,7 @@ function App() {
 				<Route path="/login" element={<RouteErrorBoundary><Login /></RouteErrorBoundary>} />
 				<Route path="/reset-password" element={<RouteErrorBoundary><ResetPasswordPage /></RouteErrorBoundary>} />
 				<Route path="/verify-email" element={<RouteErrorBoundary><VerifyEmailPage /></RouteErrorBoundary>} />
+				<Route path="/demo-tools" element={<RouteErrorBoundary><DemoTools /></RouteErrorBoundary>} />
 
 				{/* Public Footer Routes */}
 				<Route element={<RouteErrorBoundary><PublicLayout /></RouteErrorBoundary>}>
