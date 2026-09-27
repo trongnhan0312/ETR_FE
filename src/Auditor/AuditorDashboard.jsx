@@ -3,22 +3,16 @@ import { useNavigate } from "react-router-dom";
 import ApexChart from "../components/ApexChart";
 import { useLanguage } from "../context/LanguageContext";
 import { fetchMyDashboard } from "../utils/dashboardApi";
+import { formatDateTime } from "../utils/api";
 
 const fmtDateTime = (d) => {
-  if (!d) return "—";
-  try {
-    const date = new Date(d);
-    if (Number.isNaN(date.getTime())) return "—";
-    return date.toLocaleString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
+  return formatDateTime(d, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 // "yyyy-MM" → "Mar 26" (nhãn trục X cho monthlyTrend)

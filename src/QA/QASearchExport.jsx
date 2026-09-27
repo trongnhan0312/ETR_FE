@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../utils/api";
+import { api, formatDateTime } from "../utils/api";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
@@ -589,7 +589,7 @@ const QASearchExport = () => {
                         {detail.approvalHistories.map((h, i) => (
                           <li key={h.approvalHistoryId ?? i}>
                             <strong>{h.actionType || "—"}</strong>
-                            {h.actionAt ? ` · ${new Date(h.actionAt).toLocaleString("vi-VN")}` : ""}
+                            {h.actionAt ? ` · ${formatDateTime(h.actionAt)}` : ""}
                             {h.comments ? ` — ${h.comments}` : ""}
                           </li>
                         ))}
@@ -605,7 +605,7 @@ const QASearchExport = () => {
                         {auditLogs.slice(0, 20).map((log, i) => (
                           <li key={log.auditLogId ?? i}>
                             <strong>{log.actionType || "—"}</strong>
-                            {log.createdAt ? ` · ${new Date(log.createdAt).toLocaleString("vi-VN")}` : ""}
+                            {log.createdAt ? ` · ${formatDateTime(log.createdAt)}` : ""}
                             {log.entityName ? ` · ${log.entityName}` : ""}
                             {log.description ? ` — ${log.description}` : ""}
                           </li>

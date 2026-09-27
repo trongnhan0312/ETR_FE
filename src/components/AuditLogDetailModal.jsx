@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { formatDateTime } from '../utils/api';
 
 const ACTION_COLORS = {
   INSERT: { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe', label: 'Tạo mới (INSERT)' },
@@ -57,7 +58,7 @@ const AuditLogDetailModal = ({ log, onClose }) => {
 
   const actorName = log.user || log.actor || (log.accountId ? `Account #${log.accountId}` : trEn('Hệ thống (System / Admin)'));
   const logId = log.id || log.auditLogId || '—';
-  const timestamp = log.timestamp || log.time || log.date || (log.createdAt ? new Date(log.createdAt).toLocaleString('vi-VN') : '—');
+  const timestamp = log.timestamp || log.time || log.date || formatDateTime(log.createdAt);
   const moduleName = log.module || log.entityName || '—';
   const recordId = log.target || log.recordId || '—';
   const etrId = log.etrCourseRecordId || log.etrRecordId || null;

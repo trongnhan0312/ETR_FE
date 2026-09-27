@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { api } from '../utils/api';
+import { api, formatDateTime } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
@@ -90,7 +90,7 @@ const AcademicAuditLogs = () => {
 
         return {
           id: a.auditLogId || a.id || '—',
-          timestamp: a.createdAt ? new Date(a.createdAt).toLocaleString('vi-VN') : '—',
+          timestamp: formatDateTime(a.createdAt),
           user: userLabel,
           actor: userLabel,
           accountId: a.accountId,

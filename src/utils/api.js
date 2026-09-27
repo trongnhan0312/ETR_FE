@@ -702,16 +702,37 @@ export const submitContactForm = async (contactData) => {
 };
 
 /**
+/**
  * Định dạng chuỗi ngày giờ từ Backend (UTC) sang giờ địa phương Việt Nam (GMT+7).
  * Tự động gắn hậu tố 'Z' nếu chuỗi chưa có để trình duyệt nhận diện chính xác là UTC.
+ * Luôn ép múi giờ hiển thị là Asia/Ho_Chi_Minh (GMT+7) để đảm bảo đồng nhất trên mọi thiết bị.
  */
 export const formatDateTime = (dateStr, options = {}) => {
   if (!dateStr || dateStr === "—") return "—";
   try {
-    const raw = String(dateStr).trim();
-    const utcStr = raw.endsWith("Z") || raw.includes("+") || raw.includes("-", 10) ? raw : `${raw}Z`;
+    let raw = String(dateStr).trim();
+    if (!raw) return "—";
+    if (raw.includes(" ") && !raw.includes("T")) {
+      raw = raw.replace(" ", "T");
+    }
+    const hasTimezone = raw.endsWith("Z") || /[+-]\d{2}(:\d{2})?$/.test(raw);
+    const utcStr = hasTimezone ? raw : `${raw}Z`;
     const d = new Date(utcStr);
-    if (Number.isNaN(d.getTime())) return String(dateStr);
+    if (Number.isNaN(d.getTime())) {
+      const fallback = new Date(raw);
+      if (Number.isNaN(fallback.getTime())) return String(dateStr);
+      return fallback.toLocaleString("vi-VN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Ho_Chi_Minh",
+        ...options,
+      });
+    }
     return d.toLocaleString("vi-VN", {
       year: "numeric",
       month: "2-digit",
@@ -720,6 +741,7 @@ export const formatDateTime = (dateStr, options = {}) => {
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
       ...options,
     });
   } catch {

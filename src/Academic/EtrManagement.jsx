@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { createPortal } from "react-dom";
-import { api } from "../utils/api";
+import { api, formatDateTime } from "../utils/api";
 import { announce } from "../utils/crudNotify";
 import { uploadToCloudinary, validateEvidenceFile } from "../utils/cloudinary";
 import ConfirmModal from "../components/ConfirmModal";
@@ -274,12 +274,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
             return {
               id: a.auditLogId || a.id || "—",
               auditLogId: a.auditLogId || a.id,
-              time: (a.createdAt ?? a.recordedAt)
-                ? new Date(a.createdAt ?? a.recordedAt).toLocaleString("vi-VN")
-                : "—",
-              timestamp: (a.createdAt ?? a.recordedAt)
-                ? new Date(a.createdAt ?? a.recordedAt).toLocaleString("vi-VN")
-                : "—",
+              time: formatDateTime(a.createdAt ?? a.recordedAt),
+              timestamp: formatDateTime(a.createdAt ?? a.recordedAt),
               actor: actorName,
               user: actorName,
               accountId: a.accountId,
@@ -536,10 +532,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
           : [];
       setAuditTrail(
         auditsArr.map((a) => ({
-          time:
-            (a.createdAt ?? a.recordedAt)
-              ? new Date(a.createdAt ?? a.recordedAt).toLocaleString("vi-VN")
-              : "",
+          time: formatDateTime(a.createdAt ?? a.recordedAt),
           actor: `Account #${a.accountId || "N/A"}`,
           action: a.actionType || "UPDATE",
           desc: a.description || tr("Cập nhật hồ sơ"),

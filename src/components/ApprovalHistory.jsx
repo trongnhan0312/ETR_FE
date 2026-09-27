@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { api } from "../utils/api";
+import { api, formatDateTime } from "../utils/api";
 import { useLanguage } from '../context/LanguageContext';
 
 const ApprovalHistory = ({ etrId, onClose }) => {
@@ -50,9 +50,7 @@ const ApprovalHistory = ({ etrId, onClose }) => {
               new Date((a.createdAt ?? a.recordedAt) || 0),
           )
           .map((a) => ({
-            time: a.createdAt ?? a.recordedAt
-              ? new Date(a.createdAt ?? a.recordedAt).toLocaleString("vi-VN")
-              : "N/A",
+            time: formatDateTime(a.createdAt ?? a.recordedAt),
             action: (a.actionType || "—").toUpperCase(),
             actor: `Account #${a.accountId || "?"}`,
             fromStatus: a.oldValue || "—",
@@ -75,9 +73,7 @@ const ApprovalHistory = ({ etrId, onClose }) => {
               new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0),
           )
           .map((r) => ({
-            time: r.submittedAt
-              ? new Date(r.submittedAt).toLocaleString("vi-VN")
-              : "N/A",
+            time: formatDateTime(r.submittedAt),
             action: (r.currentStatus || "Request").toUpperCase(),
             actor: `Account #${r.submittedByAccountId ?? r.submittedBy ?? "?"}`,
             fromStatus: "—",
