@@ -568,7 +568,7 @@ const getStudentDepartments = () => {
   };
 
   const handleCommitImport = async () => {
-    if (!importFile || !importResult?.canCommit) return;
+    if (!importFile || !importResult?.canCommit || (importResult.totalRows ?? 0) === 0) return;
     setImportCommitting(true);
     setImportError("");
     try {
@@ -654,8 +654,7 @@ const getStudentDepartments = () => {
   const runAccountAction = async (type, user) => {
     try {
       if (type === 'disable') {
-        await api.delete(`/Accounts/${user.accountId}`);
-        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
+        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
         toast.success(tr("Vô hiệu hóa thành công"), announce("delete", tr("Tài khoản")));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
@@ -665,12 +664,7 @@ const getStudentDepartments = () => {
     } catch (err) {
       console.error(`Failed to ${type} student:`, err);
       if (type === 'disable') {
-        try {
-          await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
-          await loadLearners();
-        } catch (putErr) {
-          toast.error(parseApiError(putErr, tr("Vô hiệu hóa tài khoản thất bại")));
-        }
+        toast.error(parseApiError(err, tr("Vô hiệu hóa tài khoản thất bại")));
       } else {
         toast.error(parseApiError(err, tr("Kích hoạt tài khoản thất bại")));
       }
@@ -1661,15 +1655,15 @@ const getStudentDepartments = () => {
               <button
                 type="button"
                 onClick={handleCommitImport}
-                disabled={!importResult?.canCommit || importValidating || importCommitting}
+                disabled={!importResult?.canCommit || (importResult.totalRows ?? 0) === 0 || importValidating || importCommitting}
                 style={{
                   padding: '8px 18px',
-                  background: importResult?.canCommit ? '#002147' : '#e2e8f0',
+                  background: (importResult?.canCommit && (importResult.totalRows ?? 0) > 0) ? '#002147' : '#e2e8f0',
                   border: 'none',
                   borderRadius: '6px',
-                  color: importResult?.canCommit ? '#c5a059' : '#94a3b8',
+                  color: (importResult?.canCommit && (importResult.totalRows ?? 0) > 0) ? '#c5a059' : '#94a3b8',
                   fontWeight: '700',
-                  cursor: importResult?.canCommit && !importCommitting ? 'pointer' : 'not-allowed',
+                  cursor: importResult?.canCommit && (importResult.totalRows ?? 0) > 0 && !importCommitting ? 'pointer' : 'not-allowed',
                 }}
               >
                 {importCommitting ? tr('Đang nhập...') : tr('Nhập vào hệ thống')}

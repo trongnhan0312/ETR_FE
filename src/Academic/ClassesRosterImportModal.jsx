@@ -222,7 +222,7 @@ const ClassesRosterImportModal = ({ onClose, onSuccess }) => {
                 ))}
               </div>
             )}
-          {importResult.canCommit && (
+          {importResult.canCommit && (importResult.totalRows ?? 0) > 0 && (
             <button
               onClick={handleCommitImport}
               type="button"

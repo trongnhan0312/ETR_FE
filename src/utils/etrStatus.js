@@ -160,12 +160,29 @@ export const areSubjectScoresFinalized = (subjectResults) =>
   subjectResults.length > 0 &&
   subjectResults.every((sr) => {
     if (sr?.status === "Exempted") return true;
+
+    // 1. Môn học đã được Giảng viên Ký xác nhận (Subject Signoff)
+    // -> Điểm số đã chính thức được chốt và khóa bất biến (khớp backend: signoff chặn mọi sửa/xóa).
+    if (
+      sr?.isSignedOff === true ||
+      sr?.IsSignedOff === true ||
+      sr?.signedOffAt != null ||
+      sr?.SignedOffAt != null
+    ) {
+      return true;
+    }
+
     const results = [
       ...(sr?.assessmentResults || []),
       ...(sr?.practicalChecklistResults || []),
     ];
-    if (results.length === 0) return false;
-    return results.every((r) => r.isPublished === true);
+
+    // 2. Nếu môn học có các bài đánh giá con: Đạt khi TẤT CẢ đã được CHỐT ĐIỂM (isPublished = true).
+    if (results.length > 0) {
+      return results.every((r) => r.isPublished === true);
+    }
+
+    return false;
   });
 
 /**

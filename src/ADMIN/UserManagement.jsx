@@ -576,7 +576,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
   };
 
   const handleCommitImport = async () => {
-    if (!importFile || !importResult?.canCommit) return;
+    if (!importFile || !importResult?.canCommit || (importResult.totalRows ?? 0) === 0) return;
     setImportCommitting(true);
     setImportError('');
     try {
@@ -599,7 +599,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
   };
 
   // Xác nhận trước các thao tác tài khoản (thay window.confirm)
-  const [confirmAction, setConfirmAction] = useState(null); // { type: 'toggle' | 'delete' | 'activate', user }
+  const [confirmAction, setConfirmAction] = useState(null); // { type: 'toggle' | 'delete' | 'disable' | 'activate', user }
 
   const runAccountAction = async (type, user) => {
     if (type !== 'activate' && isRootAdmin(user)) {
@@ -611,8 +611,8 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     }
 
     if (isCurrentUser(user)) {
-      if (type === 'delete') {
-        toast.error(tr("Bạn không thể tự xóa tài khoản của chính mình (cả xóa mềm lẫn xóa cứng)!"));
+      if (type === 'delete' || type === 'disable') {
+        toast.error(tr("Bạn không thể tự vô hiệu hóa tài khoản của chính mình!"));
         setConfirmAction(null);
         return;
       }
@@ -629,10 +629,9 @@ const UserManagement = ({ defaultTab = 'users' }) => {
         const nextStatus = isInactive ? 'Active' : 'Inactive';
         await api.put(`/Accounts/${user.accountId}/status`, { status: nextStatus });
         toast.success(tr("Cập nhật trạng thái"), announce("edit", tr("Tài khoản")));
-      } else if (type === 'delete') {
-        await api.delete(`/Accounts/${user.accountId}`);
-        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' }).catch(() => {});
-        toast.success(tr("Soft Delete"), announce("delete", tr("Tài khoản")));
+      } else if (type === 'delete' || type === 'disable') {
+        await api.put(`/Accounts/${user.accountId}/status`, { status: 'Inactive' });
+        toast.success(tr("Vô hiệu hóa thành công"), announce("delete", tr("Tài khoản")));
       } else {
         await api.put(`/Accounts/${user.accountId}/status`, { status: 'Active' });
         toast.success(tr("Kích hoạt thành công"), announce("edit", tr("Tài khoản")));
@@ -640,7 +639,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       await loadAllData();
     } catch (err) {
       console.error(`Failed to ${type} account:`, err);
-      const errMsg = parseApiError(err, type === 'delete' ? tr("Soft Delete thất bại") : tr("Thao tác thất bại"));
+      const errMsg = parseApiError(err, type === 'delete' || type === 'disable' ? tr("Vô hiệu hóa thất bại") : tr("Thao tác thất bại"));
       toast.error(errMsg);
     } finally {
       setConfirmAction(null);
@@ -1010,7 +1009,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                           <button
                             className="action-btn"
                             type="button"
-                            onClick={() => !isLocked && setConfirmAction({ type: 'delete', user })}
+                            onClick={() => !isLocked && setConfirmAction({ type: 'disable', user })}
                             disabled={isLocked}
                             style={{
                               padding: '4px 10px',
@@ -1021,9 +1020,9 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                               cursor: isLocked ? 'not-allowed' : 'pointer',
                               opacity: isLocked ? 0.6 : 1
                             }}
-                            title={isLocked ? lockedTitle : tr('Xóa tài khoản')}
+                            title={isLocked ? lockedTitle : tr('Vô hiệu hóa tài khoản')}
                           >
-                            {tr('Delete')}
+                            {tr('Vô hiệu hóa')}
                           </button>
                         )}
                       </div>
@@ -1290,8 +1289,8 @@ const UserManagement = ({ defaultTab = 'users' }) => {
               <button
                 type="button"
                 onClick={handleCommitImport}
-                disabled={!importResult?.canCommit || importCommitting}
-                style={{ padding: '8px 18px', background: importResult?.canCommit ? '#002147' : '#94a3b8', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: importResult?.canCommit ? 'pointer' : 'not-allowed' }}
+                disabled={!importResult?.canCommit || (importResult.totalRows ?? 0) === 0 || importCommitting}
+                style={{ padding: '8px 18px', background: (importResult?.canCommit && (importResult.totalRows ?? 0) > 0) ? '#002147' : '#94a3b8', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: (importResult?.canCommit && (importResult.totalRows ?? 0) > 0) ? 'pointer' : 'not-allowed' }}
               >
                 {importCommitting ? tr('Đang nhập...') : tr('Nhập vào hệ thống')}
               </button>
@@ -1959,31 +1958,31 @@ const UserManagement = ({ defaultTab = 'users' }) => {
         onClose={() => setConfirmAction(null)}
         onConfirm={() => runAccountAction(confirmAction?.type, confirmAction?.user)}
         title={
-          confirmAction?.type === 'delete'
-            ? tr("Soft Delete tài khoản")
+          confirmAction?.type === 'delete' || confirmAction?.type === 'disable'
+            ? tr("Vô hiệu hóa tài khoản")
             : confirmAction?.type === 'toggle'
             ? tr("Đổi trạng thái tài khoản")
             : tr("Kích hoạt tài khoản")
         }
         message={
-          confirmAction?.type === 'delete'
+          confirmAction?.type === 'delete' || confirmAction?.type === 'disable'
             ? trt('confirmSoftDelete', { username: confirmAction?.user?.username || '' })
             : confirmAction?.type === 'toggle'
             ? trt('confirmToggleStatus', { username: confirmAction?.user?.username || '' })
             : trt('confirmActivate', { username: confirmAction?.user?.username || '' })
         }
         confirmText={
-          confirmAction?.type === 'delete'
-            ? tr("SOFT DELETE")
+          confirmAction?.type === 'delete' || confirmAction?.type === 'disable'
+            ? tr("VÔ HIỆU HÓA")
             : confirmAction?.type === 'toggle'
             ? tr("ĐỔI TRẠNG THÁI")
             : tr("KÍCH HOẠT")
         }
         cancelText={tr("HỦY BỎ")}
-        confirmVariant={confirmAction?.type === 'delete' ? "danger" : "primary"}
+        confirmVariant={confirmAction?.type === 'delete' || confirmAction?.type === 'disable' ? "danger" : "primary"}
         bodyMessage={
-          confirmAction?.type === 'delete'
-            ? tr("Tài khoản sẽ không thể đăng nhập, nhưng toàn bộ hồ sơ đào tạo và lịch sử kiểm toán vẫn được giữ nguyên.")
+          confirmAction?.type === 'delete' || confirmAction?.type === 'disable'
+            ? tr("Tài khoản sẽ không thể đăng nhập, nhưng tài khoản vẫn hiển thị trong danh sách quản trị để có thể kích hoạt lại bất kỳ lúc nào.")
             : tr("Thay đổi trạng thái sẽ được áp dụng ngay và ghi nhận vào Audit Log.")
         }
       />

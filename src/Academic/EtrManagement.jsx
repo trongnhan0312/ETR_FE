@@ -3736,89 +3736,106 @@ const EtrManagement = ({ defaultView = "list" }) => {
                     >
                       {tr("CHI TIẾT KIỂM DUYỆT CÁC BƯỚC HỒ SƠ")}
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "8px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: "13px",
-                        }}
-                      >
-                        <span>1. {tr("Hồ sơ thông tin cá nhân:")}</span>
-                        <span style={{ color: "#15803d", fontWeight: "bold" }}>
-                          ✓ ĐÃ XÁC THỰC
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: "13px",
-                        }}
-                      >
-                        <span>2. {tr("Điểm danh / Chuyên cần:")}</span>
-                        <span
+                    {(() => {
+                      const viewAttendanceOk = finalViewDetail?.subjectResults
+                        ? areAllAttendanceRatesOk(finalViewDetail.subjectResults)
+                        : finalViewRecord.steps.attendance;
+                      const viewResultsOk = finalViewDetail?.subjectResults
+                        ? (areSubjectScoresFinalized(finalViewDetail.subjectResults) ||
+                           finalViewRecord.status === "Verified" ||
+                           finalViewRecord.status === "Submitted" ||
+                           isEtrCompleted(finalViewRecord.status))
+                        : finalViewRecord.steps.results;
+                      const viewEvidenceOk = finalViewDetail
+                        ? hasVerifiedEvidence(finalViewDetail.evidenceFiles || [], finalViewDetail.status || finalViewRecord.status)
+                        : finalViewRecord.steps.evidence;
+
+                      return (
+                        <div
                           style={{
-                            color: finalViewRecord.steps.attendance
-                              ? "#15803d"
-                              : "#d97706",
-                            fontWeight: "bold",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px",
                           }}
                         >
-                          {finalViewRecord.steps.attendance
-                            ? "✓ ĐÃ XÁC THỰC"
-                            : "⌛ ĐANG CHỜ"}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: "13px",
-                        }}
-                      >
-                        <span>3. {tr("Điểm số kết quả kiểm tra:")}</span>
-                        <span
-                          style={{
-                            color: finalViewRecord.steps.results
-                              ? "#15803d"
-                              : "#d97706",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {finalViewRecord.steps.results
-                            ? "✓ ĐÃ XÁC THỰC"
-                            : "⌛ ĐANG CHỜ"}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: "13px",
-                        }}
-                      >
-                        <span>4. {tr("Minh chứng đính kèm hồ sơ:")}</span>
-                        <span
-                          style={{
-                            color: finalViewRecord.steps.evidence
-                              ? "#15803d"
-                              : "#d97706",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {finalViewRecord.steps.evidence
-                            ? "✓ ĐÃ XÁC THỰC"
-                            : "⌛ ĐANG CHỜ"}
-                        </span>
-                      </div>
-                    </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <span>1. {tr("Hồ sơ thông tin cá nhân:")}</span>
+                            <span style={{ color: "#15803d", fontWeight: "bold" }}>
+                              ✓ ĐÃ XÁC THỰC
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <span>2. {tr("Điểm danh / Chuyên cần:")}</span>
+                            <span
+                              style={{
+                                color: viewAttendanceOk
+                                  ? "#15803d"
+                                  : "#d97706",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {viewAttendanceOk
+                                ? "✓ ĐÃ XÁC THỰC"
+                                : "⌛ ĐANG CHỜ"}
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <span>3. {tr("Điểm số kết quả kiểm tra:")}</span>
+                            <span
+                              style={{
+                                color: viewResultsOk
+                                  ? "#15803d"
+                                  : "#d97706",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {viewResultsOk
+                                ? "✓ ĐÃ XÁC THỰC"
+                                : "⌛ ĐANG CHỜ"}
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <span>4. {tr("Minh chứng đính kèm hồ sơ:")}</span>
+                            <span
+                              style={{
+                                color: viewEvidenceOk
+                                  ? "#15803d"
+                                  : "#d97706",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {viewEvidenceOk
+                                ? "✓ ĐÃ XÁC THỰC"
+                                : "⌛ ĐANG CHỜ"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Subject Results Table */}

@@ -666,12 +666,24 @@ const InstructorAssessments = () => {
           }
         }
 
+        const isSignedOff =
+          subRes?.isSignedOff === true ||
+          subRes?.IsSignedOff === true ||
+          subRes?.signedOffAt != null ||
+          subRes?.SignedOffAt != null;
+
+        if (isSignedOff) {
+          assessmentIsPublished = true;
+          practicalIsPublished = true;
+        }
+
         const isPublished =
-          type === "assessment"
+          isSignedOff ||
+          (type === "assessment"
             ? assessmentIsPublished
             : type === "practical"
               ? practicalIsPublished
-              : assessmentIsPublished || practicalIsPublished;
+              : assessmentIsPublished || practicalIsPublished);
 
         // === [DIAG] Ghi log trạng thái khớp điểm từng học viên — debug lỗi 400
         // "A retake must be authorized by an account different from the one recording the score."
@@ -772,6 +784,7 @@ const InstructorAssessments = () => {
           assessmentIsPublished,
           practicalIsPublished,
           isPublished,
+          isSignedOff,
           attendanceRate,
           subjectScore,
           passingScore,
@@ -1190,11 +1203,17 @@ const InstructorAssessments = () => {
     };
   }, [eligibilityList]);
 
+  // Check if all scores are signed off (for subject signoff button state)
+  const allSignedOff = useMemo(() => {
+    if (studentScores.length === 0) return false;
+    return studentScores.every((s) => s.isSignedOff);
+  }, [studentScores]);
+
   const canSignoff = useMemo(() => {
-    if (loading || signingOff || allPublished) return false;
+    if (loading || signingOff || allSignedOff) return false;
     if (eligibilityList.length === 0) return false;
     return eligibilityStats.allEligible;
-  }, [loading, signingOff, allPublished, eligibilityList, eligibilityStats]);
+  }, [loading, signingOff, allSignedOff, eligibilityList, eligibilityStats]);
 
   // Finalize Score (Chốt điểm) eligibility:
   // 1. Phải có học viên trong danh sách.
@@ -1328,6 +1347,13 @@ const InstructorAssessments = () => {
             comment: tr("Đã hoàn thành đánh giá và ký xác nhận chuyên đề."),
           })
         )
+      );
+
+      // Đồng thời kích hoạt publish các bài đánh giá chưa publish (đảm bảo đồng bộ ngay lập tức)
+      await Promise.allSettled(
+        studentScores
+          .filter((s) => s.assessmentResultId && !s.assessmentIsPublished)
+          .map((s) => api.patch(`/AssessmentResults/${s.assessmentResultId}/publish`))
       );
 
       setConfirmSignoffOpen(false);
@@ -2026,7 +2052,7 @@ const InstructorAssessments = () => {
                 <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
               </svg>
               <span>
-                {allPublished
+                {allSignedOff
                   ? tr("ĐÃ KÝ")
                   : eligibilityStats.ineligibleCount > 0
                     ? trt('ineligibleCount', { n: eligibilityStats.ineligibleCount })
