@@ -152,25 +152,25 @@ const LearnerManagement = () => {
     return d.toISOString().slice(0, 10);
   };
 
-// Helper to get departments available for Student role: exclude Training (2) and Administration (1).
-// NOTE: GET /api/Departments is Admin-only (DepartmentsController), so as Academic we
-// fall back to the authoritative list seeded in BE DataSeeder (ids 1-6, excluding id 1 and 2).
-const getStudentDepartments = () => {
-  const filtered = departments.filter(
-    (d) =>
-      !d.name?.toLowerCase().includes('training') &&
-      !d.name?.toLowerCase().includes('đào tạo') &&
-      String(d.id) !== '2' &&
-      String(d.id) !== '1',
-  );
-  if (filtered.length > 0) return filtered;
-  return [
-    { id: '3', name: 'Flight Crew' },
-    { id: '4', name: 'Cabin Crew' },
-    { id: '5', name: 'Engineering & Maintenance' },
-    { id: '6', name: 'Ground Operations' },
-  ];
-};
+  // Helper to get departments available for Student role: exclude Training (2) and Administration (1).
+  // NOTE: GET /api/Departments is Admin-only (DepartmentsController), so as Academic we
+  // fall back to the authoritative list seeded in BE DataSeeder (ids 1-6, excluding id 1 and 2).
+  const getStudentDepartments = () => {
+    const filtered = departments.filter(
+      (d) =>
+        !d.name?.toLowerCase().includes('training') &&
+        !d.name?.toLowerCase().includes('đào tạo') &&
+        String(d.id) !== '2' &&
+        String(d.id) !== '1',
+    );
+    if (filtered.length > 0) return filtered;
+    return [
+      { id: '3', name: 'Flight Crew' },
+      { id: '4', name: 'Cabin Crew' },
+      { id: '5', name: 'Engineering & Maintenance' },
+      { id: '6', name: 'Ground Operations' },
+    ];
+  };
 
   const ROLE_MAP = {
     1: 'Admin',
@@ -263,6 +263,7 @@ const getStudentDepartments = () => {
     setFormError('');
     const trimmedUsername = username.trim();
     const trimmedFullName = fullName.trim();
+    const trimmedPhone = phone.trim();
 
     if (!trimmedUsername || !password || !trimmedFullName) {
       setFormError(tr('Vui lòng nhập Username, Password và Họ tên.'));
@@ -421,7 +422,7 @@ const getStudentDepartments = () => {
     setEditPhone(user.phone || '');
     setEditDateOfBirth(toDateInputValue(user.dateOfBirth));
     setEditGender(user.gender || 'Male');
-    
+
     const studentDepts = getStudentDepartments();
     const currentDeptIdStr = String(user.departmentId || '');
     if (!studentDepts.some((d) => String(d.id) === currentDeptIdStr)) {
@@ -665,8 +666,7 @@ const getStudentDepartments = () => {
       }
 
       toast.success(
-        `${tr("Đã nhập thành công")} ${imported} ${tr("tài khoản học viên")}${
-          skipped > 0 ? ` — ${tr("bỏ qua")}: ${skipped}` : ""
+        `${tr("Đã nhập thành công")} ${imported} ${tr("tài khoản học viên")}${skipped > 0 ? ` — ${tr("bỏ qua")}: ${skipped}` : ""
         }`,
       );
       setImportOpen(false);
@@ -1005,7 +1005,7 @@ const getStudentDepartments = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>{tr('Tạo tài khoản học viên (Student Role)')}</h2>
-            
+
             {formError && (
               <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                 {formError}

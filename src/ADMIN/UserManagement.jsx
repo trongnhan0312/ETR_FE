@@ -328,6 +328,11 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     setIsCreateOpen(true);
   };
 
+  // Validation helpers
+  const isValidUsername = (u) => /^[a-zA-Z][a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(u?.trim() || '');
+  const isValidFullName = (name) => /^[\p{L}\s]+$/u.test(name?.trim() || '');
+  const isValidPhone = (p) => !p || /^0\d{9,10}$/.test(p.trim());
+
   // Submit Create Account + Profile
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -335,6 +340,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     setUsernameError('');
     const trimmedUsername = username.trim();
     const trimmedFullName = fullName.trim();
+    const trimmedPhone = phone.trim();
 
     if (!trimmedUsername || !password || !trimmedFullName) {
       setFormError(tr('Vui lòng nhập Username, Password và Họ tên.'));
@@ -493,7 +499,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     setEditEmail(user.email || '');
     setEditPhone(user.phone || '');
     setEditGender(user.gender || 'Male');
-    
+
     const currentRoleIdStr = String(user.roleId || '');
     const activeRoleId = currentRoleIdStr && currentRoleIdStr !== '1' ? currentRoleIdStr : '2';
     setEditRoleId(activeRoleId);
@@ -559,6 +565,21 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     const editPhoneMsg = validatePhone(editPhone);
     if (editPhoneMsg) {
       setFormError(editPhoneMsg);
+      return;
+    }
+
+    if (!isValidFullName(trimmedFullName)) {
+      setFormError(tr('Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được bắt đầu bằng số hoặc chứa ký tự đặc biệt.'));
+      return;
+    }
+
+    if (trimmedEmail && !isValidUsername(trimmedEmail)) {
+      setFormError(tr('Email phải là địa chỉ email hợp lệ và bắt đầu bằng chữ cái.'));
+      return;
+    }
+
+    if (trimmedPhone && !isValidPhone(trimmedPhone)) {
+      setFormError(tr('Số điện thoại phải bắt đầu bằng số 0, gồm 10-11 chữ số và không chứa ký tự đặc biệt.'));
       return;
     }
 
@@ -1426,7 +1447,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', margin: 'auto' }}>
             <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#0f172a' }}>{tr('Tạo tài khoản mới')}</h2>
-            
+
             {formError && (
               <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                 {formError}
@@ -1658,15 +1679,15 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                   >
                     {editRoleId === '6'
                       ? getStudentDepartments().map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name}
-                          </option>
-                        ))
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))
                       : getStaffDepartments().map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name}
-                          </option>
-                        ))}
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -2082,22 +2103,22 @@ const UserManagement = ({ defaultTab = 'users' }) => {
           confirmAction?.type === 'delete' || confirmAction?.type === 'disable'
             ? tr("Vô hiệu hóa tài khoản")
             : confirmAction?.type === 'toggle'
-            ? tr("Đổi trạng thái tài khoản")
-            : tr("Kích hoạt tài khoản")
+              ? tr("Đổi trạng thái tài khoản")
+              : tr("Kích hoạt tài khoản")
         }
         message={
           confirmAction?.type === 'delete' || confirmAction?.type === 'disable'
             ? trt('confirmSoftDelete', { username: confirmAction?.user?.username || '' })
             : confirmAction?.type === 'toggle'
-            ? trt('confirmToggleStatus', { username: confirmAction?.user?.username || '' })
-            : trt('confirmActivate', { username: confirmAction?.user?.username || '' })
+              ? trt('confirmToggleStatus', { username: confirmAction?.user?.username || '' })
+              : trt('confirmActivate', { username: confirmAction?.user?.username || '' })
         }
         confirmText={
           confirmAction?.type === 'delete' || confirmAction?.type === 'disable'
             ? tr("VÔ HIỆU HÓA")
             : confirmAction?.type === 'toggle'
-            ? tr("ĐỔI TRẠNG THÁI")
-            : tr("KÍCH HOẠT")
+              ? tr("ĐỔI TRẠNG THÁI")
+              : tr("KÍCH HOẠT")
         }
         cancelText={tr("HỦY BỎ")}
         confirmVariant={confirmAction?.type === 'delete' || confirmAction?.type === 'disable' ? "danger" : "primary"}
