@@ -7,7 +7,6 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
   const { tr } = useLanguage();
   const [courseCode, setCourseCode] = useState(course.code || course.courseCode || '');
   const [courseName, setCourseName] = useState(course.name || course.courseName || '');
-  const [durationHours, setDurationHours] = useState(String(course.duration || course.durationHours || '120'));
   const [description, setDescription] = useState(course.description || '');
   const [status, setStatus] = useState(course.status || 'Active');
 
@@ -85,6 +84,19 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
     }));
   };
 
+  // Số giờ môn học chỉ nhận số nguyên không âm — kẹp ngay khi nhập để tổng
+  // thời lượng khóa học không bao giờ âm hay thập phân.
+  const toNonNegativeInt = (raw) =>
+    Math.max(0, Math.floor(Number(raw) || 0));
+
+  // Thời lượng khóa học = tổng số giờ các môn đã chọn (tự động tính, không nhập tay).
+  // Kẹp từng môn về số nguyên không âm để dữ liệu cũ (âm/thập phân) cũng cho tổng hợp lệ.
+  const durationHours = selectedSubjectIds.reduce(
+    (sum, idStr) =>
+      sum + Math.max(0, Math.floor(Number(subjectCriteria[idStr]?.requiredHours) || 0)),
+    0,
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -94,12 +106,18 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
       return;
     }
 
+    // Thời lượng khóa học = tổng giờ các môn → phải là số nguyên dương
+    if (!Number.isInteger(durationHours) || durationHours <= 0) {
+      setErrorMsg(tr('Thời lượng khóa học phải là số nguyên dương (tổng số giờ các môn học). Vui lòng kiểm tra số giờ từng môn.'));
+      return;
+    }
+
     const subjectsPayload = selectedSubjectIds.map((idStr, idx) => {
       const crit = subjectCriteria[idStr] || { requiredHours: 0, requiredSessions: 1, isMandatory: true, passingScore: 5 };
       return {
         subjectId: Number(idStr),
         sequenceNo: crit.sequenceNo ?? idx + 1,
-        requiredHours: Number(crit.requiredHours) || 0,
+        requiredHours: toNonNegativeInt(crit.requiredHours),
         requiredSessions: Number(crit.requiredSessions) || 1,
         isMandatory: !!crit.isMandatory,
         passingScore: Number(crit.passingScore) || 0
@@ -113,7 +131,7 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
         courseCode: courseCode.trim(),
         courseName: courseName.trim(),
         description: description.trim(),
-        durationHours: parseInt(durationHours) || 0,
+        durationHours,
         status: status === 'Active' || status === 'HOẠT ĐỘNG' ? 'Active' : 'Pending',
         subjects: subjectsPayload
       });
@@ -188,16 +206,15 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
 
                 <div className="form-group">
                   <label htmlFor="update-course-duration" style={{ fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>
-                    {tr('Thời lượng (Giờ) *')}
+                    {tr('Thời lượng (Giờ) *')} {tr('(Tự động = tổng giờ các môn)')}
                   </label>
                   <input
                     id="update-course-duration"
                     type="number"
                     className="premium-input"
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', cursor: 'not-allowed', opacity: '0.8' }}
                     value={durationHours}
-                    onChange={(e) => setDurationHours(e.target.value)}
-                    required
+                    readOnly
                   />
                 </div>
               </div>
@@ -285,8 +302,9 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                             <input
                               type="number"
                               min="0"
+                              step="1"
                               value={crit.requiredHours}
-                              onChange={(e) => updateSubjectCriteria(subIdStr, 'requiredHours', parseInt(e.target.value) || 0)}
+                              onChange={(e) => updateSubjectCriteria(subIdStr, 'requiredHours', toNonNegativeInt(e.target.value))}
                               style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '11px', outline: 'none' }}
                             />
                           </div>

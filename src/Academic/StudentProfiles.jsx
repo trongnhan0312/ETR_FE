@@ -86,8 +86,20 @@ const parseApiError = (err, fallbackMsg = 'Thao tác thất bại.', tr = (x) =>
 };
 
 // Form validation helpers
-const isValidFullName = (name) => !/[0-9!@#$%&*()_+]/.test(name);
-const isValidPhone = (phone) => /^\d{10,11}$/.test(phone);
+// Họ tên: bắt đầu bằng chữ cái (không bắt đầu bằng số), chỉ gồm chữ cái
+// (kể cả tiếng Việt có dấu) và khoảng trắng — không số, không ký tự đặc biệt.
+const isValidFullName = (name) => /^[\p{L}][\p{L} ]*$/u.test(String(name || '').trim());
+// SĐT: chỉ gồm chữ số, bắt đầu bằng 0, tổng 10 hoặc 11 chữ số.
+const isValidPhone = (phone) => /^0\d{9,10}$/.test(String(phone || '').trim());
+// Username là email: phần local (trước @) bắt đầu bằng chữ cái (không bắt đầu
+// bằng số, không bắt đầu bằng '-'), chỉ chứa chữ cái, số và . _ -
+const isValidUsername = (raw) => {
+  const v = String(raw || '').trim();
+  if (!v || /\s/.test(v)) return false;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return false;
+  const local = v.split('@')[0] || '';
+  return /^[A-Za-z][A-Za-z0-9._-]*$/.test(local);
+};
 const isValidDateOfBirth = (dob) => {
   if (!dob) return false;
   const year = new Date(dob).getFullYear();
@@ -227,12 +239,29 @@ const StudentProfiles = () => {
       setFormError(tr('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).'));
       return;
     }
+    const usernameLocal = trimmedUsername.split('@')[0] || '';
+    if (/^[0-9]/.test(usernameLocal)) {
+      setFormError(tr('Username không được bắt đầu bằng số.'));
+      return;
+    }
+    if (/^-/.test(usernameLocal)) {
+      setFormError(tr("Username không được bắt đầu bằng dấu '-'."));
+      return;
+    }
+    if (!isValidUsername(trimmedUsername)) {
+      setFormError(tr('Username chỉ được chứa chữ cái, số và các ký tự . _ - (không chứa ký tự đặc biệt khác).'));
+      return;
+    }
+    if (cPassword.length < 6) {
+      setFormError(tr('Mật khẩu phải có ít nhất 6 ký tự để đảm bảo bảo mật và đăng nhập được.'));
+      return;
+    }
     if (!isValidFullName(trimmedFullName)) {
-      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
+      setFormError(tr('Họ và tên phải bắt đầu bằng chữ cái, không chứa số hoặc ký tự đặc biệt.'));
       return;
     }
     if (cPhone.trim() && !isValidPhone(cPhone.trim())) {
-      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
+      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.'));
       return;
     }
     if (!isValidDateOfBirth(cDateOfBirth)) {
@@ -295,15 +324,29 @@ const StudentProfiles = () => {
       return;
     }
     if (!isValidFullName(eFullName.trim())) {
-      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
+      setFormError(tr('Họ và tên phải bắt đầu bằng chữ cái, không chứa số hoặc ký tự đặc biệt.'));
       return;
     }
-    if (!eEmail.trim() || !eEmail.includes('@')) {
+    const editEmailTrimmed = eEmail.trim();
+    if (!editEmailTrimmed) {
       setFormError(tr('Email phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).'));
       return;
     }
+    const editEmailLocal = editEmailTrimmed.split('@')[0] || '';
+    if (/^[0-9]/.test(editEmailLocal)) {
+      setFormError(tr('Username không được bắt đầu bằng số.'));
+      return;
+    }
+    if (/^-/.test(editEmailLocal)) {
+      setFormError(tr("Username không được bắt đầu bằng dấu '-'."));
+      return;
+    }
+    if (!isValidUsername(editEmailTrimmed)) {
+      setFormError(tr('Email phải là một địa chỉ email hợp lệ, chỉ chứa chữ cái, số và các ký tự . _ - (không chứa ký tự đặc biệt khác).'));
+      return;
+    }
     if (ePhone.trim() && !isValidPhone(ePhone.trim())) {
-      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
+      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.'));
       return;
     }
     if (!isValidDateOfBirth(eDateOfBirth)) {
@@ -633,7 +676,6 @@ const StudentProfiles = () => {
                   >
                     <option value="Male">{tr('Nam (Male)')}</option>
                     <option value="Female">{tr('Nữ (Female)')}</option>
-                    <option value="Other">{tr('Khác (Other)')}</option>
                   </select>
                 </div>
               </div>
@@ -750,7 +792,6 @@ const StudentProfiles = () => {
                   >
                     <option value="Male">{tr('Nam (Male)')}</option>
                     <option value="Female">{tr('Nữ (Female)')}</option>
-                    <option value="Other">{tr('Khác (Other)')}</option>
                   </select>
                 </div>
               </div>

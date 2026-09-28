@@ -11,6 +11,8 @@ const SubjectManagement = () => {
   const { tr } = useLanguage();
   const toast = useToast();
   const [subjects, setSubjects] = useState([]);
+  const [courses, setCourses] = useState([]); // { courseId, courseCode, courseName, status, subjectIds[] }
+  const [classes, setClasses] = useState([]); // { classId, courseId, status }
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -48,15 +50,77 @@ const SubjectManagement = () => {
   const loadSubjects = async () => {
     setLoading(true);
     try {
-      const data = await api.get('/Subjects').catch(() => []);
-      const arr = Array.isArray(data) ? data : [];
-      setSubjects(arr);
+      const [subData, courseData, classData] = await Promise.all([
+        api.get('/Subjects').catch(() => []),
+        api.get('/Courses').catch(() => []),
+        api.get('/Classes').catch(() => []),
+      ]);
+      const subArr = Array.isArray(subData) ? subData : [];
+      const courseArr = Array.isArray(courseData) ? courseData : [];
+      const classArr = Array.isArray(classData) ? classData : [];
+      setSubjects(subArr);
+      setClasses(classArr);
+      // GET /Courses (list) không kèm mapping môn học → lấy subjects qua detail từng khóa.
+      // Số lượng khóa học ít nên N+1 ở đây chấp nhận được; lỗi từng khóa → coi như không có môn.
+      const details = await Promise.all(
+        courseArr.map((c) => api.get(`/Courses/${c.courseId ?? c.id}`).catch(() => null)),
+      );
+      setCourses(
+        courseArr.map((c, idx) => {
+          const d = details[idx];
+          const detSubs = Array.isArray(d?.subjects)
+            ? d.subjects
+            : Array.isArray(d?.courseSubjects)
+              ? d.courseSubjects
+              : [];
+          return {
+            courseId: c.courseId ?? c.id,
+            courseCode: c.courseCode ?? c.code ?? '',
+            courseName: c.courseName ?? c.name ?? `Course #${c.courseId ?? c.id}`,
+            status: c.status ?? '',
+            subjectIds: detSubs.map((s) => String(s.subjectId ?? '')),
+          };
+        }),
+      );
     } catch (err) {
       console.error('Error loading subjects:', err);
       setSubjects([]);
+      setCourses([]);
+      setClasses([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Môn học đang được dùng bởi khóa học Active, hoặc bởi khóa học có lớp đang chạy
+  // (InProgress/Planned) thì bị KHÓA sửa/xóa. Trả về danh sách khóa học đang giữ môn.
+  const LIVE_CLASS_STATUSES = ['InProgress', 'Planned'];
+  const getLockingCourses = (subject) => {
+    if (!subject) return [];
+    const sid = String(subject.subjectId);
+    const liveCourseIds = new Set(
+      classes
+        .filter((cl) => LIVE_CLASS_STATUSES.includes(String(cl.status)))
+        .map((cl) => String(cl.courseId ?? '')),
+    );
+    return courses.filter((c) => {
+      if (!c.subjectIds.includes(sid)) return false;
+      if (String(c.status).toLowerCase() === 'active') return true;
+      return liveCourseIds.has(String(c.courseId));
+    });
+  };
+
+  const formatLockingCourseNames = (locking) =>
+    locking
+      .slice(0, 3)
+      .map((c) => `"${c.courseName}"`)
+      .join(', ') + (locking.length > 3 ? ` (+${locking.length - 3})` : '');
+
+  const notifySubjectLocked = (subject, locking) => {
+    const names = formatLockingCourseNames(locking.length > 0 ? locking : getLockingCourses(subject));
+    toast.warning(
+      tr(`Môn học này đang thuộc khóa học ${names} nên không thể chỉnh sửa hoặc xóa.`),
+    );
   };
 
   useEffect(() => {
@@ -111,6 +175,11 @@ const SubjectManagement = () => {
   };
 
   const handleOpenEdit = (subject) => {
+    const locking = getLockingCourses(subject);
+    if (locking.length > 0) {
+      notifySubjectLocked(subject, locking);
+      return;
+    }
     setEditingSubject(subject);
     setESubjectCode(subject.subjectCode || '');
     setESubjectName(subject.subjectName || '');
@@ -164,6 +233,12 @@ const SubjectManagement = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+    // Chặn lưu khi môn đã bị khóa trong lúc modal đang mở
+    if (getLockingCourses(editingSubject).length > 0) {
+      notifySubjectLocked(editingSubject);
+      setIsEditOpen(false);
+      return;
+    }
     if (!eSubjectCode.trim() || !eSubjectName.trim()) {
       setFormError(tr('Vui lòng nhập Mã môn học và Tên môn học.'));
       return;
@@ -199,6 +274,10 @@ const SubjectManagement = () => {
   };
 
   const handleDelete = async (subject) => {
+    if (getLockingCourses(subject).length > 0) {
+      notifySubjectLocked(subject);
+      return;
+    }
     try {
       await api.delete(`/Subjects/${subject.subjectId}`);
       await loadSubjects();
@@ -294,7 +373,21 @@ const SubjectManagement = () => {
               {searchTerm ? tr('Không tìm thấy môn học phù hợp.') : tr('Chưa có môn học nào trong hệ thống.')}
             </div>
           ) : (
-            pageItems.map((s) => (
+            pageItems.map((s) => {
+              // Môn đang thuộc khóa Active / lớp đang chạy (InProgress/Planned) → xám nút
+              const locking = getLockingCourses(s);
+              const isLocked = locking.length > 0;
+              const lockTitle = isLocked
+                ? tr(`Môn học này đang thuộc khóa học ${formatLockingCourseNames(locking)} nên không thể chỉnh sửa hoặc xóa.`)
+                : '';
+              const lockedBtnStyle = {
+                background: '#f1f5f9',
+                color: '#94a3b8',
+                borderColor: '#e2e8f0',
+                cursor: 'not-allowed',
+                opacity: 0.7,
+              };
+              return (
               <div
                 key={s.subjectId}
                 style={{
@@ -347,21 +440,30 @@ const SubjectManagement = () => {
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                   <button
                     type="button"
-                    onClick={() => handleOpenEdit(s)}
-                    style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer' }}
+                    aria-disabled={isLocked}
+                    title={lockTitle || tr('Chỉnh sửa')}
+                    onClick={() => (isLocked ? notifySubjectLocked(s, locking) : handleOpenEdit(s))}
+                    style={isLocked
+                      ? { padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', ...lockedBtnStyle }
+                      : { padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer' }}
                   >
                     {tr('Chỉnh sửa')}
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(s)}
-                    style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #fca5a5', background: '#fff5f5', color: '#ef4444', cursor: 'pointer' }}
+                    aria-disabled={isLocked}
+                    title={lockTitle || tr('Xóa')}
+                    onClick={() => (isLocked ? notifySubjectLocked(s, locking) : handleDelete(s))}
+                    style={isLocked
+                      ? { padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', ...lockedBtnStyle }
+                      : { padding: '4px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #fca5a5', background: '#fff5f5', color: '#ef4444', cursor: 'pointer' }}
                   >
                     {tr('Xóa')}
                   </button>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
 

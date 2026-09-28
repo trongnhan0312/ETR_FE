@@ -118,6 +118,30 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
 
   const handleSave = (e) => {
     e.preventDefault();
+    // Validation đồng bộ với LearnerManagement/StudentProfiles: họ tên bắt đầu bằng
+    // chữ cái, không số, không ký tự đặc biệt; email đúng chuẩn username; SĐT chỉ
+    // chữ số và bắt đầu bằng 0.
+    const trimmedFullName = String(fullName || '').trim();
+    if (!/^[\p{L}][\p{L} ]*$/u.test(trimmedFullName)) {
+      toast.error(tr('Họ và tên phải bắt đầu bằng chữ cái, không chứa số hoặc ký tự đặc biệt.'));
+      return;
+    }
+    const trimmedEmail = String(email || '').trim();
+    if (trimmedEmail) {
+      const emailLocal = trimmedEmail.split('@')[0] || '';
+      if (
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail) ||
+        !/^[A-Za-z][A-Za-z0-9._-]*$/.test(emailLocal)
+      ) {
+        toast.error(tr('Email phải là một địa chỉ email hợp lệ, bắt đầu bằng chữ cái, không chứa ký tự đặc biệt ngoài . _ -.'));
+        return;
+      }
+    }
+    const trimmedPhone = String(phone || '').trim();
+    if (trimmedPhone && !/^0\d{9,10}$/.test(trimmedPhone)) {
+      toast.error(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng số 0.'));
+      return;
+    }
     const updatedLearner = {
       ...learner,
       fullName,
@@ -233,7 +257,6 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
                 >
                   <option value="Nam">{tr('Nam')}</option>
                   <option value="Nữ">{tr('Nữ')}</option>
-                  <option value="Khác">{tr('Khác')}</option>
                 </select>
               </div>
 

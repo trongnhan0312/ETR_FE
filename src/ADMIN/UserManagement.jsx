@@ -238,6 +238,64 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     ];
   };
 
+  // ============ Validation helpers — Admin create/edit user (FE-only) ============
+  // Username là email đăng nhập: phần local (trước @) phải bắt đầu bằng chữ cái
+  // (không bắt đầu bằng số, không bắt đầu bằng '-'), chỉ chứa chữ cái, số và
+  // . _ - (không chứa ký tự đặc biệt khác, không khoảng trắng).
+  const validateUsername = (raw) => {
+    const v = String(raw || '').trim();
+    if (!v) return tr('Vui lòng nhập Username.');
+    if (/\s/.test(v)) return tr('Username không được chứa khoảng trắng.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      return tr('Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).');
+    }
+    const local = v.split('@')[0] || '';
+    if (/^[0-9]/.test(local)) return tr('Username không được bắt đầu bằng số.');
+    if (/^-/.test(local)) return tr("Username không được bắt đầu bằng dấu '-'.");
+    if (!/^[A-Za-z]/.test(local)) return tr('Username phải bắt đầu bằng chữ cái (A-Z).');
+    if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(local)) {
+      return tr('Username chỉ được chứa chữ cái, số và các ký tự . _ - (không chứa ký tự đặc biệt khác).');
+    }
+    return '';
+  };
+
+  // Họ tên: bắt đầu bằng chữ cái (không bắt đầu bằng số), chỉ gồm chữ cái
+  // (kể cả tiếng Việt có dấu) và khoảng trắng — không số, không ký tự đặc biệt.
+  const validateFullName = (raw) => {
+    const v = String(raw || '').trim();
+    if (!v) return tr('Vui lòng nhập Họ và tên.');
+    if (!/^[\p{L}]/u.test(v)) return tr('Họ tên phải bắt đầu bằng chữ cái (không bắt đầu bằng số).');
+    if (/[0-9]/.test(v)) return tr('Họ tên không được chứa số.');
+    if (/[^\p{L} ]/u.test(v)) {
+      return tr('Họ tên không được chứa ký tự đặc biệt (chỉ cho phép chữ cái và khoảng trắng).');
+    }
+    return '';
+  };
+
+  // SĐT: chỉ gồm chữ số (không ký tự đặc biệt/khoảng trắng/dấu + -), bắt đầu bằng 0.
+  const validatePhone = (raw, { required = false } = {}) => {
+    const v = String(raw || '').trim();
+    if (!v) return required ? tr('Vui lòng nhập Số điện thoại.') : '';
+    if (/[^0-9]/.test(v)) {
+      return tr('Số điện thoại chỉ được chứa chữ số (0-9), không chứa ký tự đặc biệt, khoảng trắng hay dấu + -.');
+    }
+    if (!v.startsWith('0')) return tr('Số điện thoại phải bắt đầu bằng số 0.');
+    return '';
+  };
+
+  // Tên phòng ban: bắt đầu bằng chữ cái (không bắt đầu bằng số), chỉ gồm chữ cái
+  // (kể cả tiếng Việt có dấu), số và khoảng trắng — không ký tự đặc biệt.
+  const validateDepartmentName = (raw) => {
+    const v = String(raw || '').trim();
+    if (!v) return tr('Vui lòng nhập tên phòng ban');
+    if (/^[0-9]/.test(v)) return tr('Tên phòng ban không được bắt đầu bằng số.');
+    if (!/^[\p{L}]/u.test(v)) return tr('Tên phòng ban phải bắt đầu bằng chữ cái.');
+    if (/[^\p{L}0-9 ]/u.test(v)) {
+      return tr('Tên phòng ban không được chứa ký tự đặc biệt (chỉ cho phép chữ cái, số và khoảng trắng).');
+    }
+    return '';
+  };
+
   // Handle role change in Edit Modal with department logic
   const handleEditRoleChange = (newRoleId) => {
     setEditRoleId(newRoleId);
@@ -283,13 +341,31 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       return;
     }
 
+    // Username: email hợp lệ, phần local bắt đầu bằng chữ cái (không bắt đầu
+    // bằng số, không bắt đầu bằng '-'), không chứa ký tự đặc biệt ngoài . _ -
+    const usernameMsg = validateUsername(trimmedUsername);
+    if (usernameMsg) {
+      setUsernameError(usernameMsg);
+      setFormError(usernameMsg);
+      return;
+    }
+
     if (password.length < 6) {
       setFormError(tr('Mật khẩu phải có ít nhất 6 ký tự để đảm bảo bảo mật và đăng nhập được.'));
       return;
     }
 
-    if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
-      setFormError(tr('Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).'));
+    // Họ tên: bắt đầu bằng chữ cái, không số, không ký tự đặc biệt
+    const fullNameMsg = validateFullName(trimmedFullName);
+    if (fullNameMsg) {
+      setFormError(fullNameMsg);
+      return;
+    }
+
+    // SĐT (tùy chọn lúc tạo): chỉ chữ số, bắt đầu bằng 0
+    const phoneMsg = validatePhone(phone);
+    if (phoneMsg) {
+      setFormError(phoneMsg);
       return;
     }
 
@@ -388,6 +464,14 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     );
   };
 
+  // Tài khoản đang bị vô hiệu hóa (Inactive/Disabled) thì không được chỉnh sửa
+  // thông tin — chỉ tài khoản đang Active mới được edit.
+  const isInactiveUser = (user) => {
+    if (!user) return false;
+    const s = String(user.status || '').toLowerCase();
+    return s === 'inactive' || s === 'disabled';
+  };
+
   // Open Edit Modal
   const handleOpenEditModal = (user) => {
     if (!user) return;
@@ -397,6 +481,10 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     }
     if (isAccountAdmin(user)) {
       toast.warning(tr('Không thể chỉnh sửa tài khoản Quản trị viên khác!'));
+      return;
+    }
+    if (isInactiveUser(user)) {
+      toast.warning(tr('Không thể chỉnh sửa tài khoản đang bị vô hiệu hóa. Vui lòng kích hoạt tài khoản trước khi chỉnh sửa!'));
       return;
     }
 
@@ -443,8 +531,34 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       return;
     }
 
-    if (!editFullName.trim()) {
-      setFormError(tr('Vui lòng nhập Họ và tên.'));
+    // Chặn lưu khi tài khoản đã bị vô hiệu hóa trong lúc modal đang mở
+    if (isInactiveUser(editingUser)) {
+      toast.error(tr('Không thể lưu thay đổi cho tài khoản đang bị vô hiệu hóa. Vui lòng kích hoạt tài khoản trước.'));
+      setIsEditOpen(false);
+      return;
+    }
+
+    // Họ tên: bắt đầu bằng chữ cái, không số, không ký tự đặc biệt
+    const editFullNameMsg = validateFullName(editFullName);
+    if (editFullNameMsg) {
+      setFormError(editFullNameMsg);
+      return;
+    }
+
+    // Email (tùy chọn lúc sửa): nếu nhập thì phải theo đúng chuẩn username
+    // (email hợp lệ, bắt đầu bằng chữ cái, không ký tự đặc biệt ngoài . _ -)
+    if (String(editEmail || '').trim()) {
+      const editEmailMsg = validateUsername(editEmail);
+      if (editEmailMsg) {
+        setFormError(editEmailMsg);
+        return;
+      }
+    }
+
+    // SĐT (tùy chọn lúc sửa): chỉ chữ số, bắt đầu bằng 0
+    const editPhoneMsg = validatePhone(editPhone);
+    if (editPhoneMsg) {
+      setFormError(editPhoneMsg);
       return;
     }
 
@@ -662,8 +776,9 @@ const UserManagement = ({ defaultTab = 'users' }) => {
   const handleCreateDeptSubmit = async (e) => {
     e.preventDefault();
     setDeptFormError('');
-    if (!deptName.trim()) {
-      setDeptFormError(tr('Vui lòng nhập tên phòng ban'));
+    const deptNameMsg = validateDepartmentName(deptName);
+    if (deptNameMsg) {
+      setDeptFormError(deptNameMsg);
       return;
     }
 
@@ -697,8 +812,9 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     e.preventDefault();
     if (!selectedDept) return;
     setDeptFormError('');
-    if (!deptName.trim()) {
-      setDeptFormError(tr('Vui lòng nhập tên phòng ban'));
+    const deptNameMsg = validateDepartmentName(deptName);
+    if (deptNameMsg) {
+      setDeptFormError(deptNameMsg);
       return;
     }
 
@@ -924,13 +1040,18 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                     ? tr('Không thể tự vô hiệu hóa/xóa tài khoản của chính mình')
                     : tr('Không thể vô hiệu hóa hoặc xóa tài khoản Quản trị viên hệ thống gốc (ID: 1).');
 
-                  // Admin không thể tự sửa thông tin tài khoản của chính mình và không thể sửa tài khoản Admin khác
-                  const isEditDisabled = isSelf || isAdminAccount;
+                  // Admin không thể tự sửa thông tin tài khoản của chính mình, không thể sửa
+                  // tài khoản Admin khác, và không thể sửa tài khoản đang bị vô hiệu hóa
+                  // (chỉ tài khoản Active mới được chỉnh sửa).
+                  const userInactive = isInactiveUser(user);
+                  const isEditDisabled = isSelf || isAdminAccount || userInactive;
                   const editDisabledTitle = isSelf
                     ? tr('Không thể tự chỉnh sửa thông tin tài khoản của chính mình')
                     : isAdminAccount
                       ? tr('Không thể chỉnh sửa tài khoản Quản trị viên khác')
-                      : '';
+                      : userInactive
+                        ? tr('Không thể chỉnh sửa tài khoản đang bị vô hiệu hóa. Vui lòng kích hoạt trước.')
+                        : '';
                   return (
                     <div key={user.accountId} className="table-row table-layout user-layout" style={{ gridTemplateColumns: '1.1fr 1.2fr 1.2fr 0.9fr 1.1fr 0.8fr 0.8fr 1.2fr', alignItems: 'center' }}>
                       <div className="font-medium" style={{ color: '#0f172a', fontWeight: '600' }}>

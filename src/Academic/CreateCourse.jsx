@@ -98,6 +98,11 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
     setDuration(total);
   }, [selectedSubjectIds, subjectCriteria]);
 
+  // Số giờ môn học chỉ nhận số nguyên không âm — kẹp ngay khi nhập để tổng
+  // thời lượng khóa học không bao giờ âm hay thập phân.
+  const toNonNegativeInt = (raw) =>
+    Math.max(0, Math.floor(Number(raw) || 0));
+
   const updateSubjectCriteria = (subIdStr, field, value) => {
     setSubjectCriteria((prev) => ({
       ...prev,
@@ -158,6 +163,16 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
 
     if (!isSubjectValid) {
       toast.error(tr("Quy tắc tuân thủ (Business Rule)"));
+      return;
+    }
+
+    // Thời lượng khóa học = tổng giờ các môn → phải là số nguyên dương
+    if (!Number.isInteger(duration) || duration <= 0) {
+      toast.error(
+        tr(
+          "Thời lượng khóa học phải là số nguyên dương (tổng số giờ các môn học). Vui lòng kiểm tra số giờ từng môn.",
+        ),
+      );
       return;
     }
 
@@ -585,12 +600,13 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                             <input
                               type="number"
                               min="0"
+                              step="1"
                               value={crit.requiredHours}
                               onChange={(e) =>
                                 updateSubjectCriteria(
                                   subIdStr,
                                   "requiredHours",
-                                  parseInt(e.target.value) || 0,
+                                  toNonNegativeInt(e.target.value),
                                 )
                               }
                               style={{
