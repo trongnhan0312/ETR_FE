@@ -270,6 +270,11 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     setIsCreateOpen(true);
   };
 
+  // Validation helpers
+  const isValidUsername = (u) => /^[a-zA-Z][a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(u?.trim() || '');
+  const isValidFullName = (name) => /^[\p{L}\s]+$/u.test(name?.trim() || '');
+  const isValidPhone = (p) => !p || /^0\d{9,10}$/.test(p.trim());
+
   // Submit Create Account + Profile
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -277,9 +282,17 @@ const UserManagement = ({ defaultTab = 'users' }) => {
     setUsernameError('');
     const trimmedUsername = username.trim();
     const trimmedFullName = fullName.trim();
+    const trimmedPhone = phone.trim();
 
     if (!trimmedUsername || !password || !trimmedFullName) {
       setFormError(tr('Vui lòng nhập Username, Password và Họ tên.'));
+      return;
+    }
+
+    if (!isValidUsername(trimmedUsername)) {
+      const msg = tr('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ, bắt đầu bằng chữ cái, không được bắt đầu bằng số hoặc ký tự đặc biệt.');
+      setUsernameError(msg);
+      setFormError(msg);
       return;
     }
 
@@ -288,8 +301,13 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       return;
     }
 
-    if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
-      setFormError(tr('Tên đăng nhập (Username) phải là một địa chỉ email hợp lệ (Ví dụ: user@domain.com).'));
+    if (!isValidFullName(trimmedFullName)) {
+      setFormError(tr('Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được bắt đầu bằng số hoặc chứa ký tự đặc biệt.'));
+      return;
+    }
+
+    if (trimmedPhone && !isValidPhone(trimmedPhone)) {
+      setFormError(tr('Số điện thoại phải bắt đầu bằng số 0, gồm 10-11 chữ số và không chứa ký tự đặc biệt.'));
       return;
     }
 
@@ -443,8 +461,27 @@ const UserManagement = ({ defaultTab = 'users' }) => {
       return;
     }
 
-    if (!editFullName.trim()) {
+    const trimmedFullName = editFullName.trim();
+    const trimmedEmail = editEmail.trim();
+    const trimmedPhone = editPhone.trim();
+
+    if (!trimmedFullName) {
       setFormError(tr('Vui lòng nhập Họ và tên.'));
+      return;
+    }
+
+    if (!isValidFullName(trimmedFullName)) {
+      setFormError(tr('Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được bắt đầu bằng số hoặc chứa ký tự đặc biệt.'));
+      return;
+    }
+
+    if (trimmedEmail && !isValidUsername(trimmedEmail)) {
+      setFormError(tr('Email phải là địa chỉ email hợp lệ và bắt đầu bằng chữ cái.'));
+      return;
+    }
+
+    if (trimmedPhone && !isValidPhone(trimmedPhone)) {
+      setFormError(tr('Số điện thoại phải bắt đầu bằng số 0, gồm 10-11 chữ số và không chứa ký tự đặc biệt.'));
       return;
     }
 

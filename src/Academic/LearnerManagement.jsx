@@ -126,8 +126,9 @@ const LearnerManagement = () => {
   };
 
   // Form validation helpers
-  const isValidFullName = (name) => !/[0-9!@#$%&*()_+]/.test(name);
-  const isValidPhone = (phone) => /^\d{10,11}$/.test(phone);
+  const isValidUsername = (u) => /^[a-zA-Z][a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(u?.trim() || '');
+  const isValidFullName = (name) => /^[\p{L}\s]+$/u.test(name?.trim() || '');
+  const isValidPhone = (phone) => !phone || /^0\d{9,10}$/.test(phone.trim());
   const isValidDateOfBirth = (dob) => {
     if (!dob) return false;
     const year = new Date(dob).getFullYear();
@@ -251,24 +252,30 @@ const getStudentDepartments = () => {
     setFormError('');
     const trimmedUsername = username.trim();
     const trimmedFullName = fullName.trim();
+    const trimmedPhone = phone.trim();
 
     if (!trimmedUsername || !password || !trimmedFullName) {
       setFormError(tr('Vui lòng nhập Username, Password và Họ tên.'));
       return;
     }
 
-    if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
-      setFormError(tr('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).'));
+    if (!isValidUsername(trimmedUsername)) {
+      setFormError(tr('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ, bắt đầu bằng chữ cái, không được bắt đầu bằng số hoặc ký tự đặc biệt.'));
+      return;
+    }
+
+    if (password.length < 6) {
+      setFormError(tr('Mật khẩu phải có ít nhất 6 ký tự để đảm bảo bảo mật và đăng nhập được.'));
       return;
     }
 
     if (!isValidFullName(trimmedFullName)) {
-      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
+      setFormError(tr('Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được bắt đầu bằng số hoặc chứa ký tự đặc biệt.'));
       return;
     }
 
-    if (phone.trim() && !isValidPhone(phone.trim())) {
-      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
+    if (trimmedPhone && !isValidPhone(trimmedPhone)) {
+      setFormError(tr('Số điện thoại phải bắt đầu bằng số 0, gồm 10-11 chữ số và không chứa ký tự đặc biệt.'));
       return;
     }
 
@@ -346,12 +353,12 @@ const getStudentDepartments = () => {
     }
 
     if (!isValidFullName(pFullName.trim())) {
-      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
+      setFormError(tr('Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được bắt đầu bằng số hoặc chứa ký tự đặc biệt.'));
       return;
     }
 
     if (pPhone.trim() && !isValidPhone(pPhone.trim())) {
-      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
+      setFormError(tr('Số điện thoại phải bắt đầu bằng số 0, gồm 10-11 chữ số và không chứa ký tự đặc biệt.'));
       return;
     }
 
@@ -413,12 +420,12 @@ const getStudentDepartments = () => {
     }
 
     if (!isValidFullName(editFullName.trim())) {
-      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
+      setFormError(tr('Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được bắt đầu bằng số hoặc chứa ký tự đặc biệt.'));
       return;
     }
 
     if (editPhone.trim() && !isValidPhone(editPhone.trim())) {
-      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
+      setFormError(tr('Số điện thoại phải bắt đầu bằng số 0, gồm 10-11 chữ số và không chứa ký tự đặc biệt.'));
       return;
     }
 

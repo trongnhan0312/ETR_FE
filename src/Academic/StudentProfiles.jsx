@@ -86,8 +86,9 @@ const parseApiError = (err, fallbackMsg = 'Thao tác thất bại.', tr = (x) =>
 };
 
 // Form validation helpers
-const isValidFullName = (name) => !/[0-9!@#$%&*()_+]/.test(name);
-const isValidPhone = (phone) => /^\d{10,11}$/.test(phone);
+const isValidUsername = (u) => /^[a-zA-Z][a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(u?.trim() || '');
+const isValidFullName = (name) => /^[\p{L}\s]+$/u.test(name?.trim() || '');
+const isValidPhone = (phone) => !phone || /^0\d{9,10}$/.test(phone.trim());
 const isValidDateOfBirth = (dob) => {
   if (!dob) return false;
   const year = new Date(dob).getFullYear();
@@ -223,16 +224,20 @@ const StudentProfiles = () => {
       setFormError(tr('Vui lòng nhập Username, Password và Họ tên.'));
       return;
     }
-    if (!trimmedUsername.includes('@') || !trimmedUsername.includes('.')) {
-      setFormError(tr('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ (Ví dụ: student@domain.com).'));
+    if (!isValidUsername(trimmedUsername)) {
+      setFormError(tr('Tên đăng nhập (Username) phải là địa chỉ email hợp lệ, bắt đầu bằng chữ cái, không được bắt đầu bằng số hoặc ký tự đặc biệt.'));
+      return;
+    }
+    if (cPassword.length < 6) {
+      setFormError(tr('Mật khẩu phải có ít nhất 6 ký tự để đảm bảo bảo mật và đăng nhập được.'));
       return;
     }
     if (!isValidFullName(trimmedFullName)) {
-      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
+      setFormError(tr('Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được bắt đầu bằng số hoặc chứa ký tự đặc biệt.'));
       return;
     }
     if (cPhone.trim() && !isValidPhone(cPhone.trim())) {
-      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
+      setFormError(tr('Số điện thoại phải bắt đầu bằng số 0, gồm 10-11 chữ số và không chứa ký tự đặc biệt.'));
       return;
     }
     if (!isValidDateOfBirth(cDateOfBirth)) {
@@ -295,15 +300,15 @@ const StudentProfiles = () => {
       return;
     }
     if (!isValidFullName(eFullName.trim())) {
-      setFormError(tr('Họ và tên không được chứa số hoặc ký tự đặc biệt (!@#$%&*()_+).'));
+      setFormError(tr('Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được bắt đầu bằng số hoặc chứa ký tự đặc biệt.'));
       return;
     }
-    if (!eEmail.trim() || !eEmail.includes('@')) {
-      setFormError(tr('Email phải là một địa chỉ email hợp lệ (Ví dụ: student@domain.com).'));
+    if (eEmail.trim() && !isValidUsername(eEmail.trim())) {
+      setFormError(tr('Email phải là địa chỉ email hợp lệ và bắt đầu bằng chữ cái.'));
       return;
     }
     if (ePhone.trim() && !isValidPhone(ePhone.trim())) {
-      setFormError(tr('Số điện thoại phải gồm 10 hoặc 11 chữ số.'));
+      setFormError(tr('Số điện thoại phải bắt đầu bằng số 0, gồm 10-11 chữ số và không chứa ký tự đặc biệt.'));
       return;
     }
     if (!isValidDateOfBirth(eDateOfBirth)) {
