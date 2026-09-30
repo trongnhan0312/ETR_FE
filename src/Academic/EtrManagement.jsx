@@ -782,7 +782,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
       toast.success(tr("Gửi ETR thành công"), announce("edit", tr("Hồ sơ")));
     } catch (error) {
       console.error("Error submitting ETR:", error);
-      toast.error(tr("Gửi ETR thất bại"));
+      const msg = error?.response?.data?.detail || error?.data?.detail || error?.message || tr("Gửi ETR thất bại");
+      toast.error(msg);
     } finally {
       setSubmittingEtr(false);
     }
