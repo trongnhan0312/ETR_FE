@@ -125,6 +125,30 @@ globalThis.fetch = async (url, options) => {
     },
   }
 
+  if (url.includes('/readiness')) {
+    mockData['/api/etr/1/readiness'] = {
+      etrCourseRecordId: 1,
+      enrollmentId: 1,
+      accountId: 6,
+      studentName: 'Jane Student',
+      courseId: 1,
+      courseName: 'Khóa học A',
+      courseVersionNo: 1,
+      classId: 1,
+      className: 'Lớp A',
+      overallStatus: 'Met',
+      totalFlightHours: 45.0,
+      totalSimulatorHours: 20.0,
+      evaluatedAt: '2026-10-01T00:00:00Z',
+      conditions: [
+        { conditionCode: 'MANDATORY_SUBJECTS', conditionName: 'Môn học bắt buộc', status: 'Met', currentValue: 1, thresholdValue: 1, unit: 'môn', isMandatory: true, explanation: 'Tất cả 1 môn học bắt buộc đã Đạt.' },
+        { conditionCode: 'MIN_FLIGHT_HOURS', conditionName: 'Giờ bay thực tế tối thiểu', status: 'Met', currentValue: 45.0, thresholdValue: 40.0, unit: 'giờ', isMandatory: true, explanation: 'Đã tích lũy 45.0 / 40.0 giờ bay thực tế hợp lệ.' },
+        { conditionCode: 'MIN_SIMULATOR_HOURS', conditionName: 'Giờ buồng lái mô phỏng (FSTD)', status: 'Met', currentValue: 20.0, thresholdValue: 20.0, unit: 'giờ', isMandatory: true, explanation: 'Đã tích lũy 20.0 / 20.0 giờ mô phỏng FSTD hợp lệ.' }
+      ],
+      warnings: []
+    }
+  }
+
   // Handle specific endpoints with IDs
   if (url.includes('/etr/1')) {
     mockData['/api/etr/1'] = {

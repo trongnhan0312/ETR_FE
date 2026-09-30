@@ -89,6 +89,175 @@ const mapEtr = (e) => ({
   historyLogs: e.HistoryLogs ?? e.historyLogs ?? null,
 });
 
+/* ── Course Version Readiness Check Section ── */
+export const StudentReadinessCheckSection = ({ etrId, enrollmentId }) => {
+  const { tr } = useLanguage();
+  const [readiness, setReadiness] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReadiness = async () => {
+      try {
+        setLoading(true);
+        let data = null;
+        if (etrId) {
+          data = await api.get(`/etr/${etrId}/readiness`, { suppressAuthRedirect: true }).catch(() => null);
+        }
+        if (!data && enrollmentId) {
+          data = await api.get(`/etr/enrollment/${enrollmentId}/readiness`, { suppressAuthRedirect: true }).catch(() => null);
+        }
+        setReadiness(data);
+      } catch (err) {
+        console.error("Lỗi khi tải đánh giá sẵn sàng:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (etrId || enrollmentId) {
+      fetchReadiness();
+    }
+  }, [etrId, enrollmentId]);
+
+  if (loading) {
+    return (
+      <section className="student-info-card" style={{ marginBottom: 24 }}>
+        <p className="info-eyebrow">{tr('Đánh giá Mức độ Sẵn sàng')}</p>
+        <h3>{tr('Kiểm tra Tính Sẵn sàng Hoàn thành Khóa học (Course Version Readiness)')}</h3>
+        <p style={{ color: 'rgba(0,33,71,0.5)', fontSize: 13, marginTop: 8 }}>{tr('Đang kiểm tra dữ liệu...')}</p>
+      </section>
+    );
+  }
+
+  if (!readiness) return null;
+
+  const conditions = readiness.conditions ?? readiness.Conditions ?? [];
+  const warnings = readiness.warnings ?? readiness.Warnings ?? [];
+  const overallStatus = readiness.overallStatus ?? readiness.OverallStatus ?? 'NoData';
+  const flightHours = readiness.totalFlightHours ?? readiness.TotalFlightHours ?? 0;
+  const simHours = readiness.totalSimulatorHours ?? readiness.TotalSimulatorHours ?? 0;
+  const versionNo = readiness.courseVersionNo ?? readiness.CourseVersionNo ?? 1;
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Met':
+        return <span style={{ background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>✓ {tr('Đạt')}</span>;
+      case 'NotMet':
+        return <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>✗ {tr('Chưa đạt')}</span>;
+      case 'NoData':
+        return <span style={{ background: '#f1f5f9', color: '#64748b', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>ℹ {tr('Chưa có dữ liệu')}</span>;
+      case 'ReviewRequired':
+        return <span style={{ background: '#fef3c7', color: '#b45309', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>⚠ {tr('Cần rà soát')}</span>;
+      default:
+        return <span style={{ background: '#f1f5f9', color: '#64748b', padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{status}</span>;
+    }
+  };
+
+  const getOverallBadge = (status) => {
+    switch (status) {
+      case 'Met':
+        return <span style={{ background: '#16a34a', color: '#ffffff', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>✓ {tr('Đủ điều kiện hoàn thành')}</span>;
+      case 'ReviewRequired':
+        return <span style={{ background: '#d97706', color: '#ffffff', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>⚠ {tr('Cần rà soát trước khi nộp')}</span>;
+      case 'NoData':
+        return <span style={{ background: '#64748b', color: '#ffffff', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>ℹ {tr('Chưa đủ dữ liệu đánh giá')}</span>;
+      default:
+        return <span style={{ background: '#dc2626', color: '#ffffff', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>✗ {tr('Chưa đủ điều kiện hoàn thành')}</span>;
+    }
+  };
+
+  return (
+    <section className="student-info-card" style={{ marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <p className="info-eyebrow">{tr('Đánh giá Mức độ Sẵn sàng')}</p>
+          <h3 style={{ margin: '2px 0 4px' }}>{tr('Kiểm tra Tính Sẵn sàng Hoàn thành Khóa học')}</h3>
+          <p style={{ fontSize: 12, color: 'rgba(0,33,71,0.6)', margin: 0 }}>
+            {tr('Đối chiếu theo Giáo trình:')} <strong>{readiness.courseName ?? readiness.CourseName}</strong> ({tr('Phiên bản')} #{versionNo})
+          </p>
+        </div>
+        <div>
+          {getOverallBadge(overallStatus)}
+        </div>
+      </div>
+
+      {/* Summary KPI Pills */}
+      <div style={{ display: 'flex', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 200px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px' }}>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{tr('Giờ bay thực tế hợp lệ')}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#0369a1', marginTop: 2 }}>{Number(flightHours).toFixed(1)} {tr('giờ')}</div>
+        </div>
+        <div style={{ flex: '1 1 200px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px' }}>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{tr('Giờ buồng lái mô phỏng (FSTD)')}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#0284c7', marginTop: 2 }}>{Number(simHours).toFixed(1)} {tr('giờ')}</div>
+        </div>
+      </div>
+
+      {/* Conditions Table */}
+      <div style={{ overflowX: 'auto', marginTop: 16 }}>
+        <table className="student-subject-table">
+          <thead>
+            <tr>
+              <th>{tr('Điều kiện giáo trình')}</th>
+              <th>{tr('Hiện tại / Chỉ tiêu')}</th>
+              <th>{tr('Trạng thái')}</th>
+              <th>{tr('Giải thích chi tiết')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {conditions.map((c, idx) => {
+              const name = c.conditionName ?? c.ConditionName;
+              const status = c.status ?? c.Status;
+              const cur = c.currentValue ?? c.CurrentValue;
+              const th = c.thresholdValue ?? c.ThresholdValue;
+              const unit = c.unit ?? c.Unit ?? '';
+              const expl = c.explanation ?? c.Explanation;
+
+              let targetStr = '--';
+              if (cur !== null && cur !== undefined && th !== null && th !== undefined) {
+                targetStr = `${cur} / ${th} ${unit}`.trim();
+              } else if (th !== null && th !== undefined) {
+                targetStr = `≥ ${th} ${unit}`.trim();
+              } else if (cur !== null && cur !== undefined) {
+                targetStr = `${cur} ${unit}`.trim();
+              }
+
+              return (
+                <tr key={c.conditionCode || idx}>
+                  <td style={{ fontWeight: 700, color: '#002147' }}>{name}</td>
+                  <td style={{ fontWeight: 600, color: '#334155' }}>{targetStr}</td>
+                  <td>{getStatusBadge(status)}</td>
+                  <td style={{ fontSize: 12, color: '#475569' }}>{expl}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Warnings & Signals Section */}
+      {warnings.length > 0 && (
+        <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 8, background: '#fffbeb', border: '1px solid #fef3c7' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#92400e', fontSize: 13, marginBottom: 8 }}>
+            <span>⚠</span> {tr('Cảnh báo & Lưu ý Hồ sơ Năng định (Tham chiếu — Không chặn bay)')}
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#78350f', lineHeight: 1.6 }}>
+            {warnings.map((w, idx) => (
+              <li key={w.warningCode || idx}>
+                <strong>{w.category ?? w.Category}:</strong> {w.message ?? w.Message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Disclaimer */}
+      <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 12, marginBottom: 0, fontStyle: 'italic' }}>
+        * {readiness.disclaimer ?? readiness.Disclaimer ?? tr('Đánh giá mức độ sẵn sàng đào tạo dựa trên dữ liệu ETR và phiên bản giáo trình áp dụng. Đây là tín hiệu tham chiếu, không thay thế quyết định phê duyệt chuyên môn hoặc cấp phép bay.')}
+      </p>
+    </section>
+  );
+};
+
 /* ── Flight & Simulator Training Log Section ── */
 const StudentFlightSimLogSection = ({ enrollmentId }) => {
   const { tr } = useLanguage();
@@ -450,6 +619,9 @@ const DetailView = ({ etr, onBack }) => {
           </p>
         )}
       </section>
+
+      {/* Course Version Readiness Check */}
+      <StudentReadinessCheckSection etrId={s.id} enrollmentId={s.enrollmentId} />
 
       {/* Flight & Simulator Training Log */}
       {s.enrollmentId && (
