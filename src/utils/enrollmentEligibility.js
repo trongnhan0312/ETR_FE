@@ -6,15 +6,44 @@
  * 1. Class must NOT be InProgress / Active (must not have ongoing training sessions).
  * 2. Class must NOT be Completed.
  * 3. Class must NOT be Cancelled.
- * 4. Class StartDate must be valid and >= today in Academy Timezone (Asia/Ho_Chi_Minh / UTC+7).
- *    Missing or unparseable StartDate is treated as ineligible to prevent data integrity issues.
+ * 4. Class StartDate must be a valid calendar date and >= today in Academy Timezone (Asia/Ho_Chi_Minh / UTC+7).
+ *    Missing, unparseable, or calendar-invalid StartDate (e.g. 31/02/2026, month 13) is treated as ineligible.
  */
 
 export const ACADEMY_TIMEZONE = 'Asia/Ho_Chi_Minh';
+export const ACADEMY_UTC_OFFSET_HOURS = 7;
+
+/**
+ * Validates whether a given year, month, day form a genuinely valid calendar date
+ * (e.g. rejects 2026-02-31, 31/02/2026, month 13, day 99, non-leap year Feb 29).
+ *
+ * @param {number|string} year
+ * @param {number|string} month 1-12
+ * @param {number|string} day 1-31
+ * @returns {boolean}
+ */
+export const isValidCalendarDate = (year, month, day) => {
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) {
+    return false;
+  }
+  if (y < 1900 || y > 2999) return false;
+  if (m < 1 || m > 12) return false;
+  if (d < 1 || d > 31) return false;
+
+  // Get max days in the specified month of the specified year using UTC
+  const maxDays = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return d <= maxDays;
+};
 
 /**
  * Converts a Date, timestamp, or ISO string to a calendar date string (YYYY-MM-DD)
  * in the Academy's official timezone (Asia/Ho_Chi_Minh, UTC+7).
+ *
+ * Rejects invalid calendar dates (e.g. 2026-99-99, 31/02/2026, month 13).
  *
  * @param {Date|string|number} dateInput
  * @returns {string|null} Formatted date string (YYYY-MM-DD) or null if invalid.
@@ -24,19 +53,44 @@ export const toAcademyDateString = (dateInput) => {
     return null;
   }
 
-  // Handle plain calendar date strings (YYYY-MM-DD)
+  // Handle plain calendar date strings
   if (typeof dateInput === 'string') {
     const trimmed = dateInput.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      return trimmed;
+    if (!trimmed) return null;
+
+    // Handle YYYY-MM-DD
+    const isoDateMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (isoDateMatch) {
+      const [, yStr, mStr, dStr] = isoDateMatch;
+      const y = Number(yStr);
+      const m = Number(mStr);
+      const d = Number(dStr);
+      if (!isValidCalendarDate(y, m, d)) {
+        return null;
+      }
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     }
+
     // Handle DD/MM/YYYY or D/M/YYYY (common Vietnamese/European format)
-    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
-      const parts = trimmed.split('/');
-      const d = parts[0].padStart(2, '0');
-      const m = parts[1].padStart(2, '0');
-      const y = parts[2];
-      return `${y}-${m}-${d}`;
+    const dmyMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (dmyMatch) {
+      const [, dStr, mStr, yStr] = dmyMatch;
+      const y = Number(yStr);
+      const m = Number(mStr);
+      const d = Number(dStr);
+      if (!isValidCalendarDate(y, m, d)) {
+        return null;
+      }
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    // Check for ISO strings like 2026-02-31T... and validate calendar date prefix first
+    const prefixMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s]/);
+    if (prefixMatch) {
+      const [, yStr, mStr, dStr] = prefixMatch;
+      if (!isValidCalendarDate(yStr, mStr, dStr)) {
+        return null;
+      }
     }
   }
 
@@ -52,12 +106,19 @@ export const toAcademyDateString = (dateInput) => {
       month: '2-digit',
       day: '2-digit',
     });
-    return formatter.format(dateObj);
+    const result = formatter.format(dateObj);
+    const [y, m, d] = result.split('-');
+    if (!isValidCalendarDate(y, m, d)) return null;
+    return result;
   } catch {
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const d = String(dateObj.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    // Fallback: Convert to Academy Timezone (UTC+7) explicitly
+    const academyOffsetMs = ACADEMY_UTC_OFFSET_HOURS * 60 * 60 * 1000;
+    const academyTime = new Date(dateObj.getTime() + academyOffsetMs);
+    const y = academyTime.getUTCFullYear();
+    const m = academyTime.getUTCMonth() + 1;
+    const d = academyTime.getUTCDate();
+    if (!isValidCalendarDate(y, m, d)) return null;
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   }
 };
 
@@ -108,7 +169,7 @@ export const isClassEligibleForEnrollment = (cls) => {
     };
   }
 
-  // Check StartDate in Academy Timezone
+  // Check StartDate in Academy Timezone with calendar validity check
   const todayAcademyStr = getAcademyTodayString();
   const rawStart = cls.startDateRaw !== undefined ? cls.startDateRaw : cls.startDate;
   const clsStartStr = toAcademyDateString(rawStart);
@@ -135,4 +196,5 @@ export const isClassEligibleForEnrollment = (cls) => {
     detail: '',
   };
 };
+
 

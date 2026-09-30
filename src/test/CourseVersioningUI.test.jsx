@@ -263,14 +263,46 @@ describe('Course Versioning Frontend UI Tests', () => {
       const yyyy = tomorrow.getFullYear();
       const ddmmyyyyResult = isClassEligibleForEnrollment({ status: 'Planned', startDate: `${dd}/${mm}/${yyyy}` });
       expect(ddmmyyyyResult.eligible).toBe(true);
+
+      // Ineligible: Nonexistent calendar dates (e.g. 2026-99-99, 31/02/2026, month 13, 31/04/2026)
+      expect(isClassEligibleForEnrollment({ status: 'Planned', startDate: '2026-99-99' }).eligible).toBe(false);
+      expect(isClassEligibleForEnrollment({ status: 'Planned', startDate: '31/02/2026' }).eligible).toBe(false);
+      expect(isClassEligibleForEnrollment({ status: 'Planned', startDate: '2026-02-31' }).eligible).toBe(false);
+      expect(isClassEligibleForEnrollment({ status: 'Planned', startDate: '2026-13-01' }).eligible).toBe(false);
+      expect(isClassEligibleForEnrollment({ status: 'Planned', startDate: '31/04/2026' }).eligible).toBe(false);
+      expect(isClassEligibleForEnrollment({ status: 'Planned', startDate: '29/02/2026' }).eligible).toBe(false); // 2026 is non-leap
     });
 
-    it('toAcademyDateString formats dates in Asia/Ho_Chi_Minh timezone', async () => {
+    it('isValidCalendarDate strictly validates calendar dates and leap years', async () => {
+      const { isValidCalendarDate } = await import('../utils/enrollmentEligibility');
+
+      expect(isValidCalendarDate(2026, 1, 15)).toBe(true);
+      expect(isValidCalendarDate(2026, 12, 31)).toBe(true);
+      expect(isValidCalendarDate(2024, 2, 29)).toBe(true); // Leap year 2024
+
+      // Invalid dates
+      expect(isValidCalendarDate(2026, 2, 29)).toBe(false); // Non-leap year 2026
+      expect(isValidCalendarDate(2026, 2, 31)).toBe(false);
+      expect(isValidCalendarDate(2026, 4, 31)).toBe(false); // April has 30 days
+      expect(isValidCalendarDate(2026, 6, 31)).toBe(false); // June has 30 days
+      expect(isValidCalendarDate(2026, 9, 31)).toBe(false); // September has 30 days
+      expect(isValidCalendarDate(2026, 11, 31)).toBe(false); // November has 30 days
+      expect(isValidCalendarDate(2026, 13, 1)).toBe(false); // Month 13
+      expect(isValidCalendarDate(2026, 0, 10)).toBe(false); // Month 0
+      expect(isValidCalendarDate(2026, 99, 99)).toBe(false);
+      expect(isValidCalendarDate('abc', 1, 1)).toBe(false);
+    });
+
+    it('toAcademyDateString formats dates in Asia/Ho_Chi_Minh timezone and rejects invalid dates', async () => {
       const { toAcademyDateString, getAcademyTodayString } = await import('../utils/enrollmentEligibility');
 
       expect(toAcademyDateString(null)).toBeNull();
       expect(toAcademyDateString('')).toBeNull();
       expect(toAcademyDateString('invalid')).toBeNull();
+      expect(toAcademyDateString('2026-99-99')).toBeNull();
+      expect(toAcademyDateString('31/02/2026')).toBeNull();
+      expect(toAcademyDateString('2026-13-05')).toBeNull();
+      expect(toAcademyDateString('2026-02-31T00:00:00Z')).toBeNull();
 
       // Direct YYYY-MM-DD string
       expect(toAcademyDateString('2026-10-15')).toBe('2026-10-15');
@@ -344,6 +376,7 @@ describe('Course Versioning Frontend UI Tests', () => {
     });
   });
 });
+
 
 
 
