@@ -27,11 +27,17 @@ const formatDate = (d) => {
 };
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
+const LICENSE_TYPE_OPTIONS = ['None', 'SPL', 'PPL', 'CPL', 'ATPL', 'MPL', 'Drone'];
+const MEDICAL_CLASS_OPTIONS = ['None', 'Class 1', 'Class 2', 'Class 3', 'LAPL'];
+const DOC_TYPE_OPTIONS = ['License', 'Medical', 'ELP', 'TypeRating', 'General'];
 
 const StudentProfile = () => {
   const { tr } = useLanguage();
-  /* ── Profile state (mirrors UpdateUserProfileRequest) ── */
+  const toast = useToast();
+
+  /* ── Profile state ── */
   const [profile, setProfile] = useState({
+    accountId: 0,
     fullName: '',
     email: '',
     phone: '',
@@ -41,13 +47,44 @@ const StudentProfile = () => {
     username: '',
     roleName: 'Student',
     userCode: '',
+    licenseType: '',
+    licenseNumber: '',
+    licenseExpiryDate: '',
+    medicalClass: '',
+    medicalExpiryDate: '',
+    icaoElpLevel: '',
+    icaoElpExpiryDate: '',
+    typeRatings: '',
+    isCredentialsVerified: false,
+    credentialsVerifiedAt: null,
   });
 
-  /* ── Form states ── */
+  /* ── Form & Loading states ── */
   const [profileLoading, setProfileLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  // Toast notifications (thay banner student-message cũ)
-  const toast = useToast();
+  const [savingCreds, setSavingCreds] = useState(false);
+  const [editingCreds, setEditingCreds] = useState(false);
+
+  /* ── Credentials Edit form state ── */
+  const [credForm, setCredForm] = useState({
+    licenseType: '',
+    licenseNumber: '',
+    licenseExpiryDate: '',
+    medicalClass: '',
+    medicalExpiryDate: '',
+    icaoElpLevel: '',
+    icaoElpExpiryDate: '',
+    typeRatings: '',
+  });
+
+  /* ── Attachments state ── */
+  const [attachments, setAttachments] = useState([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadDocType, setUploadDocType] = useState('License');
+  const [uploadFileName, setUploadFileName] = useState('');
+  const [uploadFileUrl, setUploadFileUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   /* ── Password states ── */
   const [currentPwd, setCurrentPwd] = useState('');
@@ -55,45 +92,86 @@ const StudentProfile = () => {
   const [confirmPwd, setConfirmPwd] = useState('');
   const [loadingPwd, setLoadingPwd] = useState(false);
 
-  /* ── Load profile ── */
+  /* ── Load profile and attachments ── */
   useEffect(() => {
-    (async () => {
-      setProfileLoading(true);
-
-      // 1. Quick-fill from localStorage
-      try {
-        const u = JSON.parse(localStorage.getItem('user') || '{}');
-        setProfile((prev) => ({
-          ...prev,
-          fullName: u.fullName || '',
-          username: u.username || '',
-          roleName: u.roleName || 'Student',
-        }));
-      } catch { /* ignore */ }
-
-      // 2. Full profile from API (includes Phone, DateOfBirth, Gender)
-      try {
-        const data = await api.get('/UserProfiles/me', { suppressAuthRedirect: true });
-        if (data) {
-          setProfile({
-            fullName: data.FullName ?? data.fullName ?? '',
-            email: data.Email ?? data.email ?? '',
-            phone: data.Phone ?? data.phone ?? '',
-            dateOfBirth: data.DateOfBirth ?? data.dateOfBirth ?? '',
-            gender: data.Gender ?? data.gender ?? 'Other',
-            organization: data.Organization ?? data.organization ?? '',
-            username: data.username ?? profile.username ?? '',
-            roleName: data.RoleName ?? data.roleName ?? 'Student',
-            userCode: data.UserCode ?? data.userCode ?? '',
-          });
-        }
-      } catch {
-        // fallback to localStorage data already set above
-      } finally {
-        setProfileLoading(false);
-      }
-    })();
+    loadProfileAndAttachments();
   }, []);
+
+  const loadProfileAndAttachments = async () => {
+    setProfileLoading(true);
+
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      setProfile((prev) => ({
+        ...prev,
+        fullName: u.fullName || '',
+        username: u.username || '',
+        roleName: u.roleName || 'Student',
+      }));
+    } catch { /* ignore */ }
+
+    try {
+      const data = await api.get('/UserProfiles/me', { suppressAuthRedirect: true });
+      if (data) {
+        const accId = data.AccountId ?? data.accountId ?? 0;
+        const prof = {
+          accountId: accId,
+          fullName: data.FullName ?? data.fullName ?? '',
+          email: data.Email ?? data.email ?? '',
+          phone: data.Phone ?? data.phone ?? '',
+          dateOfBirth: data.DateOfBirth ?? data.dateOfBirth ?? '',
+          gender: data.Gender ?? data.gender ?? 'Other',
+          organization: data.Organization ?? data.organization ?? '',
+          username: data.username ?? '',
+          roleName: data.RoleName ?? data.roleName ?? 'Student',
+          userCode: data.UserCode ?? data.userCode ?? '',
+          licenseType: data.LicenseType ?? data.licenseType ?? '',
+          licenseNumber: data.LicenseNumber ?? data.licenseNumber ?? '',
+          licenseExpiryDate: data.LicenseExpiryDate ?? data.licenseExpiryDate ?? '',
+          medicalClass: data.MedicalClass ?? data.medicalClass ?? '',
+          medicalExpiryDate: data.MedicalExpiryDate ?? data.medicalExpiryDate ?? '',
+          icaoElpLevel: data.IcaoElpLevel ?? data.icaoElpLevel ?? '',
+          icaoElpExpiryDate: data.IcaoElpExpiryDate ?? data.icaoElpExpiryDate ?? '',
+          typeRatings: data.TypeRatings ?? data.typeRatings ?? '',
+          isCredentialsVerified: data.IsCredentialsVerified ?? data.isCredentialsVerified ?? false,
+          credentialsVerifiedAt: data.CredentialsVerifiedAt ?? data.credentialsVerifiedAt ?? null,
+        };
+        setProfile(prof);
+        setCredForm({
+          licenseType: prof.licenseType || 'None',
+          licenseNumber: prof.licenseNumber || '',
+          licenseExpiryDate: toDateInputValue(prof.licenseExpiryDate),
+          medicalClass: prof.medicalClass || 'None',
+          medicalExpiryDate: toDateInputValue(prof.medicalExpiryDate),
+          icaoElpLevel: prof.icaoElpLevel || '',
+          icaoElpExpiryDate: toDateInputValue(prof.icaoElpExpiryDate),
+          typeRatings: prof.typeRatings || '',
+        });
+
+        if (accId > 0) {
+          fetchAttachments(accId);
+        }
+      }
+    } catch {
+      // fallback
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const fetchAttachments = async (accId) => {
+    setLoadingAttachments(true);
+    try {
+      const list = await api.get(`/UserProfiles/${accId}/attachments`, { suppressAuthRedirect: true });
+      if (Array.isArray(list)) {
+        setAttachments(list);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingAttachments(false);
+    }
+  };
 
   const initials = (name) => {
     if (!name) return 'HV';
@@ -102,7 +180,7 @@ const StudentProfile = () => {
     return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  /* ── Save profile ── */
+  /* ── Save demographic profile ── */
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -127,6 +205,93 @@ const StudentProfile = () => {
       toast.error(tr('Cập nhật thất bại'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* ── Save pilot credentials ── */
+  const handleSaveCredentials = async (e) => {
+    e.preventDefault();
+    setSavingCreds(true);
+
+    try {
+      const payload = {
+        licenseType: credForm.licenseType === 'None' ? null : credForm.licenseType || null,
+        licenseNumber: credForm.licenseNumber?.trim() || null,
+        licenseExpiryDate: credForm.licenseExpiryDate ? new Date(credForm.licenseExpiryDate).toISOString() : null,
+        medicalClass: credForm.medicalClass === 'None' ? null : credForm.medicalClass || null,
+        medicalExpiryDate: credForm.medicalExpiryDate ? new Date(credForm.medicalExpiryDate).toISOString() : null,
+        icaoElpLevel: credForm.icaoElpLevel ? parseInt(credForm.icaoElpLevel, 10) : null,
+        icaoElpExpiryDate: credForm.icaoElpExpiryDate ? new Date(credForm.icaoElpExpiryDate).toISOString() : null,
+        typeRatings: credForm.typeRatings?.trim() || null,
+      };
+
+      const updated = await api.put('/UserProfiles/me/credentials', payload, { suppressAuthRedirect: true });
+      if (updated) {
+        setProfile((prev) => ({
+          ...prev,
+          licenseType: updated.LicenseType ?? updated.licenseType ?? '',
+          licenseNumber: updated.LicenseNumber ?? updated.licenseNumber ?? '',
+          licenseExpiryDate: updated.LicenseExpiryDate ?? updated.licenseExpiryDate ?? '',
+          medicalClass: updated.MedicalClass ?? updated.medicalClass ?? '',
+          medicalExpiryDate: updated.MedicalExpiryDate ?? updated.medicalExpiryDate ?? '',
+          icaoElpLevel: updated.IcaoElpLevel ?? updated.icaoElpLevel ?? '',
+          icaoElpExpiryDate: updated.IcaoElpExpiryDate ?? updated.icaoElpExpiryDate ?? '',
+          typeRatings: updated.TypeRatings ?? updated.typeRatings ?? '',
+          isCredentialsVerified: updated.IsCredentialsVerified ?? updated.isCredentialsVerified ?? false,
+          credentialsVerifiedAt: updated.CredentialsVerifiedAt ?? updated.credentialsVerifiedAt ?? null,
+        }));
+      }
+
+      setEditingCreds(false);
+      toast.success(tr('Cập nhật năng định thành công'), tr('Thông tin tự khai đã lưu và đang chờ xác minh.'));
+    } catch (err) {
+      toast.error(tr('Cập nhật năng định thất bại'), err.message || tr('Vui lòng kiểm tra lại thông tin.'));
+    } finally {
+      setSavingCreds(false);
+    }
+  };
+
+  /* ── Upload credential attachment ── */
+  const handleUploadAttachment = async (e) => {
+    e.preventDefault();
+    if (!uploadFileName.trim() || !uploadFileUrl.trim()) {
+      toast.error(tr('Vui lòng nhập tên tệp và đường dẫn URL.'));
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const payload = {
+        docType: uploadDocType,
+        url: uploadFileUrl.trim(),
+        fileName: uploadFileName.trim(),
+        mimeType: uploadFileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+        fileSize: 102400,
+      };
+
+      await api.post(`/UserProfiles/${profile.accountId}/attachments`, payload, { suppressAuthRedirect: true });
+      toast.success(tr('Tải lên minh chứng thành công'));
+      setShowUploadModal(false);
+      setUploadFileName('');
+      setUploadFileUrl('');
+      fetchAttachments(profile.accountId);
+    } catch (err) {
+      toast.error(tr('Tải lên minh chứng thất bại'), err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /* ── Delete credential attachment ── */
+  const handleDeleteAttachment = async (attachmentId) => {
+    if (!window.confirm(tr('Bạn có chắc chắn muốn xóa tài liệu minh chứng này?'))) return;
+
+    try {
+      await api.delete(`/UserProfiles/${profile.accountId}/attachments/${attachmentId}`, { suppressAuthRedirect: true });
+      toast.success(tr('Đã xóa tệp minh chứng'));
+      fetchAttachments(profile.accountId);
+    } catch (err) {
+      toast.error(tr('Xóa tệp minh chứng thất bại'));
     }
   };
 
@@ -171,9 +336,9 @@ const StudentProfile = () => {
       <section className="student-welcome" style={{ marginBottom: 24 }}>
         <div className="student-welcome-left">
           <p className="eyebrow">{tr('Student Portal')}</p>
-          <h1>{tr('Hồ sơ của tôi')}</h1>
+          <h1>{tr('Hồ sơ & Năng định Phi công')}</h1>
           <p className="welcome-sub">
-            {tr('Quản lý thông tin cá nhân, ngày sinh, số điện thoại và mật khẩu.')}
+            {tr('Quản lý thông tin cá nhân, hồ sơ bằng lái, giấy khám sức khỏe, chứng chỉ ICAO ELP và minh chứng.')}
           </p>
         </div>
         <div className="student-welcome-right">
@@ -189,7 +354,7 @@ const StudentProfile = () => {
 
       {/* ── Two-column grid ── */}
       <section className="student-info-grid">
-        {/* ===== LEFT: Edit Profile ===== */}
+        {/* ===== LEFT: Demographic Profile ===== */}
         <div className="student-info-card">
           <div className="student-profile-header">
             <div className="student-profile-avatar">{initials(profile.fullName)}</div>
@@ -207,7 +372,6 @@ const StudentProfile = () => {
             <p style={{ color: 'rgba(0,33,71,0.4)', fontSize: 13 }}>{tr('Đang tải...')}</p>
           ) : (
             <form className="student-pwd-form" onSubmit={handleSaveProfile}>
-              {/* Full Name (display only) */}
               <div className="form-group">
                 <label>{tr('Họ và tên')}</label>
                 <div className="student-field-value" style={{ padding: '11px 14px', border: '1px solid #e4eaf3', borderRadius: '10px', background: '#f0f4f9', color: 'rgba(0,33,71,0.6)', fontSize: '14px' }}>
@@ -215,7 +379,6 @@ const StudentProfile = () => {
                 </div>
               </div>
 
-              {/* Email (display only) */}
               <div className="form-group">
                 <label>{tr('Email')}</label>
                 <div className="student-field-value" style={{ padding: '11px 14px', border: '1px solid #e4eaf3', borderRadius: '10px', background: '#f0f4f9', color: 'rgba(0,33,71,0.6)', fontSize: '14px' }}>
@@ -223,7 +386,6 @@ const StudentProfile = () => {
                 </div>
               </div>
 
-              {/* Phone */}
               <div className="form-group">
                 <label>{tr('Số điện thoại')}</label>
                 <input
@@ -236,7 +398,6 @@ const StudentProfile = () => {
                 />
               </div>
 
-              {/* Date of Birth */}
               <div className="form-group">
                 <label>{tr('Ngày sinh')}</label>
                 <input
@@ -248,7 +409,6 @@ const StudentProfile = () => {
                 />
               </div>
 
-              {/* Gender */}
               <div className="form-group">
                 <label>{tr('Giới tính')}</label>
                 <select
@@ -341,6 +501,347 @@ const StudentProfile = () => {
           </form>
         </div>
       </section>
+
+      {/* ===== PILOT CREDENTIALS CARD ===== */}
+      <section style={{ marginTop: '28px' }}>
+        <div className="student-info-card" style={{ width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <p className="info-eyebrow">{tr('Năng định & Bằng lái Phi công')}</p>
+              <h3 style={{ margin: 0 }}>{tr('Hồ sơ Năng định Hiện tại')}</h3>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  background: profile.isCredentialsVerified ? '#ecfdf5' : '#fffbeb',
+                  color: profile.isCredentialsVerified ? '#047857' : '#b45309',
+                  border: profile.isCredentialsVerified ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                }}
+              >
+                {profile.isCredentialsVerified ? `✓ ${tr('ĐÃ XÁC MINH')}` : `⏳ ${tr('TỰ KHAI / CHỜ XÁC MINH')}`}
+              </span>
+
+              {!editingCreds ? (
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => setEditingCreds(true)}
+                  style={{ padding: '6px 14px', borderRadius: '8px', cursor: 'pointer' }}
+                >
+                  ✏️ {tr('Cập nhật Năng định')}
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {!editingCreds ? (
+            /* Display View */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginTop: '16px' }}>
+              <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Bằng lái (License)')}</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{profile.licenseType || '--'}</div>
+                <div style={{ fontSize: '12px', color: '#475569' }}>Số: {profile.licenseNumber || '--'}</div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Hạn: {formatDate(profile.licenseExpiryDate)}</div>
+              </div>
+
+              <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Hạng Y tế (Medical)')}</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{profile.medicalClass || '--'}</div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Hạn: {formatDate(profile.medicalExpiryDate)}</div>
+              </div>
+
+              <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Trình độ ICAO ELP')}</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>
+                  {profile.icaoElpLevel ? `Level ${profile.icaoElpLevel}` : '--'}
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                  {profile.icaoElpLevel === 6 ? tr('Vô thời hạn (Permanent)') : `Hạn: ${formatDate(profile.icaoElpExpiryDate)}`}
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Type Ratings')}</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{profile.typeRatings || '--'}</div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Chứng nhận chủng loại tàu bay</div>
+              </div>
+            </div>
+          ) : (
+            /* Edit Form */
+            <form onSubmit={handleSaveCredentials} style={{ marginTop: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                <div className="form-group">
+                  <label>{tr('Loại bằng lái (License Type)')}</label>
+                  <select
+                    value={credForm.licenseType}
+                    onChange={(e) => setCredForm((f) => ({ ...f, licenseType: e.target.value }))}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccd6e0' }}
+                  >
+                    {LICENSE_TYPE_OPTIONS.map((l) => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>{tr('Số bằng lái (License Number)')}</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. VN-12345"
+                    value={credForm.licenseNumber}
+                    onChange={(e) => setCredForm((f) => ({ ...f, licenseNumber: e.target.value }))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>{tr('Ngày hết hạn bằng lái')}</label>
+                  <input
+                    type="date"
+                    value={credForm.licenseExpiryDate}
+                    onChange={(e) => setCredForm((f) => ({ ...f, licenseExpiryDate: e.target.value }))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>{tr('Hạng giấy khám sức khỏe (Medical Class)')}</label>
+                  <select
+                    value={credForm.medicalClass}
+                    onChange={(e) => setCredForm((f) => ({ ...f, medicalClass: e.target.value }))}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccd6e0' }}
+                  >
+                    {MEDICAL_CLASS_OPTIONS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>{tr('Ngày hết hạn giấy khám sức khỏe')}</label>
+                  <input
+                    type="date"
+                    value={credForm.medicalExpiryDate}
+                    onChange={(e) => setCredForm((f) => ({ ...f, medicalExpiryDate: e.target.value }))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>{tr('ICAO ELP Level (1 - 6)')}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="6"
+                    placeholder="e.g. 4, 5, 6"
+                    value={credForm.icaoElpLevel}
+                    onChange={(e) => setCredForm((f) => ({ ...f, icaoElpLevel: e.target.value }))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>{tr('Ngày hết hạn ICAO ELP')}</label>
+                  <input
+                    type="date"
+                    value={credForm.icaoElpExpiryDate}
+                    onChange={(e) => setCredForm((f) => ({ ...f, icaoElpExpiryDate: e.target.value }))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>{tr('Type Ratings (Phân hạng chủng loại)')}</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. A320, B737, C172"
+                    value={credForm.typeRatings}
+                    onChange={(e) => setCredForm((f) => ({ ...f, typeRatings: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => setEditingCreds(false)}
+                  style={{ padding: '8px 18px', borderRadius: '8px' }}
+                >
+                  {tr('Hủy')}
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={savingCreds}
+                  style={{ padding: '8px 20px', borderRadius: '8px' }}
+                >
+                  {savingCreds ? tr('Đang lưu...') : tr('Lưu năng định')}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ── Credential Attachments & Evidence Section ── */}
+          <div style={{ marginTop: '28px', borderTop: '1px solid #eef2f6', paddingTop: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+              <h4 style={{ margin: 0, color: '#1e293b' }}>📎 {tr('Tài liệu Minh chứng Năng định (License & Medical Documents)')}</h4>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => setShowUploadModal(true)}
+                style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '8px', cursor: 'pointer' }}
+              >
+                + {tr('Tải lên minh chứng')}
+              </button>
+            </div>
+
+            {loadingAttachments ? (
+              <p style={{ color: '#888', fontSize: '13px' }}>{tr('Đang tải danh sách tài liệu...')}</p>
+            ) : attachments.length === 0 ? (
+              <p style={{ color: '#94a3b8', fontSize: '13px', fontStyle: 'italic' }}>{tr('Chưa có tệp minh chứng nào được tải lên.')}</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                {attachments.map((att) => (
+                  <div
+                    key={att.attachmentId ?? att.AttachmentId}
+                    style={{
+                      background: '#f8fafd',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          background: '#e0f2fe',
+                          color: '#0369a1',
+                          textTransform: 'uppercase',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        {att.docType ?? att.DocType ?? 'General'}
+                      </span>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{att.fileName ?? att.FileName}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{formatDate(att.uploadedAt ?? att.UploadedAt)}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <a
+                        href={att.url ?? att.Url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="secondary-btn"
+                        style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '6px', textDecoration: 'none', color: '#004a99' }}
+                      >
+                        👁️ {tr('Xem')}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAttachment(att.attachmentId ?? att.AttachmentId)}
+                        style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#dc2626', cursor: 'pointer' }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Modal: Upload Credential Attachment ── */}
+      {showUploadModal ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '12px',
+              padding: '24px',
+              width: '90%',
+              maxWidth: '480px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#0f172a' }}>{tr('Tải lên Minh chứng Năng định')}</h3>
+            <form onSubmit={handleUploadAttachment}>
+              <div className="form-group" style={{ marginBottom: '14px' }}>
+                <label>{tr('Loại tài liệu (Document Category)')}</label>
+                <select
+                  value={uploadDocType}
+                  onChange={(e) => setUploadDocType(e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccd6e0' }}
+                >
+                  {DOC_TYPE_OPTIONS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '14px' }}>
+                <label>{tr('Tên tệp (File Name)')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. CPL_License_Front.pdf"
+                  value={uploadFileName}
+                  onChange={(e) => setUploadFileName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '18px' }}>
+                <label>{tr('Đường dẫn URL / Cloudinary URL')}</label>
+                <input
+                  type="url"
+                  placeholder="https://res.cloudinary.com/..."
+                  value={uploadFileUrl}
+                  onChange={(e) => setUploadFileUrl(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => setShowUploadModal(false)}
+                  style={{ padding: '8px 16px', borderRadius: '8px' }}
+                >
+                  {tr('Hủy')}
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={uploading}
+                  style={{ padding: '8px 20px', borderRadius: '8px' }}
+                >
+                  {uploading ? tr('Đang tải lên...') : tr('Xác nhận')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -375,6 +375,25 @@ const StudentProfiles = () => {
     }
   };
 
+  const handleVerifyCredentials = async (accountId, isVerified) => {
+    try {
+      await api.put(`/UserProfiles/${accountId}/verify-credentials`, {
+        isVerified,
+        comment: isVerified ? 'Verified by Academic staff' : 'Unverified',
+      });
+      toast.success(isVerified ? tr('Đã xác minh năng định thành công!') : tr('Đã hủy xác minh năng định!'));
+      await loadProfiles();
+      if (viewingProfile && viewingProfile.accountId === accountId) {
+        setViewingProfile((prev) => ({
+          ...prev,
+          isCredentialsVerified: isVerified,
+        }));
+      }
+    } catch (err) {
+      toast.error(tr('Thao tác xác minh thất bại'), parseApiError(err, '', tr));
+    }
+  };
+
   const handleOpenViewModal = (profile) => {
     setViewingProfile(profile);
     setIsViewOpen(true);
@@ -857,10 +876,33 @@ const StudentProfiles = () => {
                 { label: tr('Ngày sinh'), value: formatDate(viewingProfile.dateOfBirth, lang) },
                 { label: tr('Giới tính'), value: tr(GENDER_LABEL[viewingProfile.gender]) || viewingProfile.gender || 'N/A' },
                 { label: tr('Tổ chức'), value: viewingProfile.organization || 'N/A' },
+                { label: tr('Bằng lái (License)'), value: viewingProfile.licenseType ? `${viewingProfile.licenseType} (${viewingProfile.licenseNumber || '--'})` : 'N/A' },
+                { label: tr('Hạn bằng lái'), value: formatDate(viewingProfile.licenseExpiryDate, lang) },
+                { label: tr('Hạng y tế (Medical)'), value: viewingProfile.medicalClass ? `${viewingProfile.medicalClass} (Hạn: ${formatDate(viewingProfile.medicalExpiryDate, lang)})` : 'N/A' },
+                { label: tr('Trình độ ICAO ELP'), value: viewingProfile.icaoElpLevel ? `Level ${viewingProfile.icaoElpLevel} (Hạn: ${formatDate(viewingProfile.icaoElpExpiryDate, lang)})` : 'N/A' },
+                { label: tr('Type Ratings'), value: viewingProfile.typeRatings || 'N/A' },
+                {
+                  label: tr('Trạng thái năng định'),
+                  value: (
+                    <span
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: viewingProfile.isCredentialsVerified ? '#ecfdf5' : '#fffbeb',
+                        color: viewingProfile.isCredentialsVerified ? '#047857' : '#b45309',
+                        border: viewingProfile.isCredentialsVerified ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                      }}
+                    >
+                      {viewingProfile.isCredentialsVerified ? tr('ĐÃ XÁC MINH') : tr('CHƯA XÁC MINH')}
+                    </span>
+                  ),
+                },
               ].map((row) => (
                 <div
-                  key={row.label}
-                  style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', padding: '10px 14px', background: '#f8fafc', borderRadius: '8px' }}
+                  key={typeof row.label === 'string' ? row.label : Math.random()}
+                  style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', alignItems: 'center' }}
                 >
                   <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                     {row.label}
@@ -873,6 +915,21 @@ const StudentProfiles = () => {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button
+                type="button"
+                onClick={() => handleVerifyCredentials(viewingProfile.accountId, !viewingProfile.isCredentialsVerified)}
+                style={{
+                  padding: '8px 16px',
+                  background: viewingProfile.isCredentialsVerified ? '#fff1f2' : '#ecfdf5',
+                  border: viewingProfile.isCredentialsVerified ? '1px solid #fecdd3' : '1px solid #a7f3d0',
+                  borderRadius: '6px',
+                  color: viewingProfile.isCredentialsVerified ? '#be123c' : '#047857',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                {viewingProfile.isCredentialsVerified ? tr('Hủy xác minh') : tr('✓ Xác minh năng định')}
+              </button>
               <button
                 type="button"
                 onClick={() => handleOpenEditModal(viewingProfile)}

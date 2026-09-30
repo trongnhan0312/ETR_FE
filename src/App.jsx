@@ -64,6 +64,7 @@ import StudentDashboard from './Student/StudentDashboard';
 import StudentMyETR from './Student/StudentMyETR';
 import StudentCertificateStatus from './Student/StudentCertificateStatus';
 import StudentProfile from './Student/StudentProfile';
+import StudentLogbook from './Student/StudentLogbook';
 import AuditorLayout from './Auditor/AuditorLayout';
 import AuditorDashboard from './Auditor/AuditorDashboard';
 import AuditorLockedETRs from './Auditor/AuditorLockedETRs';
@@ -255,6 +256,7 @@ function App() {
 						<Route index element={<StudentDashboard />} />
 						<Route path="etr" element={<StudentMyETR />} />
 						<Route path="certificates" element={<StudentCertificateStatus />} />
+						<Route path="logbook" element={<StudentLogbook />} />
 						<Route path="profile" element={<StudentProfile />} />
 					</Route>
 				</Route>
