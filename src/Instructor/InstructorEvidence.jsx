@@ -409,7 +409,8 @@ const InstructorEvidence = () => {
       loadEvidences();
     } catch (err) {
       console.error("Lỗi khi xóa minh chứng:", err);
-      toast.error(tr("Xóa thất bại"));
+      const msg = err?.response?.data?.detail || err?.data?.detail || err?.message || tr("Xóa thất bại");
+      toast.error(msg);
     } finally {
       setConfirmDeleteId(null);
     }
