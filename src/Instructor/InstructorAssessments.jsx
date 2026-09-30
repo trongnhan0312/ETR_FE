@@ -589,8 +589,9 @@ const InstructorAssessments = () => {
 
         const etrDetails = etrDetailsMap[student.accountId];
         let attendanceRate = null;
+        let subRes = null;
         if (etrDetails && etrDetails.subjectResults) {
-          const subRes = etrDetails.subjectResults.find(
+          subRes = etrDetails.subjectResults.find(
             (sr) => sr.subjectId === currentSubjectId,
           );
           if (subRes) {
