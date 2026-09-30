@@ -3,6 +3,7 @@ import { api, parseApiError } from '../utils/api';
 import { announce } from '../utils/crudNotify';
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { isClassEligibleForEnrollment } from '../utils/enrollmentEligibility';
 
 const EditLearner = ({ learner, onSave, onCancel }) => {
   const { tr } = useLanguage();
@@ -81,14 +82,14 @@ const EditLearner = ({ learner, onSave, onCancel }) => {
   };
 
   const handleAddClass = async () => {
-    // Find classes this learner is NOT already enrolled in
+    // Find classes this learner is NOT already enrolled in AND are eligible for enrollment
     const enrolledClassIds = assignedClasses.map((c) => c.classId);
     const availableClasses = allClasses.filter(
-      (c) => !enrolledClassIds.includes(c.classId)
+      (c) => !enrolledClassIds.includes(c.classId) && isClassEligibleForEnrollment(c).eligible
     );
 
     if (availableClasses.length === 0) {
-      toast.warning(tr("Không còn lớp khả dụng"));
+      toast.warning(tr("Không còn lớp học sắp diễn ra nào đủ điều kiện ghi danh"));
       return;
     }
 

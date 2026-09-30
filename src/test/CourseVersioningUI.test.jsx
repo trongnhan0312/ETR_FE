@@ -210,4 +210,100 @@ describe('Course Versioning Frontend UI Tests', () => {
     );
     expect(mockSave).not.toHaveBeenCalled();
   });
+
+  describe('Enrollment Eligibility Guard Tests', () => {
+    it('isClassEligibleForEnrollment correctly evaluates class statuses and start dates', async () => {
+      const { isClassEligibleForEnrollment } = await import('../utils/enrollmentEligibility');
+
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      // Eligible: Planned + future date
+      expect(isClassEligibleForEnrollment({ status: 'Planned', startDate: tomorrow.toISOString() }).eligible).toBe(true);
+
+      // Eligible: Planned + today
+      expect(isClassEligibleForEnrollment({ status: 'Planned', startDate: today.toISOString() }).eligible).toBe(true);
+
+      // Ineligible: Planned + past date
+      const pastResult = isClassEligibleForEnrollment({ status: 'Planned', startDate: yesterday.toISOString() });
+      expect(pastResult.eligible).toBe(false);
+      expect(pastResult.reason).toContain('Đã qua ngày bắt đầu');
+
+      // Ineligible: InProgress
+      const inProgressResult = isClassEligibleForEnrollment({ status: 'InProgress', startDate: tomorrow.toISOString() });
+      expect(inProgressResult.eligible).toBe(false);
+      expect(inProgressResult.reason).toContain('Lớp đang diễn ra');
+
+      // Ineligible: Completed
+      const completedResult = isClassEligibleForEnrollment({ status: 'Completed', startDate: yesterday.toISOString() });
+      expect(completedResult.eligible).toBe(false);
+      expect(completedResult.reason).toContain('Lớp đã kết thúc');
+
+      // Ineligible: Cancelled
+      const cancelledResult = isClassEligibleForEnrollment({ status: 'Cancelled', startDate: tomorrow.toISOString() });
+      expect(cancelledResult.eligible).toBe(false);
+      expect(cancelledResult.reason).toContain('Lớp đã hủy');
+    });
+
+    it('EnrollStudentModal disables InProgress and past StartDate classes in select dropdown', async () => {
+      const { default: EnrollStudentModal } = await import('../Academic/EnrollStudentModal');
+
+      api.get.mockImplementation((url) => {
+        if (url === '/Accounts') return Promise.resolve([{ accountId: 101, username: 'student1', roleId: 6 }]);
+        if (url === '/UserProfiles/learners') return Promise.resolve([{ accountId: 101, fullName: 'Student One', userCode: 'STU01' }]);
+        if (url === '/Enrollments') return Promise.resolve([]);
+        if (url === '/Etr') return Promise.resolve([]);
+        if (url === '/Classes') return Promise.resolve([]);
+        if (url.startsWith('/Courses/')) return Promise.resolve({ subjects: [{ subjectId: 1 }] });
+        return Promise.resolve([]);
+      });
+
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const classes = [
+        { classId: 1, code: 'CLS-PLANNED', name: 'Planned Future', status: 'Planned', startDate: tomorrow.toISOString(), courseId: 10 },
+        { classId: 2, code: 'CLS-INPROGRESS', name: 'In Progress Class', status: 'InProgress', startDate: tomorrow.toISOString(), courseId: 10 },
+        { classId: 3, code: 'CLS-PAST', name: 'Past Date Class', status: 'Planned', startDate: yesterday.toISOString(), courseId: 10 },
+      ];
+
+      render(
+        <LanguageProvider>
+          <EnrollStudentModal
+            classes={classes}
+            initialClassId={1}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+          />
+        </LanguageProvider>
+      );
+
+      const classSelect = document.querySelector('#enroll-class-select');
+      expect(classSelect).toBeInTheDocument();
+
+      const options = classSelect.querySelectorAll('option');
+      expect(options).toHaveLength(3);
+
+      // CLS-PLANNED is eligible (not disabled)
+      expect(options[0].disabled).toBe(false);
+      expect(options[0].textContent).toContain('CLS-PLANNED');
+
+      // CLS-INPROGRESS is disabled
+      expect(options[1].disabled).toBe(true);
+      expect(options[1].textContent).toContain('Lớp đang diễn ra');
+
+      // CLS-PAST is disabled
+      expect(options[2].disabled).toBe(true);
+      expect(options[2].textContent).toContain('Đã qua ngày bắt đầu');
+    });
+  });
 });
+
+
+

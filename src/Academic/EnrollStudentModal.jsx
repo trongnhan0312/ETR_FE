@@ -3,19 +3,33 @@ import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 import { isEtrCompleted } from '../utils/etrStatus';
+import { isClassEligibleForEnrollment } from '../utils/enrollmentEligibility';
 
 const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCancel }) => {
   const { tr } = useLanguage();
-  const isClassCompletedOrCancelled = (cls) => {
-    if (!cls) return false;
-    const st = (cls?.statusRaw || cls?.status || '').toLowerCase();
-    return st === 'completed' || st === 'đã kết thúc' || st === 'cancelled' || st === 'đã hủy';
-  };
 
-  const eligibleClasses = classes.filter((c) => !isClassCompletedOrCancelled(c));
-  const initialValidId = initialClassId && !isClassCompletedOrCancelled(classes.find(c => String(c.classId) === String(initialClassId)) || {})
-    ? initialClassId
-    : (eligibleClasses[0]?.classId || classes[0]?.classId || '');
+  const classEligibilityList = useMemo(() => {
+    return classes.map((c) => {
+      const elig = isClassEligibleForEnrollment(c);
+      return {
+        ...c,
+        isEligible: elig.eligible,
+        ineligibleReason: elig.reason,
+        ineligibleDetail: elig.detail,
+      };
+    });
+  }, [classes]);
+
+  const eligibleClasses = useMemo(() => {
+    return classEligibilityList.filter((c) => c.isEligible);
+  }, [classEligibilityList]);
+
+  const initialValidId = useMemo(() => {
+    if (initialClassId && classEligibilityList.find(c => String(c.classId) === String(initialClassId))?.isEligible) {
+      return String(initialClassId);
+    }
+    return eligibleClasses[0]?.classId ? String(eligibleClasses[0].classId) : (classes[0]?.classId ? String(classes[0].classId) : '');
+  }, [initialClassId, classEligibilityList, eligibleClasses, classes]);
 
   const [selectedClassId, setSelectedClassId] = useState(initialValidId);
   const [selectedAccountId, setSelectedAccountId] = useState('');
@@ -151,7 +165,12 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
     }
   }, [selectedClassId, studentListWithStatus]);
 
-  // Check course subjects warning
+  const selectedClassEligibility = useMemo(() => {
+    if (!selectedClassObj) return { eligible: false, reason: 'Chưa chọn lớp' };
+    return isClassEligibleForEnrollment(selectedClassObj);
+  }, [selectedClassObj]);
+
+  // Check course subjects warning & class eligibility
   useEffect(() => {
     setErrorMsg('');
     setCourseSubjectWarning('');
@@ -159,26 +178,27 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
     if (!selectedClassId) return;
 
     if (selectedClassObj) {
-      if (isClassCompletedOrCancelled(selectedClassObj)) {
-        setCourseSubjectWarning(tr('⛔ Lớp học này ở trạng thái Đã kết thúc / Đã hủy — Không thể ghi danh.'));
+      if (!selectedClassEligibility.eligible) {
+        setCourseSubjectWarning(`⛔ ${tr(selectedClassEligibility.detail || selectedClassEligibility.reason)}`);
         return;
-      }        if (selectedClassObj.courseId) {
-          api.get(`/Courses/${selectedClassObj.courseId}`).then((cDetail) => {
-            const subs =
-              cDetail?.courseSubjects ||
-              cDetail?.subjects ||
-              cDetail?.CourseSubjects ||
-              cDetail?.Subjects ||
-              cDetail?.selectedSubjectIds ||
-              [];
-            if (Array.isArray(subs) && subs.length === 0) {
-              setCourseSubjectWarning(`⚠️ ${tr('Khóa học')} "${cDetail?.courseName || selectedClassObj.name}" (ID: ${selectedClassObj.courseId}) ${tr('chưa được cấu hình môn học (Subject). Theo quy tắc nghiệp vụ ETR, không thể ghi danh vào khóa chưa có môn học.')}`);
-              setCourseHasNoSubjects(true);
-            }
-          }).catch(() => {});
-        }
+      }
+      if (selectedClassObj.courseId) {
+        api.get(`/Courses/${selectedClassObj.courseId}`).then((cDetail) => {
+          const subs =
+            cDetail?.courseSubjects ||
+            cDetail?.subjects ||
+            cDetail?.CourseSubjects ||
+            cDetail?.Subjects ||
+            cDetail?.selectedSubjectIds ||
+            [];
+          if (Array.isArray(subs) && subs.length === 0) {
+            setCourseSubjectWarning(`⚠️ ${tr('Khóa học')} "${cDetail?.courseName || selectedClassObj.name}" (ID: ${selectedClassObj.courseId}) ${tr('chưa được cấu hình môn học (Subject). Theo quy tắc nghiệp vụ ETR, không thể ghi danh vào khóa chưa có môn học.')}`);
+            setCourseHasNoSubjects(true);
+          }
+        }).catch(() => {});
+      }
     }
-  }, [selectedClassId, selectedClassObj]);
+  }, [selectedClassId, selectedClassObj, selectedClassEligibility]);
 
   const parseEnrollmentError = (err) => {
     if (!err) return tr('Ghi danh thất bại. Vui lòng thử lại.');
@@ -195,8 +215,17 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
       const courseIdStr = matchCourseId ? ` (Course ID: ${matchCourseId[1]})` : '';
       return `${tr('❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học')}${courseIdStr} ${tr('chưa được cấu hình môn học (Subject). Theo quy định ETR hàng không, Khóa học phải có ít nhất 1 môn học trước khi mở ghi danh. Vui lòng chọn Khóa học đã cấu hình môn học.')}`;
     }
-    if (raw.includes('completed') || raw.includes('đã kết thúc') || raw.includes('cancelled') || raw.includes('đã hủy')) {
-      return tr('❌ Quy tắc nghiệp vụ: Lớp học đã kết thúc hoặc đã hủy không được phép ghi danh mới.');
+    if (
+      raw.includes('InProgress') ||
+      raw.includes('Completed') ||
+      raw.includes('Cancelled') ||
+      raw.includes('past StartDate') ||
+      raw.includes('đang diễn ra') ||
+      raw.includes('đã kết thúc') ||
+      raw.includes('đã hủy') ||
+      raw.includes('đã qua ngày bắt đầu')
+    ) {
+      return tr('❌ Quy tắc nghiệp vụ ETR: Chỉ cho phép ghi danh vào lớp học ở trạng thái "Sắp diễn ra" (Planned) và có ngày bắt đầu từ hôm nay trở đi. Lớp đang diễn ra, đã kết thúc, đã hủy hoặc đã qua ngày bắt đầu không được phép ghi danh.');
     }
 
     try {
@@ -217,8 +246,8 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
       return;
     }
 
-    if (selectedClassObj && isClassCompletedOrCancelled(selectedClassObj)) {
-      setErrorMsg(tr('❌ Quy tắc nghiệp vụ: Lớp học ở trạng thái "Đã kết thúc" hoặc "Đã hủy" KHÔNG được phép ghi danh học viên mới.'));
+    if (selectedClassObj && !selectedClassEligibility.eligible) {
+      setErrorMsg(tr(`❌ Quy tắc nghiệp vụ: ${selectedClassEligibility.detail || selectedClassEligibility.reason}`));
       return;
     }
 
@@ -251,7 +280,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
   };
 
   const selectedStudentObj = studentListWithStatus.find((s) => String(s.accountId) === String(selectedAccountId));
-  const isSelectedClassDisabled = selectedClassObj && isClassCompletedOrCancelled(selectedClassObj);
+  const isSelectedClassDisabled = selectedClassObj && !selectedClassEligibility.eligible;
   const eligibleStudentsCount = studentListWithStatus.filter(s => !s.hasOngoingEtr && !s.alreadyEnrolledInClass).length;
 
   const modalJSX = (
@@ -325,14 +354,27 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
                 onChange={(e) => setSelectedClassId(e.target.value)}
                 required
               >
-                {eligibleClasses.length === 0 ? (
-                  <option value="">{tr('Không có lớp học nào đang mở')}</option>
+                {classEligibilityList.length === 0 ? (
+                  <option value="">{tr('Không có lớp học nào trong hệ thống')}</option>
                 ) : (
-                  eligibleClasses.map((cls) => (
-                    <option key={cls.classId} value={cls.classId}>
-                      {cls.code || cls.classCode} - {cls.name || cls.className} ({cls.status})
-                    </option>
-                  ))
+                  classEligibilityList.map((cls) => {
+                    const statusTag = !cls.isEligible
+                      ? ` [⛔ ${tr(cls.ineligibleReason)} - ${tr('Không thể ghi danh')}]`
+                      : ` (${cls.status || 'Sắp diễn ra'})`;
+                    return (
+                      <option
+                        key={cls.classId}
+                        value={cls.classId}
+                        disabled={!cls.isEligible}
+                        style={{
+                          color: !cls.isEligible ? '#dc2626' : '#0f172a',
+                          backgroundColor: !cls.isEligible ? '#fef2f2' : '#ffffff',
+                        }}
+                      >
+                        {cls.code || cls.classCode} - {cls.name || cls.className}{statusTag}
+                      </option>
+                    );
+                  })
                 )}
               </select>
             </div>
@@ -416,7 +458,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
             <div style={{ fontSize: '12px', color: '#475569', backgroundColor: '#f1f5f9', padding: '12px 16px', borderRadius: '6px', lineHeight: '1.6' }}>
               💡 <strong>{tr('Quy tắc nghiệp vụ ghi danh ETR bắt buộc (Compliance Rules):')}</strong><br />
               • {tr('Khóa học phải có ít nhất 1 môn học (Subject) được cấu hình trước khi ghi danh.')}<br />
-              • {tr('Lớp học ở trạng thái')} <code>InProgress</code>, <code>Planned</code>, <code>Scheduled</code> {tr('hoặc')} <code>Draft</code> {tr('mới được ghi danh. Lớp đã kết thúc hoặc đã hủy không được phép ghi danh thêm.')}<br />
+              • {tr('Lớp học chỉ được ghi danh khi ở trạng thái Sắp diễn ra (Planned / Upcoming) và có ngày bắt đầu từ hôm nay trở đi (StartDate >= hôm nay). Các lớp Đang diễn ra (InProgress), Đã kết thúc (Completed), Đã hủy (Cancelled) hoặc có ngày bắt đầu trong quá khứ sẽ bị chặn để đảm bảo tính toàn vẹn hồ sơ đào tạo ETR.')}<br />
               • <strong>{tr('Một Học viên chỉ có 01 Hồ sơ ETR đang học (InProgress) cho 01 Khóa học tại một thời điểm. Các học viên đã có ETR chưa đóng bằng sẽ bị khóa lựa chọn.')}</strong>
             </div>
           </div>
@@ -442,3 +484,4 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
 };
 
 export default EnrollStudentModal;
+

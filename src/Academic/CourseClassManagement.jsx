@@ -21,6 +21,7 @@ import {
   findClassSessionShortfall,
   findSubjectsWithoutSessionConfig,
 } from "../utils/classSessions";
+import { isClassEligibleForEnrollment } from "../utils/enrollmentEligibility";
 
 const CourseClassManagement = () => {
   const navigate = useNavigate();
@@ -1717,54 +1718,49 @@ const CourseClassManagement = () => {
                                 >
                                   {/* Button: GHI DANH HỌC VIÊN VÀO LỚP HỌC NÀY */}
                                   {(() => {
-                                    const isClassClosed =
-                                      cls.status === "Đã kết thúc" ||
-                                      cls.status === "Completed" ||
-                                      cls.status === "Đã hủy" ||
-                                      cls.status === "Cancelled";
+                                    const elig = isClassEligibleForEnrollment(cls);
+                                    const isClassBlocked = !elig.eligible;
                                     return (
                                       <button
                                         type="button"
-                                        disabled={isClassClosed}
+                                        disabled={isClassBlocked}
                                         title={
-                                          isClassClosed
-                                            ? tr(
-                                                "Lớp học đã kết thúc hoặc đã hủy — không thể ghi danh mới",
-                                              )
+                                          isClassBlocked
+                                            ? `${tr(elig.reason)} — ${tr(elig.detail)}`
                                             : tr(
                                                 "Ghi danh học viên mới vào lớp",
                                               )
                                         }
                                         style={{
-                                          backgroundColor: isClassClosed
+                                          backgroundColor: isClassBlocked
                                             ? "#e2e8f0"
                                             : "#002147",
-                                          color: isClassClosed
+                                          color: isClassBlocked
                                             ? "#94a3b8"
                                             : "#c5a059",
-                                          border: isClassClosed
+                                          border: isClassBlocked
                                             ? "1px solid #cbd5e1"
                                             : "1px solid #c5a059",
                                           fontSize: "11px",
                                           fontWeight: 700,
                                           padding: "4px 8px",
                                           borderRadius: "4px",
-                                          cursor: isClassClosed
+                                          cursor: isClassBlocked
                                             ? "not-allowed"
                                             : "pointer",
                                           whiteSpace: "nowrap",
-                                          opacity: isClassClosed ? 0.7 : 1,
+                                          opacity: isClassBlocked ? 0.7 : 1,
                                           flexShrink: 0,
                                         }}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          if (isClassClosed) return;
+                                          if (isClassBlocked) return;
                                           setEnrollClassId(cls.classId);
                                           setIsEnrollingStudent(true);
                                         }}
                                       >
-                                        {isClassClosed
-                                          ? tr("⛔ Đã kết thúc")
+                                        {isClassBlocked
+                                          ? `⛔ ${tr(elig.reason)}`
                                           : tr("➕ Ghi danh")}
                                       </button>
                                     );
@@ -1947,11 +1943,8 @@ const CourseClassManagement = () => {
 
             <div className="table-body">
               {pagedOrphans.map((cls) => {
-                const isClassClosed =
-                  cls.status === "Đã kết thúc" ||
-                  cls.status === "Completed" ||
-                  cls.status === "Đã hủy" ||
-                  cls.status === "Cancelled";
+                const elig = isClassEligibleForEnrollment(cls);
+                const isClassBlocked = !elig.eligible;
                 return (
                   <div
                     key={`orphan-${cls.classId}`}
@@ -2021,39 +2014,37 @@ const CourseClassManagement = () => {
 
                       <button
                         type="button"
-                        disabled={isClassClosed}
+                        disabled={isClassBlocked}
                         title={
-                          isClassClosed
-                            ? tr(
-                                "Lớp học đã kết thúc hoặc đã hủy — không thể ghi danh mới",
-                              )
+                          isClassBlocked
+                            ? `${tr(elig.reason)} — ${tr(elig.detail)}`
                             : tr("Ghi danh học viên mới vào lớp")
                         }
                         style={{
-                          backgroundColor: isClassClosed
+                          backgroundColor: isClassBlocked
                             ? "#e2e8f0"
                             : "#002147",
-                          color: isClassClosed ? "#94a3b8" : "#c5a059",
-                          border: isClassClosed
+                          color: isClassBlocked ? "#94a3b8" : "#c5a059",
+                          border: isClassBlocked
                             ? "1px solid #cbd5e1"
                             : "1px solid #c5a059",
                           fontSize: "11px",
                           fontWeight: 700,
                           padding: "4px 8px",
                           borderRadius: "4px",
-                          cursor: isClassClosed ? "not-allowed" : "pointer",
+                          cursor: isClassBlocked ? "not-allowed" : "pointer",
                           whiteSpace: "nowrap",
-                          opacity: isClassClosed ? 0.7 : 1,
+                          opacity: isClassBlocked ? 0.7 : 1,
                           flexShrink: 0,
                         }}
                         onClick={() => {
-                          if (isClassClosed) return;
+                          if (isClassBlocked) return;
                           setEnrollClassId(cls.classId);
                           setIsEnrollingStudent(true);
                         }}
                       >
-                        {isClassClosed
-                          ? tr("⛔ Đã kết thúc")
+                        {isClassBlocked
+                          ? `⛔ ${tr(elig.reason)}`
                           : tr("➕ Ghi danh")}
                       </button>
 
