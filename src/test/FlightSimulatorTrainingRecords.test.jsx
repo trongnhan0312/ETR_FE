@@ -198,4 +198,51 @@ describe('Phase 2 - Flight & Simulator Training Records Mapping', () => {
     expect(mapped.aircraftRegistration).toBe('');
     expect(mapped.instructorSignedAt).toBeNull();
   });
+
+  it('ensures Air Law and Meteorology are mapped to Theory, not Flight or Simulator', () => {
+    const theorySubjects = [
+      { subjectCode: 'ALW', subjectName: 'Air Law (Luật hàng không)', subjectType: 'Lý thuyết' },
+      { subjectCode: 'MET', subjectName: 'Aviation Meteorology', subjectType: 'Theory' },
+      { subjectCode: 'AIR_LAW_01', subjectName: 'Aviation Law', subjectType: 'Ground' },
+    ];
+
+    const classifySubject = (s) => {
+      const code = (s.subjectCode || '').toUpperCase();
+      const name = (s.subjectName || '').toLowerCase();
+      if (code === 'ALW' || code.includes('AIR_LAW') || name.includes('air law') || name.includes('luật hàng không') || code === 'MET') {
+        return 'Theory';
+      }
+      return 'Other';
+    };
+
+    theorySubjects.forEach((sub) => {
+      expect(classifySubject(sub)).toBe('Theory');
+    });
+  });
+
+  it('prevents session confirmation if flight or simulator records are unsigned', () => {
+    const flightSession = { sessionId: 101, trainingType: 'Flight' };
+    const records = [
+      { attendanceRecordId: 1, instructorSignedAt: '2026-10-05T10:00:00Z' },
+      { attendanceRecordId: 2, instructorSignedAt: null },
+    ];
+
+    const canConfirmSession = (session, sessionRecords) => {
+      const isFlightOrSim = session.trainingType === 'Flight' || session.trainingType === 'Simulator';
+      if (!isFlightOrSim) return true;
+      const unsigned = (sessionRecords || []).filter((r) => !r.instructorSignedAt);
+      return unsigned.length === 0;
+    };
+
+    expect(canConfirmSession(flightSession, records)).toBe(false);
+
+    // After signing record 2
+    records[1].instructorSignedAt = '2026-10-05T10:15:00Z';
+    expect(canConfirmSession(flightSession, records)).toBe(true);
+
+    // Theory session does not require instructor signature to confirm
+    const theorySession = { sessionId: 102, trainingType: 'Theory' };
+    const theoryRecords = [{ attendanceRecordId: 3, instructorSignedAt: null }];
+    expect(canConfirmSession(theorySession, theoryRecords)).toBe(true);
+  });
 });

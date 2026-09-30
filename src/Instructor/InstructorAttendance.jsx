@@ -542,6 +542,23 @@ const InstructorAttendance = () => {
   const handleConfirmAttendance = async () => {
     if (isConfirmed) return;
 
+    const isFlightOrSim =
+      selectedSession?.trainingType === "Flight" ||
+      selectedSession?.trainingType === "Simulator";
+    if (isFlightOrSim) {
+      const unsignedCount = (sessionAttendance || []).filter(
+        (r) => !r.instructorSignedAt
+      ).length;
+      if (unsignedCount > 0) {
+        toast.error(
+          tr(
+            `Không thể chốt điểm danh bài ${selectedSession.trainingType}: Còn ${unsignedCount} hồ sơ chưa được giảng viên ký số.`
+          )
+        );
+        return;
+      }
+    }
+
     setPublishing(true);
     try {
       // First save any unsaved changes
