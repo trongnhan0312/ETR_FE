@@ -43,7 +43,13 @@ export const isValidCalendarDate = (year, month, day) => {
  * Converts a Date, timestamp, or ISO string to a calendar date string (YYYY-MM-DD)
  * in the Academy's official timezone (Asia/Ho_Chi_Minh, UTC+7).
  *
- * Rejects invalid calendar dates (e.g. 2026-99-99, 31/02/2026, month 13).
+ * Rules:
+ * - Unspecified ISO date-time strings without timezone suffix/offset (e.g. 2026-10-01T00:00:00)
+ *   are treated as calendar date-time; their date prefix is preserved after validation
+ *   without converting through the browser's local timezone.
+ * - Timestamp strings with explicit timezone (e.g. 2026-09-30T17:00:00Z or +07:00) and Date objects
+ *   are converted to Academy date via Intl.DateTimeFormat (Asia/Ho_Chi_Minh) or UTC+7 offset fallback.
+ * - Invalid calendar dates (e.g. 2026-99-99, 31/02/2026, month 13) are rejected and return null.
  *
  * @param {Date|string|number} dateInput
  * @returns {string|null} Formatted date string (YYYY-MM-DD) or null if invalid.
@@ -53,12 +59,12 @@ export const toAcademyDateString = (dateInput) => {
     return null;
   }
 
-  // Handle plain calendar date strings
+  // Handle string inputs
   if (typeof dateInput === 'string') {
     const trimmed = dateInput.trim();
     if (!trimmed) return null;
 
-    // Handle YYYY-MM-DD
+    // 1. Pure calendar date string: YYYY-MM-DD
     const isoDateMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
     if (isoDateMatch) {
       const [, yStr, mStr, dStr] = isoDateMatch;
@@ -71,7 +77,7 @@ export const toAcademyDateString = (dateInput) => {
       return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     }
 
-    // Handle DD/MM/YYYY or D/M/YYYY (common Vietnamese/European format)
+    // 2. Pure calendar date string: DD/MM/YYYY or D/M/YYYY (Vietnamese/European format)
     const dmyMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (dmyMatch) {
       const [, dStr, mStr, yStr] = dmyMatch;
@@ -84,12 +90,24 @@ export const toAcademyDateString = (dateInput) => {
       return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     }
 
-    // Check for ISO strings like 2026-02-31T... and validate calendar date prefix first
-    const prefixMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s]/);
-    if (prefixMatch) {
-      const [, yStr, mStr, dStr] = prefixMatch;
-      if (!isValidCalendarDate(yStr, mStr, dStr)) {
+    // 3. Date-time strings (YYYY-MM-DDTHH:mm:ss...)
+    const dateTimeMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{1,2})(:(\d{1,2})(\.\d+)?)?/);
+    if (dateTimeMatch) {
+      const [, yStr, mStr, dStr] = dateTimeMatch;
+      const y = Number(yStr);
+      const m = Number(mStr);
+      const d = Number(dStr);
+
+      if (!isValidCalendarDate(y, m, d)) {
         return null;
+      }
+
+      const hasExplicitTimezone = /([Zz]|[+-]\d{2}(:?\d{2})?)$/.test(trimmed);
+
+      // If there is NO timezone suffix (e.g. 2026-10-01T00:00:00 or 2026-10-01 14:00:00),
+      // treat as calendar date and preserve the date parts without shifting by browser timezone.
+      if (!hasExplicitTimezone) {
+        return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       }
     }
   }
@@ -121,6 +139,7 @@ export const toAcademyDateString = (dateInput) => {
     return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   }
 };
+
 
 /**
  * Returns today's date string (YYYY-MM-DD) in the Academy timezone (Asia/Ho_Chi_Minh).

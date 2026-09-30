@@ -302,6 +302,7 @@ describe('Course Versioning Frontend UI Tests', () => {
       expect(toAcademyDateString('2026-99-99')).toBeNull();
       expect(toAcademyDateString('31/02/2026')).toBeNull();
       expect(toAcademyDateString('2026-13-05')).toBeNull();
+      expect(toAcademyDateString('2026-02-31T00:00:00')).toBeNull();
       expect(toAcademyDateString('2026-02-31T00:00:00Z')).toBeNull();
 
       // Direct YYYY-MM-DD string
@@ -310,12 +311,28 @@ describe('Course Versioning Frontend UI Tests', () => {
       // DD/MM/YYYY string
       expect(toAcademyDateString('05/11/2026')).toBe('2026-11-05');
 
+      // ISO date-time WITHOUT timezone suffix (unspecified local calendar date-time)
+      expect(toAcademyDateString('2026-10-01T00:00:00')).toBe('2026-10-01');
+      expect(toAcademyDateString('2026-10-01 14:30:00')).toBe('2026-10-01');
+      expect(toAcademyDateString('2026-10-01T23:59:59')).toBe('2026-10-01');
+
+      // UTC timestamp crossing Academy (Asia/Ho_Chi_Minh / UTC+7) date boundary
+      // 2026-09-30 16:59:59 UTC -> 2026-09-30 23:59:59 UTC+7 (Same date)
+      expect(toAcademyDateString('2026-09-30T16:59:59Z')).toBe('2026-09-30');
+      // 2026-09-30 17:00:00 UTC -> 2026-10-01 00:00:00 UTC+7 (Next date in Academy time)
+      expect(toAcademyDateString('2026-09-30T17:00:00Z')).toBe('2026-10-01');
+      // 2026-10-01 16:59:59 UTC -> 2026-10-01 23:59:59 UTC+7 (Current date in Academy time)
+      expect(toAcademyDateString('2026-10-01T16:59:59Z')).toBe('2026-10-01');
+      // 2026-10-01 17:00:00 UTC -> 2026-10-02 00:00:00 UTC+7 (Next date in Academy time)
+      expect(toAcademyDateString('2026-10-01T17:00:00Z')).toBe('2026-10-02');
+
       // getAcademyTodayString returns YYYY-MM-DD
       const todayStr = getAcademyTodayString();
       expect(todayStr).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
     it('EnrollStudentModal disables InProgress, past StartDate, and invalid StartDate classes in select dropdown', async () => {
+
       const { default: EnrollStudentModal } = await import('../Academic/EnrollStudentModal');
 
       api.get.mockImplementation((url) => {
