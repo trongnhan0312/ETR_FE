@@ -546,6 +546,18 @@ const InstructorAttendance = () => {
       selectedSession?.trainingType === "Flight" ||
       selectedSession?.trainingType === "Simulator";
     if (isFlightOrSim) {
+      const missingRecordsCount = (students || []).filter(
+        (st) => !(sessionAttendance || []).some((r) => r.enrollmentId === st.enrollmentId)
+      ).length;
+      if (missingRecordsCount > 0) {
+        toast.error(
+          tr(
+            `Không thể chốt điểm danh bài ${selectedSession.trainingType}: Còn ${missingRecordsCount} học viên trong lớp chưa có bản ghi điểm danh.`
+          )
+        );
+        return;
+      }
+
       const unsignedCount = (sessionAttendance || []).filter(
         (r) => !r.instructorSignedAt
       ).length;

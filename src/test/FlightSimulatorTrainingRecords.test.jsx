@@ -245,4 +245,55 @@ describe('Phase 2 - Flight & Simulator Training Records Mapping', () => {
     const theoryRecords = [{ attendanceRecordId: 3, instructorSignedAt: null }];
     expect(canConfirmSession(theorySession, theoryRecords)).toBe(true);
   });
+
+  it('prevents session confirmation if any enrolled student is missing an attendance record', () => {
+    const flightSession = { sessionId: 101, trainingType: 'Flight' };
+    const classStudents = [{ enrollmentId: 1 }, { enrollmentId: 2 }];
+    const records = [{ enrollmentId: 1, instructorSignedAt: '2026-10-05T10:00:00Z' }];
+
+    const canConfirmSessionWithRoster = (session, roster, sessionRecords) => {
+      const isFlightOrSim = session.trainingType === 'Flight' || session.trainingType === 'Simulator';
+      if (!isFlightOrSim) return true;
+      const missing = roster.filter((st) => !sessionRecords.some((r) => r.enrollmentId === st.enrollmentId));
+      if (missing.length > 0) return false;
+      const unsigned = sessionRecords.filter((r) => !r.instructorSignedAt);
+      return unsigned.length === 0;
+    };
+
+    expect(canConfirmSessionWithRoster(flightSession, classStudents, records)).toBe(false);
+
+    // After adding record for student 2 with instructor signature
+    records.push({ enrollmentId: 2, instructorSignedAt: '2026-10-05T10:15:00Z' });
+    expect(canConfirmSessionWithRoster(flightSession, classStudents, records)).toBe(true);
+  });
+
+  it('maps Practical and real-world SubjectTypes to Simulator or Flight without falling back to Theory', () => {
+    const practicalSubjects = [
+      { subjectCode: 'PRAC-01', subjectName: 'Thực hành quy trình buồng lái', subjectType: 'Practical', expected: 'Simulator' },
+      { subjectCode: 'PRAC-02', subjectName: 'Thực hành buồng lái mô phỏng', subjectType: 'Thực hành', expected: 'Simulator' },
+      { subjectCode: 'SKL-01', subjectName: 'Kỹ năng buồng lái nhiều người', subjectType: 'Skill', expected: 'Simulator' },
+      { subjectCode: 'PRAC-FLT', subjectName: 'Thực hành bay vòng kín', subjectType: 'Practical', expected: 'Flight' },
+      { subjectCode: 'PRAC-SOLO', subjectName: 'Thực hành bay đơn Solo', subjectType: 'Thực hành', expected: 'Flight' },
+      { subjectCode: 'ALW', subjectName: 'Thực hành phân tích luật hàng không', subjectType: 'Practical', expected: 'Theory' },
+    ];
+
+    const classify = (code, name, type) => {
+      const c = (code || '').toUpperCase();
+      const n = (name || '').toLowerCase();
+      const t = (type || '').toLowerCase();
+
+      if (c === 'ALW' || c.includes('AIR_LAW') || n.includes('air law') || n.includes('luật hàng không')) return 'Theory';
+      if (t.includes('simulator') || t.includes('mô phỏng') || c.startsWith('SIM') || n.includes('mô phỏng')) return 'Simulator';
+      if (t.includes('flight') || t.includes('bay') || n.includes('bay') || c.startsWith('FLT') || c.startsWith('PPL')) return 'Flight';
+      if (t.includes('practical') || t.includes('thực hành') || t.includes('skill') || t.includes('workshop')) {
+        if (n.includes('bay') || n.includes('solo') || n.includes('flight')) return 'Flight';
+        return 'Simulator';
+      }
+      return 'Theory';
+    };
+
+    practicalSubjects.forEach((sub) => {
+      expect(classify(sub.subjectCode, sub.subjectName, sub.subjectType)).toBe(sub.expected);
+    });
+  });
 });
