@@ -1582,7 +1582,11 @@ const CourseClassManagement = () => {
                                       cls.status === "Đã kết thúc" ||
                                       cls.status === "Completed" ||
                                       cls.status === "Đã hủy" ||
-                                      cls.status === "Cancelled";
+                                      cls.status === "Cancelled" ||
+                                      cls.status === "InProgress" ||
+                                      cls.status === "Đang diễn ra" ||
+                                      cls.status === "Đang học" ||
+                                      (cls.startDate && new Date(cls.startDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0));
                                     return (
                                       <button
                                         type="button"
@@ -1590,7 +1594,7 @@ const CourseClassManagement = () => {
                                         title={
                                           isClassClosed
                                             ? tr(
-                                                "Lớp học đã kết thúc/bị hủy — không thể ghi danh mới",
+                                                "Lớp học đã bắt đầu, đang diễn ra hoặc đã kết thúc — không thể ghi danh mới",
                                               )
                                             : tr(
                                                 "Ghi danh học viên mới vào lớp",
@@ -1625,7 +1629,7 @@ const CourseClassManagement = () => {
                                         }}
                                       >
                                         {isClassClosed
-                                          ? tr("⛔ Đã kết thúc")
+                                          ? tr("⛔ Đã bắt đầu/kết thúc")
                                           : tr("➕ Ghi danh")}
                                       </button>
                                     );
@@ -1812,7 +1816,11 @@ const CourseClassManagement = () => {
                   cls.status === "Đã kết thúc" ||
                   cls.status === "Completed" ||
                   cls.status === "Đã hủy" ||
-                  cls.status === "Cancelled";
+                  cls.status === "Cancelled" ||
+                  cls.status === "InProgress" ||
+                  cls.status === "Đang diễn ra" ||
+                  cls.status === "Đang học" ||
+                  (cls.startDate && new Date(cls.startDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0));
                 return (
                   <div
                     key={`orphan-${cls.classId}`}
@@ -1886,7 +1894,7 @@ const CourseClassManagement = () => {
                         title={
                           isClassClosed
                             ? tr(
-                                "Lớp học đã kết thúc/bị hủy — không thể ghi danh mới",
+                                "Lớp học đã bắt đầu, đang diễn ra hoặc đã kết thúc — không thể ghi danh mới",
                               )
                             : tr("Ghi danh học viên mới vào lớp")
                         }
@@ -1914,7 +1922,7 @@ const CourseClassManagement = () => {
                         }}
                       >
                         {isClassClosed
-                          ? tr("⛔ Đã kết thúc")
+                          ? tr("⛔ Đã bắt đầu/kết thúc")
                           : tr("➕ Ghi danh")}
                       </button>
 
