@@ -195,7 +195,7 @@ export const areSubjectScoresFinalized = (subjectResults) =>
 export const hasVerifiedEvidence = (evidences, etrStatus) =>
   (Array.isArray(evidences) &&
     evidences.length > 0 &&
-    evidences.every((ev) => ev?.status === "Verified")) ||
+    evidences.every((ev) => (ev?.verificationStatus || ev?.status) === "Verified")) ||
   etrStatus === "Verified" ||
   isEtrCompleted(etrStatus);
 
