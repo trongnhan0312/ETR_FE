@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useLocation } from "react-router-dom";
 import { api } from "../utils/api";
 import { announce } from "../utils/crudNotify";
 import PromptModal from "../components/PromptModal";
@@ -443,6 +443,10 @@ const EtrApproval = () => {
   };
   const currentRole = getCurrentRole();
   const isAdmin = currentRole.toLowerCase() === "admin";
+  // Admin portal (/admin/etr-approval) dùng chung component này nhưng chỉ được
+  // XEM ETR + REOPEN (mở khóa ETR đã Completed) — không có History/Return/Approve.
+  const { pathname } = useLocation();
+  const isAdminPortal = pathname.startsWith("/admin");
 
   // Filter records
   const combinedSearch = (tableSearch || searchQuery || "").trim().toLowerCase();
@@ -486,7 +490,7 @@ const EtrApproval = () => {
                 <path d="M11.6667 4.16667V1.66667H5V4.16667H3.33333V0H13.3333V4.16667H11.6667ZM1.66667 5.83333C1.66667 5.83333 1.74653 5.83333 1.90625 5.83333C2.06597 5.83333 2.26389 5.83333 2.5 5.83333H14.1667C14.4028 5.83333 14.6007 5.83333 14.7604 5.83333C14.9201 5.83333 15 5.83333 15 5.83333H13.3333H3.33333H1.66667ZM13.3333 7.91667C13.5694 7.91667 13.7674 7.83681 13.9271 7.67708C14.0868 7.51736 14.1667 7.31944 14.1667 7.08333C14.1667 6.84722 14.0868 6.64931 13.9271 6.48958C13.7674 6.32986 13.5694 6.25 13.3333 6.25C13.0972 6.25 12.8993 6.32986 12.7396 6.48958C12.5799 6.64931 12.5 7.08333 12.5 7.08333C12.5 7.31944 12.5799 7.51736 12.7396 7.67708C12.8993 7.83681 13.0972 7.91667 13.3333 7.91667ZM11.6667 13.3333V10H5V13.3333H11.6667ZM13.3333 15H3.33333V11.6667H0V6.66667C0 5.95833 0.243056 5.36458 0.729167 4.88542C1.21528 4.40625 1.80556 4.16667 2.5 4.16667H14.1667C14.875 4.16667 15.4688 4.40625 15.9479 4.88542C16.4271 5.36458 16.6667 5.95833 16.6667 6.66667V11.6667H13.3333V15ZM15 10V6.66667C15 6.43056 14.9201 6.23264 14.7604 6.07292C14.6007 5.91319 14.4028 5.83333 14.1667 5.83333H2.5C2.26389 5.83333 2.06597 5.91319 1.90625 6.07292C1.74653 6.23264 1.66667 6.43056 1.66667 6.66667V10H3.33333V8.33333H13.3333V10H15Z" fill="#64748B" />
               </svg>
             </button>
-            {viewingHistory.status === "PENDING" && (
+            {viewingHistory.status === "PENDING" && !isAdminPortal && (
               viewingHistory.qaVerified ? (
                 <>
                   <button
@@ -1368,6 +1372,39 @@ const EtrApproval = () => {
                         className="tm-action-cell"
                         style={{ alignItems: "center" }}
                       >
+                        {isAdminPortal ? (
+                          <>
+                            <button
+                              onClick={() => setViewingHistory(etr)}
+                              className="tm-btn-secondary"
+                              style={{
+                                display: "flex",
+                                gap: "8px",
+                                alignItems: "center",
+                                padding: "12px 16px",
+                                borderRadius: "4px",
+                                border: "1px solid rgba(0,33,71,0.2)",
+                              }}
+                              title={tr("Xem chi tiết hồ sơ ETR")}
+                            >
+                              <span>{tr('VIEW')}</span>
+                            </button>
+                            {activeTab === "APPROVED" && isAdmin && (
+                              <button
+                                onClick={() => handleReopen(etr.etrId)}
+                                className="tm-btn-secondary"
+                                style={{
+                                  padding: "15px 16px",
+                                  color: "#b45309",
+                                  border: "1px solid rgba(180,83,9,0.35)",
+                                }}
+                              >
+                                {tr('REOPEN')}
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <>
                         <button
                           onClick={() => setViewingHistory(etr)}
                           className="tm-btn-secondary"
@@ -1459,6 +1496,8 @@ const EtrApproval = () => {
                           >
                             {tr('REOPEN')}
                           </button>
+                        )}
+                          </>
                         )}
                       </div>
                     </td>
@@ -1740,7 +1779,7 @@ const EtrApproval = () => {
               >
                 {tr('Close')}
               </button>
-              {selectedEtr.status === "PENDING" && (
+              {selectedEtr.status === "PENDING" && !isAdminPortal && (
                 selectedEtr.qaVerified ? (
                   <>
                     <button
