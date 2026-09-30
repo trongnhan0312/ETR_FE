@@ -33,6 +33,8 @@ const CourseClassManagement = () => {
   const [creatingClassCourseId, setCreatingClassCourseId] = useState(null);
   const [allSubjects, setAllSubjects] = useState([]);
   const [allSessions, setAllSessions] = useState([]);
+  const [allEnrollmentsRaw, setAllEnrollmentsRaw] = useState([]);
+  const [allAttendanceRaw, setAllAttendanceRaw] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedCourses, setExpandedCourses] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -108,6 +110,8 @@ const CourseClassManagement = () => {
           statsData,
           accountData,
           profileData,
+          enrollmentData,
+          attendanceData,
         ] = await Promise.all([
           api.get("/Courses").catch(() => []),
           api.get("/Classes").catch(() => []),
@@ -116,17 +120,23 @@ const CourseClassManagement = () => {
           api.get("/Dashboard/stats").catch(() => ({})),
           api.get("/Accounts").catch(() => []),
           api.get("/UserProfiles").catch(() => []),
+          api.get("/Enrollments").catch(() => []),
+          api.get("/Attendance").catch(() => []),
         ]);
 
         const coursesArr = Array.isArray(courseData) ? courseData : [];
         const classesArr = Array.isArray(classData) ? classData : [];
         const subjectsArr = Array.isArray(subjectData) ? subjectData : [];
         const sessionsArr = Array.isArray(sessionData) ? sessionData : [];
+        const enrollmentsArr = Array.isArray(enrollmentData) ? enrollmentData : [];
+        const attendanceArr = Array.isArray(attendanceData) ? attendanceData : [];
 
         setAllCoursesRaw(coursesArr);
         setAllClassesRaw(classesArr);
         setAllSubjects(subjectsArr);
         setAllSessions(sessionsArr);
+        setAllEnrollmentsRaw(enrollmentsArr);
+        setAllAttendanceRaw(attendanceArr);
 
         // Build instructor list for Class creation/edit form
         const accountsArr = Array.isArray(accountData) ? accountData : [];
@@ -162,6 +172,8 @@ const CourseClassManagement = () => {
           accountsArr,
           profilesArr,
           subjectsArr,
+          enrollmentsArr,
+          attendanceArr,
         );
         setCourses(mergedCourses);
 
@@ -320,6 +332,8 @@ const CourseClassManagement = () => {
     accountsArr = [],
     profilesArr = [],
     subjectsList = [],
+    enrollmentsArr = [],
+    attendanceArr = [],
   ) => {
     return coursesArr.map((course) => {
       const courseClasses = classesArr.filter(
@@ -366,6 +380,31 @@ const CourseClassManagement = () => {
             cls.InstructorAccountId ||
             null;
 
+          const classEnrollments = enrollmentsArr.filter(
+            (e) => String(e.classId) === String(cls.classId) && e.status !== "Dropped" && e.status !== "Cancelled"
+          );
+          const classSessions = sessionsArr.filter(
+            (s) => String(s.classId) === String(cls.classId)
+          );
+          const classSessionIds = new Set(classSessions.map((s) => String(s.sessionId)));
+          const classAttendanceRecords = attendanceArr.filter((a) =>
+            classSessionIds.has(String(a.sessionId))
+          );
+
+          let totalPresent = 0;
+          let totalMarked = 0;
+          const seenAttendance = new Set();
+          classAttendanceRecords.forEach((a) => {
+            const st = String(a.status || "").toLowerCase();
+            if (st !== "present" && st !== "có mặt" && st !== "absent" && st !== "vắng không phép") return;
+            const key = `${a.sessionId}|${a.enrollmentId ?? a.attendanceRecordId}`;
+            if (seenAttendance.has(key)) return;
+            seenAttendance.add(key);
+            totalMarked += 1;
+            if (st === "present" || st === "có mặt") totalPresent += 1;
+          });
+          const classAttendanceRate = totalMarked > 0 ? Math.round((totalPresent / totalMarked) * 100) : 0;
+
           return {
             classId: cls.classId,
             courseId: cls.courseId,
@@ -397,7 +436,8 @@ const CourseClassManagement = () => {
                     : cls.status === "Cancelled"
                       ? "Đã hủy"
                       : cls.status,
-            attendanceRate: 0,
+            enrolledCount: classEnrollments.length,
+            attendanceRate: classAttendanceRate,
             instructor: insName,
           };
         }),
@@ -407,23 +447,36 @@ const CourseClassManagement = () => {
 
   const refreshData = async () => {
     try {
-      const [courseData, classData, sessionData, accountData, profileData] =
-        await Promise.all([
-          api.get("/Courses").catch(() => []),
-          api.get("/Classes").catch(() => []),
-          api.get("/Sessions").catch(() => []),
-          api.get("/Accounts").catch(() => []),
-          api.get("/UserProfiles").catch(() => []),
-        ]);
+      const [
+        courseData,
+        classData,
+        sessionData,
+        accountData,
+        profileData,
+        enrollmentData,
+        attendanceData,
+      ] = await Promise.all([
+        api.get("/Courses").catch(() => []),
+        api.get("/Classes").catch(() => []),
+        api.get("/Sessions").catch(() => []),
+        api.get("/Accounts").catch(() => []),
+        api.get("/UserProfiles").catch(() => []),
+        api.get("/Enrollments").catch(() => []),
+        api.get("/Attendance").catch(() => []),
+      ]);
 
       const coursesArr = Array.isArray(courseData) ? courseData : [];
       const classesArr = Array.isArray(classData) ? classData : [];
       const sessionsArr = Array.isArray(sessionData) ? sessionData : [];
       const accountsArr = Array.isArray(accountData) ? accountData : [];
       const profilesArr = Array.isArray(profileData) ? profileData : [];
+      const enrollmentsArr = Array.isArray(enrollmentData) ? enrollmentData : [];
+      const attendanceArr = Array.isArray(attendanceData) ? attendanceData : [];
 
       setAllCoursesRaw(coursesArr);
       setAllClassesRaw(classesArr);
+      setAllEnrollmentsRaw(enrollmentsArr);
+      setAllAttendanceRaw(attendanceArr);
       const merged = mergeCourseData(
         coursesArr,
         classesArr,
@@ -432,6 +485,8 @@ const CourseClassManagement = () => {
         accountsArr,
         profilesArr,
         allSubjects,
+        enrollmentsArr,
+        attendanceArr,
       );
       setCourses(merged);
       return merged;
@@ -998,6 +1053,31 @@ const CourseClassManagement = () => {
           allSessions,
         );
         const rawAssignments = extractClassInstructorAssignments(cls, allSessions);
+        const classEnrollments = allEnrollmentsRaw.filter(
+          (e) => String(e.classId) === String(cls.classId) && e.status !== "Dropped" && e.status !== "Cancelled"
+        );
+        const classSessions = allSessions.filter(
+          (s) => String(s.classId) === String(cls.classId)
+        );
+        const classSessionIds = new Set(classSessions.map((s) => String(s.sessionId)));
+        const classAttendanceRecords = allAttendanceRaw.filter((a) =>
+          classSessionIds.has(String(a.sessionId))
+        );
+
+        let totalPresent = 0;
+        let totalMarked = 0;
+        const seenAttendance = new Set();
+        classAttendanceRecords.forEach((a) => {
+          const st = String(a.status || "").toLowerCase();
+          if (st !== "present" && st !== "có mặt" && st !== "absent" && st !== "vắng không phép") return;
+          const key = `${a.sessionId}|${a.enrollmentId ?? a.attendanceRecordId}`;
+          if (seenAttendance.has(key)) return;
+          seenAttendance.add(key);
+          totalMarked += 1;
+          if (st === "present" || st === "có mặt") totalPresent += 1;
+        });
+        const classAttendanceRate = totalMarked > 0 ? Math.round((totalPresent / totalMarked) * 100) : 0;
+
         return {
           classId: cls.classId,
           courseId: cls.courseId,
@@ -1028,12 +1108,14 @@ const CourseClassManagement = () => {
                   : cls.status === "Cancelled"
                     ? "Đã hủy"
                     : cls.status,
+          enrolledCount: classEnrollments.length,
+          attendanceRate: classAttendanceRate,
           instructor: insName,
           isOrphan: true,
         };
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allClassesRaw, allCoursesRaw, instructorsList, tr, allSubjects]);
+  }, [allClassesRaw, allCoursesRaw, instructorsList, tr, allSubjects, allEnrollmentsRaw, allAttendanceRaw, allSessions]);
 
   // Phân trang: khóa học (nhóm có thể mở rộng) + lớp mồ côi — tối đa 5 nút trang.
   const {
@@ -2227,7 +2309,15 @@ const CourseClassManagement = () => {
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{tr('Sĩ số & Chuyên cần')}</div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-                    {viewingClassDetail.enrolledCount ?? viewingClassDetail.studentsCount ?? 0} {tr('học viên')} · {viewingClassDetail.attendanceRate ?? 0}%
+                    {(viewingClassDetail.enrolledCount !== undefined
+                      ? viewingClassDetail.enrolledCount
+                      : allEnrollmentsRaw.filter(
+                          (e) =>
+                            String(e.classId) === String(viewingClassDetail.classId) &&
+                            e.status !== "Dropped" &&
+                            e.status !== "Cancelled",
+                        ).length) ?? 0}{" "}
+                    {tr('học viên')} · {viewingClassDetail.attendanceRate ?? 0}%
                   </div>
                 </div>
               </div>
