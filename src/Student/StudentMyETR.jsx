@@ -89,6 +89,209 @@ const mapEtr = (e) => ({
   historyLogs: e.HistoryLogs ?? e.historyLogs ?? null,
 });
 
+/* ── Flight & Simulator Training Log Section ── */
+const StudentFlightSimLogSection = ({ enrollmentId }) => {
+  const { tr } = useLanguage();
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [signingId, setSigningId] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const fetchRecords = async () => {
+    if (!enrollmentId) return;
+    try {
+      setLoading(true);
+      const res = await api.get(`/attendance/enrollment/${enrollmentId}`).catch(() => []);
+      setLogs(res || []);
+    } catch (err) {
+      console.error("Lỗi khi tải nhật ký đào tạo:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecords();
+  }, [enrollmentId]);
+
+  const handleStudentSign = async (recordId) => {
+    try {
+      setSigningId(recordId);
+      setErrorMsg("");
+      await api.post(`/attendance/${recordId}/student-sign`, {
+        comments: "Học viên xác nhận nội dung bài học và giờ huấn luyện.",
+      });
+      setSuccessMsg(tr("Ký xác nhận huấn luyện thành công!"));
+      await fetchRecords();
+    } catch (err) {
+      console.error("Lỗi khi ký:", err);
+      setErrorMsg(err.response?.data?.message || err.message || tr("Ký xác nhận thất bại!"));
+    } finally {
+      setSigningId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <section className="student-info-card" style={{ marginBottom: 24 }}>
+        <p className="info-eyebrow">{tr('Nhật ký Đào tạo')}</p>
+        <h3>{tr('Nhật ký Huấn luyện Bay & Buồng lái Mô phỏng')}</h3>
+        <p style={{ color: 'rgba(0,33,71,0.5)', fontSize: 13, marginTop: 8 }}>{tr('Đang tải dữ liệu...')}</p>
+      </section>
+    );
+  }
+
+  const trainingRecords = (logs || []).filter(
+    (r) =>
+      r.sessionTrainingType === 'Flight' ||
+      r.sessionTrainingType === 'Simulator' ||
+      r.flightHours > 0 ||
+      r.simulatorHours > 0 ||
+      r.aircraftRegistration ||
+      r.simulatorDevice
+  );
+
+  return (
+    <section className="student-info-card" style={{ marginBottom: 24 }}>
+      <p className="info-eyebrow">{tr('Nhật ký Đào tạo')}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3>{tr('Nhật ký Huấn luyện Bay & Mô phỏng (Flight / SIM Log)')}</h3>
+        {successMsg && (
+          <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
+            ✓ {successMsg}
+          </span>
+        )}
+        {errorMsg && (
+          <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 700 }}>
+            ⚠ {errorMsg}
+          </span>
+        )}
+      </div>
+
+      {trainingRecords.length > 0 ? (
+        <div style={{ overflowX: 'auto', marginTop: 12 }}>
+          <table className="student-subject-table">
+            <thead>
+              <tr>
+                <th>{tr('Bài học')}</th>
+                <th>{tr('Loại')}</th>
+                <th>{tr('Giờ HL')}</th>
+                <th>{tr('Chi tiết giờ (Dual/Solo/PIC/Night/Inst/XC)')}</th>
+                <th>{tr('Hạ cánh')}</th>
+                <th>{tr('Tàu / Thiết bị')}</th>
+                <th>{tr('Hành trình / Bài bay')}</th>
+                <th>{tr('Đánh giá')}</th>
+                <th>{tr('Xác nhận GV')}</th>
+                <th style={{ textAlign: 'center' }}>{tr('Học viên Ký')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trainingRecords.map((r, idx) => (
+                <tr key={r.attendanceRecordId || idx}>
+                  <td style={{ fontWeight: 700, color: '#002147' }}>
+                    {r.sessionLessonCode || `Lession #${idx + 1}`}
+                  </td>
+                  <td>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: r.sessionTrainingType === 'Flight' ? 'rgba(3, 105, 161, 0.1)' : 'rgba(147, 51, 234, 0.1)',
+                      color: r.sessionTrainingType === 'Flight' ? '#0369a1' : '#7e22ce'
+                    }}>
+                      {r.sessionTrainingType === 'Flight' ? '✈️ Bay' : '🕹️ SIM'}
+                    </span>
+                  </td>
+                  <td style={{ fontWeight: 700, color: '#002147' }}>
+                    {r.sessionTrainingType === 'Flight'
+                      ? (r.flightHours != null ? `${r.flightHours}h` : '--')
+                      : (r.simulatorHours != null ? `${r.simulatorHours}h` : '--')}
+                  </td>
+                  <td style={{ fontSize: 11, color: '#475569' }}>
+                    {[
+                      r.dualHours != null && `Dual: ${r.dualHours}h`,
+                      r.soloHours != null && `Solo: ${r.soloHours}h`,
+                      r.picHours != null && `PIC: ${r.picHours}h`,
+                      r.nightHours != null && `Night: ${r.nightHours}h`,
+                      r.instrumentHours != null && `Inst: ${r.instrumentHours}h`,
+                      r.crossCountryHours != null && `XC: ${r.crossCountryHours}h`,
+                    ].filter(Boolean).join(' | ') || '--'}
+                  </td>
+                  <td style={{ fontSize: 12 }}>
+                    {r.dayLandings != null || r.nightLandings != null
+                      ? `${r.dayLandings || 0} ngày / ${r.nightLandings || 0} đêm`
+                      : '--'}
+                  </td>
+                  <td style={{ fontSize: 12 }}>
+                    {r.aircraftRegistration || r.simulatorDevice || '--'}
+                  </td>
+                  <td style={{ fontSize: 12 }}>
+                    {r.departureIcao || r.arrivalIcao
+                      ? `${r.departureIcao || '-'} ➔ ${r.arrivalIcao || '-'} ${r.route ? `(${r.route})` : ''}`
+                      : r.route || '--'}
+                  </td>
+                  <td>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: r.performanceGrade === 'Satisfactory' ? 'rgba(16, 185, 129, 0.15)' : r.performanceGrade === 'Unsatisfactory' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                      color: r.performanceGrade === 'Satisfactory' ? '#059669' : r.performanceGrade === 'Unsatisfactory' ? '#dc2626' : '#d97706'
+                    }}>
+                      {r.performanceGrade || 'Satisfactory'}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: 11 }}>
+                    {r.instructorSignedAt ? (
+                      <span style={{ color: '#16a34a', fontWeight: 700 }}>
+                        ✓ {formatDate(r.instructorSignedAt)}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#94a3b8' }}>Chưa ký</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    {r.studentSignedAt ? (
+                      <span style={{ color: '#0284c7', fontWeight: 700, fontSize: 11 }}>
+                        ✓ {formatDate(r.studentSignedAt)}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleStudentSign(r.attendanceRecordId)}
+                        disabled={signingId === r.attendanceRecordId}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          border: 'none',
+                          background: '#0284c7',
+                          color: '#ffffff',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {signingId === r.attendanceRecordId ? tr('Đang ký...') : tr('✍️ Ký điện tử')}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p style={{ color: 'rgba(0,33,71,0.5)', fontSize: 13, marginTop: 8 }}>
+          {tr('Chưa có bản ghi huấn luyện bay hoặc mô phỏng nào trong khóa học này.')}
+        </p>
+      )}
+    </section>
+  );
+};
+
 /* ── Detail View ── */
 const DetailView = ({ etr, onBack }) => {
   const { tr } = useLanguage();
@@ -247,6 +450,11 @@ const DetailView = ({ etr, onBack }) => {
           </p>
         )}
       </section>
+
+      {/* Flight & Simulator Training Log */}
+      {s.enrollmentId && (
+        <StudentFlightSimLogSection enrollmentId={s.enrollmentId} />
+      )}
 
       {/* Evidences */}
       {s.evidences && s.evidences.length > 0 && (

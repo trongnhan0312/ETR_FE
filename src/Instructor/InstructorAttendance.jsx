@@ -110,6 +110,11 @@ const InstructorAttendance = () => {
   const [remarkModalStudent, setRemarkModalStudent] = useState(null);
   const [remarkText, setRemarkText] = useState("");
 
+  // Flight & Simulator Training Record Modal State
+  const [flightSimModalStudent, setFlightSimModalStudent] = useState(null);
+  const [flightSimForm, setFlightSimForm] = useState({});
+  const [signingRecord, setSigningRecord] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -281,6 +286,8 @@ const InstructorAttendance = () => {
               instructor: getCurrentInstructorName(),
               attendance: s.isConfirmed ? tr("Đã chốt") : tr("Chưa chốt"),
               isConfirmed: s.isConfirmed || false,
+              trainingType: s.trainingType || "Theory",
+              lessonCode: s.lessonCode || null,
             };
           }),
         );
@@ -346,6 +353,8 @@ const InstructorAttendance = () => {
         : session.isConfirmed || false;
       setIsConfirmed(isSessionLocked);
 
+      const isFlightOrSim = session.trainingType === "Flight" || session.trainingType === "Simulator";
+
       const mappedAttendance = mappedStudents.map((student) => {
         // Match by enrollmentId instead of accountId
         const record = sessionRecords.find(
@@ -369,6 +378,28 @@ const InstructorAttendance = () => {
           attendanceRecordId: record
             ? record.attendanceRecordId || record.id
             : null,
+          performanceGrade: record?.performanceGrade || (isFlightOrSim ? "Satisfactory" : null),
+          flightHours: record?.flightHours != null ? record.flightHours : "",
+          simulatorHours: record?.simulatorHours != null ? record.simulatorHours : "",
+          dualHours: record?.dualHours != null ? record.dualHours : "",
+          soloHours: record?.soloHours != null ? record.soloHours : "",
+          picHours: record?.picHours != null ? record.picHours : "",
+          nightHours: record?.nightHours != null ? record.nightHours : "",
+          instrumentHours: record?.instrumentHours != null ? record.instrumentHours : "",
+          crossCountryHours: record?.crossCountryHours != null ? record.crossCountryHours : "",
+          dayLandings: record?.dayLandings != null ? record.dayLandings : "",
+          nightLandings: record?.nightLandings != null ? record.nightLandings : "",
+          aircraftRegistration: record?.aircraftRegistration || "",
+          simulatorDevice: record?.simulatorDevice || "",
+          departureIcao: record?.departureIcao || "",
+          arrivalIcao: record?.arrivalIcao || "",
+          route: record?.route || "",
+          instructorComments: record?.instructorComments || "",
+          studentComments: record?.studentComments || "",
+          instructorSignedAt: record?.instructorSignedAt || null,
+          instructorSignedByAccountId: record?.instructorSignedByAccountId || null,
+          studentSignedAt: record?.studentSignedAt || null,
+          studentSignedByAccountId: record?.studentSignedByAccountId || null,
         };
       });
       setSessionAttendance(mappedAttendance);
@@ -388,25 +419,108 @@ const InstructorAttendance = () => {
     );
   };
 
+  const openFlightSimModal = (student) => {
+    setFlightSimModalStudent(student);
+    setFlightSimForm({
+      performanceGrade: student.performanceGrade || "Satisfactory",
+      flightHours: student.flightHours ?? "",
+      simulatorHours: student.simulatorHours ?? "",
+      dualHours: student.dualHours ?? "",
+      soloHours: student.soloHours ?? "",
+      picHours: student.picHours ?? "",
+      nightHours: student.nightHours ?? "",
+      instrumentHours: student.instrumentHours ?? "",
+      crossCountryHours: student.crossCountryHours ?? "",
+      dayLandings: student.dayLandings ?? "",
+      nightLandings: student.nightLandings ?? "",
+      aircraftRegistration: student.aircraftRegistration || "",
+      simulatorDevice: student.simulatorDevice || "",
+      departureIcao: student.departureIcao || "",
+      arrivalIcao: student.arrivalIcao || "",
+      route: student.route || "",
+      instructorComments: student.instructorComments || "",
+      studentComments: student.studentComments || "",
+    });
+  };
+
+  const handleSaveFlightSimModal = () => {
+    if (isConfirmed || fileStaged) return;
+    setSessionAttendance((prev) =>
+      prev.map((s) =>
+        s.code === flightSimModalStudent.code
+          ? {
+              ...s,
+              ...flightSimForm,
+            }
+          : s,
+      ),
+    );
+    setFlightSimModalStudent(null);
+    toast.success(tr("Đã cập nhật chi tiết huấn luyện! Vui lòng nhấn 'LƯU ĐIỂM DANH' để lưu lên hệ thống."));
+  };
+
+  const handleInstructorSignRecord = async (student) => {
+    if (!student.attendanceRecordId) {
+      toast.error(tr("Vui lòng nhấn 'LƯU ĐIỂM DANH' trước khi thực hiện ký xác nhận."));
+      return;
+    }
+    setSigningRecord(true);
+    try {
+      await api.post(`/attendance/${student.attendanceRecordId}/instructor-sign`, {
+        comments: flightSimForm.instructorComments || student.instructorComments || "",
+      });
+      toast.success(tr("Ký xác nhận huấn luyện thành công!"), announce("edit", tr("Ký huấn luyện")));
+      await loadAttendance(selectedSession);
+      setFlightSimModalStudent(null);
+    } catch (err) {
+      console.error("Lỗi khi ký xác nhận:", err);
+      toast.error(parseApiError(err, tr("Ký xác nhận thất bại!")));
+    } finally {
+      setSigningRecord(false);
+    }
+  };
+
+  const buildPayloadForRecord = (record) => {
+    const parseDecimal = (v) => (v === "" || v == null ? null : parseFloat(v));
+    const parseIntVal = (v) => (v === "" || v == null ? null : parseInt(v, 10));
+
+    return {
+      sessionId: selectedSession.sessionId,
+      enrollmentId: record.enrollmentId || 1,
+      status: record.status,
+      remarks: record.remarks || "",
+      performanceGrade: record.performanceGrade || null,
+      flightHours: parseDecimal(record.flightHours),
+      simulatorHours: parseDecimal(record.simulatorHours),
+      dualHours: parseDecimal(record.dualHours),
+      soloHours: parseDecimal(record.soloHours),
+      picHours: parseDecimal(record.picHours),
+      nightHours: parseDecimal(record.nightHours),
+      instrumentHours: parseDecimal(record.instrumentHours),
+      crossCountryHours: parseDecimal(record.crossCountryHours),
+      dayLandings: parseIntVal(record.dayLandings),
+      nightLandings: parseIntVal(record.nightLandings),
+      aircraftRegistration: record.aircraftRegistration || null,
+      simulatorDevice: record.simulatorDevice || null,
+      departureIcao: record.departureIcao || null,
+      arrivalIcao: record.arrivalIcao || null,
+      route: record.route || null,
+      instructorComments: record.instructorComments || null,
+      studentComments: record.studentComments || null,
+    };
+  };
+
   const handleSaveAttendance = async () => {
     if (isConfirmed) return;
     setSaving(true);
     try {
       await Promise.all(
         sessionAttendance.map(async (record) => {
-          const payload = {
-            sessionId: selectedSession.sessionId,
-            enrollmentId: record.enrollmentId || 1,
-            status: record.status,
-            remarks: record.remarks || "",
-          };
+          const payload = buildPayloadForRecord(record);
 
           if (record.attendanceRecordId) {
             // Update
-            return api.put(`/attendance/${record.attendanceRecordId}`, {
-              status: record.status,
-              remarks: record.remarks || "",
-            });
+            return api.put(`/attendance/${record.attendanceRecordId}`, payload);
           } else {
             // Create
             return api.post("/attendance/record", payload);
@@ -433,18 +547,10 @@ const InstructorAttendance = () => {
       // First save any unsaved changes
       await Promise.all(
         sessionAttendance.map(async (record) => {
-          const payload = {
-            sessionId: selectedSession.sessionId,
-            enrollmentId: record.enrollmentId || 1,
-            status: record.status,
-            remarks: record.remarks || "",
-          };
+          const payload = buildPayloadForRecord(record);
 
           if (record.attendanceRecordId) {
-            return api.put(`/attendance/${record.attendanceRecordId}`, {
-              status: record.status,
-              remarks: record.remarks || "",
-            });
+            return api.put(`/attendance/${record.attendanceRecordId}`, payload);
           } else {
             return api.post("/attendance/record", payload);
           }
@@ -945,8 +1051,26 @@ const InstructorAttendance = () => {
                   <path d="M12 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h1 style={{ margin: 0 }}>
-                {tr("Điểm danh")} — {tr(selectedSession.name)}
+              <h1 style={{ margin: 0, display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <span>{tr("Điểm danh")} — {tr(selectedSession.name)}</span>
+                {selectedSession.lessonCode && (
+                  <span style={{ fontSize: "13px", fontWeight: "700", background: "#e0f2fe", color: "#0369a1", padding: "3px 10px", borderRadius: "8px" }}>
+                    {selectedSession.lessonCode}
+                  </span>
+                )}
+                {selectedSession.trainingType && (
+                  <span style={{
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    padding: "3px 10px",
+                    borderRadius: "8px",
+                    background: selectedSession.trainingType === "Flight" ? "rgba(3, 105, 161, 0.1)" : selectedSession.trainingType === "Simulator" ? "rgba(147, 51, 234, 0.1)" : "rgba(100, 116, 139, 0.1)",
+                    color: selectedSession.trainingType === "Flight" ? "#0369a1" : selectedSession.trainingType === "Simulator" ? "#7e22ce" : "#475569",
+                    border: `1px solid ${selectedSession.trainingType === "Flight" ? "#bae6fd" : selectedSession.trainingType === "Simulator" ? "#e9d5ff" : "#cbd5e1"}`
+                  }}>
+                    {selectedSession.trainingType === "Flight" ? "✈️ Bay (Flight)" : selectedSession.trainingType === "Simulator" ? "🕹️ Mô phỏng (SIM)" : "📖 Lý thuyết (Theory)"}
+                  </span>
+                )}
               </h1>
             </div>
             <div className="divider-gold" />
@@ -1051,218 +1175,320 @@ const InstructorAttendance = () => {
 
         {/* Attendance Sheet Table */}
         <section className="table-card">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "60px 140px 1fr 180px 140px 100px",
-              alignItems: "center",
-              gap: "12px",
-              background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
-              color: "#ffffff",
-              padding: "14px 20px",
-              fontSize: "11px",
-              fontWeight: "700",
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-            }}
-          >
-            <div style={{ textAlign: "center" }}>{tr("STT")}</div>
-            <div>{tr("Mã học viên")}</div>
-            <div>{tr("Học viên")}</div>
-            <div style={{ textAlign: "center" }}>
-              {tr("Trạng thái điểm danh")}
-            </div>
-            <div style={{ textAlign: "center" }}>{tr("Đánh giá nhận xét")}</div>
-            <div style={{ textAlign: "center" }}>{tr("Khóa sửa")}</div>
-          </div>
+          {(() => {
+            const isFlightOrSim = selectedSession.trainingType === "Flight" || selectedSession.trainingType === "Simulator";
+            const gridTemplate = isFlightOrSim
+              ? "50px 110px 1fr 140px 110px 90px 130px 110px 70px"
+              : "60px 140px 1fr 180px 140px 100px";
 
-          <div className="table-body">
-            {attendanceSheetPager.pageItems.map((student, idx) => (
-              <div
-                key={student.code}
-                className="table-row"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "60px 140px 1fr 180px 140px 100px",
-                  alignItems: "center",
-                  gap: "12px",
-                  padding: "14px 20px",
-                }}
-              >
-                <span
+            return (
+              <>
+                <div
                   style={{
-                    fontSize: "13px",
+                    display: "grid",
+                    gridTemplateColumns: gridTemplate,
+                    alignItems: "center",
+                    gap: "10px",
+                    background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
+                    color: "#ffffff",
+                    padding: "14px 20px",
+                    fontSize: "11px",
                     fontWeight: "700",
-                    color: "rgba(0,33,71,0.4)",
-                    textAlign: "center",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
                   }}
                 >
-                  {String(idx + 1).padStart(2, "0")}
-                </span>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "700",
-                    color: "#002147",
-                  }}
-                >
-                  {student.code}
-                </span>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    color: "#002147",
-                  }}
-                >
-                  {student.name}
-                </span>
+                  <div style={{ textAlign: "center" }}>{tr("STT")}</div>
+                  <div>{tr("Mã học viên")}</div>
+                  <div>{tr("Học viên")}</div>
+                  <div style={{ textAlign: "center" }}>
+                    {tr("Trạng thái")}
+                  </div>
+                  {isFlightOrSim && (
+                    <>
+                      <div style={{ textAlign: "center" }}>{tr("Năng lực")}</div>
+                      <div style={{ textAlign: "center" }}>{tr("Giờ huấn luyện")}</div>
+                      <div style={{ textAlign: "center" }}>{tr("Nhật ký & Ký")}</div>
+                    </>
+                  )}
+                  <div style={{ textAlign: "center" }}>{tr("Đánh giá nhận xét")}</div>
+                  <div style={{ textAlign: "center" }}>{tr("Khóa sửa")}</div>
+                </div>
 
-                {/* Status Toggles */}
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <div
-                    className="attendance-toggle-group"
-                    style={{ maxWidth: "180px" }}
-                  >
-                    {ATTENDANCE_STATUSES.map((st) => (
-                      <button
-                        key={st.value}
-                        onClick={() =>
-                          handleToggleStatus(student.code, st.value)
-                        }
-                        className={`status-${st.value.toLowerCase()}${student.status === st.value ? " active" : ""}`}
-                        disabled={isConfirmed || fileStaged}
+                <div className="table-body">
+                  {attendanceSheetPager.pageItems.map((student, idx) => (
+                    <div
+                      key={student.code}
+                      className="table-row"
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: gridTemplate,
+                        alignItems: "center",
+                        gap: "10px",
+                        padding: "14px 20px",
+                      }}
+                    >
+                      <span
                         style={{
-                          cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
-                          opacity: fileStaged ? 0.5 : 1,
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          color: "rgba(0,33,71,0.4)",
+                          textAlign: "center",
                         }}
                       >
-                        {st.short}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Remarks Button + nội dung note hiển thị trực tiếp */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                >
-                  <button
-                    onClick={() => {
-                      setRemarkModalStudent(student);
-                      setRemarkText(student.remarks || "");
-                    }}
-                    disabled={isConfirmed || fileStaged}
-                    style={{
-                      padding: "5px 12px",
-                      borderRadius: "6px",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      border: "1px solid #dfe6f1",
-                      backgroundColor: student.remarks ? "#fffbeb" : "#f8fafc",
-                      color: student.remarks ? "#d97706" : "#64748b",
-                      cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
-                      opacity: fileStaged ? 0.5 : 1,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                    </svg>
-                    <span>
-                      {student.remarks ? tr("Xem Note") : tr("Thêm Note")}
-                    </span>
-                  </button>
-                  {student.remarks && (
-                    <div
-                      title={student.remarks}
-                      style={{
-                        fontSize: "10px",
-                        color: "#d97706",
-                        maxWidth: "130px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        textAlign: "center",
-                      }}
-                    >
-                      {student.remarks}
-                    </div>
-                  )}
-                </div>
-
-                {/* Lock Status */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  {isConfirmed ? (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        color: "#be123c",
-                      }}
-                    >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
+                        {String(idx + 1).padStart(2, "0")}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          color: "#002147",
+                        }}
                       >
-                        <rect
-                          x="3"
-                          y="11"
-                          width="18"
-                          height="11"
-                          rx="2"
-                          ry="2"
-                        ></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                      </svg>
-                      {tr("Khóa")}
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        color: "#16a34a",
-                      }}
-                    >
-                      {tr("Mở")}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+                        {student.code}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "#002147",
+                        }}
+                      >
+                        {student.name}
+                      </span>
 
+                      {/* Status Toggles */}
+                      <div style={{ display: "flex", justifyContent: "center" }}>
+                        <div
+                          className="attendance-toggle-group"
+                          style={{ maxWidth: "140px" }}
+                        >
+                          {ATTENDANCE_STATUSES.map((st) => (
+                            <button
+                              key={st.value}
+                              onClick={() =>
+                                handleToggleStatus(student.code, st.value)
+                              }
+                              className={`status-${st.value.toLowerCase()}${student.status === st.value ? " active" : ""}`}
+                              disabled={isConfirmed || fileStaged}
+                              style={{
+                                cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
+                                opacity: fileStaged ? 0.5 : 1,
+                              }}
+                            >
+                              {st.short}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Flight / Simulator Specific Columns */}
+                      {isFlightOrSim && (
+                        <>
+                          <div style={{ textAlign: "center" }}>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                background:
+                                  student.performanceGrade === "Satisfactory"
+                                    ? "rgba(16, 185, 129, 0.15)"
+                                    : student.performanceGrade === "Unsatisfactory"
+                                      ? "rgba(239, 68, 68, 0.15)"
+                                      : "rgba(245, 158, 11, 0.15)",
+                                color:
+                                  student.performanceGrade === "Satisfactory"
+                                    ? "#059669"
+                                    : student.performanceGrade === "Unsatisfactory"
+                                      ? "#dc2626"
+                                      : "#d97706",
+                              }}
+                            >
+                              {student.performanceGrade || "Satisfactory"}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              textAlign: "center",
+                              fontSize: "12px",
+                              fontWeight: "600",
+                              color: "#002147",
+                            }}
+                          >
+                            {selectedSession.trainingType === "Flight"
+                              ? student.flightHours ? `${student.flightHours}h` : "--"
+                              : student.simulatorHours ? `${student.simulatorHours}h` : "--"}
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "2px",
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => openFlightSimModal(student)}
+                              style={{
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                border: "1px solid #bae6fd",
+                                background: "#f0f9ff",
+                                color: "#0369a1",
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <span>✈️ {tr("Nhật ký & Ký")}</span>
+                            </button>
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                fontWeight: "700",
+                                color: student.instructorSignedAt
+                                  ? "#16a34a"
+                                  : "#d97706",
+                              }}
+                            >
+                              {student.instructorSignedAt
+                                ? "✓ Đã ký"
+                                : "⏳ Chưa ký"}
+                            </span>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Remarks Button + nội dung note hiển thị trực tiếp */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <button
+                          onClick={() => {
+                            setRemarkModalStudent(student);
+                            setRemarkText(student.remarks || "");
+                          }}
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            padding: "5px 12px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                            border: "1px solid #dfe6f1",
+                            backgroundColor: student.remarks ? "#fffbeb" : "#f8fafc",
+                            color: student.remarks ? "#d97706" : "#64748b",
+                            cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
+                            opacity: fileStaged ? 0.5 : 1,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                          >
+                            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                          </svg>
+                          <span>
+                            {student.remarks ? tr("Xem Note") : tr("Thêm Note")}
+                          </span>
+                        </button>
+                        {student.remarks && (
+                          <div
+                            title={student.remarks}
+                            style={{
+                              fontSize: "10px",
+                              color: "#d97706",
+                              maxWidth: "110px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              textAlign: "center",
+                            }}
+                          >
+                            {student.remarks}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Lock Status */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        {isConfirmed ? (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              color: "#be123c",
+                            }}
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                            >
+                              <rect
+                                x="3"
+                                y="11"
+                                width="18"
+                                height="11"
+                                rx="2"
+                                ry="2"
+                              ></rect>
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            {tr("Khóa")}
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              color: "#16a34a",
+                            }}
+                          >
+                            {tr("Mở")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
           <div className="table-footer">
             <Pagination
               page={attendanceSheetPager.page}
@@ -1388,6 +1614,744 @@ const InstructorAttendance = () => {
                       }}
                     >
                       {tr("CẬP NHẬT")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
+
+        {/* Flight & Simulator Training Record Modal */}
+        {flightSimModalStudent &&
+          createPortal(
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: "100vw",
+                height: "100vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "rgba(0,33,71,0.75)",
+                zIndex: 999999,
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              <div
+                className="dashboard-panel"
+                style={{
+                  width: "680px",
+                  maxWidth: "95vw",
+                  maxHeight: "90vh",
+                  overflowY: "auto",
+                  borderRadius: "16px",
+                  boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)",
+                  margin: "auto",
+                  background: "#ffffff",
+                  padding: "24px",
+                }}
+              >
+                <div
+                  className="panel-header"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderBottom: "1px solid #e2e8f0",
+                    paddingBottom: "12px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div>
+                    <h2
+                      style={{
+                        margin: 0,
+                        fontSize: "16px",
+                        fontWeight: "700",
+                        color: "#002147",
+                      }}
+                    >
+                      {selectedSession.trainingType === "Flight"
+                        ? "✈️ Nhật ký Huấn luyện Bay"
+                        : "🕹️ Nhật ký Huấn luyện Mô phỏng"}{" "}
+                      — {flightSimModalStudent.name} (
+                      {flightSimModalStudent.code})
+                    </h2>
+                    <p
+                      style={{
+                        margin: "4px 0 0",
+                        fontSize: "12px",
+                        color: "#64748b",
+                      }}
+                    >
+                      {selectedSession.lessonCode
+                        ? `Bài học: ${selectedSession.lessonCode} · `
+                        : ""}
+                      {selectedSession.name} · {selectedSession.date}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFlightSimModalStudent(null)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "18px",
+                      color: "#64748b",
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                  }}
+                >
+                  {/* Performance Grade */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        color: "#1e293b",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {tr("Đánh giá Năng lực (Performance Grade)")}
+                    </label>
+                    <select
+                      value={flightSimForm.performanceGrade || "Satisfactory"}
+                      onChange={(e) =>
+                        setFlightSimForm({
+                          ...flightSimForm,
+                          performanceGrade: e.target.value,
+                        })
+                      }
+                      disabled={isConfirmed || fileStaged}
+                      style={{
+                        width: "100%",
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "13px",
+                      }}
+                    >
+                      <option value="Satisfactory">
+                        Satisfactory (Đạt yêu cầu)
+                      </option>
+                      <option value="Unsatisfactory">
+                        Unsatisfactory (Chưa đạt)
+                      </option>
+                      <option value="Incomplete">
+                        Incomplete (Chưa hoàn thành)
+                      </option>
+                    </select>
+                  </div>
+
+                  {/* Hours Grid */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        color: "#1e293b",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      {tr("Giờ Huấn luyện (Training Hours)")}
+                    </label>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gap: "10px",
+                      }}
+                    >
+                      {selectedSession.trainingType === "Flight" ? (
+                        <div>
+                          <span style={{ fontSize: "11px", color: "#64748b" }}>
+                            Flight Hours
+                          </span>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="0.0"
+                            value={flightSimForm.flightHours}
+                            onChange={(e) =>
+                              setFlightSimForm({
+                                ...flightSimForm,
+                                flightHours: e.target.value,
+                              })
+                            }
+                            disabled={isConfirmed || fileStaged}
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: "6px",
+                              border: "1px solid #cbd5e1",
+                              fontSize: "12px",
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <span style={{ fontSize: "11px", color: "#64748b" }}>
+                            Simulator Hours
+                          </span>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="0.0"
+                            value={flightSimForm.simulatorHours}
+                            onChange={(e) =>
+                              setFlightSimForm({
+                                ...flightSimForm,
+                                simulatorHours: e.target.value,
+                              })
+                            }
+                            disabled={isConfirmed || fileStaged}
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: "6px",
+                              border: "1px solid #cbd5e1",
+                              fontSize: "12px",
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Dual Hours
+                        </span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          placeholder="0.0"
+                          value={flightSimForm.dualHours}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              dualHours: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Solo Hours
+                        </span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          placeholder="0.0"
+                          value={flightSimForm.soloHours}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              soloHours: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          PIC Hours
+                        </span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          placeholder="0.0"
+                          value={flightSimForm.picHours}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              picHours: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Night Hours
+                        </span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          placeholder="0.0"
+                          value={flightSimForm.nightHours}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              nightHours: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Instrument Hours
+                        </span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          placeholder="0.0"
+                          value={flightSimForm.instrumentHours}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              instrumentHours: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Cross Country
+                        </span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          placeholder="0.0"
+                          value={flightSimForm.crossCountryHours}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              crossCountryHours: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Landings & Aircraft/SIM Device */}
+                  {selectedSession.trainingType === "Flight" ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gap: "10px",
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Day Landings
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={flightSimForm.dayLandings}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              dayLandings: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Night Landings
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={flightSimForm.nightLandings}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              nightLandings: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Aircraft Reg (Số hiệu tàu)
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="VN-C172"
+                          value={flightSimForm.aircraftRegistration}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              aircraftRegistration: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <span style={{ fontSize: "11px", color: "#64748b" }}>
+                        Simulator Device (Thiết bị buồng lái mô phỏng / FSTD)
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="ALX-FNPT-II"
+                        value={flightSimForm.simulatorDevice}
+                        onChange={(e) =>
+                          setFlightSimForm({
+                            ...flightSimForm,
+                            simulatorDevice: e.target.value,
+                          })
+                        }
+                        disabled={isConfirmed || fileStaged}
+                        style={{
+                          width: "100%",
+                          padding: "6px 8px",
+                          borderRadius: "6px",
+                          border: "1px solid #cbd5e1",
+                          fontSize: "12px",
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Route info (for Flight) */}
+                  {selectedSession.trainingType === "Flight" && (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr 2fr",
+                        gap: "10px",
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Departure (ICAO)
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="VVTS"
+                          value={flightSimForm.departureIcao}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              departureIcao: e.target.value.toUpperCase(),
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Arrival (ICAO)
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="VVTS"
+                          value={flightSimForm.arrivalIcao}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              arrivalIcao: e.target.value.toUpperCase(),
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          Route / Bài bay
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Circuit Pattern / Local Area"
+                          value={flightSimForm.route}
+                          onChange={(e) =>
+                            setFlightSimForm({
+                              ...flightSimForm,
+                              route: e.target.value,
+                            })
+                          }
+                          disabled={isConfirmed || fileStaged}
+                          style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Comments */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        color: "#1e293b",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {tr("Nhận xét của Giảng viên (Instructor Comments)")}
+                    </label>
+                    <textarea
+                      value={flightSimForm.instructorComments}
+                      onChange={(e) =>
+                        setFlightSimForm({
+                          ...flightSimForm,
+                          instructorComments: e.target.value,
+                        })
+                      }
+                      disabled={isConfirmed || fileStaged}
+                      placeholder="Nhận xét thao tác tiếp cận, hạ cánh, xử lý tình huống..."
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "12px",
+                        minHeight: "60px",
+                      }}
+                    />
+                  </div>
+
+                  {/* Digital Sign-off Status */}
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      padding: "12px",
+                      borderRadius: "8px",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            color: "#002147",
+                          }}
+                        >
+                          {flightSimModalStudent.instructorSignedAt ? (
+                            <span style={{ color: "#16a34a" }}>
+                              ✓ Giảng viên đã ký xác nhận (
+                              {new Date(
+                                flightSimModalStudent.instructorSignedAt,
+                              ).toLocaleString("vi-VN")}
+                              )
+                            </span>
+                          ) : (
+                            <span style={{ color: "#d97706" }}>
+                              ⏳ Giảng viên chưa ký xác nhận
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: "#64748b",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {flightSimModalStudent.studentSignedAt ? (
+                            <span style={{ color: "#0284c7" }}>
+                              ✓ Học viên đã ký nhận (
+                              {new Date(
+                                flightSimModalStudent.studentSignedAt,
+                              ).toLocaleString("vi-VN")}
+                              )
+                            </span>
+                          ) : (
+                            <span>Chờ học viên ký điện tử sau buổi học</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {!flightSimModalStudent.instructorSignedAt &&
+                        flightSimModalStudent.attendanceRecordId && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleInstructorSignRecord(flightSimModalStudent)
+                            }
+                            disabled={signingRecord || isConfirmed}
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                              color: "white",
+                              border: "none",
+                              padding: "8px 16px",
+                              borderRadius: "8px",
+                              fontSize: "12px",
+                              fontWeight: "700",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {signingRecord
+                              ? tr("Đang ký...")
+                              : tr("✍️ KÝ XÁC NHẬN")}
+                          </button>
+                        )}
+                    </div>
+                  </div>
+
+                  {/* Modal Actions */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: "10px",
+                      marginTop: "8px",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setFlightSimModalStudent(null)}
+                      style={{
+                        padding: "8px 16px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {tr("ĐÓNG")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveFlightSimModal}
+                      disabled={isConfirmed || fileStaged}
+                      style={{
+                        padding: "8px 18px",
+                        borderRadius: "8px",
+                        border: "none",
+                        background: "#c5a059",
+                        color: "#ffffff",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        cursor:
+                          isConfirmed || fileStaged
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      {tr("LƯU THÔNG SỐ")}
                     </button>
                   </div>
                 </div>
