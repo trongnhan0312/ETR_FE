@@ -6,18 +6,14 @@ import { isEtrCompleted } from '../utils/etrStatus';
 
 const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCancel }) => {
   const { tr } = useLanguage();
-  const isClassStartedOrClosed = (cls) => {
+  const isClassCompletedOrCancelled = (cls) => {
     if (!cls) return false;
     const st = (cls?.statusRaw || cls?.status || '').toLowerCase();
-    const isClosedStatus = st === 'completed' || st === 'đã kết thúc' || 
-                           st === 'cancelled' || st === 'đã hủy' ||
-                           st === 'inprogress' || st === 'đang diễn ra' || st === 'đang học';
-    const isStartedByDate = cls?.startDate && new Date(cls.startDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0);
-    return isClosedStatus || isStartedByDate;
+    return st === 'completed' || st === 'đã kết thúc' || st === 'cancelled' || st === 'đã hủy';
   };
 
-  const eligibleClasses = classes.filter((c) => !isClassStartedOrClosed(c));
-  const initialValidId = initialClassId && !isClassStartedOrClosed(classes.find(c => String(c.classId) === String(initialClassId)) || {})
+  const eligibleClasses = classes.filter((c) => !isClassCompletedOrCancelled(c));
+  const initialValidId = initialClassId && !isClassCompletedOrCancelled(classes.find(c => String(c.classId) === String(initialClassId)) || {})
     ? initialClassId
     : (eligibleClasses[0]?.classId || classes[0]?.classId || '');
 
@@ -163,8 +159,8 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
     if (!selectedClassId) return;
 
     if (selectedClassObj) {
-      if (isClassStartedOrClosed(selectedClassObj)) {
-        setCourseSubjectWarning(tr('⛔ Lớp học này đã bắt đầu, đang diễn ra hoặc đã kết thúc/hủy — Không thể ghi danh học viên.'));
+      if (isClassCompletedOrCancelled(selectedClassObj)) {
+        setCourseSubjectWarning(tr('⛔ Lớp học này ở trạng thái Đã kết thúc / Đã hủy — Không thể ghi danh.'));
         return;
       }        if (selectedClassObj.courseId) {
           api.get(`/Courses/${selectedClassObj.courseId}`).then((cDetail) => {
@@ -199,8 +195,8 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
       const courseIdStr = matchCourseId ? ` (Course ID: ${matchCourseId[1]})` : '';
       return `${tr('❌ Quy tắc tuân thủ (Business Rule Violation): Khóa học')}${courseIdStr} ${tr('chưa được cấu hình môn học (Subject). Theo quy định ETR hàng không, Khóa học phải có ít nhất 1 môn học trước khi mở ghi danh. Vui lòng chọn Khóa học đã cấu hình môn học.')}`;
     }
-    if (raw.includes('đã bắt đầu') || raw.includes('đang diễn ra') || raw.includes('đã kết thúc') || raw.includes('completed')) {
-      return tr('❌ Quy tắc nghiệp vụ: Không thể ghi danh học viên vào lớp học đã bắt đầu, đang diễn ra hoặc đã kết thúc/hủy.');
+    if (raw.includes('completed') || raw.includes('đã kết thúc') || raw.includes('cancelled') || raw.includes('đã hủy')) {
+      return tr('❌ Quy tắc nghiệp vụ: Lớp học đã kết thúc hoặc đã hủy không được phép ghi danh mới.');
     }
 
     try {
@@ -221,8 +217,8 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
       return;
     }
 
-    if (selectedClassObj && isClassStartedOrClosed(selectedClassObj)) {
-      setErrorMsg(tr('❌ Quy tắc nghiệp vụ: Không thể ghi danh học viên vào lớp học đã bắt đầu, đang diễn ra hoặc đã kết thúc/hủy.'));
+    if (selectedClassObj && isClassCompletedOrCancelled(selectedClassObj)) {
+      setErrorMsg(tr('❌ Quy tắc nghiệp vụ: Lớp học ở trạng thái "Đã kết thúc" hoặc "Đã hủy" KHÔNG được phép ghi danh học viên mới.'));
       return;
     }
 
@@ -255,7 +251,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
   };
 
   const selectedStudentObj = studentListWithStatus.find((s) => String(s.accountId) === String(selectedAccountId));
-  const isSelectedClassDisabled = selectedClassObj && isClassStartedOrClosed(selectedClassObj);
+  const isSelectedClassDisabled = selectedClassObj && isClassCompletedOrCancelled(selectedClassObj);
   const eligibleStudentsCount = studentListWithStatus.filter(s => !s.hasOngoingEtr && !s.alreadyEnrolledInClass).length;
 
   const modalJSX = (
@@ -420,7 +416,7 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
             <div style={{ fontSize: '12px', color: '#475569', backgroundColor: '#f1f5f9', padding: '12px 16px', borderRadius: '6px', lineHeight: '1.6' }}>
               💡 <strong>{tr('Quy tắc nghiệp vụ ghi danh ETR bắt buộc (Compliance Rules):')}</strong><br />
               • {tr('Khóa học phải có ít nhất 1 môn học (Subject) được cấu hình trước khi ghi danh.')}<br />
-              • {tr('Chỉ cho phép ghi danh vào Lớp học chưa bắt đầu (Draft, Planned, Scheduled). Lớp đã bắt đầu/đang diễn ra (InProgress) hoặc đã kết thúc/hủy không được phép ghi danh thêm.')}<br />
+              • {tr('Lớp học ở trạng thái')} <code>InProgress</code>, <code>Planned</code>, <code>Scheduled</code> {tr('hoặc')} <code>Draft</code> {tr('mới được ghi danh. Lớp đã kết thúc hoặc đã hủy không được phép ghi danh thêm.')}<br />
               • <strong>{tr('Một Học viên chỉ có 01 Hồ sơ ETR đang học (InProgress) cho 01 Khóa học tại một thời điểm. Các học viên đã có ETR chưa đóng bằng sẽ bị khóa lựa chọn.')}</strong>
             </div>
           </div>
