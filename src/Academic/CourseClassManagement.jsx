@@ -349,6 +349,9 @@ const CourseClassManagement = () => {
         name: course.courseName,
         description: course.description || "",
         duration: course.durationHours || 0,
+        status: course.status || "Active",
+        versionNo: course.versionNo || 1,
+        previousVersionId: course.previousVersionId || null,
         structure: { theory: 40, practice: 40, assignment: 10, attendance: 10 },
         attendanceProgress: Math.min(100, sessionCount > 0 ? 100 : 0),
         courseSubjects: course.courseSubjects || course.subjects || course.CourseSubjects || course.Subjects || [],
@@ -408,6 +411,7 @@ const CourseClassManagement = () => {
           return {
             classId: cls.classId,
             courseId: cls.courseId,
+            courseVersionNo: cls.courseVersionNo ?? cls.CourseVersionNo ?? course.versionNo ?? 1,
             code: cls.classCode,
             classCode: cls.classCode,
             name: cls.className,
@@ -579,6 +583,27 @@ const CourseClassManagement = () => {
       console.error("Error updating course:", error);
       toast.error(parseApiError(error, tr("Cập nhật khóa học thất bại")));
       throw new Error(parseApiError(error));
+    }
+  };
+
+  // Handler for cloning course to a new version (POST /api/Courses/{id}/new-version)
+  const handleCreateNewCourseVersion = async (course) => {
+    try {
+      const created = await api.post(`/Courses/${course.courseId}/new-version`, {});
+      await refreshData();
+      if (created?.courseCode || course.code) {
+        setExpandedCourses((prev) => ({
+          ...prev,
+          [created?.courseCode || course.code]: true,
+        }));
+      }
+      toast.success(
+        tr(`Đã tạo bản nháp mới (v${created?.versionNo || (course.versionNo || 1) + 1}) cho khóa học ${course.code}!`),
+        announce("add", tr("Phiên bản giáo trình"))
+      );
+    } catch (error) {
+      console.error("Error creating new course version:", error);
+      toast.error(parseApiError(error, tr("Tạo phiên bản mới thất bại")));
     }
   };
 
@@ -1441,11 +1466,19 @@ const CourseClassManagement = () => {
                             />
                           </svg>
                         </div>
-                        <div className="col-code course-code-text">
-                          {course.code}
+                        <div className="col-code course-code-text" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <span>{course.code}</span>
+                          <span className="version-badge">v{course.versionNo || 1}</span>
                         </div>
-                        <div className="col-name course-title-text">
-                          {course.name}
+                        <div className="col-name course-title-text" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                          <span>{course.name}</span>
+                          <span className={`status-badge ${(course.status || "Active").toLowerCase()}`}>
+                            {course.status === "Draft"
+                              ? tr("Bản nháp")
+                              : course.status === "Archived"
+                                ? tr("Đã lưu trữ")
+                                : tr("Hoạt động")}
+                          </span>
                         </div>
                         <div className="col-duration">
                           {course.duration} {tr("Giờ")}
@@ -1477,7 +1510,7 @@ const CourseClassManagement = () => {
                           </div>
                         </div>
 
-                        {/* Course Action Buttons: SỬA & XÓA KHÓA HỌC */}
+                        {/* Course Action Buttons: SỬA & XÓA KHÓA HỌC & TẠO BẢN MỚI */}
                         <div
                           className="col-count text-right"
                           style={{
@@ -1499,6 +1532,29 @@ const CourseClassManagement = () => {
                           >
                             {course.classes.length} {tr("Lớp")}
                           </span>
+
+                          <button
+                            type="button"
+                            title={tr("Tạo phiên bản mới (Clone Version) cho Khóa này")}
+                            style={{
+                              backgroundColor: "#f0f9ff",
+                              border: "1px solid #0284c7",
+                              color: "#0284c7",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              padding: "4px 8px",
+                              borderRadius: "4px",
+                              cursor: "pointer",
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCreateNewCourseVersion(course);
+                            }}
+                          >
+                            {tr("🔄 Tạo bản mới")}
+                          </button>
 
                           <button
                             type="button"
@@ -1589,8 +1645,9 @@ const CourseClassManagement = () => {
                                 style={{ alignItems: "center" }}
                               >
                                 <div className="col-expand-trigger"></div>
-                                <div className="col-code nested-class-code">
-                                  {cls.code}
+                                <div className="col-code nested-class-code" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                  <span>{cls.code}</span>
+                                  <span className="version-badge version-badge-sm">v{cls.courseVersionNo || course.versionNo || 1}</span>
                                 </div>
                                 <div className="col-name nested-class-name">
                                   {cls.name}

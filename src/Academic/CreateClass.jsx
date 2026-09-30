@@ -9,6 +9,8 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
     if (initialCourseId && courses.some(c => String(c.courseId) === String(initialCourseId))) {
       return String(initialCourseId);
     }
+    const firstActive = courses.find(c => c.status === 'Active' || !c.status);
+    if (firstActive) return String(firstActive.courseId);
     return courses[0]?.courseId ? String(courses[0].courseId) : '';
   };
 
@@ -172,6 +174,16 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
       return;
     }
 
+    const selectedCourseObj = courses.find((c) => String(c.courseId) === String(parentCourse));
+    if (selectedCourseObj && selectedCourseObj.status === 'Draft') {
+      alert(tr('Không thể mở lớp học cho khóa học ở trạng thái Bản nháp (Draft). Vui lòng kích hoạt (Active) khóa học trước khi mở lớp.'));
+      return;
+    }
+    if (selectedCourseObj && selectedCourseObj.status === 'Archived') {
+      alert(tr('Không thể mở lớp học cho khóa học đã lưu trữ (Archived).'));
+      return;
+    }
+
     if (startDate < todayStr) {
       alert(tr('Ngày bắt đầu đào tạo không được ở trong quá khứ.'));
       return;
@@ -210,6 +222,9 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
     onSave(Number(parentCourse), newClass);
   };
 
+  const selectedCourse = courses.find((c) => String(c.courseId) === String(parentCourse));
+  const isSelectedDraft = selectedCourse?.status === 'Draft';
+
   const modalJSX = (
     <div className="modal-overlay" style={{
       position: 'fixed',
@@ -236,6 +251,22 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body" style={{ maxHeight: '75vh', overflowY: 'auto', padding: '24px' }}>
+            {/* Draft Course Warning Banner */}
+            {isSelectedDraft && (
+              <div style={{
+                backgroundColor: '#fffbeb',
+                borderLeft: '4px solid #f59e0b',
+                color: '#92400e',
+                padding: '12px 16px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                marginBottom: '20px',
+                lineHeight: '1.5'
+              }}>
+                ⚠️ <strong>{tr('Khóa học chưa kích hoạt:')}</strong> {tr('Khóa học này đang ở trạng thái Bản nháp (Draft). Bạn cần kích hoạt (Active) khóa học trong mục Sửa Khóa học trước khi có thể mở lớp.')}
+              </div>
+            )}
+
             {/* Subject warning banner if course has no subjects */}
             {subjectWarning && (
               <div style={{
@@ -268,11 +299,25 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
                 {courses.length === 0 ? (
                   <option value="">{tr('Chưa có khóa học nào trong CSDL')}</option>
                 ) : (
-                  courses.map((course) => (
-                    <option key={course.courseId} value={course.courseId}>
-                      {course.courseCode || course.code} - {course.courseName || course.name}
-                    </option>
-                  ))
+                  courses.map((course) => {
+                    const vNo = course.versionNo || 1;
+                    const isDraft = course.status === 'Draft';
+                    const isArchived = course.status === 'Archived';
+                    const statusTag = isDraft
+                      ? ` [${tr('Bản nháp - Cần kích hoạt trước')}]`
+                      : isArchived
+                        ? ` [${tr('Đã lưu trữ')}]`
+                        : '';
+                    return (
+                      <option
+                        key={course.courseId}
+                        value={course.courseId}
+                        disabled={isDraft || isArchived}
+                      >
+                        {course.courseCode || course.code} - {course.courseName || course.name} (v{vNo}){statusTag}
+                      </option>
+                    );
+                  })
                 )}
               </select>
             </div>

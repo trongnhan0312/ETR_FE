@@ -132,7 +132,7 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
         courseName: courseName.trim(),
         description: description.trim(),
         durationHours,
-        status: status === 'Active' || status === 'HOẠT ĐỘNG' ? 'Active' : 'Pending',
+        status: status,
         subjects: subjectsPayload
       });
     } catch (err) {
@@ -141,6 +141,8 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
       setSubmitting(false);
     }
   };
+
+  const hasClasses = (Array.isArray(course.classes) && course.classes.length > 0) || (Number(course.activeClassesCount) > 0);
 
   const modalJSX = (
     <div className="modal-overlay" style={{
@@ -160,7 +162,12 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
     }}>
       <div className="modal-container" style={{ width: '700px', maxWidth: '95vw', maxHeight: '90vh', margin: 'auto' }}>
         <header className="modal-header">
-          <h2>{tr('CẬP NHẬT THÔNG TIN KHÓA HỌC #')}{course.courseId}</h2>
+          <h2>
+            {tr('CẬP NHẬT THÔNG TIN KHÓA HỌC #')}{course.courseId}
+            <span className="version-badge" style={{ fontSize: '12px', verticalAlign: 'middle', marginLeft: '8px' }}>
+              v{course.versionNo || 1}
+            </span>
+          </h2>
           <button className="close-btn" type="button" onClick={onCancel} aria-label={tr('Đóng')}>
             &times;
           </button>
@@ -179,6 +186,21 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                 marginBottom: '20px'
               }}>
                 <strong>{tr('Lỗi Cập Nhật: ')}</strong>{errorMsg}
+              </div>
+            )}
+
+            {course.status === 'Active' && hasClasses && (
+              <div style={{
+                backgroundColor: '#eff6ff',
+                borderLeft: '4px solid #3b82f6',
+                color: '#1e40af',
+                padding: '12px 16px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                marginBottom: '16px',
+                lineHeight: '1.5'
+              }}>
+                ℹ️ <strong>{tr('Lưu ý phiên bản giáo trình:')}</strong> {tr('Khóa học này đã được kích hoạt và có lớp học liên kết. Cấu hình môn học (Syllabus) được bảo vệ bất biến để đảm bảo tính toàn vẹn hồ sơ đào tạo ETR. Nếu bạn muốn điều chỉnh danh sách môn học hoặc thời lượng, hãy sử dụng tính năng')} <strong>{tr('🔄 Tạo bản mới (Clone Version)')}</strong> {tr('tại bảng danh sách.')}
               </div>
             )}
 
@@ -360,8 +382,9 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
-                <option value="Active">{tr('🟢 Active (Hoạt động)')}</option>
-                <option value="Pending">{tr('🟡 Pending (Tạm dừng)')}</option>
+                <option value="Draft">{tr('🟡 Draft (Bản nháp - đang biên soạn)')}</option>
+                <option value="Active">{tr('🟢 Active (Kích hoạt - sẵn sàng mở lớp)')}</option>
+                <option value="Archived">{tr('⚪ Archived (Lưu trữ / Ngừng mở lớp)')}</option>
               </select>
             </div>
           </div>
