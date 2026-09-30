@@ -379,6 +379,7 @@ const StudentProfiles = () => {
     try {
       await api.put(`/UserProfiles/${accountId}/verify-credentials`, {
         isVerified,
+        verificationMethod: isVerified ? 'AcademicStaffDirectVerification' : undefined,
         comment: isVerified ? 'Verified by Academic staff' : 'Unverified',
       });
       toast.success(isVerified ? tr('Đã xác minh năng định thành công!') : tr('Đã hủy xác minh năng định!'));
