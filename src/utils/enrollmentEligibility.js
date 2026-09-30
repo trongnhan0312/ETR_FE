@@ -6,17 +6,71 @@
  * 1. Class must NOT be InProgress / Active (must not have ongoing training sessions).
  * 2. Class must NOT be Completed.
  * 3. Class must NOT be Cancelled.
- * 4. Class StartDate must be today or in the future (StartDate >= today in local academy time).
+ * 4. Class StartDate must be valid and >= today in Academy Timezone (Asia/Ho_Chi_Minh / UTC+7).
+ *    Missing or unparseable StartDate is treated as ineligible to prevent data integrity issues.
  */
 
-export const toLocalDateString = (dateObj) => {
-  if (!dateObj || !(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
-    dateObj = new Date();
+export const ACADEMY_TIMEZONE = 'Asia/Ho_Chi_Minh';
+
+/**
+ * Converts a Date, timestamp, or ISO string to a calendar date string (YYYY-MM-DD)
+ * in the Academy's official timezone (Asia/Ho_Chi_Minh, UTC+7).
+ *
+ * @param {Date|string|number} dateInput
+ * @returns {string|null} Formatted date string (YYYY-MM-DD) or null if invalid.
+ */
+export const toAcademyDateString = (dateInput) => {
+  if (dateInput === null || dateInput === undefined || dateInput === '') {
+    return null;
   }
-  const y = dateObj.getFullYear();
-  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const d = String(dateObj.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+
+  // Handle plain calendar date strings (YYYY-MM-DD)
+  if (typeof dateInput === 'string') {
+    const trimmed = dateInput.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+    // Handle DD/MM/YYYY or D/M/YYYY (common Vietnamese/European format)
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+      const parts = trimmed.split('/');
+      const d = parts[0].padStart(2, '0');
+      const m = parts[1].padStart(2, '0');
+      const y = parts[2];
+      return `${y}-${m}-${d}`;
+    }
+  }
+
+  const dateObj = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (isNaN(dateObj.getTime())) {
+    return null;
+  }
+
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: ACADEMY_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    return formatter.format(dateObj);
+  } catch {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+};
+
+/**
+ * Returns today's date string (YYYY-MM-DD) in the Academy timezone (Asia/Ho_Chi_Minh).
+ */
+export const getAcademyTodayString = () => {
+  return toAcademyDateString(new Date());
+};
+
+// Kept for backward compatibility
+export const toLocalDateString = (dateObj) => {
+  return toAcademyDateString(dateObj) || '';
 };
 
 export const isClassEligibleForEnrollment = (cls) => {
@@ -54,32 +108,20 @@ export const isClassEligibleForEnrollment = (cls) => {
     };
   }
 
-  // Check StartDate
-  const todayStr = toLocalDateString(new Date());
-  let clsStartStr = '';
+  // Check StartDate in Academy Timezone
+  const todayAcademyStr = getAcademyTodayString();
+  const rawStart = cls.startDateRaw !== undefined ? cls.startDateRaw : cls.startDate;
+  const clsStartStr = toAcademyDateString(rawStart);
 
-  if (cls.startDateRaw) {
-    const d = new Date(cls.startDateRaw);
-    if (!isNaN(d.getTime())) {
-      clsStartStr = toLocalDateString(d);
-    }
-  } else if (cls.startDate) {
-    const raw = String(cls.startDate).trim();
-    if (raw.includes('/')) {
-      // DD/MM/YYYY format
-      const parts = raw.split('/');
-      if (parts.length === 3) {
-        clsStartStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-      }
-    } else {
-      const d = new Date(raw);
-      if (!isNaN(d.getTime())) {
-        clsStartStr = toLocalDateString(d);
-      }
-    }
+  if (!clsStartStr) {
+    return {
+      eligible: false,
+      reason: 'Ngày bắt đầu không hợp lệ',
+      detail: 'Lớp học không có ngày bắt đầu hợp lệ — không thể ghi danh.',
+    };
   }
 
-  if (clsStartStr && clsStartStr < todayStr) {
+  if (clsStartStr < todayAcademyStr) {
     return {
       eligible: false,
       reason: 'Đã qua ngày bắt đầu',
@@ -93,3 +135,4 @@ export const isClassEligibleForEnrollment = (cls) => {
     detail: '',
   };
 };
+

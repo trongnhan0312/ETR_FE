@@ -246,9 +246,44 @@ describe('Course Versioning Frontend UI Tests', () => {
       const cancelledResult = isClassEligibleForEnrollment({ status: 'Cancelled', startDate: tomorrow.toISOString() });
       expect(cancelledResult.eligible).toBe(false);
       expect(cancelledResult.reason).toContain('Lớp đã hủy');
+
+      // Ineligible: Missing or null StartDate
+      const nullStartResult = isClassEligibleForEnrollment({ status: 'Planned', startDate: null });
+      expect(nullStartResult.eligible).toBe(false);
+      expect(nullStartResult.reason).toContain('Ngày bắt đầu không hợp lệ');
+
+      // Ineligible: Invalid format StartDate
+      const invalidStartResult = isClassEligibleForEnrollment({ status: 'Planned', startDate: 'not-a-valid-date' });
+      expect(invalidStartResult.eligible).toBe(false);
+      expect(invalidStartResult.reason).toContain('Ngày bắt đầu không hợp lệ');
+
+      // Format DD/MM/YYYY support
+      const dd = String(tomorrow.getDate()).padStart(2, '0');
+      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const yyyy = tomorrow.getFullYear();
+      const ddmmyyyyResult = isClassEligibleForEnrollment({ status: 'Planned', startDate: `${dd}/${mm}/${yyyy}` });
+      expect(ddmmyyyyResult.eligible).toBe(true);
     });
 
-    it('EnrollStudentModal disables InProgress and past StartDate classes in select dropdown', async () => {
+    it('toAcademyDateString formats dates in Asia/Ho_Chi_Minh timezone', async () => {
+      const { toAcademyDateString, getAcademyTodayString } = await import('../utils/enrollmentEligibility');
+
+      expect(toAcademyDateString(null)).toBeNull();
+      expect(toAcademyDateString('')).toBeNull();
+      expect(toAcademyDateString('invalid')).toBeNull();
+
+      // Direct YYYY-MM-DD string
+      expect(toAcademyDateString('2026-10-15')).toBe('2026-10-15');
+
+      // DD/MM/YYYY string
+      expect(toAcademyDateString('05/11/2026')).toBe('2026-11-05');
+
+      // getAcademyTodayString returns YYYY-MM-DD
+      const todayStr = getAcademyTodayString();
+      expect(todayStr).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('EnrollStudentModal disables InProgress, past StartDate, and invalid StartDate classes in select dropdown', async () => {
       const { default: EnrollStudentModal } = await import('../Academic/EnrollStudentModal');
 
       api.get.mockImplementation((url) => {
@@ -271,6 +306,7 @@ describe('Course Versioning Frontend UI Tests', () => {
         { classId: 1, code: 'CLS-PLANNED', name: 'Planned Future', status: 'Planned', startDate: tomorrow.toISOString(), courseId: 10 },
         { classId: 2, code: 'CLS-INPROGRESS', name: 'In Progress Class', status: 'InProgress', startDate: tomorrow.toISOString(), courseId: 10 },
         { classId: 3, code: 'CLS-PAST', name: 'Past Date Class', status: 'Planned', startDate: yesterday.toISOString(), courseId: 10 },
+        { classId: 4, code: 'CLS-NODATE', name: 'No Date Class', status: 'Planned', startDate: null, courseId: 10 },
       ];
 
       render(
@@ -288,7 +324,7 @@ describe('Course Versioning Frontend UI Tests', () => {
       expect(classSelect).toBeInTheDocument();
 
       const options = classSelect.querySelectorAll('option');
-      expect(options).toHaveLength(3);
+      expect(options).toHaveLength(4);
 
       // CLS-PLANNED is eligible (not disabled)
       expect(options[0].disabled).toBe(false);
@@ -301,9 +337,14 @@ describe('Course Versioning Frontend UI Tests', () => {
       // CLS-PAST is disabled
       expect(options[2].disabled).toBe(true);
       expect(options[2].textContent).toContain('Đã qua ngày bắt đầu');
+
+      // CLS-NODATE is disabled
+      expect(options[3].disabled).toBe(true);
+      expect(options[3].textContent).toContain('Ngày bắt đầu không hợp lệ');
     });
   });
 });
+
 
 
 
