@@ -267,14 +267,20 @@ describe('Phase 2 - Flight & Simulator Training Records Mapping', () => {
     expect(canConfirmSessionWithRoster(flightSession, classStudents, records)).toBe(true);
   });
 
-  it('maps Practical and real-world SubjectTypes to Simulator or Flight without falling back to Theory', () => {
-    const practicalSubjects = [
-      { subjectCode: 'PRAC-01', subjectName: 'Thực hành quy trình buồng lái', subjectType: 'Practical', expected: 'Simulator' },
-      { subjectCode: 'PRAC-02', subjectName: 'Thực hành buồng lái mô phỏng', subjectType: 'Thực hành', expected: 'Simulator' },
-      { subjectCode: 'SKL-01', subjectName: 'Kỹ năng buồng lái nhiều người', subjectType: 'Skill', expected: 'Simulator' },
-      { subjectCode: 'PRAC-FLT', subjectName: 'Thực hành bay vòng kín', subjectType: 'Practical', expected: 'Flight' },
-      { subjectCode: 'PRAC-SOLO', subjectName: 'Thực hành bay đơn Solo', subjectType: 'Thực hành', expected: 'Flight' },
+  it('maps real-world system subjects and non-FSTD disciplines correctly', () => {
+    const systemSubjects = [
+      { subjectCode: 'A320-SYS', subjectName: 'A320 Aircraft Systems & Avionics', subjectType: 'Theory', expected: 'Theory' },
+      { subjectCode: 'A320-SIM', subjectName: 'A320 Full Flight Simulator (FFS) Procedures', subjectType: 'Practical', expected: 'Simulator' },
+      { subjectCode: 'A320-FLT', subjectName: 'A320 Base Flight Training & Touch-and-Go', subjectType: 'Practical', expected: 'Flight' },
+      { subjectCode: 'B737-SYS', subjectName: 'Boeing 737 Systems Architecture', subjectType: 'Theory', expected: 'Theory' },
+      { subjectCode: 'B737-SIM', subjectName: 'Boeing 737 FFS Emergency Maneuvers', subjectType: 'Practical', expected: 'Simulator' },
+      { subjectCode: 'CABIN-EMERGENCY', subjectName: 'Cabin Evacuation & Smoke/Fire Drill', subjectType: 'Practical', expected: 'Theory' },
+      { subjectCode: 'MAINT-01', subjectName: 'Aircraft Maintenance Practical Workshop', subjectType: 'Practical', expected: 'Theory' },
+      { subjectCode: 'MAINT-ENG', subjectName: 'Thực hành bảo dưỡng động cơ phản lực', subjectType: 'Thực hành', expected: 'Theory' },
+      { subjectCode: 'AVIONICS-LAB', subjectName: 'Avionics System Lab & Testing', subjectType: 'Practical', expected: 'Theory' },
       { subjectCode: 'ALW', subjectName: 'Thực hành phân tích luật hàng không', subjectType: 'Practical', expected: 'Theory' },
+      { subjectCode: 'MCC-01', subjectName: 'Mô phỏng bay tổ lái nhiều người', subjectType: 'Mô phỏng', expected: 'Simulator' },
+      { subjectCode: 'FLT-01', subjectName: 'Circuits & Landings Flight Training', subjectType: 'Flight', expected: 'Flight' },
     ];
 
     const classify = (code, name, type) => {
@@ -282,17 +288,21 @@ describe('Phase 2 - Flight & Simulator Training Records Mapping', () => {
       const n = (name || '').toLowerCase();
       const t = (type || '').toLowerCase();
 
+      // Theory Precedence
       if (c === 'ALW' || c.includes('AIR_LAW') || n.includes('air law') || n.includes('luật hàng không')) return 'Theory';
-      if (t.includes('simulator') || t.includes('mô phỏng') || c.startsWith('SIM') || n.includes('mô phỏng')) return 'Simulator';
-      if (t.includes('flight') || t.includes('bay') || n.includes('bay') || c.startsWith('FLT') || c.startsWith('PPL')) return 'Flight';
-      if (t.includes('practical') || t.includes('thực hành') || t.includes('skill') || t.includes('workshop')) {
-        if (n.includes('bay') || n.includes('solo') || n.includes('flight')) return 'Flight';
-        return 'Simulator';
+      // Non-FSTD practical disciplines (Maintenance, Cabin safety, Avionics workshop)
+      if (c.startsWith('MAINT') || c.startsWith('CABIN') || c.startsWith('AVIONICS') || n.includes('maintenance') || n.includes('bảo dưỡng') || n.includes('cabin') || n.includes('evacuation') || n.includes('fire drill') || t.includes('maintenance') || t.includes('workshop')) {
+        return 'Theory';
       }
+      // Simulator
+      if (t.includes('simulator') || t.includes('mô phỏng') || c.startsWith('SIM') || c.includes('-SIM') || n.includes('simulator') || n.includes('mô phỏng') || n.includes('ffs') || n.includes('fstd')) return 'Simulator';
+      // Flight
+      if (t.includes('flight') || t.includes('bay') || c.startsWith('FLT') || c.startsWith('FLY') || c.includes('-FLT') || n.includes('flight training') || n.includes('thực hành bay') || n.includes('touch-and-go') || n.includes('bay vòng kín')) return 'Flight';
+
       return 'Theory';
     };
 
-    practicalSubjects.forEach((sub) => {
+    systemSubjects.forEach((sub) => {
       expect(classify(sub.subjectCode, sub.subjectName, sub.subjectType)).toBe(sub.expected);
     });
   });
