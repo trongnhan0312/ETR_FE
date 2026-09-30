@@ -136,7 +136,9 @@ const StudentLogbook = () => {
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
               <div style={{ fontSize: '12px', fontWeight: 600, color: '#334e68', textTransform: 'uppercase', marginBottom: '6px' }}>👨‍🏫 {tr('Giờ kèm (Dual)')}</div>
               <div style={{ fontSize: '24px', fontWeight: 700, color: '#102a43' }}>{(logbook.totalDualHours ?? logbook.TotalDualHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
-              <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Bay cùng giảng viên')}</div>
+              <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>
+                {tr('Bay')}: {(logbook.flightDualHours ?? logbook.FlightDualHours ?? 0).toFixed(1)}h | SIM: {(logbook.simulatorDualHours ?? logbook.SimulatorDualHours ?? 0).toFixed(1)}h
+              </div>
             </div>
 
             {/* Solo Hours */}
@@ -164,7 +166,9 @@ const StudentLogbook = () => {
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
               <div style={{ fontSize: '12px', fontWeight: 600, color: '#d97706', textTransform: 'uppercase', marginBottom: '6px' }}>🧭 {tr('Thiết bị (Instrument)')}</div>
               <div style={{ fontSize: '24px', fontWeight: 700, color: '#92400e' }}>{(logbook.totalInstrumentHours ?? logbook.TotalInstrumentHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
-              <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('IFR / Thiết bị')}</div>
+              <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>
+                {tr('Bay')}: {(logbook.flightInstrumentHours ?? logbook.FlightInstrumentHours ?? 0).toFixed(1)}h | SIM: {(logbook.simulatorInstrumentHours ?? logbook.SimulatorInstrumentHours ?? 0).toFixed(1)}h
+              </div>
             </div>
 
             {/* Cross-Country Hours */}
