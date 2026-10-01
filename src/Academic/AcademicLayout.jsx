@@ -26,6 +26,16 @@ const navigationItems = [
   {
     label: "HỌC VIÊN",
     to: "/academic/learners",
+    children: [
+      {
+        label: "Danh sách học viên",
+        to: "/academic/learners",
+      },
+      {
+        label: "Hồ sơ & Minh chứng",
+        to: "/academic/profiles",
+      },
+    ],
     icon: (
       <svg
         width="22"
