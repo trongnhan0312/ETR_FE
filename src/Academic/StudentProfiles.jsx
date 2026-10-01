@@ -190,6 +190,15 @@ const StudentProfiles = () => {
           gender: p.gender || 'Other',
           organization: p.organization || '',
           username: learnerAccs.find((a) => String(a.accountId) === String(p.accountId))?.username || '',
+          isCredentialsVerified: !!p.isCredentialsVerified,
+          licenseType: p.licenseType || '',
+          licenseNumber: p.licenseNumber || '',
+          licenseExpiryDate: p.licenseExpiryDate || '',
+          medicalClass: p.medicalClass || '',
+          medicalExpiryDate: p.medicalExpiryDate || '',
+          icaoElpLevel: p.icaoElpLevel,
+          icaoElpExpiryDate: p.icaoElpExpiryDate || '',
+          typeRatings: p.typeRatings || '',
         })),
       );
     } catch (err) {
@@ -392,7 +401,11 @@ const StudentProfiles = () => {
     setVerifyComment('');
     setLoadingAttachments(true);
     try {
-      const data = await api.get(`/UserProfiles/${profile.accountId}/attachments`);
+      const [fullProfile, data] = await Promise.all([
+        api.get(`/UserProfiles/${profile.accountId}`).catch(() => profile),
+        api.get(`/UserProfiles/${profile.accountId}/attachments`).catch(() => []),
+      ]);
+      setVerifyingProfile({ ...profile, ...(fullProfile || {}) });
       const atts = Array.isArray(data) ? data : [];
       setVerifyAttachments(atts);
       if (atts.length > 0) {

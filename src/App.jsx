@@ -196,7 +196,7 @@ function App() {
 					<Route path="/academic" element={<RouteErrorBoundary><AcademicLayout /></RouteErrorBoundary>}>
 						<Route index element={<AcademicDashboard />} />
 						<Route path="learners" element={<LearnerManagement />} />
-						<Route path="profiles" element={<Navigate to="/academic/learners" replace />} />
+						<Route path="profiles" element={<StudentProfiles />} />
 						<Route path="courses" element={<CourseClassManagement />} />
 						<Route path="etr" element={<EtrManagement />} />
 						<Route path="evidence" element={<EtrManagement defaultView="evidence" />} />

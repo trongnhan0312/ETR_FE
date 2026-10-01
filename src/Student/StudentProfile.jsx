@@ -790,9 +790,22 @@ const StudentProfile = () => {
                       <button
                         type="button"
                         onClick={() => handleDeleteAttachment(att.attachmentId ?? att.AttachmentId)}
-                        style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fff', color: '#dc2626', cursor: 'pointer' }}
+                        title={tr('Xóa tài liệu minh chứng này')}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                          border: '1px solid #fecaca',
+                          background: '#fff1f2',
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
                       >
-                        🗑️
+                        🗑️ {tr('Xóa')}
                       </button>
                     </div>
                   </div>
