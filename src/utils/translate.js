@@ -2283,6 +2283,47 @@ export const VN_TO_EN = {
   "Tải file mẫu, điền danh sách học viên (các cột: Username*, Mật khẩu*, Phòng ban*, Họ và tên*, Ngày sinh, Giới tính, SĐT, Tổ chức; vai trò mặc định là Học viên, Mã học viên tự động sinh), kiểm tra hợp lệ rồi nhập vào hệ thống. Toàn bộ file phải hợp lệ mới được nhập (all-or-nothing).":
     "Download the template, fill in the student list (columns: Username*, Password*, Department*, Full Name*, DOB, Gender, Phone, Organization; default role is Student, student code is auto-generated), validate then import. The whole file must be valid to import (all-or-nothing).",
   // ── EN→VN cho các chuỗi EN nguồn chưa có chiều ngược ──
+  // ── Student Logbook (Sổ bay & SIM): EN translations ──
+  "Sổ bay & Huấn luyện Buồng lái": "Flight Log & Cockpit Training",
+  "Tổng hợp chi tiết giờ bay thực tế (Flight Hours), giờ mô phỏng (FSTD/SIM Hours) và các chỉ số tích lũy.":
+    "Detailed summary of actual flight hours (Flight Hours), simulator hours (FSTD/SIM Hours) and cumulative indicators.",
+  "Quy chuẩn ghi nhận:": "Recording standard:",
+  "Tổng giờ logbook phản ánh thời gian đào tạo thực tế đã được ký nhận, độc lập với đánh giá hoàn thành môn học.":
+    "Total logbook hours reflect actual signed-off training time, independent of subject completion assessment.",
+  "Không thể tải dữ liệu sổ bay": "Failed to load logbook data",
+  "Đang tải dữ liệu sổ bay...": "Loading logbook data...",
+  "Chưa có dữ liệu sổ bay được ghi nhận.": "No logbook data recorded yet.",
+  "Giờ bay thực tế (Flight)": "Actual Flight Hours (Flight)",
+  "Chuyến bay cuối:": "Last flight:",
+  "Giờ mô phỏng (SIM / FSTD)": "Simulator Hours (SIM / FSTD)",
+  "Tách biệt hoàn toàn với giờ bay": "Fully separated from flight hours",
+  "Giờ kèm (Dual)": "Dual Instruction Hours (Dual)",
+  Bay: "Flight",
+  "Bay đơn (Solo)": "Solo Flight (Solo)",
+  "Tự lái không có GV": "Solo without instructor",
+  "Chỉ huy (PIC)": "Pilot-in-Command (PIC)",
+  "Bay đêm (Night)": "Night Flight (Night)",
+  "Điều kiện ban đêm": "Night conditions",
+  "Thiết bị (Instrument)": "Instrument Time (Instrument)",
+  "Đường dài (Cross-Country)": "Cross-Country Time (Cross-Country)",
+  "Chuyển sân / XC": "Cross-country / XC",
+  "Hạ cánh (Landings)": "Landings",
+  "Hạ cánh (D/N)": "Landings (D/N)",
+  "SỔ BAY & SIM": "Flight Log & SIM",
+  "Giảng viên ký": "Instructor signature",
+  "Chờ ký": "Pending signature",
+  "Ngày bay": "Date",
+  Ngày: "Day",
+  Đêm: "Night",
+  lần: "times",
+  Loại: "Type",
+  "Bay thực (Flight)": "Flight",
+  "Mô phỏng (SIM)": "Simulator",
+  "Tìm kiếm bài học, máy bay, lộ trình...": "Search lessons, aircraft, routes...",
+  "Bài học / Tiêu đề": "Lesson / Title",
+  "Máy bay / SIM": "Aircraft / SIM",
+  "Lộ trình": "Route",
+  "Không tìm thấy bản ghi huấn luyện phù hợp.": "No matching training records found.",
 };
 
 export const REVERSE_VN_TO_EN = {};

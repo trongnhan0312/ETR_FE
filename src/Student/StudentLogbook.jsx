@@ -89,7 +89,7 @@ const StudentLogbook = () => {
           padding: '12px 16px',
           borderRadius: '8px',
           marginBottom: '24px',
-          color: '#002855',
+          color: '#ffffff',
           fontSize: '13px',
           lineHeight: '1.5',
           display: 'flex',
@@ -181,8 +181,8 @@ const StudentLogbook = () => {
             {/* Landings */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
               <div style={{ fontSize: '12px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', marginBottom: '6px' }}>🛬 {tr('Hạ cánh (Landings)')}</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#065f46' }}>{logbook.totalLandings ?? logbook.TotalLandings ?? 0} <span style={{ fontSize: '13px', fontWeight: 400 }}>lần</span></div>
-              <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>Ngày: {logbook.totalDayLandings ?? logbook.TotalDayLandings ?? 0} | Đêm: {logbook.totalNightLandings ?? logbook.TotalNightLandings ?? 0}</div>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: '#065f46' }}>{logbook.totalLandings ?? logbook.TotalLandings ?? 0} <span style={{ fontSize: '13px', fontWeight: 400 }}>{tr('lần')}</span></div>
+                <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Ngày')}: {logbook.totalDayLandings ?? logbook.TotalDayLandings ?? 0} | {tr('Đêm')}: {logbook.totalNightLandings ?? logbook.TotalNightLandings ?? 0}</div>
             </div>
           </div>
 
@@ -261,7 +261,7 @@ const StudentLogbook = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: '#f8fafd', borderBottom: '2px solid #e0e6ed', color: '#334e68' }}>
-                  <th style={{ padding: '12px 14px' }}>{tr('Ngày')}</th>
+                  <th style={{ padding: '12px 14px' }}>{tr('Ngày bay')}</th>
                   <th style={{ padding: '12px 14px' }}>{tr('Bài học / Tiêu đề')}</th>
                   <th style={{ padding: '12px 14px' }}>{tr('Loại')}</th>
                   <th style={{ padding: '12px 14px' }}>{tr('Máy bay / SIM')}</th>
@@ -358,7 +358,7 @@ const StudentLogbook = () => {
                               <span>✓</span> {formatDateTime(insSignedAt)}
                             </span>
                           ) : (
-                            <span style={{ color: '#d97706', fontSize: '12px' }}>Chờ ký</span>
+                            <span style={{ color: '#d97706', fontSize: '12px' }}>{tr('Chờ ký')}</span>
                           )}
                         </td>
                       </tr>

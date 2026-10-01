@@ -19,6 +19,8 @@ vi.mock('../utils/api', () => ({
 describe('Phase 3: Pilot Credentials & Logbook Summary Frontend Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Các assertion hiện có dùng chuỗi tiếng Việt → ghim ngôn ngữ VI cho file này
+    localStorage.setItem('app_language', 'vi');
     localStorage.setItem(
       'user',
       JSON.stringify({
@@ -185,5 +187,77 @@ describe('Phase 3: Pilot Credentials & Logbook Summary Frontend Tests', () => {
       expect(screen.getByText('SIM-02')).toBeInTheDocument();
       expect(screen.getByText('ALX-FNPT-II')).toBeInTheDocument();
     });
+  });
+
+  it('renders English translations and white disclaimer banner in EN mode', async () => {
+    localStorage.setItem('app_language', 'en');
+    api.get.mockImplementation((url) => {
+      if (url === '/Logbook/my-summary') {
+        return Promise.resolve({
+          accountId: 10,
+          totalFlightHours: 25.5,
+          totalSimulatorHours: 16.0,
+          totalDualHours: 20.0,
+          flightDualHours: 12.0,
+          simulatorDualHours: 8.0,
+          totalSoloHours: 5.5,
+          totalPicHours: 5.5,
+          totalNightHours: 3.0,
+          totalInstrumentHours: 8.0,
+          flightInstrumentHours: 4.0,
+          simulatorInstrumentHours: 4.0,
+          totalCrossCountryHours: 6.0,
+          totalDayLandings: 12,
+          totalNightLandings: 4,
+          totalLandings: 16,
+          lastFlightDate: '2026-09-28T00:00:00Z',
+          // Không có disclaimer từ API → render chuỗi tĩnh (phải ra tiếng Anh)
+          entries: [
+            {
+              attendanceRecordId: 103,
+              sessionId: 3,
+              sessionTitle: 'Night circuit training',
+              lessonCode: 'FLT-09',
+              sessionDate: '2026-09-20T00:00:00Z',
+              trainingType: 'Flight',
+              aircraftRegistration: 'VN-C172',
+              route: 'VVTS-VVTS',
+              flightHours: 1.5,
+              simulatorHours: 0,
+              dualHours: 1.5,
+              soloHours: 0,
+              picHours: 0,
+              nightHours: 1.0,
+              instrumentHours: 0,
+              dayLandings: 0,
+              nightLandings: 2,
+              totalLandings: 2,
+              instructorSignedAt: null,
+            },
+          ],
+        });
+      }
+      return Promise.resolve({});
+    });
+
+    render(
+      <LanguageProvider>
+        <MemoryRouter>
+          <StudentLogbook />
+        </MemoryRouter>
+      </LanguageProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Flight Log & Cockpit Training')).toBeInTheDocument();
+      expect(screen.getByText('Recording standard:')).toBeInTheDocument();
+      expect(screen.getByText(/Total logbook hours reflect actual signed-off training time/i)).toBeInTheDocument();
+      expect(screen.getByText(/Actual Flight Hours \(Flight\)/)).toBeInTheDocument();
+      expect(screen.getByText('Pending signature')).toBeInTheDocument();
+    });
+
+    // Banner disclaimer phải chữ trắng trên nền tối
+    const banner = screen.getByText('Recording standard:').closest('div').parentElement;
+    expect(banner).toHaveStyle({ color: '#ffffff' });
   });
 });
