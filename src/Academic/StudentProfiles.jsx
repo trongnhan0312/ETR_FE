@@ -119,6 +119,16 @@ const StudentProfiles = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isVerifyOpen, setIsVerifyOpen] = useState(false);
+  const [verifyingProfile, setVerifyingProfile] = useState(null);
+  const [verifyAttachments, setVerifyAttachments] = useState([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [selectedAttachmentIds, setSelectedAttachmentIds] = useState([]);
+  const [verifyMode, setVerifyMode] = useState('attachments'); // 'attachments' | 'offline'
+  const [verificationMethod, setVerificationMethod] = useState('Kiểm tra hồ sơ gốc tại văn phòng đào tạo');
+  const [verifyComment, setVerifyComment] = useState('');
+  const [verifySubmitting, setVerifySubmitting] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
   const [viewingProfile, setViewingProfile] = useState(null);
   const [editingProfile, setEditingProfile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -375,23 +385,76 @@ const StudentProfiles = () => {
     }
   };
 
-  const handleVerifyCredentials = async (accountId, isVerified) => {
+  const handleOpenVerifyModal = async (profile) => {
+    setVerifyingProfile(profile);
+    setIsVerifyOpen(true);
+    setVerifyError('');
+    setVerifyComment('');
+    setLoadingAttachments(true);
     try {
-      await api.put(`/UserProfiles/${accountId}/verify-credentials`, {
+      const data = await api.get(`/UserProfiles/${profile.accountId}/attachments`);
+      const atts = Array.isArray(data) ? data : [];
+      setVerifyAttachments(atts);
+      if (atts.length > 0) {
+        setVerifyMode('attachments');
+        setSelectedAttachmentIds(atts.map((a) => a.attachmentId));
+      } else {
+        setVerifyMode('offline');
+        setVerificationMethod('Kiểm tra hồ sơ gốc tại văn phòng đào tạo');
+        setSelectedAttachmentIds([]);
+      }
+    } catch (err) {
+      console.error('Failed to load attachments:', err);
+      setVerifyAttachments([]);
+      setVerifyMode('offline');
+      setVerificationMethod('Kiểm tra hồ sơ gốc tại văn phòng đào tạo');
+      setSelectedAttachmentIds([]);
+    } finally {
+      setLoadingAttachments(false);
+    }
+  };
+
+  const handleExecuteVerification = async (isVerified) => {
+    if (!verifyingProfile) return;
+    setVerifyError('');
+    setVerifySubmitting(true);
+    try {
+      if (isVerified) {
+        if (verifyMode === 'attachments' && selectedAttachmentIds.length === 0) {
+          setVerifyError(tr('Vui lòng chọn ít nhất một tệp minh chứng đã rà soát, hoặc chuyển sang chế độ Xác minh ngoại tuyến.'));
+          setVerifySubmitting(false);
+          return;
+        }
+        if (verifyMode === 'offline' && !verificationMethod.trim()) {
+          setVerifyError(tr('Vui lòng nhập Phương thức xác minh ngoại tuyến.'));
+          setVerifySubmitting(false);
+          return;
+        }
+      }
+
+      const payload = {
         isVerified,
-        verificationMethod: isVerified ? 'AcademicStaffDirectVerification' : undefined,
-        comment: isVerified ? 'Verified by Academic staff' : 'Unverified',
-      });
-      toast.success(isVerified ? tr('Đã xác minh năng định thành công!') : tr('Đã hủy xác minh năng định!'));
+        reviewedAttachmentIds: isVerified && verifyMode === 'attachments' ? selectedAttachmentIds : [],
+        verificationMethod: isVerified && verifyMode === 'offline' ? verificationMethod.trim() : (isVerified ? undefined : undefined),
+        comment: verifyComment.trim() || (isVerified ? (verifyMode === 'attachments' ? 'Đã rà soát minh chứng đính kèm' : `Xác minh: ${verificationMethod.trim()}`) : 'Thu hồi xác minh bởi cán bộ'),
+      };
+
+      await api.put(`/UserProfiles/${verifyingProfile.accountId}/verify-credentials`, payload);
+
+      toast.success(isVerified ? tr('Đã xác minh năng định thành công!') : tr('Đã thu hồi xác minh năng định!'));
       await loadProfiles();
-      if (viewingProfile && viewingProfile.accountId === accountId) {
+      if (viewingProfile && viewingProfile.accountId === verifyingProfile.accountId) {
         setViewingProfile((prev) => ({
           ...prev,
           isCredentialsVerified: isVerified,
         }));
       }
+      setIsVerifyOpen(false);
     } catch (err) {
-      toast.error(tr('Thao tác xác minh thất bại'), parseApiError(err, '', tr));
+      console.error('Verify failed:', err);
+      setVerifyError(parseApiError(err, tr('Xác minh năng định thất bại.'), tr));
+    } finally {
+      setVerifySubmitting(false);
     }
   };
 
@@ -487,7 +550,7 @@ const StudentProfiles = () => {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '130px 180px 220px 130px 120px 100px 140px minmax(130px, 1fr)',
+                gridTemplateColumns: '120px 170px 200px 120px 110px 90px 120px 130px minmax(180px, 1fr)',
                 padding: '12px 16px',
                 background: '#002147',
                 color: '#fff',
@@ -504,6 +567,7 @@ const StudentProfiles = () => {
               <div>{tr('Ngày sinh')}</div>
               <div>{tr('Giới tính')}</div>
               <div>{tr('Tổ chức')}</div>
+              <div>{tr('Năng định')}</div>
               <div style={{ textAlign: 'right' }}>{tr('Hành động')}</div>
             </div>
 
@@ -521,7 +585,7 @@ const StudentProfiles = () => {
                   key={profile.accountId}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '130px 180px 220px 130px 120px 100px 140px minmax(130px, 1fr)',
+                    gridTemplateColumns: '120px 170px 200px 120px 110px 90px 120px 130px minmax(180px, 1fr)',
                     padding: '12px 16px',
                     borderBottom: '1px solid #f1f5f9',
                     alignItems: 'center',
@@ -536,12 +600,28 @@ const StudentProfiles = () => {
                   <div style={{ color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatDate(profile.dateOfBirth, lang)}</div>
                   <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(GENDER_LABEL[profile.gender]) || profile.gender || 'N/A'}</div>
                   <div style={{ color: '#334155', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.organization || 'N/A'}</div>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <div>
+                    <span
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        background: profile.isCredentialsVerified ? '#ecfdf5' : '#fffbeb',
+                        color: profile.isCredentialsVerified ? '#047857' : '#b45309',
+                        border: profile.isCredentialsVerified ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                        display: 'inline-block',
+                      }}
+                    >
+                      {profile.isCredentialsVerified ? tr('ĐÃ XÁC MINH') : tr('CHƯA XÁC MINH')}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                     <button
                       type="button"
                       onClick={() => handleOpenViewModal(profile)}
                       style={{
-                        padding: '4px 10px',
+                        padding: '4px 8px',
                         fontSize: '12px',
                         borderRadius: '6px',
                         border: '1px solid #cbd5e1',
@@ -556,7 +636,7 @@ const StudentProfiles = () => {
                       type="button"
                       onClick={() => handleOpenEditModal(profile)}
                       style={{
-                        padding: '4px 10px',
+                        padding: '4px 8px',
                         fontSize: '12px',
                         borderRadius: '6px',
                         border: '1px solid #cbd5e1',
@@ -566,6 +646,22 @@ const StudentProfiles = () => {
                       }}
                     >
                       {tr('Sửa')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenVerifyModal(profile)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        borderRadius: '6px',
+                        border: profile.isCredentialsVerified ? '1px solid #a7f3d0' : '1px solid #c5a059',
+                        background: profile.isCredentialsVerified ? '#f0fdf4' : '#fffdf5',
+                        color: profile.isCredentialsVerified ? '#047857' : '#b45309',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {profile.isCredentialsVerified ? tr('Xác minh ✓') : tr('Xác minh')}
                     </button>
                   </div>
                 </div>
@@ -918,18 +1014,18 @@ const StudentProfiles = () => {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
               <button
                 type="button"
-                onClick={() => handleVerifyCredentials(viewingProfile.accountId, !viewingProfile.isCredentialsVerified)}
+                onClick={() => handleOpenVerifyModal(viewingProfile)}
                 style={{
                   padding: '8px 16px',
-                  background: viewingProfile.isCredentialsVerified ? '#fff1f2' : '#ecfdf5',
-                  border: viewingProfile.isCredentialsVerified ? '1px solid #fecdd3' : '1px solid #a7f3d0',
+                  background: viewingProfile.isCredentialsVerified ? '#ecfdf5' : '#fffbeb',
+                  border: viewingProfile.isCredentialsVerified ? '1px solid #a7f3d0' : '1px solid #fde68a',
                   borderRadius: '6px',
-                  color: viewingProfile.isCredentialsVerified ? '#be123c' : '#047857',
+                  color: viewingProfile.isCredentialsVerified ? '#047857' : '#b45309',
                   fontWeight: '600',
                   cursor: 'pointer',
                 }}
               >
-                {viewingProfile.isCredentialsVerified ? tr('Hủy xác minh') : tr('✓ Xác minh năng định')}
+                {viewingProfile.isCredentialsVerified ? tr('⚙ Quản lý xác minh') : tr('✓ Xác minh năng định')}
               </button>
               <button
                 type="button"
@@ -939,6 +1035,348 @@ const StudentProfiles = () => {
                 {tr('Sửa hồ sơ')}
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* VERIFY CREDENTIALS MODAL */}
+      {isVerifyOpen && verifyingProfile && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '640px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '16px' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '18px', color: '#002147', fontWeight: '700' }}>
+                  {tr('Xác minh Năng định Phi công')}
+                </h2>
+                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
+                  {tr('Học viên:')} <strong>{verifyingProfile.fullName}</strong> ({verifyingProfile.userCode})
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsVerifyOpen(false)}
+                style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              
+              {verifyError && (
+                <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '13px', whiteSpace: 'pre-line' }}>
+                  {verifyError}
+                </div>
+              )}
+
+              {/* Status Banner */}
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                background: verifyingProfile.isCredentialsVerified ? '#ecfdf5' : '#fffbeb',
+                border: verifyingProfile.isCredentialsVerified ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
+                    {tr('Trạng thái hiện tại')}
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: verifyingProfile.isCredentialsVerified ? '#047857' : '#b45309' }}>
+                    {verifyingProfile.isCredentialsVerified ? tr('✓ ĐÃ ĐƯỢC XÁC MINH HỢP LỆ') : tr('⏳ CHỜ XÁC MINH / TỰ KHAI')}
+                  </div>
+                </div>
+                {verifyingProfile.credentialsVerifiedAt && (
+                  <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'right' }}>
+                    <div>{tr('Xác minh lúc:')} {formatDate(verifyingProfile.credentialsVerifiedAt, lang)}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pilot Credentials Overview */}
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '12px', fontWeight: '700', color: '#002147', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  {tr('Thông tin năng định khai báo')}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
+                  <div>
+                    <span style={{ color: '#64748b' }}>{tr('Bằng lái:')}</span>{' '}
+                    <strong>{verifyingProfile.licenseType || 'N/A'}</strong> ({verifyingProfile.licenseNumber || '—'})
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>{tr('Hạn bằng lái:')}</span>{' '}
+                    <strong>{formatDate(verifyingProfile.licenseExpiryDate, lang)}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>{tr('Khám sức khỏe:')}</span>{' '}
+                    <strong>{verifyingProfile.medicalClass || 'N/A'}</strong> (Hạn: {formatDate(verifyingProfile.medicalExpiryDate, lang)})
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>{tr('ICAO ELP:')}</span>{' '}
+                    <strong>{verifyingProfile.icaoElpLevel ? `Level ${verifyingProfile.icaoElpLevel}` : 'N/A'}</strong> (Hạn: {formatDate(verifyingProfile.icaoElpExpiryDate, lang)})
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ color: '#64748b' }}>{tr('Type Ratings:')}</span>{' '}
+                    <strong>{verifyingProfile.typeRatings || 'N/A'}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mode Selection Tabs */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  {tr('Căn cứ / Phương thức xác minh')}
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setVerifyMode('attachments')}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: verifyMode === 'attachments' ? '2px solid #002147' : '1px solid #cbd5e1',
+                      background: verifyMode === 'attachments' ? '#f0f7ff' : '#fff',
+                      color: verifyMode === 'attachments' ? '#002147' : '#64748b',
+                      fontWeight: verifyMode === 'attachments' ? '700' : '500',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      textAlign: 'center'
+                    }}
+                  >
+                    📄 {tr('1. Tài liệu đính kèm')} ({verifyAttachments.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVerifyMode('offline')}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: verifyMode === 'offline' ? '2px solid #002147' : '1px solid #cbd5e1',
+                      background: verifyMode === 'offline' ? '#f0f7ff' : '#fff',
+                      color: verifyMode === 'offline' ? '#002147' : '#64748b',
+                      fontWeight: verifyMode === 'offline' ? '700' : '500',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      textAlign: 'center'
+                    }}
+                  >
+                    🏢 {tr('2. Xác minh trực tiếp / Ngoại tuyến')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mode 1: Attachments list */}
+              {verifyMode === 'attachments' && (
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#fafafa' }}>
+                  {loadingAttachments ? (
+                    <div style={{ textAlign: 'center', padding: '16px', color: '#64748b', fontSize: '13px' }}>
+                      {tr('Đang tải danh sách tài liệu minh chứng...')}
+                    </div>
+                  ) : verifyAttachments.length === 0 ? (
+                    <div style={{ padding: '12px', background: '#fffbeb', borderRadius: '6px', border: '1px solid #fde68a', color: '#b45309', fontSize: '13px' }}>
+                      ⚠️ {tr('Học viên chưa tải lên tệp minh chứng nào. Bạn có thể chuyển sang chế độ "Xác minh trực tiếp / Ngoại tuyến" để xác nhận đối chiếu hồ sơ gốc.')}
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>
+                          {tr('Chọn các tài liệu đã được rà soát đối chiếu:')}
+                        </span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAttachmentIds(verifyAttachments.map(a => a.attachmentId))}
+                            style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
+                          >
+                            {tr('Chọn tất cả')}
+                          </button>
+                          <span style={{ color: '#cbd5e1' }}>|</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAttachmentIds([])}
+                            style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
+                          >
+                            {tr('Bỏ chọn')}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
+                        {verifyAttachments.map((att) => {
+                          const isChecked = selectedAttachmentIds.includes(att.attachmentId);
+                          return (
+                            <div
+                              key={att.attachmentId}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '8px 12px',
+                                background: isChecked ? '#f0fdf4' : '#fff',
+                                border: isChecked ? '1px solid #86efac' : '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '13px'
+                              }}
+                            >
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1, minWidth: 0 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedAttachmentIds(prev => [...prev, att.attachmentId]);
+                                    } else {
+                                      setSelectedAttachmentIds(prev => prev.filter(id => id !== att.attachmentId));
+                                    }
+                                  }}
+                                />
+                                <span style={{
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '700',
+                                  background: att.docType === 'License' ? '#dbeafe' : att.docType === 'Medical' ? '#fce7f3' : '#e0e7ff',
+                                  color: att.docType === 'License' ? '#1e40af' : att.docType === 'Medical' ? '#9d174d' : '#3730a3'
+                                }}>
+                                  {att.docType || 'General'}
+                                </span>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '500', color: '#1e293b' }}>
+                                  {att.fileName}
+                                </span>
+                              </label>
+
+                              {att.url && (
+                                <button
+                                  type="button"
+                                  onClick={() => window.open(att.url, '_blank')}
+                                  style={{
+                                    padding: '3px 8px',
+                                    fontSize: '11px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #cbd5e1',
+                                    background: '#fff',
+                                    color: '#0284c7',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {tr('Xem tệp')}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mode 2: Offline method input */}
+              {verifyMode === 'offline' && (
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#fafafa', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>
+                    {tr('Phương thức xác minh ngoại tuyến *')}
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {[
+                      'Kiểm tra bản gốc tại văn phòng đào tạo',
+                      'Đối chiếu cổng thông tin Cục Hàng không (CAAV)',
+                      'Hồ sơ phi công lưu trữ dạng văn bản giấy',
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setVerificationMethod(preset)}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          border: verificationMethod === preset ? '1px solid #002147' : '1px solid #cbd5e1',
+                          background: verificationMethod === preset ? '#002147' : '#fff',
+                          color: verificationMethod === preset ? '#fff' : '#475569',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {tr(preset)}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={verificationMethod}
+                    onChange={(e) => setVerificationMethod(e.target.value)}
+                    placeholder={tr('Nhập chi tiết phương thức xác minh ngoại tuyến')}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', outline: 'none' }}
+                  />
+                </div>
+              )}
+
+              {/* Comment / Ghi chú */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>
+                  {tr('Ghi chú / Nhận xét (tùy chọn)')}
+                </label>
+                <textarea
+                  value={verifyComment}
+                  onChange={(e) => setVerifyComment(e.target.value)}
+                  placeholder={tr('Ghi chú về việc rà soát hồ sơ năng định...')}
+                  rows={2}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', outline: 'none', resize: 'vertical' }}
+                />
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+              <button
+                type="button"
+                onClick={() => setIsVerifyOpen(false)}
+                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}
+              >
+                {tr('Đóng')}
+              </button>
+
+              {verifyingProfile.isCredentialsVerified && (
+                <button
+                  type="button"
+                  disabled={verifySubmitting}
+                  onClick={() => handleExecuteVerification(false)}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#fff1f2',
+                    border: '1px solid #fecdd3',
+                    borderRadius: '6px',
+                    color: '#be123c',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {verifySubmitting ? tr('Đang xử lý...') : tr('Thu hồi xác minh')}
+                </button>
+              )}
+
+              <button
+                type="button"
+                disabled={verifySubmitting}
+                onClick={() => handleExecuteVerification(true)}
+                style={{
+                  padding: '8px 18px',
+                  background: '#047857',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                {verifySubmitting ? tr('Đang lưu...') : tr('✓ Xác nhận Xác minh')}
+              </button>
+            </div>
+
           </div>
         </div>,
         document.body
