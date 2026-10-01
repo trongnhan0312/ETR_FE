@@ -166,6 +166,19 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
       return;
     }
 
+    // Mỗi môn trong khóa phải có số giờ >= 1 (lớn hơn 0)
+    const chosenSubjects = availableSubjects.filter((s) =>
+      selectedSubjectIds.includes(String(s.subjectId)),
+    );
+    const hasZeroHourSubject = chosenSubjects.some((s) => {
+      const crit = subjectCriteria[String(s.subjectId)];
+      return !(Number(crit?.requiredHours) >= 1);
+    });
+    if (hasZeroHourSubject) {
+      toast.error(tr('subject default hours must be larger than 0'));
+      return;
+    }
+
     // Thời lượng khóa học = tổng giờ các môn → phải là số nguyên dương
     if (!Number.isInteger(duration) || duration <= 0) {
       toast.error(
@@ -181,10 +194,6 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
     if (practice > 0) structure.practice = practice;
     if (assignment > 0) structure.assignment = assignment;
     if (attendance > 0) structure.attendance = attendance;
-
-    const chosenSubjects = availableSubjects.filter((s) =>
-      selectedSubjectIds.includes(String(s.subjectId)),
-    );
 
     const subjectsPayload = chosenSubjects.map((s, idx) => {
       const crit = subjectCriteria[String(s.subjectId)] || {

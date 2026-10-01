@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
+import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
 
 const UpdateCourseModal = ({ course, onSave, onCancel }) => {
   const { tr } = useLanguage();
+  const toast = useToast();
   const [courseCode, setCourseCode] = useState(course.code || course.courseCode || '');
   const [courseName, setCourseName] = useState(course.name || course.courseName || '');
   const [description, setDescription] = useState(course.description || '');
@@ -103,6 +105,18 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
 
     if (selectedSubjectIds.length === 0) {
       setErrorMsg(tr('❌ Quy tắc tuân thủ (Business Rule): Khóa học bắt buộc phải được cấu hình ít nhất 1 Môn học (Subject).'));
+      return;
+    }
+
+    // Mỗi môn trong khóa phải có số giờ >= 1 (lớn hơn 0)
+    const hasZeroHourSubject = selectedSubjectIds.some((idStr) => {
+      const crit = subjectCriteria[idStr];
+      return !(Number(crit?.requiredHours) >= 1);
+    });
+    if (hasZeroHourSubject) {
+      const msg = tr('subject default hours must be larger than 0');
+      setErrorMsg(msg);
+      toast.error(msg);
       return;
     }
 

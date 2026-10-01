@@ -442,9 +442,6 @@ const EtrManagement = ({ defaultView = "list" }) => {
         // (giống backend: không có evidence thì không có file chưa verified).
         evidenceReady: etrEvidences.every((ev) => ev.status === "Verified"),
         returnReason: returnReasonMap[etrId] || etr.returnReason || etr.ReturnReason || etr.rejectionReason || etr.RejectionReason || "",
-        // Giữ timestamp gốc để sắp xếp mới-nhất-trước (hiển thị lastUpdated đã format
-        // chuỗi nên không sort được).
-        createdAtRaw: etr.createdAt ?? etr.CreatedAt ?? etr.submittedAt ?? etr.SubmittedAt ?? null,
       };
     });
   };
@@ -877,18 +874,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
   });
 
   const { page, setPage, pageCount, pageItems, total } = usePagination(
-    // Hiển thị ETR mới tạo trước (latest → earliest): ưu tiên createdAt, fallback
-    // etrId giảm dần (ID tự tăng theo thời gian tạo).
-    [...filteredRecords].sort((a, b) => {
-      const ta = a.createdAtRaw ? new Date(a.createdAtRaw).getTime() : NaN;
-      const tb = b.createdAtRaw ? new Date(b.createdAtRaw).getTime() : NaN;
-      const aValid = !Number.isNaN(ta);
-      const bValid = !Number.isNaN(tb);
-      if (aValid && bValid && ta !== tb) return tb - ta;
-      if (aValid && !bValid) return -1;
-      if (!aValid && bValid) return 1;
-      return (b.etrId || 0) - (a.etrId || 0);
-    }),
+    // RECORD ID giảm dần: số càng lớn càng mới (#ETR-0114 trước #ETR-0001)
+    [...filteredRecords].sort((a, b) => (b.etrId || 0) - (a.etrId || 0)),
     {
       pageSize: 10,
       resetKey: `${searchTerm}|${statusFilter}`,

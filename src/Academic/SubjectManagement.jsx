@@ -200,6 +200,13 @@ const SubjectManagement = () => {
       setFormError(tr('Vui lòng nhập Mã môn học và Tên môn học.'));
       return;
     }
+    // Số giờ mặc định của môn học phải lớn hơn 0
+    if (!(Number(cDefaultHours) >= 1)) {
+      const msg = tr('subject default hours must be larger than 0');
+      setFormError(msg);
+      toast.error(msg);
+      return;
+    }
     setSubmitting(true);
     try {
       // MinSessions/MaxSessions bắt buộc theo CreateSubjectRequest mới của BE
@@ -241,6 +248,13 @@ const SubjectManagement = () => {
     }
     if (!eSubjectCode.trim() || !eSubjectName.trim()) {
       setFormError(tr('Vui lòng nhập Mã môn học và Tên môn học.'));
+      return;
+    }
+    // Số giờ mặc định của môn học phải lớn hơn 0
+    if (!(Number(eDefaultHours) >= 1)) {
+      const msg = tr('subject default hours must be larger than 0');
+      setFormError(msg);
+      toast.error(msg);
       return;
     }
     setSubmitting(true);
