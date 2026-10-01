@@ -18,7 +18,7 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Load sessions from API
+  // Load sessions and enrolled students from API
   useEffect(() => {
     const loadSessions = async () => {
       if (!classId) {
@@ -27,48 +27,116 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
       }
       try {
         setLoading(true);
-        const [sessionData, attendanceData] = await Promise.all([
+        const [sessionData, attendanceData, enrollmentData, accountData, profileData] = await Promise.all([
           api.get("/Sessions").catch(() => []),
-          api.get("/Attendance").catch(() => [])
+          api.get("/Attendance").catch(() => []),
+          api.get("/Enrollments").catch(() => []),
+          api.get("/Accounts").catch(() => []),
+          api.get("/UserProfiles").catch(() => api.get("/UserProfiles/learners")).catch(() => []),
         ]);
 
         const sessionsArr = Array.isArray(sessionData) ? sessionData : [];
         const attendanceArr = Array.isArray(attendanceData) ? attendanceData : [];
+        const enrollmentsArr = Array.isArray(enrollmentData) ? enrollmentData : [];
+        const accountsArr = Array.isArray(accountData) ? accountData : [];
+        const profilesArr = Array.isArray(profileData) ? profileData : [];
 
         setAttendanceRecords(attendanceArr);
 
-        // Filter sessions for this class
+        // Danh sách học viên thực tế được ghi danh vào lớp này
+        const classEnrolled = enrollmentsArr.filter(
+          (e) =>
+            String(e.classId ?? e.ClassId) === String(classId) &&
+            e.status !== 'Dropped' &&
+            e.status !== 'Cancelled' &&
+            e.status !== 'Withdrawn' &&
+            e.status !== 'Deleted' &&
+            !e.isDeleted
+        );
+
+        const mappedClassStudents = classEnrolled.map((enr) => {
+          const accId = enr.accountId ?? enr.AccountId;
+          const acc = accountsArr.find((a) => String(a.accountId ?? a.id) === String(accId));
+          const prof = profilesArr.find((p) => String(p.accountId ?? p.id) === String(accId));
+          return {
+            enrollmentId: enr.enrollmentId ?? enr.id,
+            accountId: accId,
+            fullName: prof?.fullName || acc?.fullName || acc?.username || `Học viên #${accId}`,
+            userCode: prof?.userCode || acc?.username || `STU-${accId}`,
+            email: prof?.email || acc?.email || '',
+          };
+        });
+
+        // Filter sessions for this class (safe string comparison)
         const classSessions = sessionsArr
-          .filter((s) => s.classId === classId)
+          .filter((s) => String(s.classId ?? s.ClassId) === String(classId))
           .map((s, idx) => {
             const sessionAttendance = attendanceArr.filter(
-              (a) => a.sessionId === s.sessionId
+              (a) => String(a.sessionId ?? a.SessionId) === String(s.sessionId ?? s.SessionId)
             );
             const presentCount = sessionAttendance.filter(
               (a) => a.status === 'Present' || a.status === 'Có mặt'
             ).length;
-            const totalCount = sessionAttendance.length;
+
+            // Xây dựng danh sách học viên cho buổi học:
+            // Nếu đã điểm danh: hiển thị theo bản ghi điểm danh
+            // Nếu chưa điểm danh buổi này nhưng lớp đã có học viên: hiển thị tất cả học viên lớp với trạng thái "Chưa điểm danh"
+            let sessionStudents = [];
+            if (sessionAttendance.length > 0) {
+              const attendedEnrollmentIds = new Set();
+              sessionStudents = sessionAttendance.map((a) => {
+                const enrId = a.enrollmentId ?? a.EnrollmentId;
+                attendedEnrollmentIds.add(String(enrId));
+                const studentMeta = mappedClassStudents.find((st) => String(st.enrollmentId) === String(enrId)) ||
+                  mappedClassStudents.find((st) => String(st.accountId) === String(a.accountId ?? a.AccountId));
+                const stName = studentMeta
+                  ? `${studentMeta.fullName} (${studentMeta.userCode})`
+                  : `Học viên #${enrId || a.accountId || a.attendanceRecordId}`;
+                return {
+                  attendanceId: a.attendanceRecordId || a.attendanceId,
+                  code: studentMeta?.userCode || '',
+                  name: stName,
+                  status: (a.status === 'Present' || a.status === 'Có mặt') ? 'Có mặt' :
+                          (a.status === 'Absent' || a.status === 'Vắng không phép') ? 'Vắng không phép' : 'Chưa điểm danh'
+                };
+              });
+
+              // Bổ sung học viên trong lớp chưa có bản ghi điểm danh trong buổi
+              mappedClassStudents.forEach((st) => {
+                if (!attendedEnrollmentIds.has(String(st.enrollmentId))) {
+                  sessionStudents.push({
+                    attendanceId: null,
+                    code: st.userCode,
+                    name: `${st.fullName} (${st.userCode})`,
+                    status: 'Chưa điểm danh'
+                  });
+                }
+              });
+            } else if (mappedClassStudents.length > 0) {
+              sessionStudents = mappedClassStudents.map((st) => ({
+                attendanceId: null,
+                code: st.userCode,
+                name: `${st.fullName} (${st.userCode})`,
+                status: 'Chưa điểm danh'
+              }));
+            }
+
+            const totalCount = mappedClassStudents.length > 0
+              ? mappedClassStudents.length
+              : sessionAttendance.length;
 
             return {
-              sessionId: s.sessionId,
+              sessionId: s.sessionId ?? s.SessionId,
               stt: String(idx + 1).padStart(2, '0'),
-              // SessionDate có thể null (buổi nháp chưa xếp lịch) → hiển thị TBA
               date: s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : 'TBA',
-              name: s.sessionTitle || `Buổi ${idx + 1}`,
+              name: s.sessionTitle || s.title || `Buổi ${idx + 1}`,
               instructor: classInstructor,
               attendance: totalCount > 0 ? `${presentCount}/${totalCount}` : '0/0',
               rate: totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0,
-              // Giữ bản ghi chi tiết để tính overall rate đúng (chỉ đếm học viên đã điểm danh)
               details: sessionAttendance,
               location: s.location || '',
               isConfirmed: s.isConfirmed || false,
-              students: sessionAttendance.map((a) => ({
-                attendanceId: a.attendanceRecordId || a.attendanceId,
-                code: '',
-                name: `Học viên #${a.enrollmentId || a.accountId}`,
-                status: a.status === 'Present' ? 'Có mặt' :
-                        a.status === 'Absent' ? 'Vắng không phép' : 'Chưa điểm danh'
-              }))
+              students: sessionStudents
             };
           });
 
@@ -375,8 +443,16 @@ const ClassAttendanceHistory = ({ activeClass, onBack }) => {
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: '700',
-                            backgroundColor: student.status === 'Có mặt' ? '#dcfce7' : '#fee2e2',
-                            color: student.status === 'Có mặt' ? '#15803d' : '#b91c1c'
+                            backgroundColor: student.status === 'Có mặt'
+                              ? '#dcfce7'
+                              : student.status === 'Vắng không phép'
+                                ? '#fee2e2'
+                                : '#fef3c7',
+                            color: student.status === 'Có mặt'
+                              ? '#15803d'
+                              : student.status === 'Vắng không phép'
+                                ? '#b91c1c'
+                                : '#b45309'
                           }}>
                             {student.status.toUpperCase()}
                           </span>

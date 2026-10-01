@@ -36,6 +36,8 @@ const CourseClassManagement = () => {
   const [allSessions, setAllSessions] = useState([]);
   const [allEnrollmentsRaw, setAllEnrollmentsRaw] = useState([]);
   const [allAttendanceRaw, setAllAttendanceRaw] = useState([]);
+  const [allAccountsRaw, setAllAccountsRaw] = useState([]);
+  const [allProfilesRaw, setAllProfilesRaw] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedCourses, setExpandedCourses] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -380,8 +382,31 @@ const CourseClassManagement = () => {
             null;
 
           const classEnrollments = enrollmentsArr.filter(
-            (e) => String(e.classId) === String(cls.classId) && e.status !== "Dropped" && e.status !== "Cancelled"
+            (e) =>
+              String(e.classId ?? e.ClassId) === String(cls.classId ?? cls.ClassId) &&
+              e.status !== "Dropped" &&
+              e.status !== "Cancelled" &&
+              e.status !== "Withdrawn" &&
+              e.status !== "Deleted" &&
+              !e.isDeleted
           );
+
+          const enrolledStudentsList = classEnrollments.map((enr, sIdx) => {
+            const accId = enr.accountId ?? enr.AccountId;
+            const acc = accountsArr.find((a) => String(a.accountId ?? a.id) === String(accId));
+            const prof = profilesArr.find((p) => String(p.accountId ?? p.id) === String(accId));
+            return {
+              stt: sIdx + 1,
+              enrollmentId: enr.enrollmentId ?? enr.id,
+              accountId: accId,
+              fullName: prof?.fullName || acc?.fullName || acc?.username || `Học viên #${accId}`,
+              userCode: prof?.userCode || acc?.username || `STU-${accId}`,
+              email: prof?.email || acc?.email || acc?.username || '—',
+              enrolledAt: enr.enrolledAt ? new Date(enr.enrolledAt).toLocaleDateString("vi-VN") : '—',
+              status: enr.status || 'Active'
+            };
+          });
+
           const classSessions = sessionsArr.filter(
             (s) => String(s.classId) === String(cls.classId)
           );
@@ -437,6 +462,7 @@ const CourseClassManagement = () => {
                       ? "Đã hủy"
                       : cls.status,
             enrolledCount: classEnrollments.length,
+            enrolledStudents: enrolledStudentsList,
             attendanceRate: classAttendanceRate,
             instructor: insName,
           };
@@ -460,7 +486,7 @@ const CourseClassManagement = () => {
         api.get("/Classes").catch(() => []),
         api.get("/Sessions").catch(() => []),
         api.get("/Accounts").catch(() => []),
-        api.get("/UserProfiles").catch(() => []),
+        api.get("/UserProfiles").catch(() => api.get("/UserProfiles/learners")).catch(() => []),
         api.get("/Enrollments").catch(() => []),
         api.get("/Attendance").catch(() => []),
       ]);
@@ -477,6 +503,8 @@ const CourseClassManagement = () => {
       setAllClassesRaw(classesArr);
       setAllEnrollmentsRaw(enrollmentsArr);
       setAllAttendanceRaw(attendanceArr);
+      setAllAccountsRaw(accountsArr);
+      setAllProfilesRaw(profilesArr);
       const merged = mergeCourseData(
         coursesArr,
         classesArr,
@@ -496,10 +524,10 @@ const CourseClassManagement = () => {
     }
   };
 
-  const toggleCourseExpand = (courseCode) => {
+  const toggleCourseExpand = (courseId) => {
     setExpandedCourses((prev) => ({
       ...prev,
-      [courseCode]: !prev[courseCode],
+      [courseId]: !prev[courseId],
     }));
   };
 
@@ -587,10 +615,11 @@ const CourseClassManagement = () => {
     try {
       const created = await api.post(`/Courses/${course.courseId}/new-version`, {});
       await refreshData();
-      if (created?.courseCode || course.code) {
+      const expandId = created?.courseId ?? created?.id ?? course.courseId;
+      if (expandId) {
         setExpandedCourses((prev) => ({
           ...prev,
-          [created?.courseCode || course.code]: true,
+          [expandId]: true,
         }));
       }
       toast.success(
@@ -808,11 +837,8 @@ const CourseClassManagement = () => {
       setStatusFilter("ALL");
       setSearchTerm("");
 
-      const targetCourse = (latestCourses || []).find(
-        (c) => String(c.courseId) === String(parsedCourseId),
-      );
-      if (targetCourse) {
-        setExpandedCourses((prev) => ({ ...prev, [targetCourse.code]: true }));
+      if (parsedCourseId) {
+        setExpandedCourses((prev) => ({ ...prev, [parsedCourseId]: true }));
       }
       toast.success(tr("Tạo lớp học thành công!"), announce("add", tr("Lớp học")));
     } catch (error) {
@@ -1089,8 +1115,29 @@ const CourseClassManagement = () => {
         );
         const rawAssignments = extractClassInstructorAssignments(cls, allSessions);
         const classEnrollments = allEnrollmentsRaw.filter(
-          (e) => String(e.classId) === String(cls.classId) && e.status !== "Dropped" && e.status !== "Cancelled"
+          (e) =>
+            String(e.classId ?? e.ClassId) === String(cls.classId ?? cls.ClassId) &&
+            e.status !== "Dropped" &&
+            e.status !== "Cancelled" &&
+            e.status !== "Withdrawn" &&
+            e.status !== "Deleted" &&
+            !e.isDeleted
         );
+        const enrolledStudentsList = classEnrollments.map((enr, sIdx) => {
+          const accId = enr.accountId ?? enr.AccountId;
+          const acc = allAccountsRaw.find((a) => String(a.accountId ?? a.id) === String(accId));
+          const prof = allProfilesRaw.find((p) => String(p.accountId ?? p.id) === String(accId));
+          return {
+            stt: sIdx + 1,
+            enrollmentId: enr.enrollmentId ?? enr.id,
+            accountId: accId,
+            fullName: prof?.fullName || acc?.fullName || acc?.username || `Học viên #${accId}`,
+            userCode: prof?.userCode || acc?.username || `STU-${accId}`,
+            email: prof?.email || acc?.email || acc?.username || '—',
+            enrolledAt: enr.enrolledAt ? new Date(enr.enrolledAt).toLocaleDateString("vi-VN") : '—',
+            status: enr.status || 'Active'
+          };
+        });
         const classSessions = allSessions.filter(
           (s) => String(s.classId) === String(cls.classId)
         );
@@ -1144,13 +1191,14 @@ const CourseClassManagement = () => {
                     ? "Đã hủy"
                     : cls.status,
           enrolledCount: classEnrollments.length,
+          enrolledStudents: enrolledStudentsList,
           attendanceRate: classAttendanceRate,
           instructor: insName,
           isOrphan: true,
         };
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allClassesRaw, allCoursesRaw, instructorsList, tr, allSubjects, allEnrollmentsRaw, allAttendanceRaw, allSessions]);
+  }, [allClassesRaw, allCoursesRaw, instructorsList, tr, allSubjects, allEnrollmentsRaw, allAttendanceRaw, allSessions, allAccountsRaw, allProfilesRaw]);
 
   // Phân trang: khóa học (nhóm có thể mở rộng) + lớp mồ côi — tối đa 5 nút trang.
   const {
@@ -1192,6 +1240,40 @@ const CourseClassManagement = () => {
     ...courses.flatMap((c) => c.classes),
     ...orphanClasses,
   ];
+
+  // Danh sách học viên thực tế được ghi danh vào lớp đang xem chi tiết (Xem)
+  const enrolledStudentsForDetail = useMemo(() => {
+    if (!viewingClassDetail) return [];
+    if (Array.isArray(viewingClassDetail.enrolledStudents) && viewingClassDetail.enrolledStudents.length > 0) {
+      return viewingClassDetail.enrolledStudents;
+    }
+    const clsId = viewingClassDetail.classId;
+    const enrs = allEnrollmentsRaw.filter(
+      (e) =>
+        String(e.classId ?? e.ClassId) === String(clsId) &&
+        e.status !== "Dropped" &&
+        e.status !== "Cancelled" &&
+        e.status !== "Withdrawn" &&
+        e.status !== "Deleted" &&
+        !e.isDeleted,
+    );
+    return enrs.map((enr, idx) => {
+      const accId = enr.accountId ?? enr.AccountId;
+      const acc = allAccountsRaw.find((a) => String(a.accountId ?? a.id) === String(accId));
+      const prof = allProfilesRaw.find((p) => String(p.accountId ?? p.id) === String(accId));
+      return {
+        stt: idx + 1,
+        enrollmentId: enr.enrollmentId ?? enr.id,
+        accountId: accId,
+        fullName: prof?.fullName || acc?.fullName || acc?.username || `Học viên #${accId}`,
+        userCode: prof?.userCode || acc?.username || `STU-${accId}`,
+        email: prof?.email || acc?.email || acc?.username || '—',
+        phone: prof?.phone || '—',
+        enrolledAt: enr.enrolledAt ? new Date(enr.enrolledAt).toLocaleDateString("vi-VN") : '—',
+        status: enr.status || 'Active',
+      };
+    });
+  }, [viewingClassDetail, allEnrollmentsRaw, allAccountsRaw, allProfilesRaw]);
 
   // Conditional rendering for Attendance History view
   if (selectedClassForHistory) {
@@ -1445,13 +1527,13 @@ const CourseClassManagement = () => {
                 </div>
               ) : (
                 pagedCourses.map((course) => {
-                  const isExpanded = !!expandedCourses[course.code];
+                  const isExpanded = !!expandedCourses[course.courseId];
                   return (
-                    <div key={course.code} className="course-group">
+                    <div key={`${course.code}-v${course.versionNo || 1}-${course.courseId}`} className="course-group">
                       {/* Course Row */}
                       <div
                         className={`table-row course-table-grid course-row ${isExpanded ? "is-expanded" : ""}`}
-                        onClick={() => toggleCourseExpand(course.code)}
+                        onClick={() => toggleCourseExpand(course.courseId)}
                       >
                         <div className="col-expand-trigger">
                           <svg
@@ -1683,6 +1765,24 @@ const CourseClassManagement = () => {
                                     }`}
                                   >
                                     {tr(cls.status)}
+                                  </span>
+
+                                  {/* Badge: SĨ SỐ LỚP */}
+                                  <span
+                                    title={tr("Sĩ số hiện tại / Sức chứa tối đa")}
+                                    style={{
+                                      backgroundColor: "#e0f2fe",
+                                      color: "#0369a1",
+                                      border: "1px solid #bae6fd",
+                                      padding: "2px 8px",
+                                      borderRadius: "12px",
+                                      fontSize: "11px",
+                                      fontWeight: 700,
+                                      whiteSpace: "nowrap",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    👥 {cls.enrolledCount ?? 0}{cls.capacity ? `/${cls.capacity}` : ""} {tr("HV")}
                                   </span>
 
                                   {/* Button: CẬP NHẬT TRẠNG THÁI LỚP */}
@@ -1986,6 +2086,24 @@ const CourseClassManagement = () => {
                         }`}
                       >
                         {tr(cls.status)}
+                      </span>
+
+                      {/* Badge: SĨ SỐ LỚP */}
+                      <span
+                        title={tr("Sĩ số hiện tại / Sức chứa tối đa")}
+                        style={{
+                          backgroundColor: "#e0f2fe",
+                          color: "#0369a1",
+                          border: "1px solid #bae6fd",
+                          padding: "2px 8px",
+                          borderRadius: "12px",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                        }}
+                      >
+                        👥 {cls.enrolledCount ?? 0}{cls.capacity ? `/${cls.capacity}` : ""} {tr("HV")}
                       </span>
                     </div>
                     <div className="col-instructor">
@@ -2323,7 +2441,7 @@ const CourseClassManagement = () => {
       {/* CLASS DETAIL MODAL */}
       {viewingClassDetail && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '560px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '720px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>{tr('Chi tiết lớp học')}</h2>
               <button
@@ -2398,6 +2516,74 @@ const CourseClassManagement = () => {
                   </div>
                 ) : (
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>{viewingClassDetail.instructor || tr('Chưa phân công')}</div>
+                )}
+              </div>
+
+              {/* Danh sách học viên đã ghi danh vào lớp */}
+              <div style={{ marginTop: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#002147', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {tr('Danh sách học viên đã ghi danh')} ({enrolledStudentsForDetail.length} {tr('học viên')})
+                  </div>
+                  {enrolledStudentsForDetail.length > 0 && (
+                    <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
+                      ✓ {tr('Đã ghi danh hợp lệ')}
+                    </span>
+                  )}
+                </div>
+
+                {enrolledStudentsForDetail.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '20px 16px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px dashed #cbd5e1',
+                    color: '#64748b',
+                    fontSize: '13px'
+                  }}>
+                    <div style={{ fontSize: '20px', marginBottom: '4px' }}>📋</div>
+                    <div style={{ fontWeight: 600, color: '#475569' }}>{tr('Chưa có học viên nào được ghi danh vào lớp học này.')}</div>
+                    <div style={{ fontSize: '12px', marginTop: '4px' }}>{tr('Nhấn nút "+ Ghi danh" tại danh sách lớp để phân công học viên vào lớp.')}</div>
+                  </div>
+                ) : (
+                  <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1', textAlign: 'left', color: '#475569' }}>
+                          <th style={{ padding: '8px 10px', width: '35px' }}>{tr('STT')}</th>
+                          <th style={{ padding: '8px 10px' }}>{tr('Mã HV')}</th>
+                          <th style={{ padding: '8px 10px' }}>{tr('Họ và tên')}</th>
+                          <th style={{ padding: '8px 10px' }}>{tr('Email')}</th>
+                          <th style={{ padding: '8px 10px' }}>{tr('Ngày ghi danh')}</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'right' }}>{tr('Trạng thái')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {enrolledStudentsForDetail.map((st, sIdx) => (
+                          <tr key={st.enrollmentId || sIdx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: sIdx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                            <td style={{ padding: '8px 10px', color: '#64748b', fontWeight: 600 }}>{sIdx + 1}</td>
+                            <td style={{ padding: '8px 10px', fontWeight: 700, color: '#002147' }}>{st.userCode}</td>
+                            <td style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a' }}>{st.fullName}</td>
+                            <td style={{ padding: '8px 10px', color: '#475569' }}>{st.email}</td>
+                            <td style={{ padding: '8px 10px', color: '#64748b' }}>{st.enrolledAt}</td>
+                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                backgroundColor: '#dcfce7',
+                                color: '#15803d'
+                              }}>
+                                {tr(st.status || 'Active')}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </div>
