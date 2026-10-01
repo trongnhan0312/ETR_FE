@@ -329,10 +329,12 @@ const StudentProfile = () => {
 
     try {
       await api.delete(`/UserProfiles/${profile.accountId}/attachments/${attachmentId}`, { suppressAuthRedirect: true });
-      toast.success(tr('Đã xóa tệp minh chứng'));
-      fetchAttachments(profile.accountId);
+      toast.success(tr('Đã xóa tệp minh chứng'), tr('Trạng thái xác minh của hồ sơ đã được tự động cập nhật lại.'));
+      await fetchAttachments(profile.accountId);
+      await loadProfileAndAttachments();
     } catch (err) {
-      toast.error(tr('Xóa tệp minh chứng thất bại'));
+      console.error('Delete attachment error:', err);
+      toast.error(tr('Xóa tệp minh chứng thất bại'), err.message || tr('Vui lòng thử lại.'));
     }
   };
 
