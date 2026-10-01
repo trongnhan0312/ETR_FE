@@ -177,11 +177,6 @@ const CourseClassManagement = () => {
           attendanceArr,
         );
         setCourses(mergedCourses);
-
-        // Auto-expand first course
-        if (mergedCourses.length > 0) {
-          setExpandedCourses({ [mergedCourses[0].code]: true });
-        }
       } catch (error) {
         console.error("Error loading course data:", error);
       } finally {
