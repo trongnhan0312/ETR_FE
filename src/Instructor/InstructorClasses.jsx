@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { useSubViewBack } from "../utils/navigation";
+import InstructorStudentDetailModal from "./InstructorStudentDetailModal";
 import "./instructor.scss";
 
 const InstructorClasses = () => {
@@ -18,6 +19,11 @@ const InstructorClasses = () => {
   const location = useLocation();
   const [classesData, setClassesData] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
+
+  // View tabs in class detail: 'sessions' | 'students'
+  const [classViewTab, setClassViewTab] = useState("sessions");
+  const [selectedStudentForDetail, setSelectedStudentForDetail] = useState(null);
+  const [studentDetailInitialTab, setStudentDetailInitialTab] = useState("logbook");
 
   const handleBackToClasses = useCallback(() => {
     setSelectedClass(null);
@@ -82,6 +88,15 @@ const InstructorClasses = () => {
     }
   };
 
+  const getCurrentInstructorName = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      return user.fullName || user.displayName || user.name || user.username || "";
+    } catch {
+      return "";
+    }
+  };
+
   const toDateTimeLocalValue = (dateStr) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -102,6 +117,7 @@ const InstructorClasses = () => {
           apiPracticalChecklists,
           apiSessions,
           apiEnrollments,
+          apiProfiles,
         ] = await Promise.all([
           api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
           api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
@@ -114,12 +130,14 @@ const InstructorClasses = () => {
             .catch(() => api.get("/practicalchecklists").catch(() => [])),
           api.get("/Sessions").catch(() => api.get("/sessions").catch(() => [])),
           api.get("/Enrollments").catch(() => api.get("/enrollments").catch(() => [])),
+          api.get("/UserProfiles/learners").catch(() => api.get("/UserProfiles").catch(() => [])),
         ]);
 
         const rawClasses = Array.isArray(apiClasses) ? apiClasses : [];
         const rawCourses = Array.isArray(apiCourses) ? apiCourses : [];
         const rawSessions = Array.isArray(apiSessions) ? apiSessions : [];
         const rawEnrollments = Array.isArray(apiEnrollments) ? apiEnrollments : [];
+        const rawProfiles = Array.isArray(apiProfiles) ? apiProfiles : [];
 
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
@@ -218,6 +236,17 @@ const InstructorClasses = () => {
               enr.status !== "Deleted" &&
               !enr.isDeleted,
           );
+          const classStudents = classEnrs.map((e) => {
+            const p = rawProfiles.find((x) => String(x.accountId) === String(e.accountId));
+            return {
+              enrollmentId: e.enrollmentId,
+              accountId: e.accountId,
+              fullName: p?.fullName || `Học viên #${e.accountId}`,
+              studentCode: p?.userCode || `STU-${e.accountId}`,
+              email: p?.email || "",
+              status: e.status || "Enrolled",
+            };
+          });
           return {
             classId: cls.classId,
             stt: String(idx + 1).padStart(2, "0"),
@@ -232,6 +261,7 @@ const InstructorClasses = () => {
             schedule: cls.schedule || tr("Chưa sắp lịch"),
             time: cls.time || "08:00 - 11:30",
             studentsCount: `${classEnrs.length} ${tr("học viên")}`,
+            students: classStudents,
             status: (() => {
               const raw = String(cls.status || "").toLowerCase();
               if (raw.includes("inprogress") || raw.includes("active") || raw.includes("ongoing") || raw.includes("đang diễn ra")) return "Đang diễn ra";
@@ -241,7 +271,20 @@ const InstructorClasses = () => {
               return "Đang diễn ra";
             })(),
             subjectId: cls.subjectId || 1,
-            instructorAssignments: cls.instructorAssignments || [],
+            instructorAssignments:
+              Array.isArray(cls.instructorAssignments) && cls.instructorAssignments.length > 0
+                ? cls.instructorAssignments
+                : Array.isArray(cls.InstructorAssignments) && cls.InstructorAssignments.length > 0
+                  ? cls.InstructorAssignments
+                  : Array.isArray(cls.classSubjects) && cls.classSubjects.length > 0
+                    ? cls.classSubjects
+                    : Array.isArray(cls.ClassSubjects) && cls.ClassSubjects.length > 0
+                      ? cls.ClassSubjects
+                      : Array.isArray(storedOverrides[String(cls.classId)]) && storedOverrides[String(cls.classId)].length > 0
+                        ? storedOverrides[String(cls.classId)]
+                        : cls.instructorAccountId || cls.InstructorAccountId
+                          ? [{ subjectId: cls.subjectId || 1, instructorAccountId: cls.instructorAccountId || cls.InstructorAccountId }]
+                          : [],
             isMine,
             raw: cls,
           };
@@ -296,6 +339,9 @@ const InstructorClasses = () => {
         (s) => String(s.classId) === String(selectedClass.classId),
       );
 
+      const currentAccountId = getCurrentAccountId();
+      const currentInstructorName = getCurrentInstructorName();
+
       const mapped = filtered.map((s, idx) => {
         const rawDate = s.sessionDate;
         // SessionDate có thể null (buổi nháp chưa xếp lịch) → hiển thị TBA
@@ -325,6 +371,39 @@ const InstructorClasses = () => {
           foundSub?.SubjectCode ||
           "";
 
+        // Tìm phân công giảng viên cho môn học này từ lớp
+        const assignments = selectedClass.instructorAssignments || [];
+        const assignment = assignments.find(
+          (a) => String(a.subjectId ?? a.SubjectId) === String(sid),
+        );
+
+        const assignedInstructorId =
+          s.instructorAccountId ??
+          s.InstructorAccountId ??
+          assignment?.instructorAccountId ??
+          assignment?.InstructorAccountId ??
+          null;
+
+        const isMine =
+          assignedInstructorId != null &&
+          currentAccountId != null &&
+          String(assignedInstructorId) === String(currentAccountId);
+
+        let resolvedInstructorName =
+          s.instructorName ||
+          s.InstructorName ||
+          assignment?.instructorName ||
+          assignment?.InstructorName ||
+          "";
+
+        if (!resolvedInstructorName) {
+          if (isMine) {
+            resolvedInstructorName = currentInstructorName || tr("Bạn");
+          } else if (assignedInstructorId != null) {
+            resolvedInstructorName = `Instructor #${assignedInstructorId}`;
+          }
+        }
+
         return {
           sessionId: s.sessionId,
           stt: String(idx + 1).padStart(2, "0"),
@@ -335,7 +414,9 @@ const InstructorClasses = () => {
             (resolvedSubjectCode ? resolvedSubjectCode : tr("Môn học")),
           subjectCode: resolvedSubjectCode,
           room: s.location || tr("Phòng học"),
-          instructor: s.instructorName || "Giảng viên",
+          instructor: resolvedInstructorName || tr("Chưa phân công"),
+          instructorAccountId: assignedInstructorId,
+          isMine,
           attendanceCount: s.isConfirmed ? tr("Đã chốt") : tr("Chưa chốt"),
           isConfirmed: s.isConfirmed || false,
           rate: 100,
@@ -464,6 +545,33 @@ const InstructorClasses = () => {
       return matchesCourse && matchesSubject;
     });
   }, [practicalChecklistsList, sessionForm.subjectId, selectedClass]);
+
+  const selectedSubjectInstructor = useMemo(() => {
+    if (!selectedClass) return null;
+    const sid = Number(sessionForm.subjectId || selectedClass.subjectId || 1);
+    const assignments = selectedClass.instructorAssignments || [];
+    const assignment = assignments.find(
+      (a) => Number(a.subjectId ?? a.SubjectId) === sid,
+    );
+    const assignedId =
+      assignment?.instructorAccountId ?? assignment?.InstructorAccountId;
+    const currentAccountId = getCurrentAccountId();
+    const isMine =
+      assignedId != null &&
+      currentAccountId != null &&
+      String(assignedId) === String(currentAccountId);
+    let name = assignment?.instructorName || assignment?.InstructorName;
+    if (!name) {
+      if (isMine) {
+        name = getCurrentInstructorName() || tr("Bạn");
+      } else if (assignedId != null) {
+        name = `Instructor #${assignedId}`;
+      } else {
+        name = tr("Chưa phân công");
+      }
+    }
+    return { id: assignedId, name, isMine };
+  }, [selectedClass, sessionForm.subjectId, tr]);
 
   // Mở modal tạo buổi học mới cho lớp đã chọn
   const openCreateSessionModal = () => {
@@ -776,7 +884,51 @@ const InstructorClasses = () => {
           ))}
         </div>
 
+        {/* View Toggle Tabs: Sessions vs Enrolled Students */}
+        <div style={{ display: "flex", gap: "10px", margin: "16px 0 8px", borderBottom: "2px solid #e2e8f0" }}>
+          <button
+            type="button"
+            onClick={() => setClassViewTab("sessions")}
+            style={{
+              padding: "10px 20px",
+              background: "none",
+              border: "none",
+              borderBottom: classViewTab === "sessions" ? "3px solid #002147" : "3px solid transparent",
+              color: classViewTab === "sessions" ? "#002147" : "#64748b",
+              fontWeight: classViewTab === "sessions" ? "700" : "500",
+              fontSize: "14px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}
+          >
+            <span>📅</span> {tr("Danh sách Buổi học")} ({sessions.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setClassViewTab("students")}
+            style={{
+              padding: "10px 20px",
+              background: "none",
+              border: "none",
+              borderBottom: classViewTab === "students" ? "3px solid #002147" : "3px solid transparent",
+              color: classViewTab === "students" ? "#002147" : "#64748b",
+              fontWeight: classViewTab === "students" ? "700" : "500",
+              fontSize: "14px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}
+          >
+            <span>👨‍✈️</span> {tr("Học viên & Sổ bay / Readiness")} ({(selectedClass.students || []).length})
+          </button>
+        </div>
+
         {/* Sessions Table */}
+        {classViewTab === "sessions" && (
         <section className="table-card">
           <div
             style={{
@@ -807,7 +959,18 @@ const InstructorClasses = () => {
                   margin: "4px 0 0",
                 }}
               >
-                {sessions.length}{tr(' buổi đã tạo')}
+                {sessions.length} {tr('buổi đã tạo')}
+                {sessions.some((s) => s.isMine) && (
+                  <span
+                    style={{
+                      marginLeft: "8px",
+                      color: "#16a34a",
+                      fontWeight: "700",
+                    }}
+                  >
+                    • {sessions.filter((s) => s.isMine).length} {tr("buổi bạn đảm nhận")}
+                  </span>
+                )}
               </p>
             </div>
             <div
@@ -882,7 +1045,7 @@ const InstructorClasses = () => {
               className="table-header"
               style={{
                 display: "grid",
-                gridTemplateColumns: "60px 105px 1.2fr 1.2fr 1fr 1fr 120px 120px",
+                gridTemplateColumns: "60px 105px 1.2fr 1.2fr 1fr 1.3fr 120px 120px",
                 alignItems: "center",
                 gap: "12px",
                 background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
@@ -892,7 +1055,7 @@ const InstructorClasses = () => {
                 fontWeight: "700",
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
-                minWidth: "920px",
+                minWidth: "960px",
               }}
             >
               <div style={{ textAlign: "center" }}>{tr('STT')}</div>
@@ -905,7 +1068,7 @@ const InstructorClasses = () => {
               <div style={{ textAlign: "right" }}>{tr('Thao tác')}</div>
             </div>
 
-            <div className="table-body" style={{ minWidth: "920px" }}>
+            <div className="table-body" style={{ minWidth: "960px" }}>
               {sessionPager.pageItems.length === 0 ? (
                 <div
                   style={{
@@ -924,7 +1087,7 @@ const InstructorClasses = () => {
                     className="table-row"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "60px 105px 1.2fr 1.2fr 1fr 1fr 120px 120px",
+                      gridTemplateColumns: "60px 105px 1.2fr 1.2fr 1fr 1.3fr 120px 120px",
                       alignItems: "center",
                       gap: "12px",
                       padding: "14px 20px",
@@ -999,11 +1162,75 @@ const InstructorClasses = () => {
                     >
                       {session.room}
                     </span>
-                    <span
-                      style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        flexWrap: "wrap",
+                        minWidth: 0,
+                      }}
                     >
-                      {session.instructor}
-                    </span>
+                      {session.isMine ? (
+                        <>
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              fontWeight: "700",
+                              color: "#16a34a",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                            title={session.instructor}
+                          >
+                            {session.instructor}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              fontWeight: "700",
+                              backgroundColor: "rgba(22, 163, 74, 0.12)",
+                              color: "#16a34a",
+                              padding: "1px 6px",
+                              borderRadius: "4px",
+                              textTransform: "uppercase",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {tr("Bạn")}
+                          </span>
+                        </>
+                      ) : session.instructorAccountId ? (
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            color: "#002147",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={session.instructor}
+                        >
+                          {session.instructor}
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontStyle: "italic",
+                            color: "#d97706",
+                            fontWeight: "500",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <span>⚠️</span> {tr("Chưa phân công")}
+                        </span>
+                      )}
+                    </div>
                     <div style={{ textAlign: "center" }}>
                       <span
                         style={{
@@ -1080,6 +1307,192 @@ const InstructorClasses = () => {
             />
           </div>
         </section>
+        )}
+
+        {/* TAB 2: ENROLLED STUDENTS WITH LOGBOOK & READINESS */}
+        {classViewTab === "students" && (
+          <section className="table-card">
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid #e0e4e8",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "12px",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "700",
+                    color: "#002147",
+                    margin: 0,
+                  }}
+                >
+                  {tr("Danh sách Học viên")} ({selectedClass.name})
+                </h3>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "rgba(0,33,71,0.5)",
+                    margin: "4px 0 0",
+                  }}
+                >
+                  {tr("Xem Sổ bay (Logbook) và Kiểm tra mức độ sẵn sàng hoàn thành (Readiness Check) của từng học viên được phân công.")}
+                </p>
+              </div>
+            </div>
+
+            <div className="table-responsive" style={{ overflowX: "auto" }}>
+              <div
+                className="table-header"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "60px 120px 1.5fr 1.5fr 120px 240px",
+                  alignItems: "center",
+                  gap: "12px",
+                  background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
+                  color: "#ffffff",
+                  padding: "14px 20px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  minWidth: "750px",
+                }}
+              >
+                <div style={{ textAlign: "center" }}>{tr("STT")}</div>
+                <div>{tr("Mã học viên")}</div>
+                <div>{tr("Họ và tên")}</div>
+                <div>{tr("Email")}</div>
+                <div>{tr("Trạng thái")}</div>
+                <div style={{ textAlign: "right" }}>{tr("Tra cứu nghiệp vụ")}</div>
+              </div>
+
+              <div className="table-body" style={{ minWidth: "750px" }}>
+                {(!selectedClass.students || selectedClass.students.length === 0) ? (
+                  <div
+                    style={{
+                      padding: "48px 24px",
+                      textAlign: "center",
+                      color: "rgba(0,33,71,0.5)",
+                    }}
+                  >
+                    <div style={{ fontSize: "28px", marginBottom: "8px" }}>👨‍✈️</div>
+                    <p style={{ margin: 0, fontSize: "14px", fontWeight: "500" }}>
+                      {tr("Lớp học này hiện chưa có học viên nào được ghi danh.")}
+                    </p>
+                  </div>
+                ) : (
+                  selectedClass.students.map((st, idx) => (
+                    <div
+                      key={st.enrollmentId || st.accountId || idx}
+                      className="table-row"
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "60px 120px 1.5fr 1.5fr 120px 240px",
+                        alignItems: "center",
+                        gap: "12px",
+                        padding: "14px 20px",
+                        borderBottom: "1px solid #f0f2f5",
+                        fontSize: "13px",
+                      }}
+                    >
+                      <div style={{ textAlign: "center", fontWeight: "700", color: "#64748b" }}>
+                        {String(idx + 1).padStart(2, "0")}
+                      </div>
+                      <div>
+                        <span
+                          style={{
+                            fontWeight: "700",
+                            color: "#002147",
+                            background: "#f1f5f9",
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          {st.studentCode}
+                        </span>
+                      </div>
+                      <div>
+                        <strong style={{ color: "#002147" }}>{st.fullName}</strong>
+                      </div>
+                      <div style={{ color: "#64748b", fontSize: "12px" }}>
+                        {st.email || "—"}
+                      </div>
+                      <div>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "3px 8px",
+                            borderRadius: "4px",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                            background: st.status === "Enrolled" || st.status === "InProgress" ? "#dcfce7" : "#f1f5f9",
+                            color: st.status === "Enrolled" || st.status === "InProgress" ? "#15803d" : "#475569",
+                          }}
+                        >
+                          {st.status || "Enrolled"}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedStudentForDetail(st);
+                            setStudentDetailInitialTab("logbook");
+                          }}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            border: "1px solid #0284c7",
+                            backgroundColor: "#f0f9ff",
+                            color: "#0284c7",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <span>📖</span> {tr("Sổ bay (Logbook)")}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedStudentForDetail(st);
+                            setStudentDetailInitialTab("readiness");
+                          }}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            border: "1px solid #7c3aed",
+                            backgroundColor: "#faf5ff",
+                            color: "#7c3aed",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <span>🎯</span> {tr("Readiness")}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         {showSessionModal && createPortal(
           <div
@@ -1287,6 +1700,48 @@ const InstructorClasses = () => {
                     >
                       <strong style={{ color: "#002147" }}>{tr('Mô tả:')}</strong>{" "}
                       {selectedSubjectDescription}
+                    </div>
+                  )}
+                  {selectedSubjectInstructor && (
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        backgroundColor: selectedSubjectInstructor.isMine
+                          ? "rgba(22, 163, 74, 0.08)"
+                          : "#f8fafc",
+                        border: selectedSubjectInstructor.isMine
+                          ? "1px solid rgba(22, 163, 74, 0.2)"
+                          : "1px solid #e2e8f0",
+                        color: selectedSubjectInstructor.isMine
+                          ? "#16a34a"
+                          : "rgba(0,33,71,0.7)",
+                        fontSize: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <strong style={{ color: "#002147" }}>
+                        {tr("Giảng viên phụ trách môn:")}
+                      </strong>{" "}
+                      <span>{selectedSubjectInstructor.name}</span>
+                      {selectedSubjectInstructor.isMine && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: "700",
+                            backgroundColor: "rgba(22, 163, 74, 0.12)",
+                            color: "#16a34a",
+                            padding: "1px 6px",
+                            borderRadius: "4px",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {tr("Bạn")}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2033,6 +2488,21 @@ const InstructorClasses = () => {
         confirmVariant="danger"
         bodyMessage={tr("Lịch sử điểm danh của buổi học này cũng sẽ bị xóa theo.")}
       />
+
+      {/* Modal xem Sổ bay & Readiness cho học viên */}
+      {selectedStudentForDetail && selectedClass && (
+        <InstructorStudentDetailModal
+          student={{
+            ...selectedStudentForDetail,
+            classId: selectedClass.classId,
+            className: selectedClass.name,
+            courseName: selectedClass.subName,
+            courseVersionNo: selectedClass.raw?.versionNo || 1,
+          }}
+          initialTab={studentDetailInitialTab}
+          onClose={() => setSelectedStudentForDetail(null)}
+        />
+      )}
 
       {/* Toast notifications */}
       <toast.ToastContainer />

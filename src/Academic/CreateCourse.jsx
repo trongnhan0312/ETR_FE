@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { api } from "../utils/api";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
+import CompletionRequirementsSection from "./CompletionRequirementsSection";
 
 const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
   const { tr } = useLanguage();
@@ -12,6 +13,9 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
   const [duration, setDuration] = useState(0);
   const [description, setDescription] = useState("");
   const toast = useToast();
+
+  // Completion Requirements state (Phase 1 & Phase 4) - Để trống mặc định để người tạo chủ động chọn
+  const [completionRequirements, setCompletionRequirements] = useState([]);
 
   // Subjects selection state (Business Rule: Course MUST have at least 1 Subject)
   const [availableSubjects, setAvailableSubjects] = useState([]);
@@ -220,6 +224,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
       structure,
       selectedSubjectIds,
       subjects: subjectsPayload,
+      completionRequirements,
       attendanceProgress: 100,
       activeClassesCount: 0,
       classes: [],
@@ -936,6 +941,14 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                 </label>
               </div>
             </div>
+
+            {/* Completion Requirements Section (Phase 1 & Phase 4) */}
+            <CompletionRequirementsSection
+              isLocked={false}
+              requirements={completionRequirements}
+              onChange={setCompletionRequirements}
+              versionNo={1}
+            />
           </div>
 
           <footer

@@ -548,7 +548,7 @@ const CourseClassManagement = () => {
               }))
             : [];
 
-      await api.post("/Courses", {
+      const createdCourse = await api.post("/Courses", {
         courseCode: newCourse.code || newCourse.courseCode,
         courseName: newCourse.name || newCourse.courseName,
         description: newCourse.description || "",
@@ -560,9 +560,39 @@ const CourseClassManagement = () => {
         courseSubjects: subjectsPayload,
         subjectIds: subjectsPayload.map((s) => s.subjectId),
       });
+
+      const newCourseId = createdCourse?.courseId || createdCourse?.CourseId;
+      const failedReqNames = [];
+      if (newCourseId && Array.isArray(newCourse.completionRequirements) && newCourse.completionRequirements.length > 0) {
+        for (const req of newCourse.completionRequirements) {
+          try {
+            await api.post("/CompletionRequirements", {
+              courseId: newCourseId,
+              requirementName: req.requirementName,
+              description: req.description || null,
+              isMandatory: req.isMandatory !== false,
+              displayOrder: req.displayOrder || 1,
+              requirementType: req.requirementType,
+              thresholdValue: req.thresholdValue != null ? Number(req.thresholdValue) : null
+            });
+          } catch (reqErr) {
+            console.error("Lỗi khi thêm CompletionRequirement cho khóa học mới:", req.requirementName, reqErr);
+            failedReqNames.push(req.requirementName);
+          }
+        }
+      }
+
       await refreshData();
       setIsCreatingCourse(false);
-      toast.success(tr("Tạo khóa học thành công!"), announce("add", tr("Khóa học")));
+
+      if (failedReqNames.length > 0) {
+        toast.warning(
+          `${tr("Khóa học đã được tạo, nhưng có")} ${failedReqNames.length} ${tr("tiêu chuẩn hoàn thành chưa lưu được:")} ${failedReqNames.join(", ")}. ${tr("Vui lòng mở Cập nhật Khóa học để kiểm tra và lưu bổ sung.")}`,
+          { duration: 8000 }
+        );
+      } else {
+        toast.success(tr("Tạo khóa học thành công!"), announce("add", tr("Khóa học")));
+      }
     } catch (error) {
       console.error("Error creating course:", error);
       toast.error(parseApiError(error, tr("Tạo khóa học thất bại")));

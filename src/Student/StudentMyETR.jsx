@@ -172,12 +172,31 @@ export const StudentReadinessCheckSection = ({ etrId, enrollmentId }) => {
           <p className="info-eyebrow">{tr('Đánh giá Mức độ Sẵn sàng')}</p>
           <h3 style={{ margin: '2px 0 4px' }}>{tr('Kiểm tra Tính Sẵn sàng Hoàn thành Khóa học')}</h3>
           <p style={{ fontSize: 12, color: 'rgba(0,33,71,0.6)', margin: 0 }}>
-            {tr('Đối chiếu theo Giáo trình:')} <strong>{readiness.courseName ?? readiness.CourseName}</strong> ({tr('Phiên bản')} #{versionNo})
+            {tr('Đối chiếu theo Giáo trình:')} <strong>{readiness.courseName ?? readiness.CourseName}</strong> ({tr('Phiên bản')} <span style={{ color: '#0369a1', fontWeight: 700 }}>#{versionNo}</span>)
           </p>
         </div>
         <div>
           {getOverallBadge(overallStatus)}
         </div>
+      </div>
+
+      {/* Snapshot Information Banner (P1-05 & Phase 4) */}
+      <div style={{
+        marginTop: 12,
+        padding: '10px 14px',
+        borderRadius: 8,
+        background: '#f0f9ff',
+        border: '1px solid #bae6fd',
+        fontSize: 12,
+        color: '#0369a1',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+      }}>
+        <span>📌</span>
+        <span>
+          <strong>{tr('Cơ chế Snapshot Giáo trình:')}</strong> {tr('Hồ sơ ETR này được gắn cố định với phiên bản')} <strong>v{versionNo}</strong> {tr('của khóa học tại thời điểm ghi danh. Mọi điều kiện hoàn thành hiển thị bên dưới áp dụng theo snapshot này, không bị thay đổi hồi tố khi giáo trình cập nhật phiên bản mới.')}
+        </span>
       </div>
 
       {/* Summary KPI Pills */}

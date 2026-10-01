@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
+import CompletionRequirementsSection from './CompletionRequirementsSection';
 
 const UpdateCourseModal = ({ course, onSave, onCancel }) => {
   const { tr } = useLanguage();
@@ -401,6 +402,13 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                 <option value="Archived">{tr('⚪ Archived (Lưu trữ / Ngừng mở lớp)')}</option>
               </select>
             </div>
+
+            {/* Completion Requirements Section (Phase 1 & Phase 4) */}
+            <CompletionRequirementsSection
+              courseId={course.courseId}
+              isLocked={course.status === 'Active' && hasClasses}
+              versionNo={course.versionNo || 1}
+            />
           </div>
 
           <footer className="modal-footer" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #e0e4e9' }}>
