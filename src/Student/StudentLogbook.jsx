@@ -3,28 +3,34 @@ import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../components/Toast';
 
-const StudentLogbook = () => {
+const StudentLogbook = ({ studentId }) => {
   const { tr } = useLanguage();
   const toast = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [logbook, setLogbook] = useState(null);
   const [filterType, setFilterType] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchLogbook();
-  }, []);
+  }, [studentId]);
 
   const fetchLogbook = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await api.get('/Logbook/my-summary', { suppressAuthRedirect: true });
+      const endpoint = studentId ? `/Logbook/student/${studentId}` : '/Logbook/my-summary';
+      const data = await api.get(endpoint, { suppressAuthRedirect: true });
       if (data) {
         setLogbook(data);
       }
     } catch (err) {
-      toast.error(tr('Không thể tải dữ liệu sổ bay'));
+      console.error('Fetch logbook failed:', err);
+      const msg = err.response?.data?.message || err.message || tr('Không thể tải dữ liệu sổ bay');
+      setError(msg);
+      toast.error(tr('Không thể tải dữ liệu sổ bay'), msg);
     } finally {
       setLoading(false);
     }
@@ -104,9 +110,32 @@ const StudentLogbook = () => {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>{tr('Đang tải dữ liệu sổ bay...')}</div>
+        <div style={{ textAlign: 'center', padding: '48px 20px', color: '#64748b' }}>
+          <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
+          <div style={{ fontSize: '15px', fontWeight: 600 }}>{tr('Đang tải dữ liệu sổ bay...')}</div>
+        </div>
+      ) : error ? (
+        <div style={{ textAlign: 'center', padding: '40px 20px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', color: '#b91c1c', marginBottom: '24px' }}>
+          <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚠️</div>
+          <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '6px' }}>{tr('Không thể tải dữ liệu sổ bay')}</div>
+          <div style={{ fontSize: '13px', color: '#7f1d1d', marginBottom: '16px' }}>{error}</div>
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={fetchLogbook}
+            style={{ padding: '8px 18px', borderRadius: '8px', cursor: 'pointer', background: '#002147', color: '#fff', border: 'none' }}
+          >
+            {tr('Thử lại')}
+          </button>
+        </div>
       ) : !logbook ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>{tr('Chưa có dữ liệu sổ bay được ghi nhận.')}</div>
+        <div style={{ textAlign: 'center', padding: '48px 20px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', color: '#64748b' }}>
+          <div style={{ fontSize: '36px', marginBottom: '12px' }}>📭</div>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>{tr('Chưa có dữ liệu sổ bay')}</div>
+          <div style={{ fontSize: '13px', maxWidth: '480px', margin: '0 auto', lineHeight: '1.5' }}>
+            {tr('Sổ bay chỉ ghi nhận các buổi học bay/mô phỏng có mặt (Present), đã được Giảng viên ký số hoặc buổi học đã được xác nhận hoàn thành.')}
+          </div>
+        </div>
       ) : (
         <>
           {/* ── Summary Cards Grid ── */}
