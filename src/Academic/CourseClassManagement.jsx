@@ -657,7 +657,21 @@ const CourseClassManagement = () => {
               .toUpperCase() === codeUpper,
         )
       ) {
-        toast.error(tr("Tạo lớp học thất bại"));
+        toast.error(tr("Class Code existed"));
+        return;
+      }
+
+      // Tên lớp phải khác các lớp còn lại trong cùng khóa để phân biệt các lớp
+      const cleanName = (newClass.name?.trim() || "");
+      if (
+        cleanName &&
+        allClassesRaw.some(
+          (c) =>
+            String(c.courseId) === String(parsedCourseId) &&
+            String(c.className || "").trim().toLowerCase() === cleanName.toLowerCase(),
+        )
+      ) {
+        toast.error(tr("Class Name existed. Please use a different name to distinct classes."));
         return;
       }
 
@@ -2140,6 +2154,7 @@ const CourseClassManagement = () => {
       {isCreatingClass && (
         <CreateClass
           courses={allCoursesRaw}
+          classes={allClassesRaw}
           initialCourseId={creatingClassCourseId}
           instructors={instructorsList}
           subjects={allSubjects}

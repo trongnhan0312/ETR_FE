@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
+import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
 
-const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], subjects = [], onSave, onCancel }) => {
+const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instructors = [], subjects = [], onSave, onCancel }) => {
   const { tr } = useLanguage();
+  const toast = useToast();
   const getInitialCourseId = () => {
     if (initialCourseId && courses.some(c => String(c.courseId) === String(initialCourseId))) {
       return String(initialCourseId);
@@ -189,6 +191,27 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
       return;
     }
 
+    // Mã lớp phải duy nhất toàn hệ thống (khớp unique index IX_Classes_ClassCode của BE):
+    // một khóa không thể có 2 lớp trùng mã.
+    const trimmedCode = code.trim();
+    const codeUpper = trimmedCode.toUpperCase();
+    if ((classes || []).some((c) => String(c.classCode || '').trim().toUpperCase() === codeUpper)) {
+      toast.error(tr('Class Code existed'));
+      return;
+    }
+
+    // Tên lớp phải khác các lớp còn lại trong cùng khóa để phân biệt các lớp.
+    const trimmedName = name.trim();
+    const nameLower = trimmedName.toLowerCase();
+    if ((classes || []).some(
+      (c) =>
+        String(c.courseId) === String(parentCourse) &&
+        String(c.className || '').trim().toLowerCase() === nameLower,
+    )) {
+      toast.error(tr('Class Name existed. Please use a different name to distinct classes.'));
+      return;
+    }
+
     if (endDate <= startDate) {
       alert(tr('Ngày kết thúc phải sau ngày bắt đầu.'));
       return;
@@ -208,8 +231,8 @@ const CreateClass = ({ courses = [], initialCourseId = null, instructors = [], s
     }));
 
     const newClass = {
-      code: code.trim(),
-      name: name.trim(),
+      code: trimmedCode,
+      name: trimmedName,
       startDate: startDate || todayStr,
       endDate: endDate || minEndDateStr || nextMonthStr,
       location: location.trim() || 'Phòng Sim A320',

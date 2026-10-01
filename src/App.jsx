@@ -58,6 +58,7 @@ import TrainingManagerLayout from './TrainingManager/TrainingManagerLayout';
 import TrainingManagerDashboard from './TrainingManager/TrainingManagerDashboard';
 import ClassStatus from './TrainingManager/ClassStatus';
 import EtrApproval from './TrainingManager/EtrApproval';
+import EtrReopen from './ADMIN/EtrReopen';
 import TrainingManagerAmendments from './TrainingManager/TrainingManagerAmendments';
 import StudentLayout from './Student/StudentLayout';
 import StudentDashboard from './Student/StudentDashboard';
@@ -182,7 +183,7 @@ function App() {
 						<Route path="departments" element={<DepartmentManagement />} />
 						<Route path="audit" element={<AuditLog />} />
 						<Route path="config" element={<SystemConfiguration />} />
-						<Route path="etr-approval" element={<EtrApproval />} />
+						<Route path="etr-approval" element={<EtrReopen />} />
 					</Route>
 				</Route>
 
