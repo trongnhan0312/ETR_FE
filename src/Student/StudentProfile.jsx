@@ -3,6 +3,7 @@ import { api } from '../utils/api';
 import { announce } from '../utils/crudNotify';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
+import { uploadToCloudinary, validateEvidenceFile } from '../utils/cloudinary';
 
 /** Format a Date or ISO string → yyyy-MM-dd for <input type="date"> */
 const toDateInputValue = (d) => {
@@ -84,7 +85,9 @@ const StudentProfile = () => {
   const [uploadDocType, setUploadDocType] = useState('License');
   const [uploadFileName, setUploadFileName] = useState('');
   const [uploadFileUrl, setUploadFileUrl] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   /* ── Password states ── */
   const [currentPwd, setCurrentPwd] = useState('');
@@ -251,32 +254,70 @@ const StudentProfile = () => {
     }
   };
 
+  const handleFileChange = (file) => {
+    if (!file) return;
+    const errorMsg = validateEvidenceFile(file);
+    if (errorMsg) {
+      toast.error(tr(errorMsg) || errorMsg);
+      return;
+    }
+    setUploadFile(file);
+    if (!uploadFileName || uploadFileName.trim() === '') {
+      setUploadFileName(file.name);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileChange(e.dataTransfer.files[0]);
+    }
+  };
+
   /* ── Upload credential attachment ── */
   const handleUploadAttachment = async (e) => {
     e.preventDefault();
-    if (!uploadFileName.trim() || !uploadFileUrl.trim()) {
-      toast.error(tr('Vui lòng nhập tên tệp và đường dẫn URL.'));
+    if (!uploadFile && !uploadFileUrl.trim()) {
+      toast.error(tr('Vui lòng chọn tệp PDF hoặc ảnh minh chứng để tải lên.'));
       return;
     }
 
     setUploading(true);
     try {
+      let cloudFile = null;
+      if (uploadFile) {
+        cloudFile = await uploadToCloudinary(uploadFile);
+      }
+
       const payload = {
         docType: uploadDocType,
-        url: uploadFileUrl.trim(),
-        fileName: uploadFileName.trim(),
-        mimeType: uploadFileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
-        fileSize: 102400,
+        url: cloudFile ? cloudFile.fileUrl : uploadFileUrl.trim(),
+        fileName: cloudFile ? cloudFile.fileName : (uploadFileName.trim() || 'evidence.pdf'),
+        publicId: cloudFile?.publicId || null,
+        mimeType: cloudFile ? cloudFile.mimeType : (uploadFileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+        fileSize: cloudFile?.fileSize || null,
       };
 
       await api.post(`/UserProfiles/${profile.accountId}/attachments`, payload, { suppressAuthRedirect: true });
-      toast.success(tr('Tải lên minh chứng thành công'));
+      toast.success(tr('Tải lên minh chứng thành công'), announce('add', tr('Minh chứng')));
       setShowUploadModal(false);
+      setUploadFile(null);
       setUploadFileName('');
       setUploadFileUrl('');
       fetchAttachments(profile.accountId);
     } catch (err) {
-      toast.error(tr('Tải lên minh chứng thất bại'), err.message);
+      console.error('[Upload Attachment] Lỗi khi upload minh chứng:', err);
+      toast.error(tr('Tải lên minh chứng thất bại'), err.message || tr('Vui lòng thử lại.'));
     } finally {
       setUploading(false);
     }
@@ -776,21 +817,47 @@ const StudentProfile = () => {
           <div
             style={{
               background: '#fff',
-              borderRadius: '12px',
+              borderRadius: '16px',
               padding: '24px',
               width: '90%',
-              maxWidth: '480px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+              maxWidth: '520px',
+              boxShadow: '0 12px 36px rgba(0,0,0,0.18)',
             }}
           >
-            <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#0f172a' }}>{tr('Tải lên Minh chứng Năng định')}</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '18px', fontWeight: 700 }}>{tr('Tải lên Minh chứng Năng định')}</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!uploading) {
+                    setShowUploadModal(false);
+                    setUploadFile(null);
+                    setUploadFileName('');
+                    setUploadFileUrl('');
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '4px',
+                }}
+              >
+                &times;
+              </button>
+            </div>
+
             <form onSubmit={handleUploadAttachment}>
               <div className="form-group" style={{ marginBottom: '14px' }}>
-                <label>{tr('Loại tài liệu (Document Category)')}</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                  {tr('Loại tài liệu (Document Category)')}
+                </label>
                 <select
                   value={uploadDocType}
                   onChange={(e) => setUploadDocType(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccd6e0' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ccd6e0', fontSize: '14px' }}
                 >
                   {DOC_TYPE_OPTIONS.map((d) => (
                     <option key={d} value={d}>{d}</option>
@@ -798,44 +865,176 @@ const StudentProfile = () => {
                 </select>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '14px' }}>
-                <label>{tr('Tên tệp (File Name)')}</label>
-                <input
-                  type="text"
-                  placeholder="e.g. CPL_License_Front.pdf"
-                  value={uploadFileName}
-                  onChange={(e) => setUploadFileName(e.target.value)}
-                  required
-                />
+              {/* Tệp minh chứng (PDF hoặc Ảnh) - Chọn file / Kéo thả giống bên Upload Evidence */}
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                  {tr('Tệp tài liệu (PDF / Hình ảnh)')}
+                </label>
+
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('credential-file-input')?.click()}
+                  style={{
+                    border: dragging ? '2px dashed #0284c7' : '2px dashed #cbd5e1',
+                    background: dragging ? '#f0f9ff' : '#f8fafc',
+                    borderRadius: '12px',
+                    padding: '24px 16px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <input
+                    id="credential-file-input"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        handleFileChange(e.target.files[0]);
+                      }
+                    }}
+                  />
+
+                  {uploadFile ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '32px' }}>
+                        {uploadFile.name.toLowerCase().endsWith('.pdf') ? '📄' : '🖼️'}
+                      </span>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '14px', wordBreak: 'break-all' }}>
+                          {uploadFile.name}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                          {(uploadFile.size / (1024 * 1024)).toFixed(2)} MB · <span style={{ color: '#0284c7' }}>{tr('Nhấn để chọn tệp khác')}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUploadFile(null);
+                          setUploadFileName('');
+                        }}
+                        style={{
+                          marginLeft: '8px',
+                          background: '#fee2e2',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '26px',
+                          height: '26px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                        }}
+                        title={tr('Xóa tệp')}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: '36px', marginBottom: '8px' }}>📂</div>
+                      <div style={{ fontWeight: 600, color: '#002147', fontSize: '14px', marginBottom: '4px' }}>
+                        {tr('Nhấn để chọn tệp PDF hoặc kéo thả vào đây')}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>
+                        {tr('Hỗ trợ định dạng PDF, PNG, JPG, WEBP — tải lên Cloudinary')}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '18px' }}>
-                <label>{tr('Đường dẫn URL / Cloudinary URL')}</label>
-                <input
-                  type="url"
-                  placeholder="https://res.cloudinary.com/..."
-                  value={uploadFileUrl}
-                  onChange={(e) => setUploadFileUrl(e.target.value)}
-                  required
-                />
-              </div>
+              {/* Tên tệp hiển thị / Ghi chú tên */}
+              {uploadFile && (
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {tr('Tên tệp (File Name)')}
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadFileName}
+                    onChange={(e) => setUploadFileName(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ccd6e0', fontSize: '14px' }}
+                    placeholder="e.g. CPL_License_Front.pdf"
+                    required
+                  />
+                </div>
+              )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              {/* Fallback nếu không chọn file từ máy: Tuỳ chọn nhập URL */}
+              {!uploadFile && (
+                <div style={{ marginBottom: '16px' }}>
+                  <details style={{ fontSize: '12px', color: '#64748b' }}>
+                    <summary style={{ cursor: 'pointer', color: '#0284c7', fontWeight: 500, marginBottom: '8px' }}>
+                      {tr('Hoặc nhập đường dẫn URL / Cloudinary URL trực tiếp')}
+                    </summary>
+                    <div style={{ marginTop: '8px' }}>
+                      <input
+                        type="url"
+                        placeholder="https://res.cloudinary.com/..."
+                        value={uploadFileUrl}
+                        onChange={(e) => setUploadFileUrl(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #ccd6e0', fontSize: '13px', marginBottom: '6px' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="e.g. CPL_License_Front.pdf"
+                        value={uploadFileName}
+                        onChange={(e) => setUploadFileName(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #ccd6e0', fontSize: '13px' }}
+                      />
+                    </div>
+                  </details>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
                 <button
                   type="button"
                   className="secondary-btn"
-                  onClick={() => setShowUploadModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '8px' }}
+                  disabled={uploading}
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setUploadFile(null);
+                    setUploadFileName('');
+                    setUploadFileUrl('');
+                  }}
+                  style={{ padding: '9px 18px', borderRadius: '8px', cursor: 'pointer' }}
                 >
                   {tr('Hủy')}
                 </button>
                 <button
                   type="submit"
                   className="primary-btn"
-                  disabled={uploading}
-                  style={{ padding: '8px 20px', borderRadius: '8px' }}
+                  disabled={uploading || (!uploadFile && !uploadFileUrl.trim())}
+                  style={{
+                    padding: '9px 22px',
+                    borderRadius: '8px',
+                    background: uploading ? '#94a3b8' : '#002147',
+                    color: '#fff',
+                    border: 'none',
+                    fontWeight: 600,
+                    cursor: uploading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
                 >
-                  {uploading ? tr('Đang tải lên...') : tr('Xác nhận')}
+                  {uploading ? (
+                    <>
+                      <span>⏳</span>
+                      <span>{tr('Đang tải lên Cloudinary...')}</span>
+                    </>
+                  ) : (
+                    tr('Xác nhận tải lên')
+                  )}
                 </button>
               </div>
             </form>
