@@ -937,7 +937,10 @@ const InstructorAssessments = () => {
       replace: false,
       state: {
         ...(location.state || {}),
-        assessmentGradingId: assessment.assessmentId ?? assessment.sessionId,
+        assessmentGradingId:
+          assessment.assessmentId ??
+          assessment.sessionId ??
+          (assessment.practicalChecklistId ? `checklist-${assessment.practicalChecklistId}` : "direct"),
         assessmentClassId: selectedClassId,
       },
     });
@@ -2058,7 +2061,9 @@ const InstructorAssessments = () => {
   const scorePager = usePagination(selectedAssessment ? displayScores : [], {
     pageSize: 10,
     resetKey:
-      selectedAssessment?.sessionId ?? selectedAssessment?.assessmentId,
+      selectedAssessment?.sessionId ??
+      selectedAssessment?.assessmentId ??
+      selectedAssessment?.practicalChecklistId,
   });
 
   if (selectedAssessment) {
