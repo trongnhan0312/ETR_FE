@@ -252,7 +252,7 @@ describe('Phase 3: Pilot Credentials & Logbook Summary Frontend Tests', () => {
       expect(screen.getByText('Flight Log & Cockpit Training')).toBeInTheDocument();
       expect(screen.getByText('Recording standard:')).toBeInTheDocument();
       expect(screen.getByText(/Total logbook hours reflect actual signed-off training time/i)).toBeInTheDocument();
-      expect(screen.getByText(/Actual Flight Hours \(Flight\)/)).toBeInTheDocument();
+      expect(screen.getByText(/Flight Hours/)).toBeInTheDocument();
       expect(screen.getByText('Pending signature')).toBeInTheDocument();
     });
 

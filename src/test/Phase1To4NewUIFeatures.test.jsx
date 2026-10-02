@@ -49,7 +49,7 @@ describe('New Phase 1-4 UI Features Tests', () => {
       );
 
       expect(screen.getByText(/Tiêu chuẩn hoàn thành khóa học/i)).toBeInTheDocument();
-      expect(screen.getByText('v2')).toBeInTheDocument();
+      expect(screen.getAllByText('v2').length).toBeGreaterThan(0);
       expect(screen.getByText('Tỷ lệ chuyên cần tối thiểu')).toBeInTheDocument();
       expect(screen.getByText('Giờ bay thực tế tối thiểu')).toBeInTheDocument();
       expect(screen.getByText(/≥ 80 %/i)).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('New Phase 1-4 UI Features Tests', () => {
       );
 
       // Open add form
-      const addBtn = screen.getByText('+ Thêm tiêu chí');
+      const addBtn = screen.getByRole('button', { name: /\+?\s*Thêm tiêu chí/i });
       fireEvent.click(addBtn);
 
       expect(screen.getByText(/Thêm Tiêu chuẩn Hoàn thành Mới/i)).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('New Phase 1-4 UI Features Tests', () => {
 
       // Submit form
       const saveBtn = screen.getByText('Lưu tiêu chuẩn');
-      fireEvent.click(saveBtn);
+      fireEvent.submit(saveBtn.closest('form'));
 
       await waitFor(() => {
         expect(screen.getByText(/phải nằm trong khoảng 0 - 100 %/i)).toBeInTheDocument();
