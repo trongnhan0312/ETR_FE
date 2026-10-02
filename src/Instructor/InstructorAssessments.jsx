@@ -143,11 +143,11 @@ const InstructorAssessments = () => {
   const getAssessmentTypeLabel = (type = selectedAssessmentType) => {
     switch (type) {
       case "practical":
-        return tr("Practical (Thực hành)");
+        return tr("Thực hành");
       case "both":
-        return tr("Assessment + Practical");
+        return tr("Lý thuyết + Thực hành");
       default:
-        return tr("Assessment (Lý thuyết)");
+        return tr("Lý thuyết");
     }
   };
 

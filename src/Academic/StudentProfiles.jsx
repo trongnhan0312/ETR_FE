@@ -501,7 +501,7 @@ const StudentProfiles = () => {
       >
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#002147', margin: 0 }}>
-            {tr('Hồ sơ Học viên (User Profiles)')}
+            {tr('Hồ sơ học viên')}
           </h1>
           <div className="divider-gold" style={{ width: '40px', height: '3px', background: '#c5a059', margin: '8px 0 12px' }} />
           <p className="header-description" style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
@@ -714,7 +714,7 @@ const StudentProfiles = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tên đăng nhập (Email / Username) *')}</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Tên đăng nhập (Email) *')}</label>
                 <input
                   type="email"
                   required
@@ -751,7 +751,7 @@ const StudentProfiles = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Vai trò (Role)')}</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '4px' }}>{tr('Vai trò')}</label>
                   <input type="text" disabled value="Student" style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }} />
                 </div>
                 <div>
@@ -803,8 +803,8 @@ const StudentProfiles = () => {
                     onChange={(e) => setCGender(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                   >
-                    <option value="Male">{tr('Nam (Male)')}</option>
-                    <option value="Female">{tr('Nữ (Female)')}</option>
+                    <option value="Male">{tr('Nam')}</option>
+                    <option value="Female">{tr('Nữ')}</option>
                   </select>
                 </div>
               </div>
@@ -919,8 +919,8 @@ const StudentProfiles = () => {
                     onChange={(e) => setEGender(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
                   >
-                    <option value="Male">{tr('Nam (Male)')}</option>
-                    <option value="Female">{tr('Nữ (Female)')}</option>
+                    <option value="Male">{tr('Nam')}</option>
+                    <option value="Female">{tr('Nữ')}</option>
                   </select>
                 </div>
               </div>
@@ -986,11 +986,11 @@ const StudentProfiles = () => {
                 { label: tr('Ngày sinh'), value: formatDate(viewingProfile.dateOfBirth, lang) },
                 { label: tr('Giới tính'), value: tr(GENDER_LABEL[viewingProfile.gender]) || viewingProfile.gender || 'N/A' },
                 { label: tr('Tổ chức'), value: viewingProfile.organization || 'N/A' },
-                { label: tr('Bằng lái (License)'), value: viewingProfile.licenseType ? `${viewingProfile.licenseType} (${viewingProfile.licenseNumber || '--'})` : 'N/A' },
+                { label: tr('Bằng lái phi công'), value: viewingProfile.licenseType ? `${viewingProfile.licenseType} (${viewingProfile.licenseNumber || '--'})` : 'N/A' },
                 { label: tr('Hạn bằng lái'), value: formatDate(viewingProfile.licenseExpiryDate, lang) },
-                { label: tr('Hạng y tế (Medical)'), value: viewingProfile.medicalClass ? `${viewingProfile.medicalClass} (Hạn: ${formatDate(viewingProfile.medicalExpiryDate, lang)})` : 'N/A' },
-                { label: tr('Trình độ ICAO ELP'), value: viewingProfile.icaoElpLevel ? `Level ${viewingProfile.icaoElpLevel} (Hạn: ${formatDate(viewingProfile.icaoElpExpiryDate, lang)})` : 'N/A' },
-                { label: tr('Type Ratings'), value: viewingProfile.typeRatings || 'N/A' },
+                { label: tr('Hạng sức khỏe hàng không'), value: viewingProfile.medicalClass ? `${viewingProfile.medicalClass} (Hạn: ${formatDate(viewingProfile.medicalExpiryDate, lang)})` : 'N/A' },
+                { label: tr('Trình độ tiếng Anh ICAO'), value: viewingProfile.icaoElpLevel ? `Level ${viewingProfile.icaoElpLevel} (Hạn: ${formatDate(viewingProfile.icaoElpExpiryDate, lang)})` : 'N/A' },
+                { label: tr('Định danh loại tàu bay'), value: viewingProfile.typeRatings || 'N/A' },
                 {
                   label: tr('Trạng thái năng định'),
                   value: (
@@ -1126,14 +1126,14 @@ const StudentProfiles = () => {
                   </div>
                   <div>
                     <span style={{ color: '#64748b' }}>{tr('Khám sức khỏe:')}</span>{' '}
-                    <strong>{verifyingProfile.medicalClass || 'N/A'}</strong> (Hạn: {formatDate(verifyingProfile.medicalExpiryDate, lang)})
+                    <strong>{verifyingProfile.medicalClass || 'N/A'}</strong> (Hạn: {formatDate(viewingProfile?.medicalExpiryDate || verifyingProfile.medicalExpiryDate, lang)})
                   </div>
                   <div>
                     <span style={{ color: '#64748b' }}>{tr('ICAO ELP:')}</span>{' '}
                     <strong>{verifyingProfile.icaoElpLevel ? `Level ${verifyingProfile.icaoElpLevel}` : 'N/A'}</strong> (Hạn: {formatDate(verifyingProfile.icaoElpExpiryDate, lang)})
                   </div>
                   <div style={{ gridColumn: 'span 2' }}>
-                    <span style={{ color: '#64748b' }}>{tr('Type Ratings:')}</span>{' '}
+                    <span style={{ color: '#64748b' }}>{tr('Định danh loại tàu bay:')}</span>{' '}
                     <strong>{verifyingProfile.typeRatings || 'N/A'}</strong>
                   </div>
                 </div>
@@ -1160,7 +1160,7 @@ const StudentProfiles = () => {
                       textAlign: 'center'
                     }}
                   >
-                    📄 {tr('1. Tài liệu đính kèm')} ({verifyAttachments.length})
+                    📄 {tr('Tài liệu đính kèm')} ({verifyAttachments.length})
                   </button>
                   <button
                     type="button"
@@ -1177,7 +1177,7 @@ const StudentProfiles = () => {
                       textAlign: 'center'
                     }}
                   >
-                    🏢 {tr('2. Xác minh trực tiếp / Ngoại tuyến')}
+                    🏢 {tr('Xác minh trực tiếp / Ngoại tuyến')}
                   </button>
                 </div>
               </div>

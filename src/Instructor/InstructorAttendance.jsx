@@ -1757,7 +1757,7 @@ const InstructorAttendance = () => {
                         marginBottom: "6px",
                       }}
                     >
-                      {tr("Đánh giá Năng lực (Performance Grade)")}
+                      {tr("Đánh giá năng lực")}
                     </label>
                     <select
                       value={flightSimForm.performanceGrade || "Satisfactory"}
@@ -1777,13 +1777,13 @@ const InstructorAttendance = () => {
                       }}
                     >
                       <option value="Satisfactory">
-                        Satisfactory (Đạt yêu cầu)
+                        {tr("Đạt yêu cầu")}
                       </option>
                       <option value="Unsatisfactory">
-                        Unsatisfactory (Chưa đạt)
+                        {tr("Chưa đạt")}
                       </option>
                       <option value="Incomplete">
-                        Incomplete (Chưa hoàn thành)
+                        {tr("Chưa hoàn thành")}
                       </option>
                     </select>
                   </div>
@@ -1799,7 +1799,7 @@ const InstructorAttendance = () => {
                         marginBottom: "8px",
                       }}
                     >
-                      {tr("Giờ Huấn luyện (Training Hours)")}
+                      {tr("Giờ huấn luyện")}
                     </label>
                     <div
                       style={{
@@ -1811,7 +1811,7 @@ const InstructorAttendance = () => {
                       {selectedSession.trainingType === "Flight" ? (
                         <div>
                           <span style={{ fontSize: "11px", color: "#64748b" }}>
-                            Flight Hours
+                            {tr("Giờ bay thực tế")}
                           </span>
                           <input
                             type="number"
@@ -1838,7 +1838,7 @@ const InstructorAttendance = () => {
                       ) : (
                         <div>
                           <span style={{ fontSize: "11px", color: "#64748b" }}>
-                            Simulator Hours
+                            {tr("Giờ buồng lái mô phỏng")}
                           </span>
                           <input
                             type="number"
@@ -1865,7 +1865,7 @@ const InstructorAttendance = () => {
                       )}
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Dual Hours
+                          {tr("Giờ bay kèm")}
                         </span>
                         <input
                           type="number"
@@ -1891,7 +1891,7 @@ const InstructorAttendance = () => {
                       </div>
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Solo Hours
+                          {tr("Giờ bay đơn")}
                         </span>
                         <input
                           type="number"
@@ -1917,7 +1917,7 @@ const InstructorAttendance = () => {
                       </div>
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          PIC Hours
+                          {tr("Giờ lái chính (PIC)")}
                         </span>
                         <input
                           type="number"
@@ -1943,7 +1943,7 @@ const InstructorAttendance = () => {
                       </div>
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Night Hours
+                          {tr("Giờ bay đêm")}
                         </span>
                         <input
                           type="number"
@@ -1969,7 +1969,7 @@ const InstructorAttendance = () => {
                       </div>
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Instrument Hours
+                          {tr("Giờ bay bằng thiết bị")}
                         </span>
                         <input
                           type="number"
@@ -1995,7 +1995,7 @@ const InstructorAttendance = () => {
                       </div>
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Cross Country
+                          {tr("Giờ bay đường dài")}
                         </span>
                         <input
                           type="number"
@@ -2033,7 +2033,7 @@ const InstructorAttendance = () => {
                     >
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Day Landings
+                          {tr("Hạ cánh ban ngày")}
                         </span>
                         <input
                           type="number"
@@ -2058,7 +2058,7 @@ const InstructorAttendance = () => {
                       </div>
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Night Landings
+                          {tr("Hạ cánh ban đêm")}
                         </span>
                         <input
                           type="number"
@@ -2083,7 +2083,7 @@ const InstructorAttendance = () => {
                       </div>
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Aircraft Reg (Số hiệu tàu)
+                          {tr("Số hiệu tàu bay")}
                         </span>
                         <input
                           type="text"
@@ -2109,7 +2109,7 @@ const InstructorAttendance = () => {
                   ) : (
                     <div>
                       <span style={{ fontSize: "11px", color: "#64748b" }}>
-                        Simulator Device (Thiết bị buồng lái mô phỏng / FSTD)
+                        {tr("Thiết bị buồng lái mô phỏng")}
                       </span>
                       <input
                         type="text"
@@ -2144,7 +2144,7 @@ const InstructorAttendance = () => {
                     >
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Departure (ICAO)
+                          {tr("Sân bay khởi hành (ICAO)")}
                         </span>
                         <input
                           type="text"
@@ -2168,7 +2168,7 @@ const InstructorAttendance = () => {
                       </div>
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Arrival (ICAO)
+                          {tr("Sân bay đến (ICAO)")}
                         </span>
                         <input
                           type="text"
@@ -2192,7 +2192,7 @@ const InstructorAttendance = () => {
                       </div>
                       <div>
                         <span style={{ fontSize: "11px", color: "#64748b" }}>
-                          Route / Bài bay
+                          {tr("Đường bay / Bài huấn luyện")}
                         </span>
                         <input
                           type="text"
@@ -2228,7 +2228,7 @@ const InstructorAttendance = () => {
                         marginBottom: "4px",
                       }}
                     >
-                      {tr("Nhận xét của Giảng viên (Instructor Comments)")}
+                      {tr("Nhận xét của giảng viên")}
                     </label>
                     <textarea
                       value={flightSimForm.instructorComments}
@@ -2277,7 +2277,7 @@ const InstructorAttendance = () => {
                         >
                           {flightSimModalStudent.instructorSignedAt ? (
                             <span style={{ color: "#16a34a" }}>
-                              ✓ Giảng viên đã ký xác nhận (
+                              {tr("✓ Giảng viên đã ký xác nhận")} (
                               {new Date(
                                 flightSimModalStudent.instructorSignedAt,
                               ).toLocaleString("vi-VN")}
@@ -2285,7 +2285,7 @@ const InstructorAttendance = () => {
                             </span>
                           ) : (
                             <span style={{ color: "#d97706" }}>
-                              ⏳ Giảng viên chưa ký xác nhận
+                              {tr("⏳ Giảng viên chưa ký xác nhận")}
                             </span>
                           )}
                         </div>

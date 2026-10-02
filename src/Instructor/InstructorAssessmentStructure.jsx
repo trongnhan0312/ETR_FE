@@ -10,8 +10,8 @@ import Pagination from "../components/Pagination";
 import "./instructor.scss";
 
 const ASSESSMENT_TYPES = [
-  { value: "Theory", label: "Lý thuyết (Theory)" },
-  { value: "Practical", label: "Thực hành (Practical)" },
+  { value: "Theory", label: "Lý thuyết" },
+  { value: "Practical", label: "Thực hành" },
 ];
 
 const EMPTY_ASSESSMENT = {
@@ -84,7 +84,7 @@ const AssessmentModal = ({
           )}
 
           <div className="form-group">
-            <label>{tr('Tên đánh giá (ComponentName)')}</label>
+            <label>{tr('Tên đánh giá')}</label>
             <input
               type="text"
               value={form?.componentName || ""}
@@ -127,7 +127,7 @@ const AssessmentModal = ({
 
           <div className="form-row">
             <div className="form-group">
-              <label>{tr('Điểm đạt (PassingScore)')}</label>
+              <label>{tr('Điểm đạt')}</label>
               <input
                 type="number"
                 min="0"
@@ -143,7 +143,7 @@ const AssessmentModal = ({
               />
             </div>
             <div className="form-group">
-              <label>{tr('Thứ tự hiển thị (DisplayOrder)')}</label>
+              <label>{tr('Thứ tự hiển thị')}</label>
               <input
                 type="number"
                 min="0"
@@ -173,7 +173,7 @@ const AssessmentModal = ({
                 onChange={(e) => onFormUpdate({ ...form, isRequired: e.target.checked })}
                 style={{ cursor: "pointer" }}
               />
-              <span style={{ textTransform: "none" }}>{tr('Bắt buộc (IsRequired)')}</span>
+              <span style={{ textTransform: "none" }}>{tr('Bắt buộc')}</span>
             </label>
           </div>
         </div>
@@ -248,7 +248,7 @@ const ChecklistModal = ({
           )}
 
           <div className="form-group">
-            <label>{tr('Tên mục thực hành (ItemName)')}</label>
+            <label>{tr('Tên mục thực hành')}</label>
             <input
               type="text"
               value={form.itemName}
@@ -258,7 +258,7 @@ const ChecklistModal = ({
           </div>
 
           <div className="form-group">
-            <label>{tr('Mô tả (Description)')}</label>
+            <label>{tr('Mô tả')}</label>
             <textarea
               value={form.description}
               rows={3}
@@ -277,7 +277,7 @@ const ChecklistModal = ({
           </div>
 
           <div className="form-group">
-            <label>{tr('Thứ tự hiển thị (DisplayOrder)')}</label>
+            <label>{tr('Thứ tự hiển thị')}</label>
             <input
               type="number"
               min="0"
@@ -306,7 +306,7 @@ const ChecklistModal = ({
                 onChange={(e) => onFormUpdate({ ...form, isRequired: e.target.checked })}
                 style={{ cursor: "pointer" }}
               />
-              <span style={{ textTransform: "none" }}>{tr('Mục bắt buộc (bắt buộc Pass)')}</span>
+              <span style={{ textTransform: "none" }}>{tr('Mục bắt buộc đạt')}</span>
             </label>
           </div>
         </div>
