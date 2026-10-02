@@ -776,11 +776,12 @@ const InstructorAssessmentStructure = () => {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: "16px",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "20px",
+            alignItems: "start",
           }}
         >
-        <div className="form-group" style={{ marginBottom: 0 }}>
+        <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
           <label>{tr("Lớp của tôi")}</label>
           <select
             value={selectedClassId}
@@ -788,7 +789,7 @@ const InstructorAssessmentStructure = () => {
               setSelectedClassId(e.target.value);
               setSelectedSubjectId("");
             }}
-            style={{ padding: "12px 14px", borderRadius: "12px", fontSize: "13px" }}
+            style={{ padding: "12px 14px", borderRadius: "12px", fontSize: "13px", width: "100%", maxWidth: "100%", boxSizing: "border-box", minWidth: 0 }}
           >
             <option value="">{tr("Chọn lớp")}</option>
             {classesData.map((c) => (
@@ -799,12 +800,12 @@ const InstructorAssessmentStructure = () => {
           </select>
         </div>
 
-        <div className="form-group" style={{ marginBottom: 0 }}>
+        <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
           <label>{tr("Môn học")}</label>
           <select
             value={selectedSubjectId}
             onChange={(e) => setSelectedSubjectId(e.target.value)}
-            style={{ padding: "12px 14px", borderRadius: "12px", fontSize: "13px" }}
+            style={{ padding: "12px 14px", borderRadius: "12px", fontSize: "13px", width: "100%", maxWidth: "100%", boxSizing: "border-box", minWidth: 0 }}
             disabled={!selectedClassId || assignedSubjects.length === 0}
           >
             <option value="">
@@ -822,25 +823,25 @@ const InstructorAssessmentStructure = () => {
         </div>
       </div>
 
-      {!selectedClassId || !selectedSubjectId ? (
-        <div
-          className="empty-table-state"
-          style={{ padding: "60px", textAlign: "center" }}
-        >
-          <p style={{ color: "rgba(0,33,71,0.5)", fontSize: "14px" }}>
-            {!selectedClassId
-              ? tr(
-                  "Chọn lớp của bạn để cấu hình Assessments & Practical Checklists.",
-                )
-              : assignedSubjects.length === 0
+      {!selectedClassId ||
+      assignedSubjects.length === 0 ||
+      !selectedSubjectId ? (
+        !selectedClassId || assignedSubjects.length === 0 ? (
+          <div
+            className="empty-table-state"
+            style={{ padding: "60px", textAlign: "center" }}
+          >
+            <p style={{ color: "rgba(0,33,71,0.5)", fontSize: "14px" }}>
+              {!selectedClassId
                 ? tr(
-                    "Bạn chưa được phân công môn nào trong lớp này. Liên hệ Academic để được phân công.",
+                    "Chọn lớp của bạn để cấu hình Assessments & Practical Checklists.",
                   )
                 : tr(
-                    "Chọn môn học để cấu hình Assessments & Practical Checklists cho môn đó.",
+                    "Bạn chưa được phân công môn nào trong lớp này. Liên hệ Academic để được phân công.",
                   )}
-          </p>
-        </div>
+            </p>
+          </div>
+        ) : null
       ) : (
         <>
           <section className="table-card" style={{ marginBottom: "24px" }}>

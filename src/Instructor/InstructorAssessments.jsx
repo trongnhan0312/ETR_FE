@@ -2194,6 +2194,7 @@ const InstructorAssessments = () => {
                 opacity: allPublished || !selectedAssessment?.assessmentId || !isClassActive ? 0.6 : 1,
                 cursor: allPublished || !selectedAssessment?.assessmentId || !isClassActive ? "not-allowed" : "pointer",
               }}
+            >
               <span>{tr("NHẬP DỮ LIỆU EXCEL")}</span>
             </button>
           </div>
