@@ -106,6 +106,59 @@ const isValidDateOfBirth = (dob) => {
   return !Number.isNaN(year) && year < 2007;
 };
 
+const getCredentialStatus = (profile, tr = (x) => x) => {
+  if (!profile) return { label: tr('N/A'), bg: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', title: '' };
+
+  if (!profile.isCredentialsVerified) {
+    return {
+      label: tr('CHƯA XÁC MINH'),
+      bg: '#fffbeb',
+      color: '#b45309',
+      border: '1px solid #fde68a',
+      title: tr('Hồ sơ năng định chưa được thẩm định'),
+    };
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isGrounded = String(profile.status || '').toLowerCase() === 'grounded';
+  const isLicenseExpired = profile.licenseExpiryDate && String(profile.licenseExpiryDate).slice(0, 10) < todayStr;
+  const isMedicalExpired = profile.medicalExpiryDate && String(profile.medicalExpiryDate).slice(0, 10) < todayStr;
+  const isElpExpired = profile.icaoElpExpiryDate && String(profile.icaoElpExpiryDate).slice(0, 10) < todayStr;
+
+  if (isGrounded) {
+    return {
+      label: tr('ĐÌNH CHỈ (GROUNDED)'),
+      bg: '#fef2f2',
+      color: '#dc2626',
+      border: '1px solid #fecaca',
+      title: tr('Học viên đang trong trạng thái bị đình chỉ bay / huấn luyện'),
+    };
+  }
+
+  if (isLicenseExpired || isMedicalExpired || isElpExpired) {
+    const issues = [];
+    if (isLicenseExpired) issues.push(tr('Bằng lái'));
+    if (isMedicalExpired) issues.push(tr('Giấy KSK'));
+    if (isElpExpired) issues.push(tr('ELP'));
+    return {
+      label: tr('HẾT HẠN CHỨNG CHỈ'),
+      bg: '#fef2f2',
+      color: '#b91c1c',
+      border: '1px solid #fca5a5',
+      title: `${tr('Đã xác minh trước đây nhưng có chứng chỉ hết hạn')}: ${issues.join(', ')}`,
+      issues,
+    };
+  }
+
+  return {
+    label: tr('ĐÃ XÁC MINH'),
+    bg: '#ecfdf5',
+    color: '#047857',
+    border: '1px solid #a7f3d0',
+    title: tr('Hồ sơ năng định hợp lệ và còn hiệu lực'),
+  };
+};
+
 const StudentProfiles = () => {
   const { tr, lang } = useLanguage();
   const toast = useToast();
@@ -189,6 +242,7 @@ const StudentProfiles = () => {
           dateOfBirth: p.dateOfBirth || '',
           gender: p.gender || 'Other',
           organization: p.organization || '',
+          status: p.status || 'Active',
           username: learnerAccs.find((a) => String(a.accountId) === String(p.accountId))?.username || '',
           isCredentialsVerified: !!p.isCredentialsVerified,
           licenseType: p.licenseType || '',
@@ -614,20 +668,27 @@ const StudentProfiles = () => {
                   <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(GENDER_LABEL[profile.gender]) || profile.gender || 'N/A'}</div>
                   <div style={{ color: '#334155', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.organization || 'N/A'}</div>
                   <div>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        background: profile.isCredentialsVerified ? '#ecfdf5' : '#fffbeb',
-                        color: profile.isCredentialsVerified ? '#047857' : '#b45309',
-                        border: profile.isCredentialsVerified ? '1px solid #a7f3d0' : '1px solid #fde68a',
-                        display: 'inline-block',
-                      }}
-                    >
-                      {profile.isCredentialsVerified ? tr('ĐÃ XÁC MINH') : tr('CHƯA XÁC MINH')}
-                    </span>
+                    {(() => {
+                      const cred = getCredentialStatus(profile, tr);
+                      return (
+                        <span
+                          title={cred.title}
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            background: cred.bg,
+                            color: cred.color,
+                            border: cred.border,
+                            display: 'inline-block',
+                            cursor: 'help',
+                          }}
+                        >
+                          {cred.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                     <button
@@ -993,21 +1054,25 @@ const StudentProfiles = () => {
                 { label: tr('Định danh loại tàu bay'), value: viewingProfile.typeRatings || 'N/A' },
                 {
                   label: tr('Trạng thái năng định'),
-                  value: (
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        background: viewingProfile.isCredentialsVerified ? '#ecfdf5' : '#fffbeb',
-                        color: viewingProfile.isCredentialsVerified ? '#047857' : '#b45309',
-                        border: viewingProfile.isCredentialsVerified ? '1px solid #a7f3d0' : '1px solid #fde68a',
-                      }}
-                    >
-                      {viewingProfile.isCredentialsVerified ? tr('ĐÃ XÁC MINH') : tr('CHƯA XÁC MINH')}
-                    </span>
-                  ),
+                  value: (() => {
+                    const cred = getCredentialStatus(viewingProfile, tr);
+                    return (
+                      <span
+                        title={cred.title}
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: cred.bg,
+                          color: cred.color,
+                          border: cred.border,
+                        }}
+                      >
+                        {cred.label}
+                      </span>
+                    );
+                  })(),
                 },
               ].map((row) => (
                 <div
@@ -1086,29 +1151,39 @@ const StudentProfiles = () => {
               )}
 
               {/* Status Banner */}
-              <div style={{
-                padding: '12px 16px',
-                borderRadius: '8px',
-                background: verifyingProfile.isCredentialsVerified ? '#ecfdf5' : '#fffbeb',
-                border: verifyingProfile.isCredentialsVerified ? '1px solid #a7f3d0' : '1px solid #fde68a',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
-                    {tr('Trạng thái hiện tại')}
+              {(() => {
+                const cred = getCredentialStatus(verifyingProfile, tr);
+                return (
+                  <div style={{
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    background: cred.bg,
+                    border: cred.border,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
+                        {tr('Trạng thái năng định')}
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: cred.color }}>
+                        {cred.label}
+                      </div>
+                      {cred.title && (
+                        <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
+                          {cred.title}
+                        </div>
+                      )}
+                    </div>
+                    {verifyingProfile.credentialsVerifiedAt && (
+                      <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'right' }}>
+                        <div>{tr('Xác minh lúc:')} {formatDate(verifyingProfile.credentialsVerifiedAt, lang)}</div>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: verifyingProfile.isCredentialsVerified ? '#047857' : '#b45309' }}>
-                    {verifyingProfile.isCredentialsVerified ? tr('✓ ĐÃ ĐƯỢC XÁC MINH HỢP LỆ') : tr('⏳ CHỜ XÁC MINH / TỰ KHAI')}
-                  </div>
-                </div>
-                {verifyingProfile.credentialsVerifiedAt && (
-                  <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'right' }}>
-                    <div>{tr('Xác minh lúc:')} {formatDate(verifyingProfile.credentialsVerifiedAt, lang)}</div>
-                  </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Pilot Credentials Overview */}
               <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
