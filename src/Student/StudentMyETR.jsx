@@ -121,8 +121,8 @@ export const StudentReadinessCheckSection = ({ etrId, enrollmentId }) => {
   if (loading) {
     return (
       <section className="student-info-card" style={{ marginBottom: 24 }}>
-        <p className="info-eyebrow">{tr('Đánh giá Mức độ Sẵn sàng')}</p>
-        <h3>{tr('Kiểm tra Tính Sẵn sàng Hoàn thành Khóa học (Course Version Readiness)')}</h3>
+        <p className="info-eyebrow">{tr('Đánh giá mức độ sẵn sàng')}</p>
+        <h3>{tr('Kiểm tra tính sẵn sàng hoàn thành khóa học')}</h3>
         <p style={{ color: 'rgba(0,33,71,0.5)', fontSize: 13, marginTop: 8 }}>{tr('Đang kiểm tra dữ liệu...')}</p>
       </section>
     );
@@ -169,8 +169,8 @@ export const StudentReadinessCheckSection = ({ etrId, enrollmentId }) => {
     <section className="student-info-card" style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <p className="info-eyebrow">{tr('Đánh giá Mức độ Sẵn sàng')}</p>
-          <h3 style={{ margin: '2px 0 4px' }}>{tr('Kiểm tra Tính Sẵn sàng Hoàn thành Khóa học')}</h3>
+          <p className="info-eyebrow">{tr('Đánh giá mức độ sẵn sàng')}</p>
+          <h3 style={{ margin: '2px 0 4px' }}>{tr('Kiểm tra tính sẵn sàng hoàn thành khóa học')}</h3>
           <p style={{ fontSize: 12, color: 'rgba(0,33,71,0.6)', margin: 0 }}>
             {tr('Đối chiếu theo Giáo trình:')} <strong>{readiness.courseName ?? readiness.CourseName}</strong> ({tr('Phiên bản')} <span style={{ color: '#0369a1', fontWeight: 700 }}>#{versionNo}</span>)
           </p>
@@ -206,7 +206,7 @@ export const StudentReadinessCheckSection = ({ etrId, enrollmentId }) => {
           <div style={{ fontSize: 18, fontWeight: 700, color: '#0369a1', marginTop: 2 }}>{Number(flightHours).toFixed(1)} {tr('giờ')}</div>
         </div>
         <div style={{ flex: '1 1 200px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{tr('Giờ buồng lái mô phỏng (FSTD)')}</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{tr('Giờ buồng lái mô phỏng')}</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#0284c7', marginTop: 2 }}>{Number(simHours).toFixed(1)} {tr('giờ')}</div>
         </div>
       </div>

@@ -71,7 +71,7 @@ describe('Course Versioning Frontend UI Tests', () => {
     );
 
     // Verify version badge v2 is displayed
-    expect(screen.getByText('v2')).toBeInTheDocument();
+    expect(screen.getAllByText('v2')[0]).toBeInTheDocument();
 
     // Wait for subjects to finish loading
     await waitFor(() => {

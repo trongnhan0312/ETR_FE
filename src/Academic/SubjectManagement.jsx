@@ -527,11 +527,11 @@ const SubjectManagement = () => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
                   <div className="form-group">
-                    <label htmlFor="subj-min-sessions">{tr('Số buổi tối thiểu (MinSessions) *')}</label>
+                    <label htmlFor="subj-min-sessions">{tr('Số buổi tối thiểu *')}</label>
                     <input id="subj-min-sessions" type="number" min="1" value={cMinSessions} onChange={(e) => setCMinSessions(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }} />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="subj-max-sessions">{tr('Số buổi tối đa (MaxSessions) *')}</label>
+                    <label htmlFor="subj-max-sessions">{tr('Số buổi tối đa *')}</label>
                     <input id="subj-max-sessions" type="number" min="1" value={cMaxSessions} onChange={(e) => setCMaxSessions(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }} />
                   </div>
                 </div>
@@ -599,11 +599,11 @@ const SubjectManagement = () => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
                   <div className="form-group">
-                    <label htmlFor="esubj-min-sessions">{tr('Số buổi tối thiểu (MinSessions) *')}</label>
+                    <label htmlFor="esubj-min-sessions">{tr('Số buổi tối thiểu *')}</label>
                     <input id="esubj-min-sessions" type="number" min="1" value={eMinSessions} onChange={(e) => setEMinSessions(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }} />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="esubj-max-sessions">{tr('Số buổi tối đa (MaxSessions) *')}</label>
+                    <label htmlFor="esubj-max-sessions">{tr('Số buổi tối đa *')}</label>
                     <input id="esubj-max-sessions" type="number" min="1" value={eMaxSessions} onChange={(e) => setEMaxSessions(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none' }} />
                   </div>
                 </div>

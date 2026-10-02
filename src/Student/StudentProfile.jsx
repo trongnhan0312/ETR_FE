@@ -586,32 +586,32 @@ const StudentProfile = () => {
             /* Display View */
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginTop: '16px' }}>
               <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Bằng lái (License)')}</div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Bằng lái phi công')}</div>
                 <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{profile.licenseType || '--'}</div>
                 <div style={{ fontSize: '12px', color: '#475569' }}>Số: {profile.licenseNumber || '--'}</div>
                 <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Hạn: {formatDate(profile.licenseExpiryDate)}</div>
               </div>
 
               <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Hạng Y tế (Medical)')}</div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Hạng sức khỏe hàng không')}</div>
                 <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{profile.medicalClass || '--'}</div>
                 <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Hạn: {formatDate(profile.medicalExpiryDate)}</div>
               </div>
 
               <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Trình độ ICAO ELP')}</div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Trình độ tiếng Anh ICAO')}</div>
                 <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>
                   {profile.icaoElpLevel ? `Level ${profile.icaoElpLevel}` : '--'}
                 </div>
                 <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-                  {profile.icaoElpLevel === 6 ? tr('Vô thời hạn (Permanent)') : `Hạn: ${formatDate(profile.icaoElpExpiryDate)}`}
+                  {profile.icaoElpLevel === 6 ? tr('Vô thời hạn') : `Hạn: ${formatDate(profile.icaoElpExpiryDate)}`}
                 </div>
               </div>
 
               <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Type Ratings')}</div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Định danh loại tàu bay')}</div>
                 <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{profile.typeRatings || '--'}</div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Chứng nhận chủng loại tàu bay</div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>{tr('Chứng nhận chủng loại tàu bay')}</div>
               </div>
             </div>
           ) : (
@@ -619,7 +619,7 @@ const StudentProfile = () => {
             <form onSubmit={handleSaveCredentials} style={{ marginTop: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
                 <div className="form-group">
-                  <label>{tr('Loại bằng lái (License Type)')}</label>
+                  <label>{tr('Loại bằng lái')}</label>
                   <select
                     value={credForm.licenseType}
                     onChange={(e) => setCredForm((f) => ({ ...f, licenseType: e.target.value }))}
@@ -632,7 +632,7 @@ const StudentProfile = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>{tr('Số bằng lái (License Number)')}</label>
+                  <label>{tr('Số bằng lái')}</label>
                   <input
                     type="text"
                     placeholder="e.g. VN-12345"
@@ -651,7 +651,7 @@ const StudentProfile = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>{tr('Hạng giấy khám sức khỏe (Medical Class)')}</label>
+                  <label>{tr('Hạng sức khỏe hàng không')}</label>
                   <select
                     value={credForm.medicalClass}
                     onChange={(e) => setCredForm((f) => ({ ...f, medicalClass: e.target.value }))}
@@ -673,7 +673,7 @@ const StudentProfile = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>{tr('ICAO ELP Level (1 - 6)')}</label>
+                  <label>{tr('Cấp độ tiếng Anh ICAO (1 - 6)')}</label>
                   <input
                     type="number"
                     min="1"
@@ -694,7 +694,7 @@ const StudentProfile = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>{tr('Type Ratings (Phân hạng chủng loại)')}</label>
+                  <label>{tr('Định danh loại tàu bay')}</label>
                   <input
                     type="text"
                     placeholder="e.g. A320, B737, C172"
@@ -728,7 +728,7 @@ const StudentProfile = () => {
           {/* ── Credential Attachments & Evidence Section ── */}
           <div style={{ marginTop: '28px', borderTop: '1px solid #eef2f6', paddingTop: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-              <h4 style={{ margin: 0, color: '#1e293b' }}>📎 {tr('Tài liệu Minh chứng Năng định (License & Medical Documents)')}</h4>
+              <h4 style={{ margin: 0, color: '#1e293b' }}>📎 {tr('Tài liệu minh chứng năng định')}</h4>
               <button
                 type="button"
                 className="secondary-btn"
@@ -867,7 +867,7 @@ const StudentProfile = () => {
             <form onSubmit={handleUploadAttachment}>
               <div className="form-group" style={{ marginBottom: '14px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  {tr('Loại tài liệu (Document Category)')}
+                  {tr('Loại tài liệu')}
                 </label>
                 <select
                   value={uploadDocType}
@@ -883,7 +883,7 @@ const StudentProfile = () => {
               {/* Tệp minh chứng (PDF hoặc Ảnh) - Chọn file / Kéo thả giống bên Upload Evidence */}
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  {tr('Tệp tài liệu (PDF / Hình ảnh)')}
+                  {tr('Tệp tài liệu')}
                 </label>
 
                 <div
@@ -970,7 +970,7 @@ const StudentProfile = () => {
               {uploadFile && (
                 <div className="form-group" style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                    {tr('Tên tệp (File Name)')}
+                    {tr('Tên tệp')}
                   </label>
                   <input
                     type="text"

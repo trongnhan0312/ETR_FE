@@ -79,10 +79,10 @@ const StudentLogbook = ({ studentId }) => {
       {/* ── Header ── */}
       <section className="student-welcome" style={{ marginBottom: 20 }}>
         <div className="student-welcome-left">
-          <p className="eyebrow">{tr('Pilot Training Records')}</p>
+          <p className="eyebrow">{tr('Hồ sơ huấn luyện phi công')}</p>
           <h1>{tr('Sổ bay & Huấn luyện Buồng lái')}</h1>
           <p className="welcome-sub">
-            {tr('Tổng hợp chi tiết giờ bay thực tế (Flight Hours), giờ mô phỏng (FSTD/SIM Hours) và các chỉ số tích lũy.')}
+            {tr('Tổng hợp chi tiết giờ bay thực tế, giờ buồng lái mô phỏng và các chỉ số tích lũy.')}
           </p>
         </div>
       </section>
@@ -149,22 +149,22 @@ const StudentLogbook = ({ studentId }) => {
           >
             {/* Total Flight Hours */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#004a99', textTransform: 'uppercase', marginBottom: '6px' }}>✈️ {tr('Giờ bay thực tế (Flight)')}</div>
-              <div style={{ fontSize: '28px', fontWeight: 700, color: '#002855' }}>{(logbook.totalFlightHours ?? logbook.TotalFlightHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#004a99', textTransform: 'uppercase', marginBottom: '6px' }}>✈️ {tr('Giờ bay thực tế')}</div>
+              <div style={{ fontSize: '28px', fontWeight: 700, color: '#002855' }}>{(logbook.totalFlightHours ?? logbook.TotalFlightHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>{tr('giờ')}</span></div>
               <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Chuyến bay cuối:')} {formatDate(logbook.lastFlightDate ?? logbook.LastFlightDate)}</div>
             </div>
 
             {/* Total Simulator Hours */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b3ba6', textTransform: 'uppercase', marginBottom: '6px' }}>🕹️ {tr('Giờ mô phỏng (SIM / FSTD)')}</div>
-              <div style={{ fontSize: '28px', fontWeight: 700, color: '#3d1b6b' }}>{(logbook.totalSimulatorHours ?? logbook.TotalSimulatorHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b3ba6', textTransform: 'uppercase', marginBottom: '6px' }}>🕹️ {tr('Giờ buồng lái mô phỏng')}</div>
+              <div style={{ fontSize: '28px', fontWeight: 700, color: '#3d1b6b' }}>{(logbook.totalSimulatorHours ?? logbook.TotalSimulatorHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>{tr('giờ')}</span></div>
               <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Tách biệt hoàn toàn với giờ bay')}</div>
             </div>
 
             {/* Dual Hours */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#334e68', textTransform: 'uppercase', marginBottom: '6px' }}>👨‍🏫 {tr('Giờ kèm (Dual)')}</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#102a43' }}>{(logbook.totalDualHours ?? logbook.TotalDualHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#334e68', textTransform: 'uppercase', marginBottom: '6px' }}>👨‍🏫 {tr('Giờ bay kèm')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#102a43' }}>{(logbook.totalDualHours ?? logbook.TotalDualHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>{tr('giờ')}</span></div>
               <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>
                 {tr('Bay')}: {(logbook.flightDualHours ?? logbook.FlightDualHours ?? 0).toFixed(1)}h | SIM: {(logbook.simulatorDualHours ?? logbook.SimulatorDualHours ?? 0).toFixed(1)}h
               </div>
@@ -172,29 +172,29 @@ const StudentLogbook = ({ studentId }) => {
 
             {/* Solo Hours */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#0b69a3', textTransform: 'uppercase', marginBottom: '6px' }}>🧑‍✈️ {tr('Bay đơn (Solo)')}</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#044e54' }}>{(logbook.totalSoloHours ?? logbook.TotalSoloHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#0b69a3', textTransform: 'uppercase', marginBottom: '6px' }}>🧑‍✈️ {tr('Giờ bay đơn')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#044e54' }}>{(logbook.totalSoloHours ?? logbook.TotalSoloHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>{tr('giờ')}</span></div>
               <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Tự lái không có GV')}</div>
             </div>
 
             {/* PIC Hours */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#27ab83', textTransform: 'uppercase', marginBottom: '6px' }}>⭐ {tr('Chỉ huy (PIC)')}</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#0b694b' }}>{(logbook.totalPicHours ?? logbook.TotalPicHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
-              <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Pilot-in-Command')}</div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#27ab83', textTransform: 'uppercase', marginBottom: '6px' }}>⭐ {tr('Giờ lái chính (PIC)')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#0b694b' }}>{(logbook.totalPicHours ?? logbook.TotalPicHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>{tr('giờ')}</span></div>
+              <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Người lái chỉ huy')}</div>
             </div>
 
             {/* Night Hours */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#4b5563', textTransform: 'uppercase', marginBottom: '6px' }}>🌙 {tr('Bay đêm (Night)')}</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937' }}>{(logbook.totalNightHours ?? logbook.TotalNightHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#4b5563', textTransform: 'uppercase', marginBottom: '6px' }}>🌙 {tr('Giờ bay đêm')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937' }}>{(logbook.totalNightHours ?? logbook.TotalNightHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>{tr('giờ')}</span></div>
               <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Điều kiện ban đêm')}</div>
             </div>
 
             {/* Instrument Hours */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#d97706', textTransform: 'uppercase', marginBottom: '6px' }}>🧭 {tr('Thiết bị (Instrument)')}</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#92400e' }}>{(logbook.totalInstrumentHours ?? logbook.TotalInstrumentHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#d97706', textTransform: 'uppercase', marginBottom: '6px' }}>🧭 {tr('Giờ bay bằng thiết bị')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#92400e' }}>{(logbook.totalInstrumentHours ?? logbook.TotalInstrumentHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>{tr('giờ')}</span></div>
               <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>
                 {tr('Bay')}: {(logbook.flightInstrumentHours ?? logbook.FlightInstrumentHours ?? 0).toFixed(1)}h | SIM: {(logbook.simulatorInstrumentHours ?? logbook.SimulatorInstrumentHours ?? 0).toFixed(1)}h
               </div>
@@ -202,16 +202,16 @@ const StudentLogbook = ({ studentId }) => {
 
             {/* Cross-Country Hours */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', marginBottom: '6px' }}>🗺️ {tr('Đường dài (Cross-Country)')}</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#1e40af' }}>{(logbook.totalCrossCountryHours ?? logbook.TotalCrossCountryHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>hrs</span></div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', marginBottom: '6px' }}>🗺️ {tr('Giờ bay đường dài')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#1e40af' }}>{(logbook.totalCrossCountryHours ?? logbook.TotalCrossCountryHours ?? 0).toFixed(1)} <span style={{ fontSize: '14px', fontWeight: 400 }}>{tr('giờ')}</span></div>
               <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Chuyển sân / XC')}</div>
             </div>
 
             {/* Landings */}
             <div style={{ background: '#fff', border: '1px solid #e0e6ed', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', marginBottom: '6px' }}>🛬 {tr('Hạ cánh (Landings)')}</div>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#065f46' }}>{logbook.totalLandings ?? logbook.TotalLandings ?? 0} <span style={{ fontSize: '13px', fontWeight: 400 }}>{tr('lần')}</span></div>
-                <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Ngày')}: {logbook.totalDayLandings ?? logbook.TotalDayLandings ?? 0} | {tr('Đêm')}: {logbook.totalNightLandings ?? logbook.TotalNightLandings ?? 0}</div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#059669', textTransform: 'uppercase', marginBottom: '6px' }}>🛬 {tr('Số lần hạ cánh')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#065f46' }}>{logbook.totalLandings ?? logbook.TotalLandings ?? 0} <span style={{ fontSize: '13px', fontWeight: 400 }}>{tr('lần')}</span></div>
+              <div style={{ fontSize: '11px', color: '#7a8ba0', marginTop: '4px' }}>{tr('Ngày')}: {logbook.totalDayLandings ?? logbook.TotalDayLandings ?? 0} | {tr('Đêm')}: {logbook.totalNightLandings ?? logbook.TotalNightLandings ?? 0}</div>
             </div>
           </div>
 
@@ -248,7 +248,7 @@ const StudentLogbook = ({ studentId }) => {
                   cursor: 'pointer',
                 }}
               >
-                ✈️ {tr('Bay thực (Flight)')}
+                ✈️ {tr('Chuyến bay thực tế')}
               </button>
               <button
                 type="button"
@@ -264,7 +264,7 @@ const StudentLogbook = ({ studentId }) => {
                   cursor: 'pointer',
                 }}
               >
-                🕹️ {tr('Mô phỏng (SIM)')}
+                🕹️ {tr('Buồng lái mô phỏng')}
               </button>
             </div>
 

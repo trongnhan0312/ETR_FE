@@ -59,6 +59,7 @@ const navigationItems = [
     ),
   },
 
+  /* Tạm thời ẩn menu Sổ bay & SIM cho học viên theo yêu cầu
   {
     label: "SỔ BAY & SIM",
     to: "/student/logbook",
@@ -80,6 +81,7 @@ const navigationItems = [
       </svg>
     ),
   },
+  */
   {
     label: "HỒ SƠ CỦA TÔI",
     to: "/student/profile",
