@@ -184,6 +184,7 @@ function App() {
 						<Route path="audit" element={<AuditLog />} />
 						<Route path="config" element={<SystemConfiguration />} />
 						<Route path="etr-approval" element={<EtrReopen />} />
+						<Route path="amendments" element={<TrainingManagerAmendments />} />
 					</Route>
 				</Route>
 
