@@ -16,6 +16,8 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
     return raw;
   });
 
+  const isCompletedClass = targetClass?.status === 'Completed' || targetClass?.status === 'Đã kết thúc' || status === 'Completed';
+
   // Giảng viên phân công theo Môn học (InstructorAssignments / ClassSubjects / InstructorAccountId)
   const existingAssignments =
     Array.isArray(targetClass.instructorAssignments) && targetClass.instructorAssignments.length > 0
@@ -350,24 +352,37 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
                 <select
                   id="update-class-status-select"
                   className="premium-input"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: 600 }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '4px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    backgroundColor: isCompletedClass ? '#f1f5f9' : '#fff',
+                    cursor: isCompletedClass ? 'not-allowed' : 'pointer'
+                  }}
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
+                  disabled={isCompletedClass}
                   required
                 >
                   <option value="InProgress">{tr('🟢 InProgress (Đang diễn ra - Cho phép Ghi danh)')}</option>
                   <option value="Planned">{tr('🟡 Planned (Sắp diễn ra - Cho phép Ghi danh)')}</option>
-                  <option value="Completed">{tr('🔴 Completed (Đã kết thúc - Khóa ghi danh mới)')}</option>
+                  {isCompletedClass && (
+                    <option value="Completed" disabled>{tr('🔴 Completed (Đã kết thúc - Tự động)')}</option>
+                  )}
                   <option value="Cancelled">{tr('⚫ Cancelled (Đã hủy - Khóa lớp)')}</option>
                 </select>
               </div>
 
-              {status === 'Completed' && (
+              {isCompletedClass ? (
                 <div style={{ fontSize: '12px', color: '#dc2626', backgroundColor: '#fef2f2', padding: '10px 14px', borderRadius: '6px', borderLeft: '4px solid #ef4444' }}>
-                  {tr('⚠️ Khi chuyển sang')} <strong>{tr('Completed (Đã kết thúc)')}</strong>{tr(', nút ➕ Ghi danh của lớp học này sẽ tự động chuyển thành')} <code>{tr('⛔ Đã kết thúc')}</code> {tr('để khóa ghi danh học viên mới theo quy định tuân thủ ETR.')}
-                  <div style={{ marginTop: '8px' }}>
-                    {tr('📌 Lưu ý: hệ thống sẽ từ chối nếu lớp vẫn còn buổi học chưa được confirm. Hãy confirm toàn bộ buổi học trước khi hoàn thành lớp.')}
-                  </div>
+                  {tr('🔒 Lớp học này đã hoàn thành (Completed). Không thể thay đổi trạng thái của lớp đã kết thúc.')}
+                </div>
+              ) : (
+                <div style={{ fontSize: '12px', color: '#1e40af', backgroundColor: '#eff6ff', padding: '10px 14px', borderRadius: '6px', borderLeft: '4px solid #3b82f6' }}>
+                  {tr('ℹ️ Trạng thái "Completed" (Đã kết thúc) không thể chọn thủ công. Hệ thống sẽ tự động hoàn thành lớp sau khi tất cả các môn học và buổi học kết thúc và được xác nhận.')}
                 </div>
               )}
             </div>
@@ -412,7 +427,12 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
             <button className="cancel-btn" type="button" onClick={onCancel} disabled={submitting}>
               {tr('HỦY BỎ')}
             </button>
-            <button className="save-btn gold-gradient-btn" type="submit" disabled={submitting}>
+            <button
+              className="save-btn gold-gradient-btn"
+              type="submit"
+              disabled={submitting || isCompletedClass}
+              title={isCompletedClass ? tr('Lớp học đã hoàn thành không thể chỉnh sửa trạng thái') : undefined}
+            >
               {submitting ? tr('ĐANG LƯU...') : tr('LƯU THAY ĐỔI TRẠNG THÁI')}
             </button>
           </footer>

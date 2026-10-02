@@ -262,7 +262,20 @@ const InstructorAssessments = () => {
     const fetchAssessmentsForClass = async () => {
       try {
         const classId = parseInt(selectedClassId);
-        const apiSessions = await api.get("/sessions").catch(() => []);
+        const [apiSessions, allChecklists] = await Promise.all([
+          api.get("/sessions").catch(() => []),
+          api
+            .get("/PracticalChecklists")
+            .catch(() => api.get("/practicalchecklists").catch(() => [])),
+        ]);
+
+        const checklistsArr = Array.isArray(allChecklists)
+          ? allChecklists
+          : Array.isArray(allChecklists?.items)
+            ? allChecklists.items
+            : Array.isArray(allChecklists?.Items)
+              ? allChecklists.Items
+              : [];
 
         // "Sân nhà ai nấy đá" — logic GIỐNG HỆT InstructorAttendance: 1 lớp có thể có nhiều môn,
         // mỗi môn do 1 giảng viên phụ trách (ClassSubject.InstructorAccountId). Chỉ hiển thị
@@ -295,6 +308,17 @@ const InstructorAssessments = () => {
         setMyAssignedSubjectCount(mySubjectIds.size);
         setClassSessionCount(allClassSessions.length);
 
+        const classCourseId = selectedClassInfo?.courseId ?? null;
+        const myPracticalChecklists = checklistsArr.filter((pc) => {
+          const matchCourse =
+            classCourseId == null ||
+            pc.courseId == null ||
+            String(pc.courseId) === String(classCourseId);
+          const matchMySubject =
+            pc.subjectId == null || mySubjectIds.has(pc.subjectId);
+          return matchCourse && matchMySubject;
+        });
+
         // Assessments/Checklists signed to sessions of this class — MỖI (buổi, đánh giá) là 1 dòng riêng.
         // Tự động nhận diện Assessment Type từ buổi đã tạo: có bài kiểm tra (assessmentId) và/hoặc bảng
         // kiểm thực hành (practicalChecklistId) → chọn đúng chế độ nhập điểm assessment/practical/both.
@@ -305,10 +329,23 @@ const InstructorAssessments = () => {
         );
 
         const entries = signed.map((s) => {
-          const id = Number(s.assessmentId);
-          const detail = (assessmentsList || []).find(
-            (a) => Number(a.assessmentId) === id,
-          );
+          const id = s.assessmentId != null ? Number(s.assessmentId) : null;
+          const pId =
+            s.practicalChecklistId != null
+              ? Number(s.practicalChecklistId)
+              : null;
+          const detail =
+            id != null
+              ? (assessmentsList || []).find(
+                  (a) => Number(a.assessmentId) === id,
+                )
+              : null;
+          const checklistDetail =
+            pId != null
+              ? checklistsArr.find(
+                  (pc) => Number(pc.practicalChecklistId) === pId,
+                )
+              : null;
 
           const hasAssessment =
             s.assessmentId != null || s.isAssessmentRequired === true;
@@ -316,31 +353,36 @@ const InstructorAssessments = () => {
             s.practicalChecklistId != null || s.isChecklistRequired === true;
 
           return {
-            assessmentId: s.assessmentId != null ? id : null,
+            assessmentId: id,
             // practicalChecklistId của buổi — dùng để (1) khoá dropdown chỉ cho nhập đúng
             // hình thức buổi có, (2) lọc/ghi điểm thực hành đúng theo buổi này.
-            practicalChecklistId:
-              s.practicalChecklistId != null
-                ? Number(s.practicalChecklistId)
-                : null,
+            practicalChecklistId: pId,
             subjectId: s.subjectId,
-            courseId: detail?.courseId ?? null,
+            courseId:
+              detail?.courseId ?? checklistDetail?.courseId ?? classCourseId,
             componentName:
               s.assessmentName ||
               s.assessment?.componentName ||
               detail?.componentName ||
               detail?.assessmentName ||
               s.practicalChecklist?.itemName ||
-              (hasAssessment ? `Assessment ${id}` : tr("Thực hành")),
-            assessmentType: hasAssessment && hasChecklist
-              ? "both"
-              : hasChecklist
-                ? "practical"
-                : "assessment",
+              checklistDetail?.itemName ||
+              (hasAssessment ? `Assessment ${id}` : tr("Bảng kiểm thực hành")),
+            assessmentType:
+              hasAssessment && hasChecklist
+                ? "both"
+                : hasChecklist
+                  ? "practical"
+                  : "assessment",
             weight: detail?.weight,
             passingScore: detail?.passingScore,
-            isRequired: detail?.isRequired,
-            displayOrder: detail?.displayOrder,
+            isRequired:
+              detail?.isRequired ??
+              checklistDetail?.isRequired ??
+              checklistDetail?.isMandatory ??
+              true,
+            displayOrder:
+              detail?.displayOrder ?? checklistDetail?.displayOrder ?? 0,
             sessionId: s.sessionId,
             isConfirmed: s.isConfirmed === true || s.IsConfirmed === true,
             // Nguồn entry: "session" = gắn vào buổi học cụ thể; "course" = fallback nhập
@@ -353,12 +395,42 @@ const InstructorAssessments = () => {
               : "TBA",
           };
         });
+
+        // Bổ sung các PracticalChecklist của môn chưa được gắn vào buổi học nào
+        // để giảng viên có thể chọn và chấm trực tiếp các bảng kiểm kỹ năng bắt buộc (Pass/Fail)
+        const coveredChecklistIds = new Set(
+          entries
+            .filter((e) => e.practicalChecklistId != null)
+            .map((e) => Number(e.practicalChecklistId)),
+        );
+
+        const standaloneChecklists = myPracticalChecklists
+          .filter(
+            (pc) => !coveredChecklistIds.has(Number(pc.practicalChecklistId)),
+          )
+          .map((pc) => ({
+            assessmentId: null,
+            practicalChecklistId: Number(pc.practicalChecklistId),
+            subjectId: pc.subjectId,
+            courseId: pc.courseId ?? classCourseId,
+            componentName:
+              pc.itemName || `Bảng kiểm thực hành ${pc.practicalChecklistId}`,
+            assessmentType: "practical",
+            weight: null,
+            passingScore: null,
+            isRequired: pc.isRequired ?? pc.isMandatory ?? true,
+            displayOrder: pc.displayOrder ?? 0,
+            sessionId: null,
+            source: "course",
+            sessionTitle: tr("Bảng kiểm thực hành"),
+            sessionDate: "TBA",
+          }));
+
         // FALLBACK — nhập điểm trực tiếp theo môn của Course (không bắt buộc xếp lịch/tạo
         // Session trước): khi KHÔNG có buổi nào được gắn assessment/checklist, kiểm tra
         // Course của lớp còn Assessment nào thuộc môn giảng viên đang phụ trách không.
         // Có → hiển thị danh sách để giảng viên chọn và nhập điểm luôn (sessionId = null).
         if (entries.length === 0) {
-          const classCourseId = selectedClassInfo?.courseId ?? null;
           const courseAssessments = (assessmentsList || []).filter((a) => {
             const matchCourse =
               classCourseId == null ||
@@ -389,10 +461,13 @@ const InstructorAssessments = () => {
             sessionTitle: tr("Nhập trực tiếp"),
             sessionDate: "TBA",
           }));
-          setAssessmentsForClass(fallbackEntries);
+          setAssessmentsForClass([
+            ...fallbackEntries,
+            ...standaloneChecklists,
+          ]);
           return;
         }
-        setAssessmentsForClass(entries);
+        setAssessmentsForClass([...entries, ...standaloneChecklists]);
       } catch (err) {
         console.error("Lỗi khi tải danh sách assessment:", err);
         setAssessmentsForClass([]);
@@ -1073,6 +1148,7 @@ const InstructorAssessments = () => {
       // [DIAG] Dùng allSettled + log TỪNG request (endpoint + body + kết quả/lỗi) để biết
       // chính xác request nào fail, gửi gì, và backend trả lỗi gì — thay vì Promise.all nuốt chung.
       const newResultIds = {};
+      const newPracticalResultIds = {};
       const failedSaves = [];
       const failedEnrollmentIds = new Set();
       await Promise.allSettled(
@@ -1087,6 +1163,13 @@ const InstructorAssessments = () => {
               resp?.assessmentResultId
             ) {
               newResultIds[request.enrollmentId] = resp.assessmentResultId;
+            }
+            if (
+              request.endpoint === "/PracticalChecklistResults" &&
+              resp?.practicalChecklistResultId
+            ) {
+              newPracticalResultIds[request.enrollmentId] =
+                resp.practicalChecklistResultId;
             }
             const st = studentByEnrollment[request.enrollmentId];
             console.log(
@@ -1112,12 +1195,15 @@ const InstructorAssessments = () => {
         }),
       );
 
-
-      const syncedScores = editingScores.map((s) =>
-        newResultIds[s.enrollmentId]
-          ? { ...s, assessmentResultId: newResultIds[s.enrollmentId] }
-          : s,
-      );
+      const syncedScores = editingScores.map((s) => ({
+        ...s,
+        ...(newResultIds[s.enrollmentId]
+          ? { assessmentResultId: newResultIds[s.enrollmentId] }
+          : {}),
+        ...(newPracticalResultIds[s.enrollmentId]
+          ? { practicalResultId: newPracticalResultIds[s.enrollmentId] }
+          : {}),
+      }));
       setStudentScores(syncedScores);
 
       // [DIAG] Tổng kết lần lưu: nếu có request fail (vd: lỗi 400 retake thiếu người duyệt),
@@ -1535,6 +1621,7 @@ const InstructorAssessments = () => {
         // [DIAG] allSettled + log từng request (endpoint + body + kết quả/lỗi) để biết request
         // nào fail (vd: 400 retake thiếu AuthorizedByAccountId) và gửi body gì.
         newResultIds = {};
+        const newPracticalResultIds = {};
         await Promise.allSettled(
           saveRequests.map(async (request) => {
             try {
@@ -1547,6 +1634,13 @@ const InstructorAssessments = () => {
                 resp?.assessmentResultId
               ) {
                 newResultIds[request.enrollmentId] = resp.assessmentResultId;
+              }
+              if (
+                request.endpoint === "/PracticalChecklistResults" &&
+                resp?.practicalChecklistResultId
+              ) {
+                newPracticalResultIds[request.enrollmentId] =
+                  resp.practicalChecklistResultId;
               }
               const st = studentByEnrollment[request.enrollmentId];
               console.log(
@@ -1571,8 +1665,17 @@ const InstructorAssessments = () => {
           }),
         );
 
-
-        setStudentScores(editingScores);
+        setStudentScores(
+          editingScores.map((s) => ({
+            ...s,
+            ...(newResultIds[s.enrollmentId]
+              ? { assessmentResultId: newResultIds[s.enrollmentId] }
+              : {}),
+            ...(newPracticalResultIds[s.enrollmentId]
+              ? { practicalResultId: newPracticalResultIds[s.enrollmentId] }
+              : {}),
+          })),
+        );
       }
 
       // Step 2: Publish all unpublished results
@@ -1590,6 +1693,8 @@ const InstructorAssessments = () => {
         }
         const resultId =
           newResultIds[student.enrollmentId] || student.assessmentResultId;
+        const practicalResultId =
+          newPracticalResultIds[student.enrollmentId] || student.practicalResultId;
         if (
           selectedTypes.includes("assessment") &&
           resultId &&
@@ -1602,13 +1707,13 @@ const InstructorAssessments = () => {
         }
         if (
           selectedTypes.includes("practical") &&
-          student.practicalResultId &&
+          practicalResultId &&
           !student.practicalIsPublished
         ) {
           publishRequests.push({
-            label: `PATCH /PracticalChecklistResults/${student.practicalResultId}/publish (HV ${student.code})`,
+            label: `PATCH /PracticalChecklistResults/${practicalResultId}/publish (HV ${student.code})`,
             promise: api.patch(
-              `/PracticalChecklistResults/${student.practicalResultId}/publish`,
+              `/PracticalChecklistResults/${practicalResultId}/publish`,
             ),
           });
         }
@@ -3538,7 +3643,7 @@ const InstructorAssessments = () => {
                   )
                   .map((assessment) => (
                     <div
-                      key={`${assessment.sessionId}-${assessment.assessmentId}`}
+                      key={`${assessment.source}-${assessment.sessionId ?? "nosess"}-${assessment.assessmentId ?? "noass"}-${assessment.practicalChecklistId ?? "nock"}`}
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -3569,23 +3674,54 @@ const InstructorAssessments = () => {
                           </p>
                         )}
                         {assessment.source === "course" ? (
-                          <span
+                          <div
                             style={{
-                              display: "inline-block",
+                              display: "flex",
+                              gap: "8px",
+                              alignItems: "center",
+                              flexWrap: "wrap",
                               margin: "0 0 6px",
-                              padding: "3px 10px",
-                              borderRadius: "999px",
-                              background: "#ecfdf5",
-                              border: "1px solid #a7f3d0",
-                              color: "#047857",
-                              fontSize: "11px",
-                              fontWeight: "700",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.04em",
                             }}
                           >
-                            {tr("Nhập điểm trực tiếp (chưa gắn buổi học)")}
-                          </span>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                padding: "3px 10px",
+                                borderRadius: "999px",
+                                background:
+                                  assessment.assessmentType === "practical"
+                                    ? "#fef3c7"
+                                    : "#ecfdf5",
+                                border:
+                                  assessment.assessmentType === "practical"
+                                    ? "1px solid #fde68a"
+                                    : "1px solid #a7f3d0",
+                                color:
+                                  assessment.assessmentType === "practical"
+                                    ? "#92400e"
+                                    : "#047857",
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                              }}
+                            >
+                              {assessment.assessmentType === "practical"
+                                ? tr("Bảng kiểm thực hành (Pass/Fail)")
+                                : tr("Bài thi trực tiếp (chưa gắn buổi học)")}
+                            </span>
+                            {assessment.isRequired && (
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: "700",
+                                  color: "#b91c1c",
+                                }}
+                              >
+                                · {tr("Bắt buộc")}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <p style={{ margin: 0, color: "rgba(0,33,71,0.7)" }}>
                             {tr('Buổi: ')}{tr(assessment.sessionTitle)}

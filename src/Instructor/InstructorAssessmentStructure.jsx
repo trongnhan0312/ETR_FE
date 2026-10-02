@@ -10,8 +10,8 @@ import Pagination from "../components/Pagination";
 import "./instructor.scss";
 
 const ASSESSMENT_TYPES = [
-  { value: "Theory", label: "Lý thuyết" },
-  { value: "Practical", label: "Thực hành" },
+  { value: "Theory", label: "Lý thuyết (Tính điểm %)" },
+  { value: "Practical", label: "Thực hành (Tính điểm %)" },
 ];
 
 const EMPTY_ASSESSMENT = {
@@ -67,6 +67,21 @@ const AssessmentModal = ({
         </div>
 
         <div className="modal-body">
+          <div
+            style={{
+              padding: "8px 12px",
+              borderRadius: "8px",
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              fontSize: "12px",
+              color: "#1e40af",
+              lineHeight: 1.4,
+              marginBottom: "12px",
+            }}
+          >
+            💡 {tr("Assessment là bài thi/kiểm tra tính điểm số (0-100) và quy đổi theo Trọng số (%) vào điểm tổng kết môn. Bảng kiểm thao tác bắt buộc Đạt/Không đạt (Pass/Fail) được cấu hình tại Practical Checklists bên dưới.")}
+          </div>
+
           {error && (
             <div
               style={{
@@ -231,6 +246,21 @@ const ChecklistModal = ({
         </div>
 
         <div className="modal-body">
+          <div
+            style={{
+              padding: "8px 12px",
+              borderRadius: "8px",
+              background: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              fontSize: "12px",
+              color: "#166534",
+              lineHeight: 1.4,
+              marginBottom: "12px",
+            }}
+          >
+            💡 {tr("Practical Checklist là bảng kiểm thao tác / kỹ năng thực hành bắt buộc phải Đạt (Pass/Fail) để đủ điều kiện ký xác nhận hoàn thành môn học (không tính % trọng số vào điểm trung bình).")}
+          </div>
+
           {error && (
             <div
               style={{
@@ -865,7 +895,7 @@ const InstructorAssessmentStructure = () => {
                     margin: 0,
                   }}
                 >
-                  {tr("Assessments (Lý thuyết)")}
+                  {tr("Assessments (Bài kiểm tra / Thi tính điểm %)")}
                 </h3>
                 <p
                   style={{
@@ -874,7 +904,7 @@ const InstructorAssessmentStructure = () => {
                     margin: "4px 0 0",
                   }}
                 >
-                  {tr("Cấu trúc đề thi cho môn được chọn")}
+                  {tr("Cấu trúc các bài kiểm tra / thi lý thuyết & thực hành có tính điểm số (%) vào điểm trung bình môn")}
                 </p>
               </div>
               <div
@@ -1095,7 +1125,7 @@ const InstructorAssessmentStructure = () => {
                     margin: 0,
                   }}
                 >
-                  {tr("Practical Checklists (Thực hành)")}
+                  {tr("Practical Checklists (Bảng kiểm kỹ năng bắt buộc Đạt)")}
                 </h3>
                 <p
                   style={{
@@ -1104,7 +1134,7 @@ const InstructorAssessmentStructure = () => {
                     margin: "4px 0 0",
                   }}
                 >
-                  {tr("Các mục thực hành bắt buộc / tự chọn")}
+                  {tr("Bảng kiểm kỹ năng / thao tác thực hành điều kiện tiên quyết (Pass/Fail) để ký xác nhận môn học")}
                 </p>
               </div>
               <button
