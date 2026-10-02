@@ -1998,6 +1998,8 @@ export const VN_TO_EN = {
   "Trạng thái chốt": "Finalization Status",
   "Trạng thái chứng chỉ": "Certificate Status",
   "Trọng số (%)": "Weight (%)",
+  "Trùng ca": "Conflict",
+  "Trùng ca dạy": "Schedule Conflict",
   "Tuần này": "This Week",
   "Tuần trước": "Previous Week",
   "Tuần sau": "Next Week",

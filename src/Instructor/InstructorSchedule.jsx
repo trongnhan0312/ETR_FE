@@ -254,12 +254,24 @@ const InstructorSchedule = () => {
         return true;
       });
 
+      // Phát hiện xung đột ca dạy (nếu 2 buổi khác lớp hoặc khác môn có cùng giờ bắt đầu)
+      const sessionsWithConflict = uniqueSessions.map((session, sIdx) => {
+        const hasConflict = uniqueSessions.some((other, oIdx) => {
+          if (sIdx === oIdx) return false;
+          return Math.abs(session.startTimeMinutes - other.startTimeMinutes) < 110;
+        });
+        return {
+          ...session,
+          hasConflict,
+        };
+      });
+
       return {
         day,
         dateStr,
         displayDate,
         isToday,
-        sessions: uniqueSessions,
+        sessions: sessionsWithConflict,
       };
     });
   }, [selectedMonday, allSessions, selectedClassFilter]);
@@ -280,6 +292,10 @@ const InstructorSchedule = () => {
     const nowMonday = getMondayOfDate(new Date());
     return selectedMonday.getTime() === nowMonday.getTime();
   }, [selectedMonday]);
+
+  const hasAnyConflictThisWeek = useMemo(() => {
+    return weekDays.some((d) => d.sessions.some((s) => s.hasConflict));
+  }, [weekDays]);
 
   const handlePrevWeek = () => {
     setSelectedMonday((prev) => {
@@ -338,7 +354,7 @@ const InstructorSchedule = () => {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            {myClassesList.length > 1 && (
+            {myClassesList.length > 0 && (
               <select
                 value={selectedClassFilter}
                 onChange={(e) => setSelectedClassFilter(e.target.value)}
@@ -350,6 +366,7 @@ const InstructorSchedule = () => {
                   color: "#002147",
                   fontWeight: 600,
                   background: "#fff",
+                  cursor: "pointer",
                 }}
               >
                 <option value="">{tr("Tất cả lớp học")}</option>
@@ -420,6 +437,30 @@ const InstructorSchedule = () => {
           </div>
         </div>
 
+        {/* Cảnh báo xung đột lịch ca dạy nếu có 2 lớp học cùng giờ */}
+        {hasAnyConflictThisWeek && !selectedClassFilter && (
+          <div
+            style={{
+              padding: "10px 16px",
+              background: "#fff1f2",
+              border: "1px solid #fecdd3",
+              borderRadius: "8px",
+              color: "#be123c",
+              fontSize: "12px",
+              fontWeight: "600",
+              marginTop: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <span>⚠️</span>
+            <span>
+              {tr("Phát hiện lịch dạy của nhiều lớp bị trùng khung giờ trong tuần này. Bạn có thể sử dụng bộ lọc")} <strong>"{tr("Tất cả lớp học")}"</strong> {tr("ở trên để chọn xem từng lớp riêng biệt.")}
+            </span>
+          </div>
+        )}
+
         {/* Weekly Grid */}
         <div className="schedule-weekly-grid" style={{ marginTop: "16px" }}>
           {weekDays.map((dayData) => (
@@ -451,8 +492,31 @@ const InstructorSchedule = () => {
                   <div className="no-classes-text">{tr("Không có giờ dạy")}</div>
                 ) : (
                   dayData.sessions.map((session, sIdx) => (
-                    <div key={sIdx} className="session-schedule-card">
-                      <span className="session-time">{session.time}</span>
+                    <div
+                      key={sIdx}
+                      className="session-schedule-card"
+                      style={{
+                        borderLeft: session.hasConflict ? "3px solid #ef4444" : "1px solid #e2e8f0",
+                        background: session.hasConflict ? "#fffbfb" : "#ffffff",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span className="session-time">{session.time}</span>
+                        {session.hasConflict && (
+                          <span
+                            style={{
+                              background: "#fee2e2",
+                              color: "#b91c1c",
+                              padding: "1px 5px",
+                              borderRadius: "4px",
+                              fontSize: "10px",
+                              fontWeight: "700",
+                            }}
+                          >
+                            ⚠️ {tr("Trùng ca")}
+                          </span>
+                        )}
+                      </div>
                       <span className="session-title">{tr(session.name)}</span>
                       <span className="session-code">{session.code}</span>
                       <div className="session-location">
