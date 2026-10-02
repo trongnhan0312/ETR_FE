@@ -236,9 +236,34 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
                 padding: '12px 16px',
                 borderRadius: '4px',
                 fontSize: '13px',
-                marginBottom: '20px'
+                marginBottom: '20px',
+                whiteSpace: 'pre-wrap',
+                lineHeight: '1.5'
               }}>
                 <strong>{tr('Lỗi Cập Nhật: ')}</strong>{errorMsg}
+                {errorMsg && (errorMsg.includes('năng định') || errorMsg.includes('Grounded') || errorMsg.includes('Credentials')) && (
+                  <div style={{ marginTop: '10px' }}>
+                    <a
+                      href="/academic/profiles"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        backgroundColor: '#002147',
+                        color: '#fff',
+                        borderRadius: '4px',
+                        textDecoration: 'none',
+                        fontSize: '12px',
+                        fontWeight: 600
+                      }}
+                    >
+                      ↗ {tr('Mở trang duyệt Hồ sơ năng định (tab mới)')}
+                    </a>
+                  </div>
+                )}
               </div>
             )}
 
