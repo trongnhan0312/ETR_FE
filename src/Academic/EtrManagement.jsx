@@ -1631,7 +1631,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
 
             {/* ETR evidence branding top header */}
             <div
-              className="flex justify-between items-center self-stretch flex-grow-0 flex-shrink-0 h-20 px-8 bg-white border-b border-slate-200"
+              className="flex justify-start items-center self-stretch flex-grow-0 flex-shrink-0 h-20 px-8 bg-white border-b border-slate-200"
               style={{ width: "100%", borderBottom: "1px solid #e2e8f0" }}
             >
               <div className="flex justify-start items-center gap-3">
@@ -1658,38 +1658,6 @@ const EtrManagement = ({ defaultView = "list" }) => {
                 >
                   EVIDENCE CERTIFICATION PORTAL
                 </p>
-              </div>
-
-              <div className="flex justify-start items-center gap-6">
-                <div className="flex justify-start items-center gap-4">
-                  <div style={{ textAlign: "right" }}>
-                    <p
-                      className="text-sm font-bold text-[#002147]"
-                      style={{ margin: 0 }}
-                    >
-                      Dr. Elena Sterling
-                    </p>
-                    <p
-                      className="text-[10px] font-semibold text-[#c5a059]"
-                      style={{ margin: 0 }}
-                    >
-                      {tr("QUALITY ASSURANCE OFFICER")}
-                    </p>
-                  </div>
-                  <div
-                    className="flex justify-center items-center"
-                    style={{
-                      width: "44px",
-                      height: "44px",
-                      borderRadius: "50%",
-                      backgroundColor: "#002147",
-                      color: "#c5a059",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    ES
-                  </div>
-                </div>
               </div>
             </div>
           </div>
