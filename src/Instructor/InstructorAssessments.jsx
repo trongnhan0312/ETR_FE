@@ -717,13 +717,15 @@ const InstructorAssessments = () => {
               // sessionId — điểm thực hành của buổi khác KHÔNG hiện vào bảng điểm buổi này.
               const currentChecklistId = assessment?.practicalChecklistId ?? null;
               const matchPracticalBySession = (pr) =>
-                pr.subjectResultId === subRes.subjectResultId &&
+                (Number(pr.subjectResultId) === Number(subRes.subjectResultId) ||
+                  (pr.accountId != null &&
+                    Number(pr.accountId) === Number(student.accountId))) &&
                 (currentChecklistId == null ||
                   Number(pr.practicalChecklistId) ===
                     Number(currentChecklistId)) &&
                 (currentSessionId == null
-                  ? pr.sessionId == null
-                  : pr.sessionId === currentSessionId);
+                  ? pr.sessionId == null || Number(pr.sessionId) === 0
+                  : Number(pr.sessionId) === Number(currentSessionId));
               let practicalScoreResult =
                 allPracticalResults.find(matchPracticalBySession);
               // Fallback: dữ liệu legacy (được tạo trước khi gắn sessionId) — chỉ khi khớp
@@ -731,11 +733,13 @@ const InstructorAssessments = () => {
               if (!practicalScoreResult) {
                 practicalScoreResult = allPracticalResults.find(
                   (pr) =>
-                    pr.subjectResultId === subRes.subjectResultId &&
+                    (Number(pr.subjectResultId) ===
+                      Number(subRes.subjectResultId) ||
+                      (pr.accountId != null &&
+                        Number(pr.accountId) === Number(student.accountId))) &&
                     (currentChecklistId == null ||
                       Number(pr.practicalChecklistId) ===
-                        Number(currentChecklistId)) &&
-                    pr.sessionId == null,
+                        Number(currentChecklistId)),
                 );
               }
               if (practicalScoreResult) {
@@ -833,13 +837,31 @@ const InstructorAssessments = () => {
             Number(pc.subjectId) === Number(currentSubjectId) &&
             (pc.isRequired || pc.isMandatory),
         );
-        const practicalResultsForSubject = requiredChecklists.filter((pc) =>
-          practicalResultsBySubject.some(
+        const practicalResultsForSubject = requiredChecklists.filter((pc) => {
+          const hasPassedResult = practicalResultsBySubject.some(
             (pr) =>
-              Number(pr.practicalChecklistId) === Number(pc.practicalChecklistId) &&
-              (pr.resultStatus === "Passed" || pr.resultStatus === "Hoàn thành"),
-          ),
-        );
+              (Number(pr.subjectResultId) === Number(subjectResultId) ||
+                (pr.accountId != null &&
+                  Number(pr.accountId) === Number(student.accountId))) &&
+              Number(pr.practicalChecklistId) ===
+                Number(pc.practicalChecklistId) &&
+              (pr.resultStatus === "Passed" ||
+                pr.resultStatus === "Hoàn thành" ||
+                Number(pr.score) >= passingScore),
+          );
+          if (hasPassedResult) return true;
+
+          // Nếu đang mở chấm chính mục thực hành này và học viên có điểm đạt (>= passingScore)
+          if (
+            Number(assessment?.practicalChecklistId) ===
+              Number(pc.practicalChecklistId) &&
+            Number(practicalScore) >= passingScore
+          ) {
+            return true;
+          }
+
+          return false;
+        });
         const practicalOk = requiredChecklists.length === 0
           ? true
           : practicalResultsForSubject.length === requiredChecklists.length;
@@ -1230,6 +1252,9 @@ const InstructorAssessments = () => {
       } else {
         setIsEditingScores(false);
         toast.success(tr("Lưu điểm thành công!"), announce("edit", tr("Điểm")));
+        if (selectedAssessment) {
+          loadAssessmentScores(selectedAssessment, selectedAssessmentType);
+        }
       }
     } catch (err) {
       console.error("Lỗi khi lưu bảng điểm:", err);
