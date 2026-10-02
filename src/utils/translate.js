@@ -1999,6 +1999,9 @@ export const VN_TO_EN = {
   "Trạng thái chứng chỉ": "Certificate Status",
   "Trọng số (%)": "Weight (%)",
   "Tuần này": "This Week",
+  "Tuần trước": "Previous Week",
+  "Tuần sau": "Next Week",
+  "Lịch biểu Tuần học": "Weekly Schedule",
   "TÊN LỚP (Bắt buộc) *": "CLASS NAME (Mandatory) *",
   "Tài khoản hiện tại chưa được backend cho phép đọc danh sách ETR (GET /Etr trả 403) — hàng chờ phê duyệt đang hiển thị từ danh sách Approval Requests. Chi tiết bảng điểm/minh chứng sẽ hiển thị đầy đủ khi quyền đọc ETR được cấp ở backend.":
     "Current account is not authorized by backend to read ETRs (GET /Etr returned 403) — approval queue shows Approval Requests. Score/evidence details will display once ETR read permission is granted.",
