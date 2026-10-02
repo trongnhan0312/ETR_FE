@@ -1581,6 +1581,7 @@ const InstructorAssessments = () => {
       });
 
        let newResultIds = {};
+       let newPracticalResultIds = {};
        const failedSaves = [];
        const failedEnrollmentIds = new Set();
        const studentByEnrollment = {};
@@ -1646,7 +1647,7 @@ const InstructorAssessments = () => {
         // [DIAG] allSettled + log từng request (endpoint + body + kết quả/lỗi) để biết request
         // nào fail (vd: 400 retake thiếu AuthorizedByAccountId) và gửi body gì.
         newResultIds = {};
-        const newPracticalResultIds = {};
+        newPracticalResultIds = {};
         await Promise.allSettled(
           saveRequests.map(async (request) => {
             try {
