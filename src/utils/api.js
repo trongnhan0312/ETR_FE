@@ -129,7 +129,7 @@ const getAuthHeaders = (isFormData = false) => {
 
   const headers = {};
   if (!isFormData) {
-    headers["Content-Type"] = "application/json";
+    headers["Content-Type"] = "application/json; charset=utf-8";
   }
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
