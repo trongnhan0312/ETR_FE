@@ -59,7 +59,10 @@ const TrainingManagerAmendments = () => {
         reqs.map((r) => ({
           id: r.amendmentRequestId,
           subjectResultId: r.subjectResultId,
-          requestedBy: nameOf(r.requestedByAccountId),
+          subjectCode: r.subjectCode,
+          subjectName: r.subjectName,
+          learnerName: r.learnerName,
+          requestedBy: r.requestedByName || nameOf(r.requestedByAccountId),
           reason: r.reason || "—",
           oldValue: r.oldValue || "—",
           newValue: r.newValue || "—",
@@ -82,9 +85,6 @@ const TrainingManagerAmendments = () => {
   };
 
   useEffect(() => {
-    // loading khởi tạo = true sẵn → không cần setLoading(true) ở đây.
-    // Bọc trong async hàm nội bộ để tránh rule react-hooks/set-state-in-effect
-    // (giống pattern AuditorAuditLogs đang dùng).
     const initialLoad = async () => {
       await loadData();
     };
@@ -176,7 +176,7 @@ const TrainingManagerAmendments = () => {
             className="table-header"
             style={{
               display: "grid",
-              gridTemplateColumns: "70px 110px 150px 1.3fr 1fr 1fr 150px 180px",
+              gridTemplateColumns: "60px 1.4fr 1.1fr 1fr 1.5fr 130px 110px 150px",
               gap: "12px",
               alignItems: "center",
               padding: "12px 20px",
@@ -189,11 +189,11 @@ const TrainingManagerAmendments = () => {
             }}
           >
             <div>{tr("ID")}</div>
-            <div>{tr("SubjectResult")}</div>
-            <div>{tr("Người yêu cầu")}</div>
+            <div>{tr("Môn học")}</div>
+            <div>{tr("Học viên")}</div>
+            <div>{tr("Giảng viên")}</div>
             <div>{tr("Lý do")}</div>
-            <div>{tr("Giá trị cũ")}</div>
-            <div>{tr("Giá trị mới")}</div>
+            <div>{tr("Thời gian")}</div>
             <div>{tr("Trạng thái")}</div>
             <div style={{ textAlign: "right" }}>{tr("Thao tác")}</div>
           </div>
@@ -215,7 +215,7 @@ const TrainingManagerAmendments = () => {
                     className="table-row"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "70px 110px 150px 1.3fr 1fr 1fr 150px 180px",
+                      gridTemplateColumns: "60px 1.4fr 1.1fr 1fr 1.5fr 130px 110px 150px",
                       gap: "12px",
                       alignItems: "center",
                       padding: "14px 20px",
@@ -225,9 +225,12 @@ const TrainingManagerAmendments = () => {
                       #{r.id}
                     </span>
                     <span style={{ fontSize: "13px", fontWeight: "700", color: "#002147" }}>
-                      SR #{r.subjectResultId}
+                      {r.subjectCode ? `[${r.subjectCode}] ` : ""}{r.subjectName || `SR #${r.subjectResultId}`}
                     </span>
-                    <span style={{ fontSize: "13px", color: "#002147" }}>{r.requestedBy}</span>
+                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>
+                      {r.learnerName || "—"}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#002147" }}>{r.requestedBy}</span>
                     <span
                       title={r.reason}
                       style={{
@@ -240,8 +243,7 @@ const TrainingManagerAmendments = () => {
                     >
                       {r.reason}
                     </span>
-                    <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>{r.oldValue}</span>
-                    <span style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>{r.newValue}</span>
+                    <span style={{ fontSize: "11px", color: "rgba(0,33,71,0.6)" }}>{r.createdAt}</span>
                     <span>
                       <span
                         style={{
