@@ -100,8 +100,11 @@ const StudentCertificateStatus = () => {
         suppressAuthRedirect: true,
       }).catch(() => []);
 
-      setStatusList(
-        (Array.isArray(data) ? data : []).map((s) => ({
+      const rawList = Array.isArray(data) ? data : [];
+      // Chỉ nhận các bản ghi đã thực sự được cấp chứng chỉ (có ngày cấp IssuedDate)
+      const validCerts = rawList
+        .filter((s) => Boolean(s.IssuedDate || s.issuedDate))
+        .map((s) => ({
           ...s,
           ValidityStatus: s.ValidityStatus ?? s.validityStatus,
           ExpiryDate: s.ExpiryDate ?? s.expiryDate ?? null,
@@ -110,8 +113,9 @@ const StudentCertificateStatus = () => {
           CourseId: s.CourseId ?? s.courseId,
           ETRCourseRecordId:
             s.ETRCourseRecordId ?? s.etrCourseRecordId ?? s.courseRecordId,
-        })),
-      );
+        }));
+
+      setStatusList(validCerts);
     } catch (err) {
       console.error('Error loading certificate status:', err);
       setError(tr('Không thể tải trạng thái chứng chỉ. Vui lòng thử lại sau.'));
@@ -217,9 +221,19 @@ const StudentCertificateStatus = () => {
           <div className="student-empty" style={{ color: '#b91c1c' }}>{error}</div>
         ) : filteredStatuses.length === 0 ? (
           <div className="student-empty">
-            {filter === 'ALL'
-              ? tr('Bạn chưa có chứng chỉ đào tạo nào.')
-              : tr('Không có chứng chỉ nào ở trạng thái này.')}
+            <p style={{ margin: 0, fontWeight: 500 }}>
+              {filter === 'ALL'
+                ? tr('Bạn chưa có chứng chỉ đào tạo nào.')
+                : tr('Không có chứng chỉ nào ở trạng thái này.')}
+            </p>
+            {filter === 'ALL' && (
+              <p style={{ margin: '8px 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                {tr('Chứng chỉ chỉ hiển thị tại đây sau khi khóa học hoàn thành và hồ sơ ETR được Training Manager phê duyệt chính thức.')}{' '}
+                <a href="/student/etr" style={{ color: '#0284c7', textDecoration: 'underline' }}>
+                  {tr('Kiểm tra tiến độ ETR của bạn')}
+                </a>
+              </p>
+            )}
           </div>
         ) : (
           <div className="student-cert-list">
