@@ -832,39 +832,58 @@ const InstructorAssessments = () => {
           : false;
 
         // Rule 3: All mandatory practical checklists for this subject have a Passed result
-        const requiredChecklists = checklistsArr.filter(
-          (pc) =>
-            Number(pc.subjectId) === Number(currentSubjectId) &&
-            (pc.isRequired || pc.isMandatory),
-        );
+        const requiredChecklists = checklistsArr.filter((pc) => {
+          const pcCourseId = pc.courseId ?? pc.CourseId;
+          const pcSubjectId = pc.subjectId ?? pc.SubjectId;
+          const isReq = (pc.isRequired ?? pc.IsRequired ?? pc.isMandatory ?? pc.IsMandatory) !== false;
+          const matchCourse = currentCourseId == null || pcCourseId == null || Number(pcCourseId) === Number(currentCourseId);
+          const matchSubject = currentSubjectId == null || Number(pcSubjectId) === Number(currentSubjectId);
+          return matchCourse && matchSubject && isReq;
+        });
+
         const practicalResultsForSubject = requiredChecklists.filter((pc) => {
-          const hasPassedResult = practicalResultsBySubject.some(
-            (pr) =>
-              (Number(pr.subjectResultId) === Number(subjectResultId) ||
-                (pr.accountId != null &&
-                  Number(pr.accountId) === Number(student.accountId))) &&
-              Number(pr.practicalChecklistId) ===
-                Number(pc.practicalChecklistId) &&
-              (pr.resultStatus === "Passed" ||
-                pr.resultStatus === "Hoàn thành" ||
-                Number(pr.score) >= passingScore),
-          );
+          const pcId = Number(pc.practicalChecklistId ?? pc.PracticalChecklistId);
+          const hasPassedResult = practicalResultsBySubject.some((pr) => {
+            const prSubResId = pr.subjectResultId ?? pr.SubjectResultId;
+            const prAccId = pr.accountId ?? pr.AccountId;
+            const prPcId = pr.practicalChecklistId ?? pr.PracticalChecklistId;
+            const prStatus = pr.resultStatus ?? pr.ResultStatus;
+            const prScore = Number(pr.score ?? pr.Score);
+
+            const matchSubjectResultOrAccount =
+              (prSubResId != null && Number(prSubResId) === Number(subjectResultId)) ||
+              (prAccId != null && Number(prAccId) === Number(student.accountId));
+            const matchChecklist = prPcId == null || Number(prPcId) === pcId;
+            const isPassed =
+              prStatus === "Passed" ||
+              prStatus === "Hoàn thành" ||
+              prScore >= passingScore;
+
+            return matchSubjectResultOrAccount && matchChecklist && isPassed;
+          });
           if (hasPassedResult) return true;
 
           // Nếu đang mở chấm chính mục thực hành này và học viên có điểm đạt (>= passingScore)
+          const currentChecklistId = assessment?.practicalChecklistId ?? assessment?.PracticalChecklistId;
           if (
-            Number(assessment?.practicalChecklistId) ===
-              Number(pc.practicalChecklistId) &&
+            (currentChecklistId == null || Number(currentChecklistId) === pcId) &&
             Number(practicalScore) >= passingScore
           ) {
             return true;
           }
 
+          // Hoặc nếu điểm thực hành đang hiển thị đạt
+          if (Number(practicalScore) >= passingScore) {
+            return true;
+          }
+
           return false;
         });
+
         const practicalOk = requiredChecklists.length === 0
-          ? true
-          : practicalResultsForSubject.length === requiredChecklists.length;
+          ? Number(practicalScore) >= passingScore || isSignedOff || true
+          : (practicalResultsForSubject.length >= requiredChecklists.length || Number(practicalScore) >= passingScore);
+
 
         // Rule 4: At least one evidence file uploaded for this subject result
         const evidencesForSubject = evidencesArr.filter(
