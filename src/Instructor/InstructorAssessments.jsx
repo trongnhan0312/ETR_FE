@@ -2520,7 +2520,10 @@ const InstructorAssessments = () => {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "60px 100px 200px 80px 140px 1fr 100px",
+                gridTemplateColumns:
+                  selectedAssessmentType === "practical"
+                    ? "60px 100px 180px 80px 240px 1fr 100px"
+                    : "60px 100px 200px 80px 140px 1fr 100px",
                 alignItems: "center",
                 gap: "12px",
                 background: "linear-gradient(135deg, #06234a 0%, #041b39 100%)",
@@ -2530,19 +2533,23 @@ const InstructorAssessments = () => {
                 fontWeight: "700",
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
-                minWidth: "820px",
+                minWidth: "860px",
               }}
             >
               <div style={{ textAlign: "center" }}>{tr('STT')}</div>
               <div style={{ textAlign: "center" }}>{tr('Mã HV')}</div>
               <div>{tr('Học viên')}</div>
               <div style={{ textAlign: "center" }}>{tr('Điểm danh')}</div>
-              <div style={{ textAlign: "center" }}>{tr('Điểm số (0-100)')}</div>
+              <div style={{ textAlign: "center" }}>
+                {selectedAssessmentType === "practical"
+                  ? tr("Đánh giá thực hành (Pass/Fail)")
+                  : tr("Điểm số (0-100)")}
+              </div>
               <div>{tr('Nhận xét chuyên môn')}</div>
               <div style={{ textAlign: "center" }}>{tr('Khóa')}</div>
             </div>
 
-            <div className="table-body" style={{ minWidth: "820px" }}>
+            <div className="table-body" style={{ minWidth: "860px" }}>
               {loading ? (
                 <div
                   style={{
@@ -2561,7 +2568,10 @@ const InstructorAssessments = () => {
                     className="table-row"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "60px 100px 200px 80px 140px 1fr 100px",
+                      gridTemplateColumns:
+                        selectedAssessmentType === "practical"
+                          ? "60px 100px 180px 80px 240px 1fr 100px"
+                          : "60px 100px 200px 80px 140px 1fr 100px",
                       alignItems: "center",
                       gap: "12px",
                       padding: "14px 20px",
@@ -2638,6 +2648,7 @@ const InstructorAssessments = () => {
                           flexDirection: "column",
                           gap: "8px",
                           width: "100%",
+                          alignItems: "center",
                         }}
                       >
                         {(selectedAssessmentType === "assessment" ||
@@ -2647,6 +2658,7 @@ const InstructorAssessments = () => {
                               display: "flex",
                               flexDirection: "column",
                               gap: "4px",
+                              alignItems: "center",
                             }}
                           >
                             <span
@@ -2702,52 +2714,148 @@ const InstructorAssessments = () => {
                               display: "flex",
                               flexDirection: "column",
                               gap: "4px",
+                              alignItems: "center",
                             }}
                           >
-                            <span
+                            {selectedAssessmentType === "both" && (
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  fontWeight: "700",
+                                  color: "rgba(0,33,71,0.6)",
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                Practical
+                              </span>
+                            )}
+                            <div
                               style={{
-                                fontSize: "10px",
-                                fontWeight: "700",
-                                color: "rgba(0,33,71,0.6)",
-                                textTransform: "uppercase",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
                               }}
                             >
-                              Practical
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={student.practicalScore}
-                              disabled={student.isPublished || fileStaged}
-                              onChange={(e) =>
-                                handleScoreChange(
-                                  student.enrollmentId,
-                                  e.target.value,
-                                  "practical",
-                                )
-                              }
-                              style={{
-                                width: "80px",
-                                padding: "6px 10px",
-                                border: "1px solid #d9e1ec",
-                                borderRadius: "8px",
-                                textAlign: "center",
-                                opacity: fileStaged ? 0.55 : 1,
-                                fontSize: "13px",
-                                fontWeight: "700",
-                                color: student.isPublished
-                                  ? "#94a3b8"
-                                  : "#002147",
-                                backgroundColor: student.isPublished
-                                  ? "#f1f5f9"
-                                  : "#ffffff",
-                                outline: "none",
-                                cursor: student.isPublished
-                                  ? "not-allowed"
-                                  : "text",
-                              }}
-                            />
+                              <button
+                                type="button"
+                                disabled={student.isPublished || fileStaged}
+                                onClick={() => {
+                                  handleScoreChange(
+                                    student.enrollmentId,
+                                    100,
+                                    "practical",
+                                  );
+                                  if (!student.practicalComment) {
+                                    handleCommentChange(
+                                      student.enrollmentId,
+                                      tr("Đạt yêu cầu thực hành"),
+                                      "practical",
+                                    );
+                                  }
+                                }}
+                                style={{
+                                  padding: "6px 10px",
+                                  borderRadius: "8px",
+                                  border:
+                                    Number(student.practicalScore) >= 50
+                                      ? "2px solid #16a34a"
+                                      : "1px solid #bbf7d0",
+                                  background:
+                                    Number(student.practicalScore) >= 50
+                                      ? "#dcfce7"
+                                      : "#ffffff",
+                                  color: "#166534",
+                                  fontSize: "11px",
+                                  fontWeight: "800",
+                                  cursor: student.isPublished
+                                    ? "not-allowed"
+                                    : "pointer",
+                                  boxShadow:
+                                    Number(student.practicalScore) >= 50
+                                      ? "0 2px 4px rgba(22,163,74,0.15)"
+                                      : "none",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                ✓ {tr("ĐẠT")}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={student.isPublished || fileStaged}
+                                onClick={() => {
+                                  handleScoreChange(
+                                    student.enrollmentId,
+                                    0,
+                                    "practical",
+                                  );
+                                  if (!student.practicalComment) {
+                                    handleCommentChange(
+                                      student.enrollmentId,
+                                      tr("Chưa đạt yêu cầu"),
+                                      "practical",
+                                    );
+                                  }
+                                }}
+                                style={{
+                                  padding: "6px 8px",
+                                  borderRadius: "8px",
+                                  border:
+                                    Number(student.practicalScore) < 50 &&
+                                    student.practicalScore !== ""
+                                      ? "2px solid #dc2626"
+                                      : "1px solid #fecaca",
+                                  background:
+                                    Number(student.practicalScore) < 50 &&
+                                    student.practicalScore !== ""
+                                      ? "#fee2e2"
+                                      : "#ffffff",
+                                  color: "#991b1b",
+                                  fontSize: "11px",
+                                  fontWeight: "800",
+                                  cursor: student.isPublished
+                                    ? "not-allowed"
+                                    : "pointer",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                ✗ {tr("KHÔNG ĐẠT")}
+                              </button>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={student.practicalScore}
+                                disabled={student.isPublished || fileStaged}
+                                onChange={(e) =>
+                                  handleScoreChange(
+                                    student.enrollmentId,
+                                    e.target.value,
+                                    "practical",
+                                  )
+                                }
+                                title={tr("Điểm số thực hành (0-100)")}
+                                style={{
+                                  width: "50px",
+                                  padding: "5px",
+                                  border: "1px solid #d9e1ec",
+                                  borderRadius: "6px",
+                                  textAlign: "center",
+                                  opacity: fileStaged ? 0.55 : 1,
+                                  fontSize: "12px",
+                                  fontWeight: "700",
+                                  color: student.isPublished
+                                    ? "#94a3b8"
+                                    : "#002147",
+                                  backgroundColor: student.isPublished
+                                    ? "#f1f5f9"
+                                    : "#ffffff",
+                                  outline: "none",
+                                  cursor: student.isPublished
+                                    ? "not-allowed"
+                                    : "text",
+                                }}
+                              />
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2757,6 +2865,7 @@ const InstructorAssessments = () => {
                           display: "flex",
                           flexDirection: "column",
                           gap: "6px",
+                          alignItems: "center",
                         }}
                       >
                         {(selectedAssessmentType === "assessment" ||
@@ -2769,8 +2878,8 @@ const InstructorAssessments = () => {
                               borderRadius: "8px",
                               backgroundColor:
                                 student.assessmentScore >= 50
-                                  ? "rgba(34,197,94,0.08)"
-                                  : "rgba(239,68,68,0.08)",
+                                    ? "rgba(34,197,94,0.08)"
+                                    : "rgba(239,68,68,0.08)",
                               color:
                                 student.assessmentScore >= 50
                                   ? "#16a34a"
@@ -2784,21 +2893,30 @@ const InstructorAssessments = () => {
                           selectedAssessmentType === "both") && (
                           <span
                             style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
                               fontSize: "12px",
                               fontWeight: "700",
-                              padding: "4px 10px",
-                              borderRadius: "8px",
+                              padding: "6px 14px",
+                              borderRadius: "999px",
                               backgroundColor:
-                                student.practicalScore >= 50
-                                  ? "rgba(34,197,94,0.08)"
-                                  : "rgba(239,68,68,0.08)",
+                                Number(student.practicalScore) >= 50
+                                  ? "#dcfce7"
+                                  : "#fee2e2",
                               color:
-                                student.practicalScore >= 50
-                                  ? "#16a34a"
-                                  : "#ef4444",
+                                Number(student.practicalScore) >= 50
+                                  ? "#15803d"
+                                  : "#b91c1c",
+                              border:
+                                Number(student.practicalScore) >= 50
+                                  ? "1px solid #86efac"
+                                  : "1px solid #fca5a5",
                             }}
                           >
-                            P: {student.practicalScore} / 100
+                            {Number(student.practicalScore) >= 50
+                              ? `✓ ${tr("ĐẠT")} (${student.practicalScore}/100)`
+                              : `✗ ${tr("CHƯA ĐẠT")} (${student.practicalScore}/100)`}
                           </span>
                         )}
                       </div>
