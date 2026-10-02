@@ -885,7 +885,7 @@ const InstructorClasses = () => {
         </div>
 
         {/* View Toggle Tabs: Sessions vs Enrolled Students */}
-        <div style={{ display: "flex", gap: "10px", margin: "16px 0 8px", borderBottom: "2px solid #e2e8f0" }}>
+        <div style={{ display: "flex", gap: "10px", margin: "16px 0 8px", borderBottom: "2px solid rgba(255,255,255,0.2)" }}>
           <button
             type="button"
             onClick={() => setClassViewTab("sessions")}
@@ -893,8 +893,8 @@ const InstructorClasses = () => {
               padding: "10px 20px",
               background: "none",
               border: "none",
-              borderBottom: classViewTab === "sessions" ? "3px solid #002147" : "3px solid transparent",
-              color: classViewTab === "sessions" ? "#002147" : "#64748b",
+              borderBottom: classViewTab === "sessions" ? "3px solid #ffffff" : "3px solid transparent",
+              color: "#ffffff",
               fontWeight: classViewTab === "sessions" ? "700" : "500",
               fontSize: "14px",
               cursor: "pointer",
@@ -913,8 +913,8 @@ const InstructorClasses = () => {
               padding: "10px 20px",
               background: "none",
               border: "none",
-              borderBottom: classViewTab === "students" ? "3px solid #002147" : "3px solid transparent",
-              color: classViewTab === "students" ? "#002147" : "#64748b",
+              borderBottom: classViewTab === "students" ? "3px solid #ffffff" : "3px solid transparent",
+              color: "#ffffff",
               fontWeight: classViewTab === "students" ? "700" : "500",
               fontSize: "14px",
               cursor: "pointer",
