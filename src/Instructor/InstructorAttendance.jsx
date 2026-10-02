@@ -58,6 +58,16 @@ const isLockedStatus = (status) => {
   );
 };
 
+const isClassInProgress = (status) => {
+  const st = String(status || "").toLowerCase();
+  return st === "inprogress" || st === "in_progress" || st === "đang diễn ra";
+};
+
+const isClassNotStarted = (status) => {
+  const st = String(status || "").toLowerCase();
+  return st === "planned" || st === "scheduled" || st === "chưa bắt đầu" || st === "upcoming";
+};
+
 // BE (AttendanceService.RecordAttendanceAsync + BusinessRuleEngine.AttendanceGracePeriodHours = 48)
 // chỉ cho phép Instructor điểm danh bù trong vòng 48h sau ngày học; quá hạn → 400 và yêu cầu
 // liên hệ Academic Staff. Hàm này ở module scope (không gọi Date.now() khi render).
@@ -413,7 +423,7 @@ const InstructorAttendance = () => {
   };
 
   const handleToggleStatus = (code, status) => {
-    if (isConfirmed || fileStaged) return; // Buổi đã chốt / đang có file import
+    if (isConfirmed || !isClassActive || fileStaged) return; // Buổi đã chốt / lớp không InProgress / đang có file import
     setSessionAttendance((prev) =>
       prev.map((s) => (s.code === code ? { ...s, status } : s)),
     );
@@ -512,6 +522,12 @@ const InstructorAttendance = () => {
 
   const handleSaveAttendance = async () => {
     if (isConfirmed) return;
+    if (!isClassActive) {
+      toast.error(isClassUpcoming
+        ? tr("Không thể lưu điểm danh vì lớp học chưa bắt đầu.")
+        : tr("Không thể lưu điểm danh vì lớp học đã kết thúc hoặc bị hủy."));
+      return;
+    }
     setSaving(true);
     try {
       await Promise.all(
@@ -541,6 +557,12 @@ const InstructorAttendance = () => {
 
   const handleConfirmAttendance = async () => {
     if (isConfirmed) return;
+    if (!isClassActive) {
+      toast.error(isClassUpcoming
+        ? tr("Không thể chốt buổi học vì lớp học chưa bắt đầu.")
+        : tr("Không thể chốt buổi học vì lớp học đã kết thúc hoặc bị hủy."));
+      return;
+    }
 
     const isFlightOrSim =
       selectedSession?.trainingType === "Flight" ||
@@ -615,6 +637,8 @@ const InstructorAttendance = () => {
   }, [classesData, selectedClassId]);
 
   const isClassClosed = isLockedStatus(selectedClass?.status);
+  const isClassActive = isClassInProgress(selectedClass?.status);
+  const isClassUpcoming = isClassNotStarted(selectedClass?.status);
 
   // BE (AttendanceService.RecordAttendanceAsync + BusinessRuleEngine.AttendanceGracePeriodHours = 48)
   // chỉ cho phép Instructor điểm danh bù trong vòng 48h sau ngày học; quá hạn → 400 và yêu cầu
@@ -1008,29 +1032,32 @@ const InstructorAttendance = () => {
           </div>
         )}
 
-        {/* Cảnh báo: lớp đã kết thúc/hủy — BE chặn ghi điểm danh (ETR học viên đã khóa) */}
-        {isClassClosed && (
+        {/* Cảnh báo: lớp chưa bắt đầu hoặc đã kết thúc/hủy — BE chặn ghi điểm danh */}
+        {!isClassActive && (
           <div
             style={{
               display: "flex",
               alignItems: "flex-start",
               gap: "10px",
               padding: "12px 18px",
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
-              borderLeft: "4px solid #ef4444",
+              background: isClassUpcoming ? "#fffbeb" : "#fef2f2",
+              border: isClassUpcoming ? "1px solid #fde68a" : "1px solid #fecaca",
+              borderLeft: isClassUpcoming ? "4px solid #f59e0b" : "4px solid #ef4444",
               borderRadius: "10px",
-              fontSize: "12px",
-              color: "#991b1b",
+              fontSize: "13px",
+              color: isClassUpcoming ? "#92400e" : "#991b1b",
               lineHeight: 1.5,
+              marginBottom: "16px",
             }}
           >
-            <span style={{ fontSize: "16px", lineHeight: 1 }}>⚠️</span>
+            <span style={{ fontSize: "18px", lineHeight: 1 }}>{isClassUpcoming ? "⏳" : "⚠️"}</span>
             <div>
-              <strong>{tr("Lớp học đã kết thúc / bị hủy")}.</strong>{" "}
-              {tr(
-                "Nếu hồ sơ ETR của học viên đã hoàn tất và bị khóa, hệ thống sẽ từ chối khi lưu / chốt / import điểm danh cho các buổi của lớp này. Hãy kiểm tra trạng thái lớp và ETR của học viên.",
-              )}
+              <strong>
+                {isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")} ({getClassStatusLabel(selectedClass?.status)}).
+              </strong>{" "}
+              {isClassUpcoming
+                ? tr("Chỉ có thể điểm danh khi lớp học được Academic Staff bắt đầu và chuyển sang trạng thái 'Đang diễn ra' (InProgress).")
+                : tr("Hệ thống khóa chức năng ghi/sửa điểm danh đối với các lớp đã hoàn tất hoặc bị hủy.")}
             </div>
           </div>
         )}
@@ -1121,12 +1148,13 @@ const InstructorAttendance = () => {
               }}
               className="create-btn"
               type="button"
-              disabled={isConfirmed}
+              disabled={isConfirmed || !isClassActive}
+              title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
               style={{
                 background:
                   "linear-gradient(159.93deg, #0369a1 -27.55%, #075985 127.55%)",
-                opacity: isConfirmed ? 0.6 : 1,
-                cursor: isConfirmed ? "not-allowed" : "pointer",
+                opacity: isConfirmed || !isClassActive ? 0.6 : 1,
+                cursor: isConfirmed || !isClassActive ? "not-allowed" : "pointer",
               }}
             >
               <span>{tr("NHẬP DỮ LIỆU EXCEL")}</span>
@@ -1136,10 +1164,11 @@ const InstructorAttendance = () => {
               onClick={handleSaveAttendance}
               className="create-btn"
               type="button"
-              disabled={isConfirmed || saving || publishing}
+              disabled={isConfirmed || !isClassActive || saving || publishing}
+              title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
               style={{
-                opacity: isConfirmed ? 0.6 : 1,
-                cursor: isConfirmed ? "not-allowed" : "pointer",
+                opacity: isConfirmed || !isClassActive ? 0.6 : 1,
+                cursor: isConfirmed || !isClassActive ? "not-allowed" : "pointer",
               }}
             >
               <span>{tr("LƯU ĐIỂM DANH")}</span>
@@ -1149,13 +1178,14 @@ const InstructorAttendance = () => {
               onClick={() => setConfirmPublishOpen(true)}
               className="create-btn"
               type="button"
-              disabled={isConfirmed || saving}
+              disabled={isConfirmed || !isClassActive || saving}
+              title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
               style={{
-                background: isConfirmed
+                background: isConfirmed || !isClassActive
                   ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
                   : "linear-gradient(159.93deg, #e11d48 -27.55%, #be123c 127.55%)",
-                opacity: isConfirmed ? 0.9 : 1,
-                cursor: isConfirmed ? "not-allowed" : "pointer",
+                opacity: isConfirmed || !isClassActive ? 0.7 : 1,
+                cursor: isConfirmed || !isClassActive ? "not-allowed" : "pointer",
               }}
             >
               <span>

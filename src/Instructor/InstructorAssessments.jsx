@@ -41,6 +41,16 @@ const isLockedStatus = (status) => {
   );
 };
 
+const isClassInProgress = (status) => {
+  const st = String(status || "").toLowerCase();
+  return st === "inprogress" || st === "in_progress" || st === "đang diễn ra";
+};
+
+const isClassNotStarted = (status) => {
+  const st = String(status || "").toLowerCase();
+  return st === "planned" || st === "scheduled" || st === "chưa bắt đầu" || st === "upcoming";
+};
+
 const InstructorAssessments = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -837,6 +847,12 @@ const InstructorAssessments = () => {
   };
 
   const handleStartEdit = () => {
+    if (!isClassActive) {
+      toast.error(isClassUpcoming
+        ? tr("Lớp học chưa bắt đầu. Giảng viên chỉ có thể nhập điểm khi lớp học đang ở trạng thái 'Đang diễn ra' (InProgress).")
+        : tr("Lớp học đã kết thúc hoặc bị hủy. Không thể chỉnh sửa điểm."));
+      return;
+    }
     setEditingScores(JSON.parse(JSON.stringify(studentScores)));
     setIsEditingScores(true);
   };
@@ -942,6 +958,12 @@ const InstructorAssessments = () => {
   };
 
   const handleSaveScores = async () => {
+    if (!isClassActive) {
+      toast.error(isClassUpcoming
+        ? tr("Lớp học chưa bắt đầu. Giảng viên chỉ có thể nhập điểm khi lớp học đang ở trạng thái 'Đang diễn ra' (InProgress).")
+        : tr("Lớp học đã kết thúc hoặc bị hủy. Không thể chỉnh sửa điểm."));
+      return;
+    }
     setSaving(true);
     try {
       const changedScores = editingScores.filter((student) => {
@@ -1153,6 +1175,10 @@ const InstructorAssessments = () => {
   const selectedClass = useMemo(() => {
     return classesData.find((c) => c.classId === parseInt(selectedClassId));
   }, [classesData, selectedClassId]);
+
+  const isClassClosed = isLockedStatus(selectedClass?.status);
+  const isClassActive = isClassInProgress(selectedClass?.status);
+  const isClassUpcoming = isClassNotStarted(selectedClass?.status);
 
   // Lấy tên môn học từ subjectId của buổi — để phân biệt các buổi trùng tên
   // (mỗi môn trong lớp sinh ra bộ buổi "Session 1", "Session 2"... giống nhau).
@@ -1400,6 +1426,13 @@ const InstructorAssessments = () => {
 
   const handlePublishScores = async () => {
     if (allPublished) return;
+    if (!isClassActive) {
+      toast.error(isClassUpcoming
+        ? tr("Lớp học chưa bắt đầu. Không thể khóa điểm.")
+        : tr("Lớp học đã kết thúc hoặc bị hủy. Không thể khóa điểm."));
+      setConfirmPublishOpen(false);
+      return;
+    }
     if (!finalizeEligibility.canFinalize) {
       toast.warning(finalizeEligibility.reason);
       setConfirmPublishOpen(false);
@@ -1925,6 +1958,36 @@ const InstructorAssessments = () => {
           </span>
         </nav>
 
+        {/* Cảnh báo: lớp chưa bắt đầu hoặc đã kết thúc/hủy — BE chặn ghi điểm */}
+        {!isClassActive && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "10px",
+              padding: "12px 18px",
+              background: isClassUpcoming ? "#fffbeb" : "#fef2f2",
+              border: isClassUpcoming ? "1px solid #fde68a" : "1px solid #fecaca",
+              borderLeft: isClassUpcoming ? "4px solid #f59e0b" : "4px solid #ef4444",
+              borderRadius: "10px",
+              fontSize: "13px",
+              color: isClassUpcoming ? "#92400e" : "#991b1b",
+              lineHeight: 1.5,
+              marginBottom: "16px",
+            }}
+          >
+            <span style={{ fontSize: "18px", lineHeight: 1 }}>{isClassUpcoming ? "⏳" : "⚠️"}</span>
+            <div>
+              <strong>
+                {isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")} ({getClassStatusLabel(selectedClass?.status)}).
+              </strong>{" "}
+              {isClassUpcoming
+                ? tr("Chỉ có thể nhập điểm khi lớp học được Academic Staff bắt đầu và chuyển sang trạng thái 'Đang diễn ra' (InProgress).")
+                : tr("Hệ thống khóa chức năng chấm điểm đối với các lớp đã hoàn tất hoặc bị hủy.")}
+            </div>
+          </div>
+        )}
+
         <section className="content-header">
           <div className="header-left" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
             <button
@@ -2016,7 +2079,12 @@ const InstructorAssessments = () => {
                 onClick={handleStartEdit}
                 className="create-btn"
                 type="button"
-                disabled={loading}
+                disabled={loading || !isClassActive}
+                title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
+                style={{
+                  opacity: !isClassActive ? 0.6 : 1,
+                  cursor: !isClassActive ? "not-allowed" : "pointer",
+                }}
               >
                 <svg
                   width="14"
@@ -2039,13 +2107,14 @@ const InstructorAssessments = () => {
               onClick={() => setConfirmSignoffOpen(true)}
               className="create-btn"
               type="button"
-              disabled={!canSignoff}
+              disabled={!canSignoff || !isClassActive}
+              title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
               style={{
-                background: !canSignoff
+                background: !canSignoff || !isClassActive
                   ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
                   : "linear-gradient(159.93deg, #2563eb -27.55%, #1d4ed8 127.55%)",
-                opacity: canSignoff ? 1 : 0.7,
-                cursor: canSignoff ? "pointer" : "not-allowed",
+                opacity: canSignoff && isClassActive ? 1 : 0.7,
+                cursor: canSignoff && isClassActive ? "pointer" : "not-allowed",
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "4px" }}>
@@ -2072,14 +2141,14 @@ const InstructorAssessments = () => {
               }}
               className="create-btn"
               type="button"
-              disabled={allPublished || saving || publishing || !finalizeEligibility.canFinalize}
-              title={!finalizeEligibility.canFinalize ? finalizeEligibility.reason : tr("Chốt và khóa bảng điểm này")}
+              disabled={allPublished || saving || publishing || !finalizeEligibility.canFinalize || !isClassActive}
+              title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : !finalizeEligibility.canFinalize ? finalizeEligibility.reason : tr("Chốt và khóa bảng điểm này")}
               style={{
-                background: allPublished || !finalizeEligibility.canFinalize
+                background: allPublished || !finalizeEligibility.canFinalize || !isClassActive
                   ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
                   : "linear-gradient(159.93deg, #e11d48 -27.55%, #be123c 127.55%)",
-                opacity: allPublished ? 0.9 : !finalizeEligibility.canFinalize ? 0.7 : 1,
-                cursor: allPublished || !finalizeEligibility.canFinalize ? "not-allowed" : "pointer",
+                opacity: allPublished ? 0.9 : (!finalizeEligibility.canFinalize || !isClassActive) ? 0.7 : 1,
+                cursor: allPublished || !finalizeEligibility.canFinalize || !isClassActive ? "not-allowed" : "pointer",
               }}
             >
               <svg
@@ -2117,14 +2186,14 @@ const InstructorAssessments = () => {
               }}
               className="create-btn"
               type="button"
-              disabled={allPublished || !selectedAssessment?.assessmentId}
+              disabled={allPublished || !selectedAssessment?.assessmentId || !isClassActive}
+              title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
               style={{
                 background:
                   "linear-gradient(159.93deg, #0369a1 -27.55%, #075985 127.55%)",
-                opacity: allPublished || !selectedAssessment?.assessmentId ? 0.6 : 1,
-                cursor: allPublished || !selectedAssessment?.assessmentId ? "not-allowed" : "pointer",
+                opacity: allPublished || !selectedAssessment?.assessmentId || !isClassActive ? 0.6 : 1,
+                cursor: allPublished || !selectedAssessment?.assessmentId || !isClassActive ? "not-allowed" : "pointer",
               }}
-            >
               <span>{tr("NHẬP DỮ LIỆU EXCEL")}</span>
             </button>
           </div>
@@ -3333,6 +3402,35 @@ const InstructorAssessments = () => {
               gap: "16px",
             }}
           >
+            {/* Cảnh báo: lớp chưa bắt đầu hoặc đã kết thúc/hủy — BE chặn ghi điểm */}
+            {!isClassActive && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                  padding: "12px 18px",
+                  background: isClassUpcoming ? "#fffbeb" : "#fef2f2",
+                  border: isClassUpcoming ? "1px solid #fde68a" : "1px solid #fecaca",
+                  borderLeft: isClassUpcoming ? "4px solid #f59e0b" : "4px solid #ef4444",
+                  borderRadius: "10px",
+                  fontSize: "13px",
+                  color: isClassUpcoming ? "#92400e" : "#991b1b",
+                  lineHeight: 1.5,
+                }}
+              >
+                <span style={{ fontSize: "18px", lineHeight: 1 }}>{isClassUpcoming ? "⏳" : "⚠️"}</span>
+                <div>
+                  <strong>
+                    {isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")} ({getClassStatusLabel(selectedClass?.status)}).
+                  </strong>{" "}
+                  {isClassUpcoming
+                    ? tr("Chỉ có thể nhập điểm khi lớp học được Academic Staff bắt đầu và chuyển sang trạng thái 'Đang diễn ra' (InProgress).")
+                    : tr("Hệ thống khóa chức năng chấm điểm đối với các lớp đã hoàn tất hoặc bị hủy.")}
+                </div>
+              </div>
+            )}
+
             <div>
               <h3 style={{ margin: 0, color: "#002147" }}>
                 {selectedClass ? selectedClass.name : tr("Chọn lớp học")}
