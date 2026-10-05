@@ -45,8 +45,7 @@ const LearnerManagement = () => {
   const [verifyAttachments, setVerifyAttachments] = useState([]);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [selectedAttachmentIds, setSelectedAttachmentIds] = useState([]);
-  const [verifyMode, setVerifyMode] = useState('attachments'); // 'attachments' | 'offline'
-  const [verificationMethod, setVerificationMethod] = useState('Kiểm tra hồ sơ gốc tại văn phòng đào tạo');
+  const [verificationMethod, setVerificationMethod] = useState('');
   const [verifyComment, setVerifyComment] = useState('');
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [verifyError, setVerifyError] = useState('');
@@ -278,14 +277,14 @@ const LearnerManagement = () => {
         setSelectedAttachmentIds(atts.map((a) => a.attachmentId));
       } else {
         setVerifyMode('offline');
-        setVerificationMethod('Kiểm tra hồ sơ gốc tại văn phòng đào tạo');
+        setVerificationMethod(tr('Kiểm tra hồ sơ gốc tại văn phòng đào tạo'));
         setSelectedAttachmentIds([]);
       }
     } catch (err) {
       console.error('Failed to load learner attachments:', err);
       setVerifyAttachments([]);
       setVerifyMode('offline');
-      setVerificationMethod('Kiểm tra hồ sơ gốc tại văn phòng đào tạo');
+      setVerificationMethod(tr('Kiểm tra hồ sơ gốc tại văn phòng đào tạo'));
       setSelectedAttachmentIds([]);
     } finally {
       setLoadingAttachments(false);

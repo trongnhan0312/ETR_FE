@@ -5,6 +5,7 @@ import ApprovalHistory from "../components/ApprovalHistory";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import EtrDossierModal from "../components/EtrDossierModal";
 
 const QARETRDetails = () => {
   const { tr, trEn } = useLanguage();
@@ -13,6 +14,7 @@ const QARETRDetails = () => {
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [reviewNotes, setReviewNotes] = useState("");
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
   // Lưu trạng thái xác thực của từng EvidenceFile (key: evidenceFileId) — lấy từ GET /Evidences
   const [evidenceById, setEvidenceById] = useState({});
   // ETR đã tải xong chi tiết evidence (GET /Etr/{id}) — để hiển thị "…" trong lúc chờ
@@ -252,7 +254,18 @@ const QARETRDetails = () => {
       {selectedEtr && (
         <section className="qa-detail-grid">
           <div className="qa-panel">
-            <h2 className="qa-section-title">{trEn('Record Summary')}</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "8px" }}>
+              <h2 className="qa-section-title" style={{ margin: 0 }}>{trEn('Record Summary')}</h2>
+              <button
+                className="qa-btn"
+                type="button"
+                onClick={() => setIsDossierOpen(true)}
+                style={{ display: "inline-flex", gap: "6px", alignItems: "center", fontSize: "12px", padding: "6px 14px" }}
+                title={tr("Mở toàn bộ 6 tab hồ sơ ETR Dossier")}
+              >
+                📂 {tr('Xem Dossier Toàn Diện')}
+              </button>
+            </div>
             <h2 className="qa-section-title" style={{ marginTop: "24px" }}>{trEn('Approval History')}</h2>
             <ApprovalHistory etrId={selectedEtr.etrId} />
             <div className="qa-kv-grid">
@@ -376,6 +389,16 @@ const QARETRDetails = () => {
             ? tr("Sau khi xác thực, hồ sơ sẽ chuyển sang bước phê duyệt của Training Manager.")
             : tr("Học viên/giảng viên sẽ nhận được yêu cầu chỉnh sửa kèm lý do của bạn.")
         }
+      />
+
+      {/* ETR DOSSIER MODAL */}
+      <EtrDossierModal
+        etrId={selectedEtr?.etrId}
+        isOpen={isDossierOpen}
+        onClose={() => setIsDossierOpen(false)}
+        onActionSuccess={() => {
+          loadData();
+        }}
       />
     </div>
   );

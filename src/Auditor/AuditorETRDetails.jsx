@@ -6,6 +6,7 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
+import EtrDossierModal from '../components/EtrDossierModal';
 
 // Trích số thật từ id — chấp nhận mọi định dạng: số thuần (891), "ETR-2026-0891", "#ETR-0891".
 const toNumericId = (value) => {
@@ -26,6 +27,7 @@ const AuditorETRDetails = () => {
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState('learner');
 
@@ -150,6 +152,20 @@ const AuditorETRDetails = () => {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            className="auditor-btn-sm"
+            onClick={() => setIsDossierOpen(true)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#002147',
+              color: '#c5a059',
+              border: '1px solid #c5a059',
+              fontWeight: 600,
+            }}
+            title={tr("Mở toàn diện 6 tab ETR Dossier")}
+          >
+            📂 {trEn('Open Full Dossier')}
+          </button>
           <button
             className="auditor-btn-sm"
             onClick={handleExportPdf}
@@ -388,6 +404,13 @@ const AuditorETRDetails = () => {
 
       {/* Toast notifications */}
       <toast.ToastContainer />
+
+      {/* ETR DOSSIER MODAL */}
+      <EtrDossierModal
+        etrId={etr?.etrCourseRecordId}
+        isOpen={isDossierOpen}
+        onClose={() => setIsDossierOpen(false)}
+      />
     </div>
   );
 };

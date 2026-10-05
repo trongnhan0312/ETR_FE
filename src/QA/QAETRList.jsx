@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { isEtrCompleted } from "../utils/etrStatus";
+import EtrDossierModal from "../components/EtrDossierModal";
 
 // Trạng thái ETR → nhãn hiển thị + màu badge/chip
 const STATUS_META = {
@@ -32,6 +33,7 @@ const QAETRList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedDossierEtrId, setSelectedDossierEtrId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -272,6 +274,15 @@ const QAETRList = () => {
                       >
                         {trEn(meta.label)}
                       </span>
+                      <button
+                        className="qa-btn"
+                        type="button"
+                        onClick={() => setSelectedDossierEtrId(etr.etrId)}
+                        style={{ padding: "6px 12px", fontSize: "11px", display: "inline-flex", gap: "4px", alignItems: "center" }}
+                        title={tr("Xem hồ sơ ETR Dossier toàn diện")}
+                      >
+                        📂 {trEn('Dossier')}
+                      </button>
                     </div>
                   </div>
                   <p className="qa-list-desc" style={{ fontSize: 11 }}>
@@ -291,6 +302,16 @@ const QAETRList = () => {
           pageSize={10}
         />
       </section>
+
+      {/* ETR DOSSIER MODAL */}
+      <EtrDossierModal
+        etrId={selectedDossierEtrId}
+        isOpen={!!selectedDossierEtrId}
+        onClose={() => setSelectedDossierEtrId(null)}
+        onActionSuccess={() => {
+          loadData();
+        }}
+      />
     </div>
   );
 };

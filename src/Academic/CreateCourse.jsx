@@ -17,6 +17,11 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
   // Completion Requirements state (Phase 1 & Phase 4) - Để trống mặc định để người tạo chủ động chọn
   const [completionRequirements, setCompletionRequirements] = useState([]);
 
+  // Departments (Training Audience) selection state
+  const [availableDepartments, setAvailableDepartments] = useState([]);
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+
   // Subjects selection state (Business Rule: Course MUST have at least 1 Subject)
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
@@ -35,7 +40,30 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
   const isWeightValid = totalWeight === 100;
   const isSubjectValid = selectedSubjectIds.length > 0;
 
-  // Load available subjects from API
+  // Load available departments & subjects from API
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        setLoadingDepartments(true);
+        const data = await api.get("/Departments").catch(() => []);
+        const deptsArr = Array.isArray(data) ? data : [];
+        // Filter training audience departments (exclude internal admin/training depts)
+        const audienceDepts = deptsArr.filter((d) => {
+          if (d.isTrainingAudience === false) return false;
+          const code = (d.departmentCode || "").toUpperCase();
+          const name = (d.departmentName || "").toLowerCase();
+          return code !== "ADM" && code !== "TRN" && !name.includes("administration") && !name.includes("training") && !name.includes("hành chính");
+        });
+        setAvailableDepartments(audienceDepts);
+      } catch (err) {
+        console.error("Error fetching departments for CreateCourse:", err);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
@@ -225,6 +253,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
       selectedSubjectIds,
       subjects: subjectsPayload,
       completionRequirements,
+      departmentIds: selectedDepartmentIds.map(Number),
       attendanceProgress: 100,
       activeClassesCount: 0,
       classes: [],
@@ -403,6 +432,122 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* PHÒNG BAN / ĐỐI TƯỢNG ĐÀO TẠO ĐƯỢC PHÉP HỌC */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                marginBottom: "24px",
+                backgroundColor: "#f8fafc",
+                padding: "16px",
+                borderRadius: "8px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderBottom: "1px solid #cbd5e1",
+                  paddingBottom: "8px",
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: "700",
+                      color: "#002147",
+                    }}
+                  >
+                    {tr("PHÒNG BAN / ĐỐI TƯỢNG ĐÀO TẠO ĐƯỢC PHÉP HỌC")}
+                  </span>
+                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                    {tr("Chọn các phòng ban được phép học khóa này. Để trống = Cho phép mọi phòng ban (Không giới hạn).")}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    padding: "3px 8px",
+                    borderRadius: "12px",
+                    backgroundColor: selectedDepartmentIds.length > 0 ? "#e0f2fe" : "#f1f5f9",
+                    color: selectedDepartmentIds.length > 0 ? "#0369a1" : "#475569",
+                    border: selectedDepartmentIds.length > 0 ? "1px solid #bae6fd" : "1px solid #cbd5e1",
+                  }}
+                >
+                  {selectedDepartmentIds.length > 0
+                    ? `🎯 ${tr("Đã giới hạn")} (${selectedDepartmentIds.length})`
+                    : `🌐 ${tr("Mọi phòng ban (Không giới hạn)")}`}
+                </span>
+              </div>
+
+              {loadingDepartments ? (
+                <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic" }}>
+                  {tr("Đang tải danh sách phòng ban đào tạo...")}
+                </div>
+              ) : availableDepartments.length === 0 ? (
+                <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic" }}>
+                  {tr("Không có danh mục phòng ban chuyên môn. Khóa học sẽ mở cho tất cả học viên.")}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                    gap: "10px",
+                    marginTop: "4px",
+                  }}
+                >
+                  {availableDepartments.map((dept) => {
+                    const isChecked = selectedDepartmentIds.includes(String(dept.departmentId));
+                    return (
+                      <label
+                        key={dept.departmentId}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "8px 12px",
+                          borderRadius: "6px",
+                          backgroundColor: isChecked ? "#eff6ff" : "#ffffff",
+                          border: isChecked ? "1px solid #3b82f6" : "1px solid #cbd5e1",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          fontWeight: isChecked ? 600 : 400,
+                          color: isChecked ? "#1d4ed8" : "#334155",
+                          transition: "all 0.15s ease-in-out",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const strId = String(dept.departmentId);
+                            setSelectedDepartmentIds((prev) =>
+                              prev.includes(strId)
+                                ? prev.filter((id) => id !== strId)
+                                : [...prev, strId]
+                            );
+                          }}
+                          style={{ cursor: "pointer", accentColor: "#2563eb" }}
+                        />
+                        <span>{dept.departmentName}</span>
+                        {dept.departmentCode && (
+                          <span style={{ fontSize: "10px", color: "#94a3b8", marginLeft: "auto" }}>
+                            {dept.departmentCode}
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* MANDATORY COURSE SUBJECTS CONFIGURATION */}

@@ -4,6 +4,7 @@ import { api } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 import { isEtrCompleted } from '../utils/etrStatus';
 import { useSubViewBack } from '../utils/navigation';
+import EtrDossierModal from '../components/EtrDossierModal';
 
 const STATUS_MAP = {
   'In Progress': 'progress',
@@ -484,6 +485,7 @@ const StudentFlightSimLogSection = ({ enrollmentId }) => {
 const DetailView = ({ etr, onBack }) => {
   const { tr } = useLanguage();
   const s = mapEtr(etr || {});
+  const [showDossier, setShowDossier] = useState(false);
 
   return (
     <div className="page-shell">
@@ -504,8 +506,40 @@ const DetailView = ({ etr, onBack }) => {
             {s.submittedAt ? ` | ${tr('Nộp:')} ${formatDate(s.submittedAt)}` : ''}
           </p>
         </div>
-        <Badge status={s.status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Badge status={s.status} />
+          {s.id && (
+            <button
+              type="button"
+              className="action-btn"
+              onClick={() => setShowDossier(true)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 8,
+                background: '#002147',
+                color: '#ffffff',
+                border: '1px solid #c5a059',
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              📄 {tr('Xem Dossier Toàn Diện')}
+            </button>
+          )}
+        </div>
       </section>
+
+      {s.id && (
+        <EtrDossierModal
+          etrId={s.id}
+          isOpen={showDossier}
+          onClose={() => setShowDossier(false)}
+        />
+      )}
 
       {/* Info Grid */}
       <section className="student-info-grid">
@@ -822,6 +856,7 @@ const StudentMyETR = () => {
   const [etrs, setEtrs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEtr, setSelectedEtr] = useState(null);
+  const [dossierEtrId, setDossierEtrId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'history'
 
@@ -1029,6 +1064,19 @@ const StudentMyETR = () => {
                         <button className="action-btn" type="button" onClick={(e2) => { e2.stopPropagation(); openDetail(etrs.find(r => (r.ETRCourseRecordId ?? r.etrCourseRecordId) === e.id) || etrs[idx]); }}>
                           {tr('Chi tiết')}
                         </button>
+                        {e.id && (
+                          <button
+                            className="action-btn"
+                            type="button"
+                            style={{ marginLeft: 6, background: '#002147', color: '#fff', border: '1px solid #c5a059' }}
+                            onClick={(e2) => {
+                              e2.stopPropagation();
+                              setDossierEtrId(e.id);
+                            }}
+                          >
+                            {tr('Dossier')}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1037,6 +1085,15 @@ const StudentMyETR = () => {
             )}
           </section>
         </>
+      )}
+
+      {dossierEtrId && (
+        <EtrDossierModal
+          etrId={dossierEtrId}
+          isOpen={!!dossierEtrId}
+          onClose={() => setDossierEtrId(null)}
+          onActionSuccess={loadData}
+        />
       )}
     </div>
   );

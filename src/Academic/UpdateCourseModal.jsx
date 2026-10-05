@@ -17,20 +17,41 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
   const [subjectCriteria, setSubjectCriteria] = useState({}); // subjectId -> { requiredHours, isMandatory, passingScore, sequenceNo }
   const [loadingSubjects, setLoadingSubjects] = useState(true);
+
+  const [availableDepartments, setAvailableDepartments] = useState([]);
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    const fetchSubjects = async () => {
+    const fetchSubjectsAndDepartments = async () => {
       try {
         setLoadingSubjects(true);
-        const [subList, cDetail] = await Promise.all([
+        setLoadingDepartments(true);
+        const [subList, cDetail, deptList] = await Promise.all([
           api.get('/Subjects').catch(() => []),
-          api.get(`/Courses/${course.courseId}`).catch(() => null)
+          api.get(`/Courses/${course.courseId}`).catch(() => null),
+          api.get('/Departments').catch(() => [])
         ]);
 
         const subs = Array.isArray(subList) ? subList : [];
         setAvailableSubjects(subs);
+
+        // Filter training audience departments
+        const deptsArr = Array.isArray(deptList) ? deptList : [];
+        const audienceDepts = deptsArr.filter((d) => {
+          if (d.isTrainingAudience === false) return false;
+          const code = (d.departmentCode || '').toUpperCase();
+          const name = (d.departmentName || '').toLowerCase();
+          return code !== 'ADM' && code !== 'TRN' && !name.includes('administration') && !name.includes('training') && !name.includes('hành chính');
+        });
+        setAvailableDepartments(audienceDepts);
+
+        // Load existing course departments
+        const existingDeptIds = cDetail?.departmentIds || course.departmentIds || [];
+        setSelectedDepartmentIds(existingDeptIds.map(String));
 
         let existingMappings = null;
         const detailSubs = Array.isArray(cDetail?.subjects)
@@ -62,13 +83,14 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
         });
         setSubjectCriteria(criteria);
       } catch (err) {
-        console.error('Error loading subjects for UpdateCourseModal:', err);
+        console.error('Error loading subjects/departments for UpdateCourseModal:', err);
       } finally {
         setLoadingSubjects(false);
+        setLoadingDepartments(false);
       }
     };
-    fetchSubjects();
-  }, [course.courseId, course.subjects]);
+    fetchSubjectsAndDepartments();
+  }, [course.courseId, course.subjects, course.departmentIds]);
 
   const handleSubjectToggle = (subIdStr) => {
     setSelectedSubjectIds((prev) => {
@@ -148,6 +170,7 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
         description: description.trim(),
         durationHours,
         status: status,
+        departmentIds: selectedDepartmentIds.map(Number),
         subjects: subjectsPayload
       });
     } catch (err) {
@@ -283,6 +306,124 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* PHÒNG BAN / ĐỐI TƯỢNG ĐÀO TẠO ĐƯỢC PHÉP HỌC */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                marginBottom: '20px',
+                backgroundColor: '#f8fafc',
+                padding: '14px',
+                borderRadius: '6px',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid #cbd5e1',
+                  paddingBottom: '6px',
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      color: '#002147',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    {tr('Phòng ban / Đối tượng đào tạo')}
+                  </span>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '1px' }}>
+                    {tr('Để trống = Mọi phòng ban đều được phép học.')}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    backgroundColor: selectedDepartmentIds.length > 0 ? '#e0f2fe' : '#f1f5f9',
+                    color: selectedDepartmentIds.length > 0 ? '#0369a1' : '#475569',
+                    border: selectedDepartmentIds.length > 0 ? '1px solid #bae6fd' : '1px solid #cbd5e1',
+                  }}
+                >
+                  {selectedDepartmentIds.length > 0
+                    ? `🎯 ${tr('Đã giới hạn')} (${selectedDepartmentIds.length})`
+                    : `🌐 ${tr('Tất cả phòng ban')}`}
+                </span>
+              </div>
+
+              {loadingDepartments ? (
+                <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
+                  {tr('Đang tải danh sách phòng ban...')}
+                </div>
+              ) : availableDepartments.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
+                  {tr('Không có danh mục phòng ban. Khóa học mở cho mọi học viên.')}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                    gap: '8px',
+                    marginTop: '2px',
+                  }}
+                >
+                  {availableDepartments.map((dept) => {
+                    const isChecked = selectedDepartmentIds.includes(String(dept.departmentId));
+                    return (
+                      <label
+                        key={dept.departmentId}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 10px',
+                          borderRadius: '4px',
+                          backgroundColor: isChecked ? '#eff6ff' : '#ffffff',
+                          border: isChecked ? '1px solid #3b82f6' : '1px solid #cbd5e1',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: isChecked ? 600 : 400,
+                          color: isChecked ? '#1d4ed8' : '#334155',
+                          transition: 'all 0.15s ease-in-out',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const strId = String(dept.departmentId);
+                            setSelectedDepartmentIds((prev) =>
+                              prev.includes(strId)
+                                ? prev.filter((id) => id !== strId)
+                                : [...prev, strId]
+                            );
+                          }}
+                          style={{ cursor: 'pointer', accentColor: '#2563eb' }}
+                        />
+                        <span>{dept.departmentName}</span>
+                        {dept.departmentCode && (
+                          <span style={{ fontSize: '10px', color: '#94a3b8', marginLeft: 'auto' }}>
+                            {dept.departmentCode}
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Course Subjects Configuration */}

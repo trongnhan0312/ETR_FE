@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { isEtrCompleted, isEtrPendingApproval, isEtrReturned } from "../utils/etrStatus";
+import EtrDossierModal from "../components/EtrDossierModal";
 import "./training-manager.scss";
 
 const EtrApproval = () => {
@@ -1269,13 +1270,17 @@ const EtrApproval = () => {
                   <tr key={etr.id} style={{ borderTop: "1px solid #e1e4e8" }}>
                     <td style={{ padding: "20px 24px" }}>
                       <span
+                        onClick={() => setSelectedEtr(etr)}
                         style={{
                           fontSize: "14px",
                           color: "#002147",
                           fontWeight: 600,
                           display: "block",
                           lineHeight: "1.4",
+                          cursor: "pointer",
+                          textDecoration: "underline",
                         }}
+                        title={tr("Mở Dossier chi tiết")}
                       >
                         {etr.id}
                       </span>
@@ -1375,7 +1380,7 @@ const EtrApproval = () => {
                         {isAdminPortal ? (
                           <>
                             <button
-                              onClick={() => setViewingHistory(etr)}
+                              onClick={() => setSelectedEtr(etr)}
                               className="tm-btn-secondary"
                               style={{
                                 display: "flex",
@@ -1383,11 +1388,13 @@ const EtrApproval = () => {
                                 alignItems: "center",
                                 padding: "12px 16px",
                                 borderRadius: "4px",
-                                border: "1px solid rgba(0,33,71,0.2)",
+                                border: "1px solid #002147",
+                                color: "#002147",
+                                fontWeight: 600,
                               }}
-                              title={tr("Xem chi tiết hồ sơ ETR")}
+                              title={tr("Xem chi tiết hồ sơ ETR Dossier")}
                             >
-                              <span>{tr('VIEW')}</span>
+                              📂 <span>{tr('DOSSIER')}</span>
                             </button>
                             {activeTab === "APPROVED" && isAdmin && (
                               <button
@@ -1405,6 +1412,23 @@ const EtrApproval = () => {
                           </>
                         ) : (
                           <>
+                        <button
+                          onClick={() => setSelectedEtr(etr)}
+                          className="tm-btn-secondary"
+                          style={{
+                            display: "flex",
+                            gap: "6px",
+                            alignItems: "center",
+                            padding: "12px 14px",
+                            borderRadius: "4px",
+                            border: "1px solid #002147",
+                            color: "#002147",
+                            fontWeight: 600,
+                          }}
+                          title={tr("Xem hồ sơ ETR Dossier toàn diện")}
+                        >
+                          📂 <span>{tr('DOSSIER')}</span>
+                        </button>
                         <button
                           onClick={() => setViewingHistory(etr)}
                           className="tm-btn-secondary"
@@ -1559,280 +1583,13 @@ const EtrApproval = () => {
         </div>
       </div>
 
-      {/* INSPECT ETR DETAIL MODAL */}
-      {selectedEtr && !showActionModal && createPortal(
-        <div className="tm-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 33, 71, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, backdropFilter: 'blur(4px)' }}>
-          <div className="tm-modal-card max-w-2xl" style={{ margin: 'auto' }}>
-            {/* Header */}
-            <div className="modal-header">
-              <div>
-                <h3>{tr('Inspect Training Record')}</h3>
-                <p className="modal-subtitle">
-                  {tr('Record ID:')} {selectedEtr.id} • {tr('Status:')} {selectedEtr.status}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedEtr(null)}
-                className="close-btn"
-              >
-                &times;
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="modal-body">
-              {/* Trainee Card Info */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  paddingBottom: "16px",
-                  borderBottom: "1px solid #f3f4f6",
-                }}
-              >
-                <div>
-                  <h4
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      color: "#002147",
-                      margin: 0,
-                    }}
-                  >
-                    {selectedEtr.traineeName}
-                  </h4>
-                  <p style={{ fontSize: "11px", color: "#9ca3af", margin: 0 }}>
-                    {tr('Trainee Code:')} {selectedEtr.traineeCode}
-                  </p>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <span
-                    style={{
-                      fontSize: "9px",
-                      fontWeight: 700,
-                      color: "#9ca3af",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      display: "block",
-                    }}
-                  >
-                    {tr('Class name')}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      color: "#002147",
-                    }}
-                  >
-                    {selectedEtr.className}
-                  </span>
-                </div>
-              </div>
-
-              {/* Assessment Breakdown List */}
-              <div>
-                <span
-                  style={{
-                    fontSize: "10px",
-                    fontWeight: 900,
-                    color: "#9ca3af",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.12em",
-                    display: "block",
-                    marginBottom: "12px",
-                  }}
-                >
-                  {tr('Syllabus assessment scores')}
-                </span>
-                <div className="tm-assessment-list">
-                  {selectedEtr.assessments.map((a, idx) => (
-                    <div key={idx} className="row">
-                      <div className="title-group">
-                        <span className="title">{a.name}</span>
-                        <span className="sub">{tr('Assessed on')} {a.date}</span>
-                      </div>
-                      <div className="score-group">
-                        <div className="bar">
-                          <div
-                            className="fill"
-                            style={{ width: `${a.score}%` }}
-                          />
-                        </div>
-                        <span className="value">{a.score}%</span>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="summary-row">
-                    <span className="label">{tr('Average Attendance Rate')}</span>
-                    <span className="value">{selectedEtr.avgScore}%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* QA Verification Log */}
-              <div
-                style={{
-                  padding: "16px",
-                  backgroundColor: selectedEtr.qaVerified ? "#f8f9fa" : "#fffbeb",
-                  border: selectedEtr.qaVerified ? "1px solid #e5e7eb" : "1px solid #fde68a",
-                  borderRadius: "6px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                {selectedEtr.qaVerified ? (
-                  <>
-                    <div>
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 700,
-                          color: "#6b7280",
-                          textTransform: "uppercase",
-                          display: "block",
-                          marginBottom: "2px",
-                        }}
-                      >
-                        {tr('QA Verification Log')}
-                      </span>
-                      <span style={{ fontSize: "12px", color: "#4b5563" }}>
-                        {tr('Verified by')}{" "}
-                        <span style={{ fontWeight: 600, color: "#002147" }}>
-                          {selectedEtr.qaVerifier || "QA Staff"}
-                        </span>{" "}
-                        {tr('on')} {selectedEtr.qaDate || selectedEtr.submissionDate}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="tm-status-tag verified">{tr('QA STAMPED')}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 700,
-                          color: "#b45309",
-                          textTransform: "uppercase",
-                          display: "block",
-                          marginBottom: "2px",
-                        }}
-                      >
-                        {tr('QA Verification Status')}
-                      </span>
-                      <span style={{ fontSize: "12px", color: "#6b7280" }}>
-                        {tr('Chưa được QA thẩm định (Hồ sơ đang chờ QA xử lý tại ETR Review Queue)')}
-                      </span>
-                    </div>
-                    <div>
-                      <span
-                        className="tm-status-tag"
-                        style={{
-                          backgroundColor: "#fef3c7",
-                          color: "#b45309",
-                          border: "1px solid #fde68a",
-                        }}
-                      >
-                        ⏳ {tr('PENDING QA')}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Show Returned Feedback if Status is Returned */}
-              {selectedEtr.status === "RETURNED" && (
-                <div className="tm-feedback-alert">
-                  <span className="label">{tr('Return Feedback reason')}</span>
-                  <p>
-                    {selectedEtr.returnedBy} ({selectedEtr.returnDate}): "
-                    {selectedEtr.returnReason}"
-                  </p>
-                </div>
-              )}
-
-              {/* Show Approved Log if Status is Approved */}
-              {selectedEtr.status === "APPROVED" && (
-                <div className="tm-approved-alert">
-                  <div>
-                    <span className="label">{tr('Approved Log')}</span>
-                    <p>
-                      {tr('Approved by')} {selectedEtr.approvedBy} {tr('on')}{" "}
-                      {selectedEtr.approvalDate}
-                    </p>
-                  </div>
-                  <span className="stamp">{tr('ARCHIVED')}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Footer Actions */}
-            <div className="modal-footer">
-              <button
-                onClick={() => setSelectedEtr(null)}
-                className="tm-btn-secondary"
-              >
-                {tr('Close')}
-              </button>
-              {selectedEtr.status === "PENDING" && !isAdminPortal && (
-                selectedEtr.qaVerified ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        const target = selectedEtr;
-                        setSelectedEtr(null);
-                        handleReturn(target);
-                      }}
-                      className="tm-btn-secondary"
-                      style={{
-                        color: "#b91c1c",
-                        border: "1px solid #fca5a5",
-                        backgroundColor: "#fef2f2",
-                        fontWeight: 600,
-                      }}
-                    >
-                      ↺ {tr('Return for Correction')}
-                    </button>
-                    <button
-                      onClick={() => setShowActionModal("APPROVE")}
-                      className="tm-btn-success"
-                    >
-                      {tr('Sign off & Approve')}
-                    </button>
-                  </>
-                ) : (
-                  <span style={{ fontSize: "12px", color: "#b45309", fontWeight: 600, alignSelf: "center", marginRight: "12px" }}>
-                    ⏳ {tr('Hồ sơ đang chờ QA thẩm định trước khi phê duyệt cuối')}
-                  </span>
-                )
-              )}
-              {selectedEtr.status === "APPROVED" && isAdmin && (
-                <button
-                  onClick={() => {
-                    const targetId = selectedEtr.etrId;
-                    setSelectedEtr(null);
-                    handleReopen(targetId);
-                  }}
-                  className="tm-btn-secondary"
-                  style={{
-                    color: "#b45309",
-                    border: "1px solid rgba(180,83,9,0.35)",
-                    fontWeight: 600,
-                  }}
-                >
-                  {tr('REOPEN')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* ETR DOSSIER MODAL */}
+      <EtrDossierModal
+        etrId={selectedEtr?.etrId}
+        isOpen={!!selectedEtr && !showActionModal}
+        onClose={() => setSelectedEtr(null)}
+        onActionSuccess={loadEtrsFromApi}
+      />
 
       {/* CONFIRMATION / INPUT ACTION MODAL */}
       {showActionModal && selectedEtr && createPortal(

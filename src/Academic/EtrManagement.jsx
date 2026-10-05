@@ -10,6 +10,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from "../context/LanguageContext";
 import AuditLogDetailModal from "../components/AuditLogDetailModal";
+import EtrDossierModal from "../components/EtrDossierModal";
 import {
   isEtrCompleted,
   areAllAttendanceRatesOk,
@@ -39,6 +40,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [dossierEtrId, setDossierEtrId] = useState(null);
 
   // Sub-views & Filters
   const [viewMode, setViewMode] = useState(defaultView); // 'list' or 'evidence'
@@ -3020,6 +3022,21 @@ const EtrManagement = ({ defaultView = "list" }) => {
                       <button
                         className="create-btn gold-gradient-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border-0 !bg-[#002147] !px-0 !py-0 !text-[#c5a059] !shadow-sm !transition hover:-translate-y-0.5 hover:!bg-[#003366] xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5"
                         type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDossierEtrId(record.etrId);
+                        }}
+                        aria-label={tr("Xem Dossier")}
+                        title={tr("Xem hồ sơ ETR Dossier toàn diện (6 tabs)")}
+                      >
+                        <span style={{ fontSize: "14px" }}>📂</span>
+                        <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none xl:text-[#c5a059]">
+                          {tr("DOSSIER")}
+                        </span>
+                      </button>
+                      <button
+                        className="create-btn gold-gradient-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border-0 !bg-[#002147] !px-0 !py-0 !text-[#c5a059] !shadow-sm !transition hover:-translate-y-0.5 hover:!bg-[#003366] xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5"
+                        type="button"
                         onClick={(e) => handleOpenFinalView(record, e)}
                         aria-label={tr("Xem final")}
                       >
@@ -3997,6 +4014,16 @@ const EtrManagement = ({ defaultView = "list" }) => {
           </div>,
           document.body
         )}
+
+        {/* ETR DOSSIER MODAL */}
+        <EtrDossierModal
+          etrId={dossierEtrId}
+          isOpen={!!dossierEtrId}
+          onClose={() => setDossierEtrId(null)}
+          onActionSuccess={() => {
+            refreshData();
+          }}
+        />
       </div>
     </div>
   );

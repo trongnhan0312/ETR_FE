@@ -178,7 +178,7 @@ const StudentProfiles = () => {
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [selectedAttachmentIds, setSelectedAttachmentIds] = useState([]);
   const [verifyMode, setVerifyMode] = useState('attachments'); // 'attachments' | 'offline'
-  const [verificationMethod, setVerificationMethod] = useState('Kiểm tra hồ sơ gốc tại văn phòng đào tạo');
+  const [verificationMethod, setVerificationMethod] = useState('');
   const [verifyComment, setVerifyComment] = useState('');
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [verifyError, setVerifyError] = useState('');
@@ -467,14 +467,14 @@ const StudentProfiles = () => {
         setSelectedAttachmentIds(atts.map((a) => a.attachmentId));
       } else {
         setVerifyMode('offline');
-        setVerificationMethod('Kiểm tra hồ sơ gốc tại văn phòng đào tạo');
+        setVerificationMethod(tr('Kiểm tra hồ sơ gốc tại văn phòng đào tạo'));
         setSelectedAttachmentIds([]);
       }
     } catch (err) {
       console.error('Failed to load attachments:', err);
       setVerifyAttachments([]);
       setVerifyMode('offline');
-      setVerificationMethod('Kiểm tra hồ sơ gốc tại văn phòng đào tạo');
+      setVerificationMethod(tr('Kiểm tra hồ sơ gốc tại văn phòng đào tạo'));
       setSelectedAttachmentIds([]);
     } finally {
       setLoadingAttachments(false);
@@ -1201,11 +1201,11 @@ const StudentProfiles = () => {
                   </div>
                   <div>
                     <span style={{ color: '#64748b' }}>{tr('Khám sức khỏe:')}</span>{' '}
-                    <strong>{verifyingProfile.medicalClass || 'N/A'}</strong> (Hạn: {formatDate(viewingProfile?.medicalExpiryDate || verifyingProfile.medicalExpiryDate, lang)})
+                    <strong>{verifyingProfile.medicalClass || 'N/A'}</strong> ({tr('Hạn:')} {formatDate(viewingProfile?.medicalExpiryDate || verifyingProfile.medicalExpiryDate, lang)})
                   </div>
                   <div>
                     <span style={{ color: '#64748b' }}>{tr('ICAO ELP:')}</span>{' '}
-                    <strong>{verifyingProfile.icaoElpLevel ? `Level ${verifyingProfile.icaoElpLevel}` : 'N/A'}</strong> (Hạn: {formatDate(verifyingProfile.icaoElpExpiryDate, lang)})
+                    <strong>{verifyingProfile.icaoElpLevel ? `Level ${verifyingProfile.icaoElpLevel}` : 'N/A'}</strong> ({tr('Hạn:')} {formatDate(verifyingProfile.icaoElpExpiryDate, lang)})
                   </div>
                   <div style={{ gridColumn: 'span 2' }}>
                     <span style={{ color: '#64748b' }}>{tr('Định danh loại tàu bay:')}</span>{' '}

@@ -62,6 +62,18 @@ const CourseClassManagement = () => {
   const [deletingClassTarget, setDeletingClassTarget] = useState(null);
   const [deletingSubmitting, setDeletingSubmitting] = useState(false);
   const [classSubmitting, setClassSubmitting] = useState(false);
+  const [openActionMenu, setOpenActionMenu] = useState(null);
+
+  useEffect(() => {
+    if (!openActionMenu) return;
+    const handleScrollOrResize = () => setOpenActionMenu(null);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
+    };
+  }, [openActionMenu]);
 
   const [selectedClassForHistory, setSelectedClassForHistory] = useState(null);
 
@@ -350,6 +362,8 @@ const CourseClassManagement = () => {
         status: course.status || "Active",
         versionNo: course.versionNo || 1,
         previousVersionId: course.previousVersionId || null,
+        departmentIds: course.departmentIds || course.DepartmentIds || [],
+        departmentNames: course.departmentNames || course.DepartmentNames || [],
         structure: { theory: 40, practice: 40, assignment: 10, attendance: 10 },
         attendanceProgress: Math.min(100, sessionCount > 0 ? 100 : 0),
         courseSubjects: course.courseSubjects || course.subjects || course.CourseSubjects || course.Subjects || [],
@@ -556,6 +570,7 @@ const CourseClassManagement = () => {
         status: newCourse.status || "Active",
         validityMonths: null,
         courseType: null,
+        departmentIds: newCourse.departmentIds || newCourse.DepartmentIds || [],
         subjects: subjectsPayload,
         courseSubjects: subjectsPayload,
         subjectIds: subjectsPayload.map((s) => s.subjectId),
@@ -626,6 +641,7 @@ const CourseClassManagement = () => {
         status: updateData.status || "Active",
         validityMonths: updateData.validityMonths ?? null,
         courseType: updateData.courseType ?? null,
+        departmentIds: updateData.departmentIds || updateData.DepartmentIds || [],
         subjects: subjectsPayload,
         courseSubjects: subjectsPayload,
         subjectIds: subjectsPayload.map((s) => s.subjectId),
@@ -1601,6 +1617,24 @@ const CourseClassManagement = () => {
                                 ? tr("Đã lưu trữ")
                                 : tr("Hoạt động")}
                           </span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              padding: "2px 8px",
+                              borderRadius: "4px",
+                              backgroundColor: course.departmentNames && course.departmentNames.length > 0 ? "#eff6ff" : "#f1f5f9",
+                              color: course.departmentNames && course.departmentNames.length > 0 ? "#1d4ed8" : "#475569",
+                              border: `1px solid ${course.departmentNames && course.departmentNames.length > 0 ? "#bfdbfe" : "#cbd5e1"}`,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                            title={course.departmentNames && course.departmentNames.length > 0 ? `${tr("Đối tượng đào tạo")}: ${course.departmentNames.join(", ")}` : tr("Cho phép tất cả phòng ban")}
+                          >
+                            <span>🎯</span>
+                            <span>{course.departmentNames && course.departmentNames.length > 0 ? course.departmentNames.join(", ") : tr("Tất cả phòng ban")}</span>
+                          </span>
                         </div>
                         <div className="col-duration">
                           {course.duration} {tr("Giờ")}
@@ -1648,29 +1682,6 @@ const CourseClassManagement = () => {
                         >
                           <button
                             type="button"
-                            title={tr("Tạo phiên bản mới (Clone Version) cho Khóa này")}
-                            style={{
-                              backgroundColor: "#f0f9ff",
-                              border: "1px solid #0284c7",
-                              color: "#0284c7",
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              padding: "5px 10px",
-                              borderRadius: "4px",
-                              cursor: "pointer",
-                              whiteSpace: "nowrap",
-                              flexShrink: 0,
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCreateNewCourseVersion(course);
-                            }}
-                          >
-                            {tr("🔄 Tạo bản mới")}
-                          </button>
-
-                          <button
-                            type="button"
                             title={tr("Tạo Lớp học mới cho Khóa này")}
                             style={{
                               backgroundColor: "#002147",
@@ -1695,11 +1706,11 @@ const CourseClassManagement = () => {
 
                           <button
                             type="button"
-                            title={tr("Sửa thông tin Khóa học")}
+                            title={tr("Tạo phiên bản mới (Clone Version) cho Khóa này")}
                             style={{
-                              backgroundColor: "#ffffff",
-                              border: "1px solid #c5a059",
-                              color: "#c5a059",
+                              backgroundColor: "#f0f9ff",
+                              border: "1px solid #0284c7",
+                              color: "#0284c7",
                               fontSize: "11px",
                               fontWeight: 700,
                               padding: "5px 10px",
@@ -1710,33 +1721,43 @@ const CourseClassManagement = () => {
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingCourseTarget(course);
+                              handleCreateNewCourseVersion(course);
                             }}
                           >
-                            {tr("✏️ Sửa Khóa")}
+                            {tr("🔄 Tạo bản mới")}
                           </button>
 
                           <button
                             type="button"
-                            title={tr("Xóa Khóa học")}
+                            title={tr("Thao tác khác")}
                             style={{
-                              backgroundColor: "#fff1f2",
-                              border: "1px solid #fecdd3",
-                              color: "#e11d48",
-                              fontSize: "11px",
+                              backgroundColor: "#ffffff",
+                              border: "1px solid #cbd5e1",
+                              color: "#475569",
+                              fontSize: "13px",
                               fontWeight: 700,
-                              padding: "5px 10px",
+                              padding: "3px 8px",
                               borderRadius: "4px",
                               cursor: "pointer",
-                              whiteSpace: "nowrap",
+                              lineHeight: 1,
                               flexShrink: 0,
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setDeletingCourseTarget(course);
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setOpenActionMenu(
+                                openActionMenu?.target?.courseId === course.courseId
+                                  ? null
+                                  : {
+                                      type: "course",
+                                      target: course,
+                                      top: rect.bottom + window.scrollY + 4,
+                                      left: Math.max(10, rect.right + window.scrollX - 250),
+                                    }
+                              );
                             }}
                           >
-                            {tr("🗑️ Xóa Khóa")}
+                            ⋯
                           </button>
                         </div>
                       </div>
@@ -1862,95 +1883,95 @@ const CourseClassManagement = () => {
                                       display: "flex",
                                       justifyContent: "flex-end",
                                       alignItems: "center",
-                                      gap: "4px",
+                                      gap: "5px",
                                       flexWrap: "nowrap",
                                     }}
                                   >
-                                    {/* Button: CẬP NHẬT TRẠNG THÁI LỚP */}
-                                    <button
-                                      type="button"
-                                      title={tr(
-                                        "Cập nhật trạng thái & thông tin lớp",
-                                      )}
-                                      style={{
-                                        backgroundColor: "#ffffff",
-                                        border: "1px solid #cbd5e1",
-                                        color: "#0f172a",
-                                        fontSize: "11px",
-                                        fontWeight: 600,
-                                        padding: "4px 7px",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        whiteSpace: "nowrap",
-                                        flexShrink: 0,
-                                      }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingClassTarget(cls);
-                                      }}
-                                    >
-                                      ✏️ {tr("Trạng thái")}
-                                    </button>
+                                    {/* Primary Contextual Action based on Class Status */}
+                                    {cls.status === "Đang diễn ra" ? (
+                                      <button
+                                        type="button"
+                                        title={tr("Xem lịch sử & điểm danh")}
+                                        style={{
+                                          backgroundColor: "#f0f9ff",
+                                          color: "#0369a1",
+                                          border: "1px solid #bae6fd",
+                                          fontSize: "11px",
+                                          fontWeight: 600,
+                                          padding: "4px 8px",
+                                          borderRadius: "4px",
+                                          cursor: "pointer",
+                                          whiteSpace: "nowrap",
+                                          flexShrink: 0,
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSelectClassForHistory(cls);
+                                        }}
+                                      >
+                                        📅 {tr("Điểm danh")}
+                                      </button>
+                                    ) : cls.status === "Sắp diễn ra" ? (
+                                      <button
+                                        type="button"
+                                        title={tr("Ghi danh học viên mới vào lớp")}
+                                        style={{
+                                          backgroundColor: "#002147",
+                                          color: "#c5a059",
+                                          border: "1px solid #002147",
+                                          fontSize: "11px",
+                                          fontWeight: 700,
+                                          padding: "4px 8px",
+                                          borderRadius: "4px",
+                                          cursor: "pointer",
+                                          whiteSpace: "nowrap",
+                                          flexShrink: 0,
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEnrollClassId(cls.classId);
+                                          setIsEnrollingStudent(true);
+                                        }}
+                                      >
+                                        ➕ {tr("Ghi danh")}
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        title={tr("Xuất báo cáo điểm danh / đánh giá / tổng hợp lớp")}
+                                        style={{
+                                          backgroundColor: "#f8fafc",
+                                          color: "#475569",
+                                          border: "1px solid #cbd5e1",
+                                          fontSize: "11px",
+                                          fontWeight: 600,
+                                          padding: "4px 8px",
+                                          borderRadius: "4px",
+                                          cursor: "pointer",
+                                          whiteSpace: "nowrap",
+                                          flexShrink: 0,
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setExportClassTarget(cls);
+                                          setExportError("");
+                                        }}
+                                      >
+                                        📊 {tr("Báo cáo")}
+                                      </button>
+                                    )}
 
-                                    {/* Button: GHI DANH HỌC VIÊN */}
-                                    {(() => {
-                                      const elig = isClassEligibleForEnrollment(cls);
-                                      const isClassBlocked = !elig.eligible;
-                                      return (
-                                        <button
-                                          type="button"
-                                          disabled={isClassBlocked}
-                                          title={
-                                            isClassBlocked
-                                              ? `${tr(elig.reason)} — ${tr(elig.detail)}`
-                                              : tr(
-                                                  "Ghi danh học viên mới vào lớp",
-                                                )
-                                          }
-                                          style={{
-                                            backgroundColor: isClassBlocked
-                                              ? "#f1f5f9"
-                                              : "#002147",
-                                            color: isClassBlocked
-                                              ? "#94a3b8"
-                                              : "#c5a059",
-                                            border: isClassBlocked
-                                              ? "1px solid #cbd5e1"
-                                              : "1px solid #002147",
-                                            fontSize: "11px",
-                                            fontWeight: 700,
-                                            padding: "4px 8px",
-                                            borderRadius: "4px",
-                                            cursor: isClassBlocked
-                                              ? "not-allowed"
-                                              : "pointer",
-                                            whiteSpace: "nowrap",
-                                            opacity: isClassBlocked ? 0.65 : 1,
-                                            flexShrink: 0,
-                                          }}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (isClassBlocked) return;
-                                            setEnrollClassId(cls.classId);
-                                            setIsEnrollingStudent(true);
-                                          }}
-                                        >
-                                          ➕ {tr("Ghi danh")}
-                                        </button>
-                                      );
-                                    })()}
-
-                                    {/* Button: XEM CHI TIẾT LỚP */}
+                                    {/* Secondary Action: Xem chi tiết */}
                                     <button
                                       type="button"
                                       title={tr("Xem chi tiết lớp học")}
                                       style={{
-                                        backgroundColor: "#f8fafc",
-                                        color: "#475569",
-                                        border: "1px solid #e2e8f0",
+                                        backgroundColor: "#ffffff",
+                                        color: "#334155",
+                                        border: "1px solid #cbd5e1",
                                         fontSize: "11px",
                                         fontWeight: 600,
-                                        padding: "4px 7px",
+                                        padding: "4px 8px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
                                         whiteSpace: "nowrap",
@@ -1964,79 +1985,38 @@ const CourseClassManagement = () => {
                                       👁️ {tr("Xem")}
                                     </button>
 
-                                    {/* Button: XEM ĐIỂM DANH */}
+                                    {/* More Actions Menu Button: ⋯ */}
                                     <button
                                       type="button"
-                                      title={tr("Xem lịch sử & điểm danh")}
+                                      title={tr("Thao tác khác")}
                                       style={{
-                                        backgroundColor: "#f0f9ff",
-                                        color: "#0369a1",
-                                        border: "1px solid #bae6fd",
-                                        fontSize: "11px",
-                                        fontWeight: 600,
-                                        padding: "4px 7px",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        whiteSpace: "nowrap",
-                                        flexShrink: 0,
-                                      }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSelectClassForHistory(cls);
-                                      }}
-                                    >
-                                      📅 {tr("Điểm danh")}
-                                    </button>
-
-                                    {/* Button: XÓA LỚP HỌC */}
-                                    <button
-                                      type="button"
-                                      title={tr("Xóa Lớp học này")}
-                                      style={{
-                                        backgroundColor: "#fff1f2",
-                                        color: "#e11d48",
-                                        border: "1px solid #fecdd3",
-                                        fontSize: "11px",
-                                        fontWeight: 600,
-                                        padding: "4px 7px",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        whiteSpace: "nowrap",
-                                        flexShrink: 0,
-                                      }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDeletingClassTarget(cls);
-                                      }}
-                                    >
-                                      🗑️ {tr("Xóa")}
-                                    </button>
-
-                                    {/* Button: XUẤT BÁO CÁO LỚP */}
-                                    <button
-                                      type="button"
-                                      title={tr(
-                                        "Xuất báo cáo điểm danh / đánh giá / tổng hợp lớp",
-                                      )}
-                                      style={{
-                                        backgroundColor: "#f8fafc",
+                                        backgroundColor: "#ffffff",
+                                        border: "1px solid #cbd5e1",
                                         color: "#475569",
-                                        border: "1px solid #e2e8f0",
-                                        fontSize: "11px",
-                                        fontWeight: 600,
-                                        padding: "4px 7px",
+                                        fontSize: "13px",
+                                        fontWeight: 700,
+                                        padding: "3px 8px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
-                                        whiteSpace: "nowrap",
+                                        lineHeight: 1,
                                         flexShrink: 0,
                                       }}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setExportClassTarget(cls);
-                                        setExportError("");
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setOpenActionMenu(
+                                          openActionMenu?.target?.code === cls.code
+                                            ? null
+                                            : {
+                                                type: "class",
+                                                target: cls,
+                                                top: rect.bottom + window.scrollY + 4,
+                                                left: Math.max(10, rect.right + window.scrollX - 250),
+                                              }
+                                        );
                                       }}
                                     >
-                                      📊 {tr("Báo cáo")}
+                                      ⋯
                                     </button>
                                   </div>
                                 </div>
@@ -2679,6 +2659,401 @@ const CourseClassManagement = () => {
           onClose={() => setIsImportingClassRoster(false)}
           onSuccess={refreshData}
         />
+      )}
+
+      {/* Floating Action Menu Portal (⋯) */}
+      {openActionMenu && createPortal(
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 99998,
+            }}
+            onClick={() => setOpenActionMenu(null)}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: `${openActionMenu.top}px`,
+              left: `${openActionMenu.left}px`,
+              width: "250px",
+              backgroundColor: "#ffffff",
+              borderRadius: "8px",
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+              border: "1px solid #cbd5e1",
+              padding: "6px",
+              zIndex: 99999,
+              display: "flex",
+              flexDirection: "column",
+              gap: "2px",
+              animation: "fadeIn 0.12s ease",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {openActionMenu.type === "class" && (() => {
+              const cls = openActionMenu.target;
+              const elig = isClassEligibleForEnrollment(cls);
+              const isClassBlocked = !elig.eligible;
+              return (
+                <>
+                  <div
+                    style={{
+                      padding: "6px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      color: "#475569",
+                      borderBottom: "1px solid #f1f5f9",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span>{tr("Thao tác lớp")}</span>
+                    <span style={{ color: "#002147", fontWeight: 800 }}>{cls.code}</span>
+                  </div>
+
+                  {/* 1. Sửa / Trạng thái */}
+                  <button
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#1e293b",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      setOpenActionMenu(null);
+                      setEditingClassTarget(cls);
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>✏️</span>
+                    <span>{tr("Cập nhật trạng thái & thông tin lớp")}</span>
+                  </button>
+
+                  {/* 2. Ghi danh */}
+                  <button
+                    type="button"
+                    disabled={isClassBlocked}
+                    title={isClassBlocked ? `${tr(elig.reason)} — ${tr(elig.detail)}` : tr("Ghi danh học viên mới vào lớp")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: isClassBlocked ? "#94a3b8" : "#1e293b",
+                      cursor: isClassBlocked ? "not-allowed" : "pointer",
+                      opacity: isClassBlocked ? 0.6 : 1,
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { if (!isClassBlocked) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      if (isClassBlocked) return;
+                      setOpenActionMenu(null);
+                      setEnrollClassId(cls.classId);
+                      setIsEnrollingStudent(true);
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>➕</span>
+                    <span>{tr("Ghi danh học viên")}</span>
+                    {isClassBlocked && (
+                      <span style={{ fontSize: "10px", color: "#94a3b8", marginLeft: "auto" }}>
+                        ({tr(elig.reason)})
+                      </span>
+                    )}
+                  </button>
+
+                  {/* 3. Xem chi tiết */}
+                  <button
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#1e293b",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      setOpenActionMenu(null);
+                      setViewingClassDetail(cls);
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>👁️</span>
+                    <span>{tr("Xem chi tiết lớp học")}</span>
+                  </button>
+
+                  {/* 4. Điểm danh */}
+                  <button
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#1e293b",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      setOpenActionMenu(null);
+                      handleSelectClassForHistory(cls);
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>📅</span>
+                    <span>{tr("Điểm danh & Lịch sử")}</span>
+                  </button>
+
+                  {/* 5. Báo cáo */}
+                  <button
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#1e293b",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      setOpenActionMenu(null);
+                      setExportClassTarget(cls);
+                      setExportError("");
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>📊</span>
+                    <span>{tr("Xuất báo cáo lớp")}</span>
+                  </button>
+
+                  <div style={{ height: "1px", background: "#f1f5f9", margin: "3px 0" }} />
+
+                  {/* 6. Xóa lớp */}
+                  <button
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#e11d48",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#fff1f2"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      setOpenActionMenu(null);
+                      setDeletingClassTarget(cls);
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>🗑️</span>
+                    <span>{tr("Xóa lớp học")}</span>
+                  </button>
+                </>
+              );
+            })()}
+
+            {openActionMenu.type === "course" && (() => {
+              const course = openActionMenu.target;
+              return (
+                <>
+                  <div
+                    style={{
+                      padding: "6px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      color: "#475569",
+                      borderBottom: "1px solid #f1f5f9",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span>{tr("Thao tác khóa học")}</span>
+                    <span style={{ color: "#002147", fontWeight: 800 }}>{course.code}</span>
+                  </div>
+
+                  {/* 1. Tạo lớp */}
+                  <button
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#1e293b",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      setOpenActionMenu(null);
+                      setCreatingClassCourseId(course.courseId);
+                      setIsCreatingClass(true);
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>➕</span>
+                    <span>{tr("Tạo Lớp học mới cho Khóa này")}</span>
+                  </button>
+
+                  {/* 2. Tạo bản mới */}
+                  <button
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#1e293b",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      setOpenActionMenu(null);
+                      handleCreateNewCourseVersion(course);
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>🔄</span>
+                    <span>{tr("Tạo phiên bản mới (Clone Version) cho Khóa này")}</span>
+                  </button>
+
+                  {/* 3. Sửa khóa */}
+                  <button
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#1e293b",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      setOpenActionMenu(null);
+                      setEditingCourseTarget(course);
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>✏️</span>
+                    <span>{tr("Sửa thông tin Khóa học")}</span>
+                  </button>
+
+                  <div style={{ height: "1px", background: "#f1f5f9", margin: "3px 0" }} />
+
+                  {/* 4. Xóa khóa */}
+                  <button
+                    type="button"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "5px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#e11d48",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#fff1f2"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                    onClick={() => {
+                      setOpenActionMenu(null);
+                      setDeletingCourseTarget(course);
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>🗑️</span>
+                    <span>{tr("Xóa Khóa học")}</span>
+                  </button>
+                </>
+              );
+            })()}
+          </div>
+        </>,
+        document.body
       )}
 
       {/* Toast notifications */}
