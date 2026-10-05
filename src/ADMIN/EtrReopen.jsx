@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { api, parseApiError, formatDateTime } from '../utils/api';
 import { announce } from '../utils/crudNotify';
 import PromptModal from '../components/PromptModal';
+import EtrDossierModal from '../components/EtrDossierModal';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from '../utils/usePagination';
@@ -24,9 +24,7 @@ const EtrReopen = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const [viewingEtr, setViewingEtr] = useState(null);
-  const [viewDetail, setViewDetail] = useState(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [viewingEtrId, setViewingEtrId] = useState(null);
   const [reopenTarget, setReopenTarget] = useState(null);
 
   const loadLockedEtrs = async () => {
@@ -128,16 +126,8 @@ const EtrReopen = () => {
 
   const pager = usePagination(filtered, { pageSize: 10, resetKey: searchTerm });
 
-  const handleView = async (rec) => {
-    setViewingEtr(rec);
-    setViewDetail(null);
-    setLoadingDetail(true);
-    try {
-      const detail = await api.get(`/Etr/${rec.etrId}`).catch(() => null);
-      setViewDetail(detail);
-    } finally {
-      setLoadingDetail(false);
-    }
+  const handleView = (rec) => {
+    setViewingEtrId(rec.etrId);
   };
 
   const handleConfirmReopen = async (reason) => {
@@ -152,7 +142,7 @@ const EtrReopen = () => {
       // POST /api/Etr/{id}/reopen { comment } — Admin-only; Completed → Verified + audit UNLOCK
       await api.post(`/Etr/${etrId}/reopen`, { comment: reason.trim() });
       await loadLockedEtrs();
-      setViewingEtr(null);
+      setViewingEtrId(null);
       toast.success(tr('Đã mở lại ETR'), announce('edit', tr('Hồ sơ')));
     } catch (err) {
       console.error('Failed to reopen ETR:', err);
@@ -237,7 +227,7 @@ const EtrReopen = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                   <button className="action-btn" type="button" onClick={() => handleView(r)} style={{ padding: '4px 12px', fontSize: '12px', cursor: 'pointer' }}>
-                    {tr('Xem')}
+                    📂 {tr('Xem hồ sơ (Dossier)')}
                   </button>
                   <button
                     className="action-btn"
@@ -245,7 +235,7 @@ const EtrReopen = () => {
                     onClick={() => setReopenTarget(r.etrId)}
                     style={{ padding: '4px 12px', fontSize: '12px', cursor: 'pointer', color: '#b45309', borderColor: 'rgba(180,83,9,0.35)', background: '#fffbeb', fontWeight: '700' }}
                   >
-                    {tr('Mở lại (Reopen)')}
+                    🔓 {tr('Mở lại (Reopen)')}
                   </button>
                 </div>
               </div>
@@ -256,56 +246,13 @@ const EtrReopen = () => {
         <Pagination page={pager.page} pageCount={pager.pageCount} onChange={pager.setPage} total={pager.total} pageSize={10} />
       </section>
 
-      {/* VIEW DETAIL MODAL (read-only) */}
-      {viewingEtr && createPortal(
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '560px', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', margin: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', color: '#002147', fontWeight: '700' }}>
-                {tr('Chi tiết hồ sơ')} {viewingEtr.id}
-              </h2>
-              <button type="button" onClick={() => { setViewingEtr(null); setViewDetail(null); }} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>
-                &times;
-              </button>
-            </div>
-            {loadingDetail ? (
-              <p style={{ color: '#64748b', fontSize: '13px' }}>{tr('Đang tải chi tiết...')}</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
-                {[
-                  [tr('Học viên'), viewingEtr.studentName + (viewingEtr.studentCode ? ` (${viewingEtr.studentCode})` : '')],
-                  [tr('Khóa học'), viewingEtr.courseName || '—'],
-                  [tr('Lớp'), viewingEtr.className || '—'],
-                  [tr('Trạng thái'), `${viewingEtr.status || ''} (Locked)`],
-                  [tr('Ngày nộp'), viewingEtr.submittedAt ? formatDateTime(viewingEtr.submittedAt) : '—'],
-                  [tr('Ngày QA duyệt'), viewingEtr.verifiedAt ? formatDateTime(viewingEtr.verifiedAt) : '—'],
-                  [tr('Ngày hoàn thành'), viewingEtr.completedAt ? formatDateTime(viewingEtr.completedAt) : '—'],
-                  [tr('Số môn học'), Array.isArray(viewDetail?.subjectResults) ? viewDetail.subjectResults.length : '—'],
-                ].map(([label, value], idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '8px 12px', background: idx % 2 === 0 ? '#f8fafc' : '#fff', borderRadius: '8px' }}>
-                    <span style={{ color: '#64748b', fontWeight: '600' }}>{label}</span>
-                    <span style={{ color: '#0f172a', fontWeight: '600', textAlign: 'right' }}>{value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '18px' }}>
-              <button type="button" onClick={() => { setViewingEtr(null); setViewDetail(null); }} style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', color: '#475569', cursor: 'pointer' }}>
-                {tr('Đóng')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setReopenTarget(viewingEtr.etrId)}
-                disabled={submitting}
-                style={{ padding: '8px 18px', background: '#b45309', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '700', cursor: 'pointer' }}
-              >
-                {tr('Mở lại (Reopen)')}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
+      {/* COMPREHENSIVE 6-TAB ETR DOSSIER MODAL */}
+      <EtrDossierModal
+        etrId={viewingEtrId}
+        isOpen={!!viewingEtrId}
+        onClose={() => setViewingEtrId(null)}
+        onActionSuccess={loadLockedEtrs}
+      />
 
       {/* REOPEN REASON MODAL — POST /Etr/{id}/reopen { comment* } */}
       <PromptModal
