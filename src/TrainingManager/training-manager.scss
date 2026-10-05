@@ -3079,4 +3079,29 @@
   }
 }
 
+// Print styles for Executive Transcript
+@media print {
+  body {
+    background-color: #ffffff !important;
+  }
+  .tm-topbar,
+  .tm-sidebar,
+  .topbar-actions,
+  .header-actions,
+  .btn-close-detail,
+  .btn-close-subtopbar,
+  .filter-btn,
+  .download-btn {
+    display: none !important;
+  }
+  .tm-transcript-container {
+    padding: 0 !important;
+    background-color: #ffffff !important;
+  }
+  .tm-transcript-sub-topbar {
+    margin: 0 0 20px 0 !important;
+    border-bottom: 2px solid #002147 !important;
+  }
+}
+
 

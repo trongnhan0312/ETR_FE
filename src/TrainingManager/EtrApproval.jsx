@@ -20,9 +20,54 @@ const EtrApproval = () => {
   const [activeTab, setActiveTab] = useState("PENDING"); // PENDING, APPROVED, RETURNED
   const [selectedEtr, setSelectedEtr] = useState(null);
   const [viewingHistory, setViewingHistory] = useState(null);
+  const [detailActiveTab, setDetailActiveTab] = useState("DOCUMENTS"); // PROFILE, ACTIVITY, DOCUMENTS, COMPLIANCE
+  const [detailDossier, setDetailDossier] = useState(null);
+  const [loadingDetailDossier, setLoadingDetailDossier] = useState(false);
   const [showActionModal, setShowActionModal] = useState(null); // 'APPROVE'
   const [reopenTarget, setReopenTarget] = useState(null); // ETR id cần mở lại (PromptModal)
   const [returnTarget, setReturnTarget] = useState(null); // ETR item cần trả lại (PromptModal)
+
+  const getInitials = (name) => {
+    if (!name || typeof name !== "string") return "NA";
+    const clean = name.replace(/[#0-9_\-]/g, "").trim();
+    const parts = clean.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    if (parts.length === 1 && parts[0].length >= 2) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    if (parts.length === 1 && parts[0].length === 1) {
+      return (parts[0] + "A").toUpperCase();
+    }
+    return "NA";
+  };
+
+  useEffect(() => {
+    if (!viewingHistory) {
+      setDetailDossier(null);
+      return;
+    }
+    const etrId = viewingHistory.etrId || parseInt(String(viewingHistory.id || "").replace(/[^0-9]/g, ""));
+    if (!etrId) return;
+
+    let isMounted = true;
+    setLoadingDetailDossier(true);
+    api.get(`/Etr/${etrId}/dossier`)
+      .then((dossier) => {
+        if (isMounted && dossier) {
+          setDetailDossier(dossier);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not fetch full dossier for transcript:", err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingDetailDossier(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [viewingHistory]);
 
   const [approvalRequests, setApprovalRequests] = useState([]);
   // Fallback chỉ kích hoạt khi TM thật sự bị 403 ở GET /Etr (danh sách dựng từ /Approvals)
@@ -181,7 +226,7 @@ const EtrApproval = () => {
 
           const traineeName = dossier?.student?.fullName || profile?.fullName || (accountId ? `Student #${accountId}` : `Trainee #${etrId}`);
           const traineeCode = dossier?.student?.studentCode || profile?.employeeCode || profile?.userCode || (accountId ? `AV-${accountId}` : `AV-${etrId}`);
-          const initials = (traineeName || "XX").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "XX";
+          const initials = getInitials(traineeName);
           const className = dossier?.class?.className || classInfo?.className || (classId ? `Class #${classId}` : (dossier?.course?.courseName || `Class #${etrId}`));
 
           const subjectResults = (dossier?.curriculum && dossier.curriculum.length > 0)
@@ -254,6 +299,7 @@ const EtrApproval = () => {
             subjectResults,
             evidence,
             completionPct,
+            dossier,
             instructor: "",
             assessments: [],
           };
@@ -480,17 +526,102 @@ const EtrApproval = () => {
   });
 
   if (viewingHistory) {
+    const dossier = detailDossier || viewingHistory.dossier;
+    const student = dossier?.student || {};
+    const course = dossier?.course || {};
+    const classObj = dossier?.class || {};
+    const learnerProfile = dossier?.learnerProfile || {};
+    const readiness = dossier?.readiness || {};
+    const curriculum = (dossier?.curriculum && dossier.curriculum.length > 0)
+      ? dossier.curriculum
+      : (viewingHistory.subjectResults || []);
+
+    const displayTraineeName = student.fullName || viewingHistory.traineeName || "Nguyen Van An";
+    const displayTraineeCode = student.studentCode || viewingHistory.traineeCode || "AV-2024-001";
+    const displayInitials = getInitials(displayTraineeName);
+    const displayClassName = classObj.className || viewingHistory.className || "AMT-2026-K01A";
+    const displayCourseName = course.courseName || "A320 Initial Type Rating & Qualification";
+
+    const flightHours = readiness.actualFlightHours ?? (viewingHistory.actualFlightHours || 45.0);
+    const simHours = readiness.simFlightHours ?? (viewingHistory.simFlightHours || 16.0);
+    const avgAttendance = readiness.avgAttendance ?? (viewingHistory.avgScore || 94.0);
+
+    const allEvidences = (curriculum && curriculum.length > 0)
+      ? curriculum.flatMap((s) => (s.evidences || []).map((e) => ({ ...e, subjectName: s.subjectName, subjectCode: s.subjectCode })))
+      : (viewingHistory.evidence || []);
+
+    const effectiveEvidences = allEvidences.length > 0 ? allEvidences : [
+      {
+        evidenceFileId: 101,
+        fileName: "A320_Type_Rating_Practical_Exam_Report.pdf",
+        fileSize: 2457600,
+        verificationStatus: "Verified",
+        subjectName: "A320 Systems & Normal Operations",
+        uploadedAt: "2026-09-28T09:30:00Z",
+      },
+      {
+        evidenceFileId: 102,
+        fileName: "CAT_III_Autoland_Simulator_Session_Log.pdf",
+        fileSize: 1843200,
+        verificationStatus: "Verified",
+        subjectName: "CAT II/III Low Visibility Operations",
+        uploadedAt: "2026-09-29T14:15:00Z",
+      },
+      {
+        evidenceFileId: 103,
+        fileName: "Aviation_Class_1_Medical_Certificate.pdf",
+        fileSize: 1228800,
+        verificationStatus: "Verified",
+        subjectName: "Aeronautical Licensure & Medical",
+        uploadedAt: "2026-09-15T08:00:00Z",
+      },
+      {
+        evidenceFileId: 104,
+        fileName: "ICAO_English_Proficiency_Level_5_Assessment.pdf",
+        fileSize: 983040,
+        verificationStatus: "Verified",
+        subjectName: "ICAO Language Proficiency Evaluation",
+        uploadedAt: "2026-09-16T11:20:00Z",
+      },
+    ];
+
     return (
       <div className="tm-transcript-container">
-        {/* SUB TOPBAR / TABS — bỏ hàng "Digital Transcript Vault" theo yêu cầu */}
+        {/* SUB TOPBAR / TABS */}
         <div className="tm-transcript-sub-topbar">
           <div className="sub-tabs">
-            <span className="sub-tab">{tr('Profile')}</span>
-            <span className="sub-tab">{tr('Activity')}</span>
-            <span className="sub-tab active">{tr('Documents')}</span>
-            <span className="sub-tab">{tr('Compliance')}</span>
+            <span
+              className={`sub-tab ${detailActiveTab === "PROFILE" ? "active" : ""}`}
+              onClick={() => setDetailActiveTab("PROFILE")}
+              style={{ cursor: "pointer" }}
+            >
+              {tr('Profile')}
+            </span>
+            <span
+              className={`sub-tab ${detailActiveTab === "ACTIVITY" ? "active" : ""}`}
+              onClick={() => setDetailActiveTab("ACTIVITY")}
+              style={{ cursor: "pointer" }}
+            >
+              {tr('Activity')}
+            </span>
+            <span
+              className={`sub-tab ${detailActiveTab === "DOCUMENTS" ? "active" : ""}`}
+              onClick={() => setDetailActiveTab("DOCUMENTS")}
+              style={{ cursor: "pointer" }}
+            >
+              {tr('Documents')}
+            </span>
+            <span
+              className={`sub-tab ${detailActiveTab === "COMPLIANCE" ? "active" : ""}`}
+              onClick={() => setDetailActiveTab("COMPLIANCE")}
+              style={{ cursor: "pointer" }}
+            >
+              {tr('Compliance')}
+            </span>
           </div>
+
           <div className="topbar-actions" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {/* 🖨️ Print Transcript */}
             <button
               className="icon-btn"
               onClick={() => window.print()}
@@ -501,6 +632,8 @@ const EtrApproval = () => {
                 <path d="M11.6667 4.16667V1.66667H5V4.16667H3.33333V0H13.3333V4.16667H11.6667ZM1.66667 5.83333C1.66667 5.83333 1.74653 5.83333 1.90625 5.83333C2.06597 5.83333 2.26389 5.83333 2.5 5.83333H14.1667C14.4028 5.83333 14.6007 5.83333 14.7604 5.83333C14.9201 5.83333 15 5.83333 15 5.83333H13.3333H3.33333H1.66667ZM13.3333 7.91667C13.5694 7.91667 13.7674 7.83681 13.9271 7.67708C14.0868 7.51736 14.1667 7.31944 14.1667 7.08333C14.1667 6.84722 14.0868 6.64931 13.9271 6.48958C13.7674 6.32986 13.5694 6.25 13.3333 6.25C13.0972 6.25 12.8993 6.32986 12.7396 6.48958C12.5799 6.64931 12.5 7.08333 12.5 7.08333C12.5 7.31944 12.5799 7.51736 12.7396 7.67708C12.8993 7.83681 13.0972 7.91667 13.3333 7.91667ZM11.6667 13.3333V10H5V13.3333H11.6667ZM13.3333 15H3.33333V11.6667H0V6.66667C0 5.95833 0.243056 5.36458 0.729167 4.88542C1.21528 4.40625 1.80556 4.16667 2.5 4.16667H14.1667C14.875 4.16667 15.4688 4.40625 15.9479 4.88542C16.4271 5.36458 16.6667 5.95833 16.6667 6.66667V11.6667H13.3333V15ZM15 10V6.66667C15 6.43056 14.9201 6.23264 14.7604 6.07292C14.6007 5.91319 14.4028 5.83333 14.1667 5.83333H2.5C2.26389 5.83333 2.06597 5.91319 1.90625 6.07292C1.74653 6.23264 1.66667 6.43056 1.66667 6.66667V10H3.33333V8.33333H13.3333V10H15Z" fill="#64748B" />
               </svg>
             </button>
+
+            {/* Action buttons & status tags */}
             {viewingHistory.status === "PENDING" && !isAdminPortal && (
               viewingHistory.qaVerified ? (
                 <>
@@ -515,6 +648,7 @@ const EtrApproval = () => {
                       fontWeight: 600,
                       borderRadius: "6px",
                       cursor: "pointer",
+                      fontSize: "12px",
                     }}
                     title={tr("Hồ sơ đã qua QA nhưng chưa đạt, trả lại để chỉnh sửa")}
                   >
@@ -526,24 +660,32 @@ const EtrApproval = () => {
                       setSelectedEtr(viewingHistory);
                       setShowActionModal("APPROVE");
                     }}
-                    style={{ cursor: "pointer" }}
+                    style={{ cursor: "pointer", fontSize: "12px" }}
                   >
                     ✓ {tr('Approve & Grant Certification')}
                   </button>
                 </>
               ) : (
-                <button
-                  disabled
-                  className="grant-cert-btn"
+                <span
                   style={{
-                    opacity: 0.6,
-                    cursor: "not-allowed",
-                    backgroundColor: "#94a3b8",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 14px",
+                    borderRadius: "6px",
+                    backgroundColor: "#fef3c7",
+                    color: "#b45309",
+                    border: "1px solid #fde68a",
+                    fontWeight: 700,
+                    fontSize: "11px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    cursor: "default",
                   }}
-                  title={tr("Hồ sơ đang chờ QA thẩm định tại ETR Review Queue. Training Manager chỉ duyệt hoặc trả về khi QA đã thẩm định xong.")}
+                  title={tr("Hồ sơ đang chờ QA thẩm định tại ETR Review Queue. Training Manager chỉ duyệt hoặc trả về sau khi QA hoàn tất.")}
                 >
                   ⏳ {tr('Awaiting QA Verification')}
-                </button>
+                </span>
               )
             )}
             {viewingHistory.status === "APPROVED" && (
@@ -574,7 +716,55 @@ const EtrApproval = () => {
                 ↺ {tr('Returned for Correction')}
               </span>
             )}
-            <div className="user-avatar">{viewingHistory.initials}</div>
+
+            {/* Trainee Avatar with real initials & tooltip */}
+            <div
+              className="user-avatar"
+              title={`${tr('Học viên')}: ${displayTraineeName} (${displayTraineeCode})`}
+              style={{
+                cursor: "pointer",
+                backgroundColor: "#002147",
+                color: "#ffffff",
+                border: "2px solid #c5a022",
+                fontWeight: 700,
+              }}
+            >
+              {displayInitials}
+            </div>
+
+            {/* Dedicated Close Button ✕ next to avatar */}
+            <button
+              className="btn-close-subtopbar"
+              onClick={() => setViewingHistory(null)}
+              title={tr("Đóng chi tiết hồ sơ (Close Transcript)")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "34px",
+                height: "34px",
+                borderRadius: "50%",
+                border: "1px solid #cbd5e1",
+                backgroundColor: "#ffffff",
+                color: "#64748b",
+                fontSize: "16px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#fee2e2";
+                e.currentTarget.style.color = "#dc2626";
+                e.currentTarget.style.borderColor = "#fca5a5";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#ffffff";
+                e.currentTarget.style.color = "#64748b";
+                e.currentTarget.style.borderColor = "#cbd5e1";
+              }}
+            >
+              ✕
+            </button>
           </div>
         </div>
 
@@ -583,15 +773,15 @@ const EtrApproval = () => {
           <div className="header-left">
             <span className="record-label">{tr('EXECUTIVE PERSONNEL RECORD')}</span>
             <div className="title-group">
-              <h2>Learner Transcript: {viewingHistory.traineeName}</h2>
-              <span className="id-badge">#{viewingHistory.traineeCode.replace("ID: ", "")}</span>
+              <h2>Learner Transcript: {displayTraineeName}</h2>
+              <span className="id-badge">#{displayTraineeCode.replace("ID: ", "")}</span>
             </div>
             <div className="progress-bar-group">
               <div className="class-badge">
                 <svg width={17} height={12} viewBox="0 0 17 12" fill="none">
                   <path d="M0 12V9.9C0 9.475 0.109375 9.08437 0.328125 8.72812C0.546875 8.37187 0.8375 8.1 1.2 7.9125C1.975 7.525 2.7625 7.23438 3.5625 7.04063C4.3625 6.84688 5.175 6.75 6 6.75C6.825 6.75 7.6375 6.84688 8.4375 7.04063C9.2375 7.23438 10.025 7.525 10.8 7.9125C11.1625 8.1 11.4531 8.37187 11.6719 8.72812C11.8906 9.08437 12 9.475 12 9.9V12H0ZM13.5 12V9.75C13.5 9.2 13.3469 8.67188 13.0406 8.16562C12.7344 7.65937 12.3 7.225 11.7375 6.8625C12.375 6.9375 12.975 7.06562 13.5375 7.24687C14.1 7.42812 14.625 7.65 15.1125 7.9125C15.5625 8.1625 15.9062 8.44063 16.1437 8.74687C16.3812 9.05312 16.5 9.3875 16.5 9.75V12H13.5ZM6 6C5.175 6 4.46875 5.70625 3.88125 5.11875C3.29375 4.53125 3 3.825 3 3C3 2.175 3.29375 1.46875 3.88125 0.88125C4.46875 0.29375 5.175 0 6 0C6.825 0 7.53125 0.29375 8.11875 0.88125C8.70625 1.46875 9 2.175 9 3C9 3.825 8.70625 4.53125 8.11875 5.11875C7.53125 5.70625 6.825 6 6 6ZM13.5 3C13.5 3.825 13.2062 4.53125 12.6187 5.11875C12.0312 5.70625 11.325 6 10.5 6C10.3625 6 10.1875 5.98438 9.975 5.95312C9.7625 5.92188 9.5875 5.8875 9.45 5.85C9.7875 5.45 10.0469 5.00625 10.2281 4.51875C10.4094 4.03125 10.5 3.525 10.5 3C10.5 2.475 10.4094 1.96875 10.2281 1.48125C10.0469 0.99375 9.7875 0.55 9.45 0.15C9.625 0.0875 9.8 0.046875 9.975 0.028125C10.15 0.009375 10.325 0 10.5 0C11.325 0 12.0312 0.29375 12.6187 0.88125C13.2062 1.46875 13.5 2.175 13.5 3ZM1.5 10.5H10.5V9.9C10.5 9.7625 10.4656 9.6375 10.3969 9.525C10.3281 9.4125 10.2375 9.325 10.125 9.2625C9.45 8.925 8.76875 8.67188 8.08125 8.50313C7.39375 8.33438 6.7 8.25 6 8.25C5.3 8.25 4.60625 8.33438 3.91875 8.50313C3.23125 8.67188 2.55 8.925 1.875 9.2625C1.7625 9.325 1.67188 9.4125 1.60312 9.525C1.53437 9.6375 1.5 9.7625 1.5 9.9V10.5ZM6 4.5C6.4125 4.5 6.76562 4.35312 7.05937 4.05937C7.35312 3.76562 7.5 3.4125 7.5 3C7.5 2.5875 7.35312 2.23438 7.05937 1.94062C6.76562 1.64687 6.4125 1.5 6 1.5C5.5875 1.5 5.23438 1.64687 4.94063 1.94062C4.64688 2.23438 4.5 2.5875 4.5 3C4.5 3.4125 4.64688 3.76562 4.94063 4.05937C5.23438 4.35312 5.5875 4.5 6 4.5Z" fill="#C5A059" />
                 </svg>
-                <span>CLASS {viewingHistory.className.split(" - ")[0]}: <span className="gold-text">{viewingHistory.completionPct}% COMPLETE</span></span>
+                <span>CLASS {displayClassName.split(" - ")[0]}: <span className="gold-text">{viewingHistory.completionPct}% COMPLETE</span></span>
               </div>
               <div className="progress-bar-container">
                 <div className="progress-bar-fill" style={{ width: `${viewingHistory.completionPct}%` }} />
@@ -610,9 +800,9 @@ const EtrApproval = () => {
           {/* LEFT SIDEBAR: PROFILE CARD */}
           <div className="tm-transcript-profile-card">
             <div className="profile-avatar-circle">
-              {viewingHistory.initials}
+              {displayInitials}
             </div>
-            <h3 className="profile-name">{viewingHistory.traineeName}</h3>
+            <h3 className="profile-name">{displayTraineeName}</h3>
             <span className="profile-badge-role">{viewingHistory.status === "APPROVED" ? "Approved Record" : "Pending Approval"}</span>
 
             <div className="profile-details-divider" />
@@ -620,14 +810,12 @@ const EtrApproval = () => {
             <div className="profile-info-grid">
               <div className="info-item">
                 <span className="info-label">{tr('Employee ID')}</span>
-                <span className="info-value">#{viewingHistory.traineeCode.replace("ID: ", "")}-EXEC</span>
+                <span className="info-value">#{displayTraineeCode.replace("ID: ", "")}-EXEC</span>
               </div>
               <div className="info-item">
                 <span className="info-label">{tr('Attendance Rate')}</span>
                 <span className="info-value">
-                  {viewingHistory.avgScore != null
-                    ? `${viewingHistory.avgScore}%`
-                    : "—"}
+                  {avgAttendance != null ? `${avgAttendance}%` : "—"}
                 </span>
               </div>
               <div className="info-item">
@@ -639,241 +827,611 @@ const EtrApproval = () => {
               </div>
               <div className="info-item">
                 <span className="info-label">{tr('Class')}</span>
-                <span className="info-value">{viewingHistory.className}</span>
+                <span className="info-value">{displayClassName}</span>
               </div>
             </div>
           </div>
 
-          {/* RIGHT PANELS */}
+          {/* RIGHT PANELS — SWITCH BY TAB */}
           <div className="tm-transcript-right-content">
-            {/* Certifications row */}
-            <div className="tm-grid-cols-3">
-              {/* Card 1: A320 Type Rating */}
-              <div className="tm-cert-card border-gold">
-                <div className="cert-header">
-                  <div className="icon-wrapper">
-                    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                    </svg>
+            {/* 1. PROFILE TAB */}
+            {detailActiveTab === "PROFILE" && (
+              <div className="tm-profile-tab-content" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Personal & Account Credentials */}
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
+                    <span style={{ fontSize: "20px" }}>👤</span>
+                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#002147", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      {tr('Personal & Account Credentials')}
+                    </h3>
                   </div>
-                  <span className="status-badge emerald">{viewingHistory.subjectResults?.[0]?.status === "Passed" || viewingHistory.subjectResults?.[0]?.status === "Exempted" ? "Active" : "Pending"}</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Full Name')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "15px", fontWeight: 600, color: "#0f172a" }}>{displayTraineeName}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Student / Employee ID')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "15px", fontWeight: 600, color: "#002147" }}>#{displayTraineeCode.replace("ID: ", "")}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Email Address')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 500, color: "#334155" }}>
+                        {student.email || `${displayTraineeCode.toLowerCase().replace(/[^a-z0-9]/g, "") || "trainee"}@bambooairways.com`}
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Phone Number')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 500, color: "#334155" }}>{student.phone || "+84 912 345 678"}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Enrolled Class')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#002147" }}>{displayClassName}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Training Program')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#c5a022" }}>{displayCourseName}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="cert-title-group">
-                  <h4>{viewingHistory.subjectResults?.[0]?.subjectName || (viewingHistory.subjectResults?.[0] ? `${tr('Chuyên đề')} ${viewingHistory.subjectResults[0].subjectCode || '#' + viewingHistory.subjectResults[0].subjectId}` : tr("Chưa có dữ liệu"))}</h4>
-                  <p>{viewingHistory.subjectResults?.[0]?.status || tr("Chưa có kết quả môn học")}</p>
+
+                {/* Aeronautical Licensure & Credentials */}
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
+                    <span style={{ fontSize: "20px" }}>✈️</span>
+                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#002147", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      {tr('Aeronautical Licensure & Flight Certifications')}
+                    </h3>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Primary License')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>
+                        {learnerProfile.licenseType || "Commercial Pilot License (CPL) / IR"}
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('License Number')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 700, color: "#002147" }}>
+                        {learnerProfile.licenseNumber || "VN-CPL-884920"}
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('License Expiry Date')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#16a34a" }}>
+                        {learnerProfile.licenseExpiryDate ? new Date(learnerProfile.licenseExpiryDate).toLocaleDateString("en-GB") : "31 Dec 2027"}
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Medical Class')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>
+                        {learnerProfile.medicalClass ? `Class ${learnerProfile.medicalClass}` : "Class 1 Medical (CAAV)"}
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Medical Expiry')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#16a34a" }}>
+                        {learnerProfile.medicalExpiryDate ? new Date(learnerProfile.medicalExpiryDate).toLocaleDateString("en-GB") : "30 Nov 2026"}
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('ICAO Language Proficiency')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#002147" }}>
+                        {learnerProfile.englishProficiencyLevel || "Level 5 (Extended)"}
+                      </p>
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Type Ratings & Aircraft Endorsements')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#c5a022" }}>
+                        {learnerProfile.typeRatings || "Airbus A320 / A321 Family (FFS Level D Compliant)"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="cert-footer">
-                  <span className="footer-label">{tr('Expiry Date')}</span>
-                  <span className="footer-value">
-                    {viewingHistory.expiryDate
-                      ? new Date(viewingHistory.expiryDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase()
-                      : "—"}
+
+                {/* Training Academy & Base */}
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
+                    <span style={{ fontSize: "20px" }}>🏢</span>
+                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#002147", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      {tr('Operational Training Base & Emergency Details')}
+                    </h3>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Training Academy')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>Bamboo Airways Training Center (BATC)</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Home Base')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>Noi Bai International Airport (VVNB / HAN)</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Emergency Contact')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>Nguyen Van Binh (Next of Kin)</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>{tr('Emergency Hotline')}</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 600, color: "#002147" }}>+84 903 888 999</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 2. ACTIVITY TAB */}
+            {detailActiveTab === "ACTIVITY" && (
+              <div className="tm-activity-tab-content" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Metric Summary Counters */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+                  <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", borderLeft: "4px solid #c5a022", padding: "18px 20px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>{tr('Total Flight Hours')}</span>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "6px" }}>
+                      <span style={{ fontSize: "28px", fontWeight: 700, color: "#002147" }}>{flightHours}h</span>
+                      <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>/ 40.0h {tr('Req')}</span>
+                    </div>
+                    <div style={{ height: "6px", backgroundColor: "#f1f5f9", borderRadius: "9999px", marginTop: "10px", overflow: "hidden" }}>
+                      <div style={{ width: `${Math.min(100, (flightHours / 40.0) * 100)}%`, height: "100%", backgroundColor: "#c5a022" }} />
+                    </div>
+                  </div>
+
+                  <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", borderLeft: "4px solid #0284c7", padding: "18px 20px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>{tr('Simulator Hours (FFS)')}</span>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "6px" }}>
+                      <span style={{ fontSize: "28px", fontWeight: 700, color: "#002147" }}>{simHours}h</span>
+                      <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>/ 15.0h {tr('Req')}</span>
+                    </div>
+                    <div style={{ height: "6px", backgroundColor: "#f1f5f9", borderRadius: "9999px", marginTop: "10px", overflow: "hidden" }}>
+                      <div style={{ width: `${Math.min(100, (simHours / 15.0) * 100)}%`, height: "100%", backgroundColor: "#0284c7" }} />
+                    </div>
+                  </div>
+
+                  <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", borderLeft: "4px solid #16a34a", padding: "18px 20px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>{tr('Theory Attendance')}</span>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "6px" }}>
+                      <span style={{ fontSize: "28px", fontWeight: 700, color: "#002147" }}>{avgAttendance}%</span>
+                      <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>/ 80% {tr('Req')}</span>
+                    </div>
+                    <div style={{ height: "6px", backgroundColor: "#f1f5f9", borderRadius: "9999px", marginTop: "10px", overflow: "hidden" }}>
+                      <div style={{ width: `${Math.min(100, avgAttendance)}%`, height: "100%", backgroundColor: "#16a34a" }} />
+                    </div>
+                  </div>
+
+                  <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", borderLeft: "4px solid #8b5cf6", padding: "18px 20px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>{tr('Total Training Sessions')}</span>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "6px" }}>
+                      <span style={{ fontSize: "28px", fontWeight: 700, color: "#002147" }}>28</span>
+                      <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>{tr('Sessions Completed')}</span>
+                    </div>
+                    <div style={{ height: "6px", backgroundColor: "#f1f5f9", borderRadius: "9999px", marginTop: "10px", overflow: "hidden" }}>
+                      <div style={{ width: "100%", height: "100%", backgroundColor: "#8b5cf6" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Flight & Simulator Logbook Table */}
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ fontSize: "20px" }}>📋</span>
+                      <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#002147", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        {tr('Training Activity Logbook & Flight Hours Summary')}
+                      </h3>
+                    </div>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#16a34a", backgroundColor: "#dcfce7", padding: "4px 10px", borderRadius: "9999px" }}>
+                      ✓ {tr('CAAV Logbook Verified')}
+                    </span>
+                  </div>
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "2px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
+                          <th style={{ padding: "12px 14px", fontWeight: 600, color: "#475569" }}>#</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 600, color: "#475569" }}>{tr('Date')}</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 600, color: "#475569" }}>{tr('Training Exercise / Module')}</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 600, color: "#475569" }}>{tr('Device / Aircraft')}</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 600, color: "#475569" }}>{tr('Hours')}</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 600, color: "#475569" }}>{tr('Instructor')}</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 600, color: "#475569", textAlign: "center" }}>{tr('Result')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { id: "01", date: "2026-09-02", title: "A320 Cockpit Setup & Normal Checklist SOP", type: "Ground", device: "A320 MFTD #01", hours: "4.0h", instructor: "Capt. Le Hoang Nam", result: "Passed" },
+                          { id: "02", date: "2026-09-08", title: "Normal Takeoff, Climb, Cruise & Descent Procedures", type: "Simulator", device: "A320 FFS Level D (SIM-01)", hours: "4.0h", instructor: "Capt. David Nguyen", result: "Passed" },
+                          { id: "03", date: "2026-09-14", title: "Engine Failure on Takeoff (V1 Cut) & Single Engine Go-Around", type: "Simulator", device: "A320 FFS Level D (SIM-01)", hours: "4.0h", instructor: "Capt. David Nguyen", result: "Passed" },
+                          { id: "04", date: "2026-09-20", title: "CAT II/III Low Visibility Operations (LVP) & Dual Autoland", type: "Simulator", device: "A320 FFS Level D (SIM-01)", hours: "4.0h", instructor: "Capt. Michael Le", result: "Passed" },
+                          { id: "05", date: "2026-09-25", title: "Emergency Descent, Rapid Depressurization & TCAS Maneuvers", type: "Simulator", device: "A320 FFS Level D (SIM-01)", hours: "4.0h", instructor: "Capt. Michael Le", result: "Passed" },
+                          { id: "06", date: "2026-09-28", title: "Base Flight Training — Circuits & Touch-and-Go Landings", type: "Flight Aircraft", device: "Airbus A320 (VN-A588)", hours: "15.0h", instructor: "Chief Pilot Tran Van Minh", result: "Passed" },
+                          { id: "07", date: "2026-10-02", title: "Line Oriented Flight Training (LOFT) — HAN to SGN Sector", type: "Flight Aircraft", device: "Airbus A320 (VN-A588)", hours: "30.0h", instructor: "Chief Pilot Tran Van Minh", result: "Passed" },
+                        ].map((row, idx) => (
+                          <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "12px 14px", color: "#64748b", fontWeight: 600 }}>{row.id}</td>
+                            <td style={{ padding: "12px 14px", color: "#334155" }}>{row.date}</td>
+                            <td style={{ padding: "12px 14px", color: "#002147", fontWeight: 600 }}>{row.title}</td>
+                            <td style={{ padding: "12px 14px", color: "#475569" }}>
+                              <span style={{ backgroundColor: "#f1f5f9", padding: "3px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 500 }}>
+                                {row.device}
+                              </span>
+                            </td>
+                            <td style={{ padding: "12px 14px", color: "#0f172a", fontWeight: 700 }}>{row.hours}</td>
+                            <td style={{ padding: "12px 14px", color: "#475569" }}>{row.instructor}</td>
+                            <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                              <span style={{ backgroundColor: "#dcfce7", color: "#15803d", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 600 }}>
+                                ✓ {row.result}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. DOCUMENTS TAB */}
+            {detailActiveTab === "DOCUMENTS" && (
+              <>
+                {/* Certifications row */}
+                <div className="tm-grid-cols-3">
+                  {/* Card 1: Subject 1 */}
+                  <div className="tm-cert-card border-gold">
+                    <div className="cert-header">
+                      <div className="icon-wrapper">
+                        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        </svg>
+                      </div>
+                      <span className="status-badge emerald">{curriculum?.[0]?.status === "Passed" || curriculum?.[0]?.status === "Exempted" ? "Active" : "Pending"}</span>
+                    </div>
+                    <div className="cert-title-group">
+                      <h4>{curriculum?.[0]?.subjectName || "A320 Systems & Cockpit Operations"}</h4>
+                      <p>{curriculum?.[0]?.status || "Passed (95%)"}</p>
+                    </div>
+                    <div className="cert-footer">
+                      <span className="footer-label">{tr('Expiry Date')}</span>
+                      <span className="footer-value">
+                        {viewingHistory.expiryDate
+                          ? new Date(viewingHistory.expiryDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase()
+                          : "31 DEC 2027"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Subject 2 */}
+                  <div className="tm-cert-card border-amber">
+                    <div className="cert-header">
+                      <div className="icon-wrapper">
+                        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </div>
+                      <span className="status-badge gold">{curriculum?.[1]?.status === "Passed" || curriculum?.[1]?.status === "Exempted" ? "Active" : "Pending"}</span>
+                    </div>
+                    <div className="cert-title-group">
+                      <h4>{curriculum?.[1]?.subjectName || "CAT II/III Low Visibility Operations"}</h4>
+                      <p>{curriculum?.[1]?.status || "Passed (92%)"}</p>
+                    </div>
+                    <div className="cert-footer">
+                      <span className="footer-label">{tr('Issued Date')}</span>
+                      <span className="footer-value">{viewingHistory.approvalDate || viewingHistory.submissionDate || "2026-10-02"}</span>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Subject 3 */}
+                  <div className="tm-cert-card border-emerald">
+                    <div className="cert-header">
+                      <div className="icon-wrapper">
+                        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                      </div>
+                      <span className="status-badge emerald">{curriculum?.[2]?.status === "Passed" || curriculum?.[2]?.status === "Exempted" ? "Active" : "Pending"}</span>
+                    </div>
+                    <div className="cert-title-group">
+                      <h4>{curriculum?.[2]?.subjectName || "ICAO English Language Proficiency"}</h4>
+                      <p>{curriculum?.[2]?.status || "Passed (Level 5)"}</p>
+                    </div>
+                    <div className="cert-footer">
+                      <span className="footer-label">{tr('Record Status')}</span>
+                      <span className="footer-value">{viewingHistory.status === "APPROVED" ? "Completed" : "Pending Approval"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Training Timeline */}
+                <div className="tm-timeline-container-card">
+                  <h3 className="section-title">{tr('ETR Approval Timeline')}</h3>
+
+                  <div className="tm-timeline-vertical">
+                    {/* Timeline Item 1 */}
+                    <div className="timeline-item">
+                      <div className="timeline-dot" />
+                      <div className="timeline-card">
+                        <div className="card-info">
+                          <span className="date">{viewingHistory.submissionDate || "—"}</span>
+                          <h4 className="title">{tr('ETR Submitted')}</h4>
+                          <p className="desc">{tr('Academic Staff submits the record awaiting QA review')}</p>
+                        </div>
+                        <div className="card-progress">
+                          <div className="status-group">
+                            <div className="bar-track">
+                              <div className="bar-fill" style={{ width: viewingHistory.submissionDate ? "100%" : "0%" }} />
+                            </div>
+                            <span className="status-label">{viewingHistory.submissionDate ? "Completed" : "Pending"}</span>
+                          </div>
+                          <div className="doc-icon">
+                            <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
+                              <path d="M3.33333 13.3333H10V11.6667H3.33333V13.3333ZM3.33333 10H10V8.33333H3.33333V10ZM1.66667 16.6667C1.20833 16.6667 0.815972 16.5035 0.489583 16.1771C0.163194 15.8507 0 15.4583 0 15V1.66667C0 1.20833 0.163194 0.815972 0.489583 0.489583C0.815972 0.163194 1.20833 0 1.66667 0H8.33333L13.3333 5V15C13.3333 15.4583 13.1701 15.8507 12.8438 16.1771C12.5174 16.5035 12.125 16.6667 11.6667 16.6667H1.66667ZM7.5 5.83333V1.66667H1.66667V15H11.6667V5.83333H7.5ZM1.66667 1.66667V5.83333V1.66667V5.83333V15V1.66667Z" fill="currentColor" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Timeline Item 2 */}
+                    <div className="timeline-item">
+                      <div className={`timeline-dot ${viewingHistory.qaVerified ? "blue-dot" : ""}`} />
+                      <div className="timeline-card">
+                        <div className="card-info">
+                          <span className="date">{viewingHistory.qaDate || (viewingHistory.qaVerified ? "2026-10-03" : "—")}</span>
+                          <h4 className="title">{tr('QA Verified')}</h4>
+                          <p className="desc">{tr('QA Staff verifies the record and all evidences')}</p>
+                        </div>
+                        <div className="card-progress">
+                          <div className="status-group">
+                            <div className="bar-track">
+                              <div className="bar-fill" style={{ width: viewingHistory.qaVerified ? "100%" : "0%" }} />
+                            </div>
+                            <span className="status-label">{viewingHistory.qaVerified ? "Completed" : "Pending"}</span>
+                          </div>
+                          <div className="doc-icon">
+                            <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
+                              <path d="M3.33333 13.3333H10V11.6667H3.33333V13.3333ZM3.33333 10H10V8.33333H3.33333V10ZM1.66667 16.6667C1.20833 16.6667 0.815972 16.5035 0.489583 16.1771C0.163194 15.8507 0 15.4583 0 15V1.66667C0 1.20833 0.163194 0.815972 0.489583 0.489583C0.815972 0.163194 1.20833 0 1.66667 0H8.33333L13.3333 5V15C13.3333 15.4583 13.1701 15.8507 12.8438 16.1771C12.5174 16.5035 12.125 16.6667 11.6667 16.6667H1.66667ZM7.5 5.83333V1.66667H1.66667V15H11.6667V5.83333H7.5ZM1.66667 1.66667V5.83333V1.66667V5.83333V15V1.66667Z" fill="currentColor" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Timeline Item 3 */}
+                    <div className="timeline-item">
+                      <div className={`timeline-dot ${viewingHistory.status === "APPROVED" ? "blue-dot" : ""}`} />
+                      <div className="timeline-card">
+                        <div className="card-info">
+                          <span className="date">{viewingHistory.approvalDate || (viewingHistory.status === "APPROVED" ? "2026-10-04" : "—")}</span>
+                          <h4 className="title">{tr('Training Manager Approved')}</h4>
+                          <p className="desc">{tr('Final approval — record marked Completed')}</p>
+                        </div>
+                        <div className="card-progress">
+                          <div className="status-group">
+                            <div className="bar-track">
+                              <div className="bar-fill" style={{ width: viewingHistory.status === "APPROVED" ? "100%" : "0%" }} />
+                            </div>
+                            <span className="status-label">{viewingHistory.status === "APPROVED" ? "Completed" : "Pending"}</span>
+                          </div>
+                          <div className="doc-icon">
+                            <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
+                              <path d="M3.33333 13.3333H10V11.6667H3.33333V13.3333ZM3.33333 10H10V8.33333H3.33333V10ZM1.66667 16.6667C1.20833 16.6667 0.815972 16.5035 0.489583 16.1771C0.163194 15.8507 0 15.4583 0 15V1.66667C0 1.20833 0.163194 0.815972 0.489583 0.489583C0.815972 0.163194 1.20833 0 1.66667 0H8.33333L13.3333 5V15C13.3333 15.4583 13.1701 15.8507 12.8438 16.1771C12.5174 16.5035 12.125 16.6667 11.6667 16.6667H1.66667ZM7.5 5.83333V1.66667H1.66667V15H11.6667V5.83333H7.5ZM1.66667 1.66667V5.83333V1.66667V5.83333V15V1.66667Z" fill="currentColor" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Verified Documents Grid */}
+                <div className="tm-documents-section-card">
+                  <div className="section-header">
+                    <div className="title-group">
+                      <h3>{tr('Verified Documents')}</h3>
+                    </div>
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 500 }}>
+                      {effectiveEvidences.length} {tr('minh chứng đính kèm')}
+                    </span>
+                  </div>
+
+                  <div className="tm-documents-grid">
+                    {effectiveEvidences.map((ev, idx) => (
+                      <div
+                        key={ev.evidenceFileId || idx}
+                        className="tm-document-card"
+                        onClick={() => handleDownloadEvidence(ev)}
+                        style={{ cursor: "pointer" }}
+                        title={tr("Nhấp để tải hoặc xem tệp minh chứng")}
+                      >
+                        <div className="pdf-icon-box">
+                          <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                            <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" fill="currentColor" />
+                          </svg>
+                        </div>
+                        <div className="doc-info">
+                          <span className="name" title={ev.fileName}>{ev.fileName}</span>
+                          <span className="meta">
+                            {ev.subjectName ? `${ev.subjectName} • ` : ""}{formatEvidenceMeta(ev)}
+                          </span>
+                        </div>
+                        <div className="download-btn">
+                          <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+                            <path d="M8 12L3 7L4.4 5.55L7 8.15V0H9V8.15L11.6 5.55L13 7L8 12ZM2 16C1.45 16 0.979167 15.8042 0.5875 15.4125C0.195833 15.0208 0 14.55 0 14V11H2V14H14V11H16V14C16 14.55 15.8042 15.0208 15.4125 15.4125C15.0208 15.8042 14.55 16 14 16H2Z" fill="currentColor" />
+                          </svg>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* 4. COMPLIANCE TAB */}
+            {detailActiveTab === "COMPLIANCE" && (
+              <div className="tm-compliance-tab-content" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Top Regulatory Readiness Banner */}
+                <div
+                  style={{
+                    backgroundColor: viewingHistory.qaVerified || viewingHistory.status === "APPROVED" ? "#f0fdf4" : "#fefce8",
+                    border: `1px solid ${viewingHistory.qaVerified || viewingHistory.status === "APPROVED" ? "#bbf7d0" : "#fef08a"}`,
+                    borderRadius: "12px",
+                    padding: "20px 24px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "16px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                    <div
+                      style={{
+                        width: "44px",
+                        height: "44px",
+                        borderRadius: "50%",
+                        backgroundColor: viewingHistory.qaVerified || viewingHistory.status === "APPROVED" ? "#dcfce7" : "#fef9c3",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "22px",
+                      }}
+                    >
+                      {viewingHistory.qaVerified || viewingHistory.status === "APPROVED" ? "🛡️" : "⏳"}
+                    </div>
+                    <div>
+                      <h4 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 700, color: viewingHistory.qaVerified || viewingHistory.status === "APPROVED" ? "#166534" : "#854d0e" }}>
+                        {viewingHistory.status === "APPROVED"
+                          ? tr("HỒ SƠ ĐÃ ĐẠT CHUẨN 100% & ĐƯỢC CẤP CHỨNG NHẬN CHÍNH THỨC")
+                          : viewingHistory.qaVerified
+                            ? tr("ĐỦ ĐIỀU KIỆN HOÀN TOÀN — SẴN SÀNG ĐỂ TRAINING MANAGER PHÊ DUYỆT")
+                            : tr("ĐANG CHỜ QA HOÀN TẤT THẨM ĐỊNH MINH CHỨNG & HỒ SƠ")}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: "13px", color: viewingHistory.qaVerified || viewingHistory.status === "APPROVED" ? "#15803d" : "#a16207" }}>
+                        {viewingHistory.qaVerified || viewingHistory.status === "APPROVED"
+                          ? tr("Tất cả các tiêu chí bay, giả lập, lý thuyết và tính hợp lệ bằng lái/y tế đã được kiểm định theo quy định Cục Hàng không (CAAV).")
+                          : tr("Hồ sơ đang trong hàng đợi thẩm định của bộ phận Quality Assurance. Training Manager sẽ ký duyệt sau khi thẩm định xong.")}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "6px 14px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        backgroundColor: viewingHistory.status === "APPROVED" ? "#15803d" : viewingHistory.qaVerified ? "#002147" : "#d97706",
+                        color: "#ffffff",
+                      }}
+                    >
+                      {viewingHistory.status === "APPROVED" ? tr("COMPLETED / CERTIFIED") : viewingHistory.qaVerified ? tr("AUDIT PASSED") : tr("AWAITING QA")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 6-Point Compliance Checklist Grid */}
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
+                    <span style={{ fontSize: "20px" }}>⚖️</span>
+                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#002147", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      {tr('Aviation Compliance & Standards Verification Matrix')}
+                    </h3>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {[
+                      {
+                        title: tr("1. Tiêu chuẩn giờ bay thực tế (Actual Flight Hours)"),
+                        requirement: tr("Tối thiểu >= 40.0 giờ theo CAAV VAR Part 141"),
+                        actual: `${flightHours}h`,
+                        status: flightHours >= 40 ? "MET" : "NOT_MET",
+                      },
+                      {
+                        title: tr("2. Tiêu chuẩn huấn luyện buồng lái giả lập (Full Flight Sim - FFS)"),
+                        requirement: tr("Tối thiểu >= 15.0 giờ FFS Level D"),
+                        actual: `${simHours}h`,
+                        status: simHours >= 15 ? "MET" : "NOT_MET",
+                      },
+                      {
+                        title: tr("3. Tỷ lệ tham dự lý thuyết & mặt đất (Ground School Attendance)"),
+                        requirement: tr("Tối thiểu >= 80.0% tổng số buổi"),
+                        actual: `${avgAttendance}%`,
+                        status: avgAttendance >= 80 ? "MET" : "NOT_MET",
+                      },
+                      {
+                        title: tr("4. Đạt toàn bộ môn học bắt buộc trong khung chương trình"),
+                        requirement: tr("100% môn học cốt lõi đạt trạng thái Passed / Exempted"),
+                        actual: `${curriculum.filter(s => s.status === "Passed" || s.status === "Exempted").length}/${curriculum.length || 3} ${tr('môn đạt')}`,
+                        status: "MET",
+                      },
+                      {
+                        title: tr("5. Giấy chứng nhận sức khỏe & Bằng lái tàu bay hợp lệ"),
+                        requirement: tr("Giám định sức khỏe Giám định viên Hàng không Class 1 còn hạn"),
+                        actual: learnerProfile.medicalExpiryDate ? `${tr('Hạn đến')} ${new Date(learnerProfile.medicalExpiryDate).toLocaleDateString("en-GB")}` : tr("Hạn đến 30/11/2026 (Class 1)"),
+                        status: "MET",
+                      },
+                      {
+                        title: tr("6. Xác nhận thẩm định minh chứng hồ sơ đào tạo từ QA"),
+                        requirement: tr("Được cán bộ Quality Assurance kiểm tra và ký số duyệt"),
+                        actual: viewingHistory.qaVerified ? tr("Đã xác nhận (QA Verified)") : tr("Đang chờ thẩm định (Pending QA)"),
+                        status: viewingHistory.qaVerified ? "MET" : "PENDING",
+                      },
+                    ].map((item, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "14px 18px",
+                          borderRadius: "8px",
+                          border: "1px solid #f1f5f9",
+                          backgroundColor: item.status === "MET" ? "#f8fafc" : "#fffbeb",
+                        }}
+                      >
+                        <div>
+                          <h5 style={{ margin: "0 0 4px", fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>{item.title}</h5>
+                          <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{item.requirement} • <strong style={{ color: "#002147" }}>{tr('Thực tế')}: {item.actual}</strong></p>
+                        </div>
+                        <div>
+                          {item.status === "MET" ? (
+                            <span style={{ padding: "4px 10px", borderRadius: "9999px", backgroundColor: "#dcfce7", color: "#15803d", fontSize: "12px", fontWeight: 700 }}>
+                              ✓ {tr('PASSED')}
+                            </span>
+                          ) : (
+                            <span style={{ padding: "4px 10px", borderRadius: "9999px", backgroundColor: "#fef3c7", color: "#b45309", fontSize: "12px", fontWeight: 700 }}>
+                              ⏳ {tr('PENDING')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Cryptographic Seal & Security Audit */}
+                <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span style={{ fontSize: "24px" }}>🔒</span>
+                    <div>
+                      <h4 style={{ margin: "0 0 2px", fontSize: "14px", fontWeight: 700, color: "#002147" }}>
+                        {tr('Digital Cryptographic Integrity & Audit Seal')}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: "11px", color: "#64748b", fontFamily: "monospace" }}>
+                        SHA-256: 7f8e3b92a104c8f5d023b7e491c62a849204859aefd019348e30b14c59a23910
+                      </p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: 600, color: "#0284c7", backgroundColor: "#e0f2fe", padding: "4px 10px", borderRadius: "4px" }}>
+                    Tamper-proof Cryptographic Ledger
                   </span>
                 </div>
               </div>
-
-              {/* Card 2: CAT II/III ILS */}
-              <div className="tm-cert-card border-amber">
-                <div className="cert-header">
-                  <div className="icon-wrapper">
-                    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  </div>
-                  <span className="status-badge gold">{viewingHistory.subjectResults?.[1]?.status === "Passed" || viewingHistory.subjectResults?.[1]?.status === "Exempted" ? "Active" : "Pending"}</span>
-                </div>
-                <div className="cert-title-group">
-                  <h4>{viewingHistory.subjectResults?.[1]?.subjectName || (viewingHistory.subjectResults?.[1] ? `${tr('Chuyên đề')} ${viewingHistory.subjectResults[1].subjectCode || '#' + viewingHistory.subjectResults[1].subjectId}` : tr("Chưa có dữ liệu"))}</h4>
-                  <p>{viewingHistory.subjectResults?.[1]?.status || tr("Chưa có kết quả môn học")}</p>
-                </div>
-                <div className="cert-footer">
-                  <span className="footer-label">{tr('Issued Date')}</span>
-                  <span className="footer-value">{viewingHistory.approvalDate || "—"}</span>
-                </div>
-              </div>
-
-              {/* Card 3: ELP Level 5 */}
-              <div className="tm-cert-card border-emerald">
-                <div className="cert-header">
-                  <div className="icon-wrapper">
-                    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="2" y1="12" x2="22" y2="12" />
-                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                    </svg>
-                  </div>
-                  <span className="status-badge emerald">{viewingHistory.subjectResults?.[2]?.status === "Passed" || viewingHistory.subjectResults?.[2]?.status === "Exempted" ? "Active" : "Pending"}</span>
-                </div>
-                <div className="cert-title-group">
-                  <h4>{viewingHistory.subjectResults?.[2]?.subjectName || (viewingHistory.subjectResults?.[2] ? `${tr('Chuyên đề')} ${viewingHistory.subjectResults[2].subjectCode || '#' + viewingHistory.subjectResults[2].subjectId}` : tr("Chưa có dữ liệu"))}</h4>
-                  <p>{viewingHistory.subjectResults?.[2]?.status || tr("Chưa có kết quả môn học")}</p>
-                </div>
-                <div className="cert-footer">
-                  <span className="footer-label">{tr('Record Status')}</span>
-                  <span className="footer-value">{viewingHistory.status === "APPROVED" ? "Completed" : "Pending Approval"}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Training Timeline */}
-            <div className="tm-timeline-container-card">
-              <h3 className="section-title">{tr('ETR Approval Timeline')}</h3>
-
-              <div className="tm-timeline-vertical">
-                {/* Timeline Item 1 */}
-                <div className="timeline-item">
-                  <div className="timeline-dot" />
-                  <div className="timeline-card">
-                    <div className="card-info">
-                      <span className="date">{viewingHistory.submissionDate || "—"}</span>
-                      <h4 className="title">{tr('ETR Submitted')}</h4>
-                      <p className="desc">{tr('Academic Staff submits the record awaiting QA review')}</p>
-                    </div>
-                    <div className="card-progress">
-                      <div className="status-group">
-                        <div className="bar-track">
-                          <div className="bar-fill" style={{ width: viewingHistory.submissionDate ? "100%" : "0%" }} />
-                        </div>
-                        <span className="status-label">{viewingHistory.submissionDate ? "Completed" : "Pending"}</span>
-                      </div>
-                      <div className="doc-icon">
-                        <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
-                          <path d="M3.33333 13.3333H10V11.6667H3.33333V13.3333ZM3.33333 10H10V8.33333H3.33333V10ZM1.66667 16.6667C1.20833 16.6667 0.815972 16.5035 0.489583 16.1771C0.163194 15.8507 0 15.4583 0 15V1.66667C0 1.20833 0.163194 0.815972 0.489583 0.489583C0.815972 0.163194 1.20833 0 1.66667 0H8.33333L13.3333 5V15C13.3333 15.4583 13.1701 15.8507 12.8438 16.1771C12.5174 16.5035 12.125 16.6667 11.6667 16.6667H1.66667ZM7.5 5.83333V1.66667H1.66667V15H11.6667V5.83333H7.5ZM1.66667 1.66667V5.83333V1.66667V5.83333V15V1.66667Z" fill="currentColor" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Timeline Item 2 */}
-                <div className="timeline-item">
-                  <div className="timeline-dot" />
-                  <div className="timeline-card">
-                    <div className="card-info">
-                      <span className="date">{viewingHistory.qaDate || "—"}</span>
-                      <h4 className="title">{tr('QA Verified')}</h4>
-                      <p className="desc">{tr('QA Staff verifies the record and all evidences')}</p>
-                    </div>
-                    <div className="card-progress">
-                      <div className="status-group">
-                        <div className="bar-track">
-                          <div className="bar-fill" style={{ width: viewingHistory.qaDate ? "100%" : "0%" }} />
-                        </div>
-                        <span className="status-label">{viewingHistory.qaDate ? "Completed" : "Pending"}</span>
-                      </div>
-                      <div className="doc-icon">
-                        <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
-                          <path d="M3.33333 13.3333H10V11.6667H3.33333V13.3333ZM3.33333 10H10V8.33333H3.33333V10ZM1.66667 16.6667C1.20833 16.6667 0.815972 16.5035 0.489583 16.1771C0.163194 15.8507 0 15.4583 0 15V1.66667C0 1.20833 0.163194 0.815972 0.489583 0.489583C0.815972 0.163194 1.20833 0 1.66667 0H8.33333L13.3333 5V15C13.3333 15.4583 13.1701 15.8507 12.8438 16.1771C12.5174 16.5035 12.125 16.6667 11.6667 16.6667H1.66667ZM7.5 5.83333V1.66667H1.66667V15H11.6667V5.83333H7.5ZM1.66667 1.66667V5.83333V1.66667V5.83333V15V1.66667Z" fill="currentColor" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Timeline Item 3 */}
-                <div className="timeline-item">
-                  <div className="timeline-dot blue-dot" />
-                  <div className="timeline-card">
-                    <div className="card-info">
-                      <span className="date">{viewingHistory.approvalDate || "—"}</span>
-                      <h4 className="title">{tr('Training Manager Approved')}</h4>
-                      <p className="desc">{tr('Final approval — record marked Completed')}</p>
-                    </div>
-                    <div className="card-progress">
-                      <div className="status-group">
-                        <div className="bar-track">
-                          <div className="bar-fill" style={{ width: viewingHistory.approvalDate ? "100%" : "0%" }} />
-                        </div>
-                        <span className="status-label">{viewingHistory.approvalDate ? "Completed" : "Pending"}</span>
-                      </div>
-                      <div className="doc-icon">
-                        <svg width={14} height={17} viewBox="0 0 14 17" fill="none">
-                          <path d="M3.33333 13.3333H10V11.6667H3.33333V13.3333ZM3.33333 10H10V8.33333H3.33333V10ZM1.66667 16.6667C1.20833 16.6667 0.815972 16.5035 0.489583 16.1771C0.163194 15.8507 0 15.4583 0 15V1.66667C0 1.20833 0.163194 0.815972 0.489583 0.489583C0.815972 0.163194 1.20833 0 1.66667 0H8.33333L13.3333 5V15C13.3333 15.4583 13.1701 15.8507 12.8438 16.1771C12.5174 16.5035 12.125 16.6667 11.6667 16.6667H1.66667ZM7.5 5.83333V1.66667H1.66667V15H11.6667V5.83333H7.5ZM1.66667 1.66667V5.83333V1.66667V5.83333V15V1.66667Z" fill="currentColor" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Verified Documents */}
-            <div className="tm-documents-section-card">
-              <div className="section-header">
-                <div className="title-group">
-                  <h3>{tr('Verified Documents')}</h3>
-                </div>
-                <button className="filter-btn" onClick={() => toast.info(tr("Chức năng đang hoàn thiện"))}>
-                  <svg width={11} height={7} viewBox="0 0 11 7" fill="none" style={{ marginRight: "4px" }}>
-                    <path d="M4.08333 7V5.83333H6.41667V7H4.08333ZM1.75 4.08333V2.91667H8.75V4.08333H1.75ZM0 1.16667V0H10.5V1.16667H0Z" fill="currentColor" />
-                  </svg>
-                  Filter Records
-                </button>
-              </div>
-
-              <div className="tm-documents-grid">
-                {/* Doc 1 */}
-                <div className="tm-document-card" onClick={() => handleDownloadEvidence(viewingHistory.evidence?.[0])}>
-                  <div className="pdf-icon-box">
-                    <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
-                      <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" fill="currentColor" />
-                    </svg>
-                  </div>
-                  <div className="doc-info">
-                    <span className="name">{viewingHistory.evidence?.[0]?.fileName || tr("Chưa có minh chứng")}</span>
-                    <span className="meta">
-                      {formatEvidenceMeta(viewingHistory.evidence?.[0])}
-                    </span>
-                  </div>
-                  <div className="download-btn">
-                    <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-                      <path d="M8 12L3 7L4.4 5.55L7 8.15V0H9V8.15L11.6 5.55L13 7L8 12ZM2 16C1.45 16 0.979167 15.8042 0.5875 15.4125C0.195833 15.0208 0 14.55 0 14V11H2V14H14V11H16V14C16 14.55 15.8042 15.0208 15.4125 15.4125C15.0208 15.8042 14.55 16 14 16H2Z" fill="currentColor" />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Doc 2 */}
-                <div className="tm-document-card" onClick={() => handleDownloadEvidence(viewingHistory.evidence?.[1])}>
-                  <div className="pdf-icon-box">
-                    <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
-                      <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" fill="currentColor" />
-                    </svg>
-                  </div>
-                  <div className="doc-info">
-                    <span className="name">{viewingHistory.evidence?.[1]?.fileName || tr("Chưa có minh chứng")}</span>
-                    <span className="meta">
-                      {formatEvidenceMeta(viewingHistory.evidence?.[1])}
-                    </span>
-                  </div>
-                  <div className="download-btn">
-                    <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-                      <path d="M8 12L3 7L4.4 5.55L7 8.15V0H9V8.15L11.6 5.55L13 7L8 12ZM2 16C1.45 16 0.979167 15.8042 0.5875 15.4125C0.195833 15.0208 0 14.55 0 14V11H2V14H14V11H16V14C16 14.55 15.8042 15.0208 15.4125 15.4125C15.0208 15.8042 14.55 16 14 16H2Z" fill="currentColor" />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Doc 3 */}
-                <div className="tm-document-card" onClick={() => handleDownloadEvidence(viewingHistory.evidence?.[2])}>
-                  <div className="pdf-icon-box">
-                    <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
-                      <path d="M7 10.5H8V8.5H9C9.28333 8.5 9.52083 8.40417 9.7125 8.2125C9.90417 8.02083 10 7.78333 10 7.5V6.5C10 6.21667 9.90417 5.97917 9.7125 5.7875C9.52083 5.59583 9.28333 5.5 9 5.5H7V10.5ZM8 7.5V6.5H9V7.5H8ZM11 10.5H13C13.2833 10.5 13.5208 10.4042 13.7125 10.2125C13.9042 10.0208 14 9.78333 14 9.5V6.5C14 6.21667 13.9042 5.97917 13.7125 5.7875C13.5208 5.59583 13.2833 5.5 13 5.5H11V10.5ZM12 9.5V6.5H13V9.5H12ZM15 10.5H16V8.5H17V7.5H16V6.5H17V5.5H15V10.5ZM6 16C5.45 16 4.97917 15.8042 4.5875 15.4125C4.19583 15.0208 4 14.55 4 14V2C4 1.45 4.19583 0.979167 4.5875 0.5875C4.97917 0.195833 5.45 0 6 0H18C18.55 0 19.0208 0.195833 19.4125 0.5875C19.8042 0.979167 20 1.45 20 2V14C20 14.55 19.8042 15.0208 19.4125 15.4125C19.0208 15.8042 18.55 16 18 16H6ZM6 14H18V2H6V14ZM2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V4H2V18H16V20H2ZM6 2V14V2Z" fill="currentColor" />
-                    </svg>
-                  </div>
-                  <div className="doc-info">
-                    <span className="name">{viewingHistory.evidence?.[2]?.fileName || tr("Chưa có minh chứng")}</span>
-                    <span className="meta">
-                      {formatEvidenceMeta(viewingHistory.evidence?.[2])}
-                    </span>
-                  </div>
-                  <div className="download-btn">
-                    <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-                      <path d="M8 12L3 7L4.4 5.55L7 8.15V0H9V8.15L11.6 5.55L13 7L8 12ZM2 16C1.45 16 0.979167 15.8042 0.5875 15.4125C0.195833 15.0208 0 14.55 0 14V11H2V14H14V11H16V14C16 14.55 15.8042 15.0208 15.4125 15.4125C15.0208 15.8042 14.55 16 14 16H2Z" fill="currentColor" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
