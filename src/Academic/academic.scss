@@ -2200,12 +2200,12 @@
 
   .class-subtable-grid {
     display: grid;
-    grid-template-columns: 140px 1.5fr 1.3fr 1.2fr 110px 110px minmax(320px, auto);
+    grid-template-columns: 110px minmax(180px, 1.8fr) minmax(160px, 1.3fr) minmax(140px, 1.2fr) 95px 105px minmax(350px, auto);
     align-items: center;
     gap: 12px;
     padding: 10px 16px;
     box-sizing: border-box;
-    min-width: 980px;
+    min-width: 1100px;
   }
 
   .class-subtable-header {

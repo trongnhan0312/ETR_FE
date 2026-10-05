@@ -1929,11 +1929,11 @@ const LearnerManagement = () => {
                   </div>
                   <div>
                     <span style={{ color: '#64748b' }}>{tr('Khám sức khỏe:')}</span>{' '}
-                    <strong>{verifyingLearner.medicalClass || 'N/A'}</strong> (Hạn: {formatDate(verifyingLearner.medicalExpiryDate, lang)})
+                    <strong>{verifyingLearner.medicalClass || 'N/A'}</strong> ({tr('Hạn:')} {formatDate(verifyingLearner.medicalExpiryDate, lang)})
                   </div>
                   <div>
                     <span style={{ color: '#64748b' }}>{tr('ICAO ELP:')}</span>{' '}
-                    <strong>{verifyingLearner.icaoElpLevel ? `Level ${verifyingLearner.icaoElpLevel}` : 'N/A'}</strong> (Hạn: {formatDate(verifyingLearner.icaoElpExpiryDate, lang)})
+                    <strong>{verifyingLearner.icaoElpLevel ? `Level ${verifyingLearner.icaoElpLevel}` : 'N/A'}</strong> ({tr('Hạn:')} {formatDate(verifyingLearner.icaoElpExpiryDate, lang)})
                   </div>
                   <div style={{ gridColumn: 'span 2' }}>
                     <span style={{ color: '#64748b' }}>{tr('Type Ratings:')}</span>{' '}

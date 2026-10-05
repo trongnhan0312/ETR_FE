@@ -1784,8 +1784,8 @@ const CourseClassManagement = () => {
                                 <div>{tr("TÊN LỚP HỌC")}</div>
                                 <div>{tr("LỊCH ĐÀO TẠO")}</div>
                                 <div>{tr("GIẢNG VIÊN")}</div>
-                                <div>{tr("SĨ SỐ")}</div>
-                                <div>{tr("TRẠNG THÁI LỚP")}</div>
+                                <div style={{ textAlign: "center" }}>{tr("SĨ SỐ")}</div>
+                                <div style={{ textAlign: "center" }}>{tr("TRẠNG THÁI LỚP")}</div>
                                 <div style={{ textAlign: "right" }}>
                                   {tr("THAO TÁC LỚP")}
                                 </div>
@@ -1821,7 +1821,7 @@ const CourseClassManagement = () => {
                                   </div>
 
                                   {/* 5. SĨ SỐ (Enrollment) */}
-                                  <div className="col-class-capacity">
+                                  <div className="col-class-capacity" style={{ textAlign: "center" }}>
                                     <span
                                       title={tr("Sĩ số hiện tại / Sức chứa tối đa")}
                                       style={{
@@ -1841,7 +1841,7 @@ const CourseClassManagement = () => {
                                   </div>
 
                                   {/* 6. TRẠNG THÁI LỚP (Class Status) */}
-                                  <div className="col-class-status">
+                                  <div className="col-class-status" style={{ textAlign: "center" }}>
                                     <span
                                       className={`class-status ${
                                         cls.status === "Đang diễn ra"
@@ -1857,12 +1857,12 @@ const CourseClassManagement = () => {
 
                                   {/* 7. THAO TÁC LỚP (Class Actions) */}
                                   <div
-                                    className="col-class-actions text-right"
+                                    className="col-class-actions"
                                     style={{
                                       display: "flex",
                                       justifyContent: "flex-end",
                                       alignItems: "center",
-                                      gap: "5px",
+                                      gap: "4px",
                                       flexWrap: "nowrap",
                                     }}
                                   >
@@ -1873,12 +1873,12 @@ const CourseClassManagement = () => {
                                         "Cập nhật trạng thái & thông tin lớp",
                                       )}
                                       style={{
-                                        backgroundColor: "#f1f5f9",
+                                        backgroundColor: "#ffffff",
                                         border: "1px solid #cbd5e1",
                                         color: "#0f172a",
                                         fontSize: "11px",
                                         fontWeight: 600,
-                                        padding: "3px 8px",
+                                        padding: "4px 7px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
                                         whiteSpace: "nowrap",
@@ -1889,7 +1889,7 @@ const CourseClassManagement = () => {
                                         setEditingClassTarget(cls);
                                       }}
                                     >
-                                      {tr("✏️ Trạng thái")}
+                                      ✏️ {tr("Trạng thái")}
                                     </button>
 
                                     {/* Button: GHI DANH HỌC VIÊN */}
@@ -1909,14 +1909,14 @@ const CourseClassManagement = () => {
                                           }
                                           style={{
                                             backgroundColor: isClassBlocked
-                                              ? "#e2e8f0"
+                                              ? "#f1f5f9"
                                               : "#002147",
                                             color: isClassBlocked
                                               ? "#94a3b8"
                                               : "#c5a059",
                                             border: isClassBlocked
                                               ? "1px solid #cbd5e1"
-                                              : "1px solid #c5a059",
+                                              : "1px solid #002147",
                                             fontSize: "11px",
                                             fontWeight: 700,
                                             padding: "4px 8px",
@@ -1925,7 +1925,7 @@ const CourseClassManagement = () => {
                                               ? "not-allowed"
                                               : "pointer",
                                             whiteSpace: "nowrap",
-                                            opacity: isClassBlocked ? 0.7 : 1,
+                                            opacity: isClassBlocked ? 0.65 : 1,
                                             flexShrink: 0,
                                           }}
                                           onClick={(e) => {
@@ -1935,9 +1935,7 @@ const CourseClassManagement = () => {
                                             setIsEnrollingStudent(true);
                                           }}
                                         >
-                                          {isClassBlocked
-                                            ? `⛔ ${tr(elig.reason)}`
-                                            : tr("➕ Ghi danh")}
+                                          ➕ {tr("Ghi danh")}
                                         </button>
                                       );
                                     })()}
@@ -1945,13 +1943,14 @@ const CourseClassManagement = () => {
                                     {/* Button: XEM CHI TIẾT LỚP */}
                                     <button
                                       type="button"
+                                      title={tr("Xem chi tiết lớp học")}
                                       style={{
                                         backgroundColor: "#f8fafc",
                                         color: "#475569",
                                         border: "1px solid #e2e8f0",
                                         fontSize: "11px",
                                         fontWeight: 600,
-                                        padding: "4px 8px",
+                                        padding: "4px 7px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
                                         whiteSpace: "nowrap",
@@ -1962,19 +1961,20 @@ const CourseClassManagement = () => {
                                         setViewingClassDetail(cls);
                                       }}
                                     >
-                                      {tr("Xem")}
+                                      👁️ {tr("Xem")}
                                     </button>
 
                                     {/* Button: XEM ĐIỂM DANH */}
                                     <button
                                       type="button"
+                                      title={tr("Xem lịch sử & điểm danh")}
                                       style={{
                                         backgroundColor: "#f0f9ff",
                                         color: "#0369a1",
                                         border: "1px solid #bae6fd",
                                         fontSize: "11px",
                                         fontWeight: 600,
-                                        padding: "4px 8px",
+                                        padding: "4px 7px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
                                         whiteSpace: "nowrap",
@@ -1985,7 +1985,7 @@ const CourseClassManagement = () => {
                                         handleSelectClassForHistory(cls);
                                       }}
                                     >
-                                      {tr("Điểm danh")}
+                                      📅 {tr("Điểm danh")}
                                     </button>
 
                                     {/* Button: XÓA LỚP HỌC */}
@@ -1998,7 +1998,7 @@ const CourseClassManagement = () => {
                                         border: "1px solid #fecdd3",
                                         fontSize: "11px",
                                         fontWeight: 600,
-                                        padding: "4px 8px",
+                                        padding: "4px 7px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
                                         whiteSpace: "nowrap",
@@ -2009,7 +2009,7 @@ const CourseClassManagement = () => {
                                         setDeletingClassTarget(cls);
                                       }}
                                     >
-                                      {tr("🗑️ Xóa Lớp")}
+                                      🗑️ {tr("Xóa")}
                                     </button>
 
                                     {/* Button: XUẤT BÁO CÁO LỚP */}
@@ -2024,7 +2024,7 @@ const CourseClassManagement = () => {
                                         border: "1px solid #e2e8f0",
                                         fontSize: "11px",
                                         fontWeight: 600,
-                                        padding: "4px 8px",
+                                        padding: "4px 7px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
                                         whiteSpace: "nowrap",
@@ -2036,7 +2036,7 @@ const CourseClassManagement = () => {
                                         setExportError("");
                                       }}
                                     >
-                                      📤 {tr("Báo cáo")}
+                                      📊 {tr("Báo cáo")}
                                     </button>
                                   </div>
                                 </div>
