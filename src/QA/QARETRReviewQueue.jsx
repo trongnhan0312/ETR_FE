@@ -26,6 +26,7 @@ const QARETRReviewQueue = () => {
 
   // Modal xem chi tiết đầy đủ ETR + bản đồ tên môn/đánh giá/checklist/evidence
   const [detailTarget, setDetailTarget] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // Lịch sử duyệt: mở rộng nội tuyến dòng history để xem ApprovalHistory của ETR đó
   const [expandedHistoryEtrId, setExpandedHistoryEtrId] = useState(null);
