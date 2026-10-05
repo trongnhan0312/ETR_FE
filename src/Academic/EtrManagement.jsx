@@ -187,11 +187,12 @@ const EtrManagement = ({ defaultView = "list" }) => {
         setAllSubjects(Array.isArray(subjects) ? subjects : []);
         setAllClasses(classesArr);
         setAllCourses(coursesArr);
-        setUploadEvidenceTypes(
-          Array.isArray(evidenceTypes) ? evidenceTypes : [],
+        const validUploadTypes = (Array.isArray(evidenceTypes) ? evidenceTypes : []).filter(
+          (t) => (t.category || t.Category) !== "Credential" && (t.typeCode || t.TypeCode) !== "MED_ELP"
         );
-        if (Array.isArray(evidenceTypes) && evidenceTypes.length > 0) {
-          setUploadEvidenceTypeId(String(evidenceTypes[0].evidenceTypeId));
+        setUploadEvidenceTypes(validUploadTypes);
+        if (validUploadTypes.length > 0) {
+          setUploadEvidenceTypeId(String(validUploadTypes[0].evidenceTypeId));
         }
 
         // Fetch chi tiết từng ETR để lấy SubjectResultId (evidence liên kết qua SubjectResult, không phải ETR id)
@@ -480,6 +481,13 @@ const EtrManagement = ({ defaultView = "list" }) => {
         if (typeId != null)
           evidenceTypeNameById[typeId] = t.typeName ?? t.TypeName ?? "";
       });
+
+      const validUploadTypes = (Array.isArray(evidenceTypes) ? evidenceTypes : []).filter(
+        (t) => (t.category || t.Category) !== "Credential" && (t.typeCode || t.TypeCode) !== "MED_ELP"
+      );
+      if (validUploadTypes.length > 0) {
+        setUploadEvidenceTypes(validUploadTypes);
+      }
 
       // Cập nhật lại bản đồ SubjectResultId (có thể thay đổi sau khi tải thêm evidence)
       const detailsArr = await Promise.all(

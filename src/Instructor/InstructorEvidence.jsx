@@ -8,6 +8,16 @@ import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 
+const normalizeDeptCode = (dept) => {
+  if (!dept) return "";
+  const str = String(dept).toUpperCase();
+  if (str.includes("FLIGHT") || str.includes("PILOT") || str.includes("PHI CÔNG") || str === "FC") return "FC";
+  if (str.includes("CABIN") || str.includes("TIẾP VIÊN") || str.includes("TIEP VIEN") || str === "CC") return "CC";
+  if (str.includes("MAINT") || str.includes("ENG") || str.includes("BẢO DƯỠNG") || str.includes("KỸ THUẬT") || str === "ENG") return "ENG";
+  if (str.includes("GROUND") || str.includes("MẶT ĐẤT") || str.includes("MAT DAT") || str === "GND") return "GND";
+  return str;
+};
+
 const InstructorEvidence = () => {
   const { tr } = useLanguage();
   const toast = useToast();
@@ -93,6 +103,9 @@ const InstructorEvidence = () => {
             enrollmentId: e.enrollmentId,
             accountId: e.accountId,
             fullName: profile?.fullName || `Student #${e.accountId}`,
+            departmentId: profile?.departmentId,
+            departmentName: profile?.departmentName || "",
+            departmentCode: profile?.departmentCode || profile?.departmentName || "",
           };
         });
       setClassStudents(students);
@@ -144,6 +157,7 @@ const InstructorEvidence = () => {
               subjectId: sr.subjectId,
               subjectCode: matchedSubject?.subjectCode || `SUB-${sr.subjectId}`,
               subjectName: matchedSubject?.subjectName || `Môn học #${sr.subjectId}`,
+              subjectType: matchedSubject?.subjectType || "Theory",
               status: sr.status,
             };
           });
@@ -169,6 +183,77 @@ const InstructorEvidence = () => {
     };
     loadStudentSubjects();
   }, [selectedStudentId, subjectsList]);
+
+  // Lấy thông tin học viên đang chọn để kiểm tra DepartmentScope
+  const selectedStudent = useMemo(() => {
+    return classStudents.find((s) => String(s.enrollmentId) === String(selectedStudentId));
+  }, [classStudents, selectedStudentId]);
+
+  // Lấy môn học đang chọn để kiểm tra SubjectTypeScope (Theory / Practical)
+  const selectedSubject = useMemo(() => {
+    return studentSubjects.find((s) => String(s.subjectResultId) === String(selectedSubjectResultId));
+  }, [studentSubjects, selectedSubjectResultId]);
+
+  // Danh mục loại minh chứng áp dụng theo ngữ cảnh:
+  // - Loại bỏ giấy tờ nhạy cảm/Credentials (MED_ELP, Category === 'Credential')
+  // - Lọc theo DepartmentScope (FC, CC, ENG, GND, hoặc ALL)
+  // - Lọc theo SubjectTypeScope (Theory, Practical, hoặc ALL)
+  // - Luôn giữ "Minh chứng khác" (OTHER_EVIDENCE) làm phương án dự phòng
+  const applicableEvidenceTypes = useMemo(() => {
+    if (!Array.isArray(evidenceTypes) || evidenceTypes.length === 0) return [];
+
+    const studentDept = normalizeDeptCode(
+      selectedStudent?.departmentCode || selectedStudent?.departmentName || ""
+    );
+    const rawSubjectType = (selectedSubject?.subjectType || "Theory").toLowerCase();
+
+    return evidenceTypes.filter((et) => {
+      // 1. Tách biệt hoàn toàn giấy tờ sức khỏe / ELP và credentials
+      const category = et.category || et.Category || "";
+      const typeCode = et.typeCode || et.TypeCode || "";
+      if (category === "Credential" || typeCode === "MED_ELP") {
+        return false;
+      }
+
+      // 2. Luôn giữ "Minh chứng khác" (OTHER_EVIDENCE)
+      if (typeCode === "OTHER_EVIDENCE") {
+        return true;
+      }
+
+      // 3. Kiểm tra DepartmentScope
+      const deptScope = (et.departmentScope || et.DepartmentScope || "ALL").toUpperCase();
+      if (deptScope !== "ALL" && studentDept && studentDept !== deptScope) {
+        return false;
+      }
+
+      // 4. Kiểm tra SubjectTypeScope (Theory vs Practical)
+      const typeScope = (et.subjectTypeScope || et.SubjectTypeScope || "ALL").toLowerCase();
+      if (typeScope !== "all") {
+        const isPractical =
+          rawSubjectType.includes("prac") ||
+          rawSubjectType.includes("thực hành") ||
+          rawSubjectType.includes("sim");
+        if (isPractical && typeScope !== "practical") return false;
+        if (!isPractical && typeScope !== "theory") return false;
+      }
+
+      return true;
+    });
+  }, [evidenceTypes, selectedStudent, selectedSubject]);
+
+  // Tự động cập nhật selectedEvidenceTypeId nếu loại đang chọn không còn nằm trong danh sách áp dụng
+  useEffect(() => {
+    if (applicableEvidenceTypes.length > 0) {
+      const isStillValid = applicableEvidenceTypes.some(
+        (et) => String(et.evidenceTypeId) === String(selectedEvidenceTypeId)
+      );
+      if (!isStillValid) {
+        setSelectedEvidenceTypeId(String(applicableEvidenceTypes[0].evidenceTypeId));
+      }
+    } else {
+      setSelectedEvidenceTypeId("");
+    }
+  }, [applicableEvidenceTypes, selectedEvidenceTypeId]);
 
   // Load evidence files when class is selected
   const loadEvidences = async () => {
@@ -438,13 +523,6 @@ const InstructorEvidence = () => {
       toast.error(tr("Tải xuống thất bại"));
     }
   };
-
-  // Học viên đang chọn trong dropdown (bên phải) — evidence hiển thị bên trái chỉ của học viên này
-  const selectedStudent = useMemo(() => {
-    return classStudents.find(
-      (s) => String(s.enrollmentId) === String(selectedStudentId),
-    );
-  }, [classStudents, selectedStudentId]);
 
   // Danh sách các môn học có trong bằng chứng của lớp
   const classSubjectsForFilter = useMemo(() => {
@@ -1030,14 +1108,35 @@ const InstructorEvidence = () => {
             >
               {evidenceTypes.length === 0 ? (
                 <option value="">{tr('Đang tải loại bằng chứng...')}</option>
+              ) : applicableEvidenceTypes.length === 0 ? (
+                <option value="">{tr('Không có loại bằng chứng phù hợp')}</option>
               ) : (
-                evidenceTypes.map((et) => (
+                applicableEvidenceTypes.map((et) => (
                   <option key={et.evidenceTypeId} value={et.evidenceTypeId}>
                     {et.typeName || `Loại ${et.evidenceTypeId}`}
                   </option>
                 ))
               )}
             </select>
+            {(() => {
+              const currentType = applicableEvidenceTypes.find(
+                (et) => String(et.evidenceTypeId) === String(selectedEvidenceTypeId)
+              );
+              if (!currentType) return null;
+              const isMandatory = currentType.isMandatory || currentType.IsMandatory;
+              const desc = currentType.description || currentType.Description;
+              if (!isMandatory && !desc) return null;
+              return (
+                <div style={{ marginTop: "4px", fontSize: "12px", color: "#64748b", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                  {isMandatory && (
+                    <span style={{ color: "#dc2626", fontWeight: "600" }}>
+                      * {tr("Bắt buộc")}
+                    </span>
+                  )}
+                  {desc && <span>{desc}</span>}
+                </div>
+              );
+            })()}
           </div>
 
           <div
