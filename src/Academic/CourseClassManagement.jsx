@@ -54,6 +54,7 @@ const CourseClassManagement = () => {
   const [exportingType, setExportingType] = useState(null); // 'attendance' | 'assessment' | 'class-summary'
   const [exportError, setExportError] = useState("");
   const [enrollClassId, setEnrollClassId] = useState(null);
+  const [courseLoadError, setCourseLoadError] = useState(false);
 
   // Edit & Delete targets
   const [editingCourseTarget, setEditingCourseTarget] = useState(null);
@@ -117,6 +118,7 @@ const CourseClassManagement = () => {
     const loadData = async () => {
       try {
         setLoading(true);
+        let courseLoadFailed = false;
         const [
           courseData,
           classData,
@@ -128,7 +130,11 @@ const CourseClassManagement = () => {
           enrollmentData,
           attendanceData,
         ] = await Promise.all([
-          api.get("/Courses").catch(() => []),
+          api.get("/Courses").catch((err) => {
+            console.error("Error loading courses:", err);
+            courseLoadFailed = true;
+            return [];
+          }),
           api.get("/Classes").catch(() => []),
           api.get("/Subjects").catch(() => []),
           api.get("/Sessions").catch(() => []),
@@ -138,6 +144,8 @@ const CourseClassManagement = () => {
           api.get("/Enrollments").catch(() => []),
           api.get("/Attendance").catch(() => []),
         ]);
+
+        setCourseLoadError(courseLoadFailed);
 
         const coursesArr = Array.isArray(courseData) ? courseData : [];
         const classesArr = Array.isArray(classData) ? classData : [];
@@ -1146,6 +1154,8 @@ const CourseClassManagement = () => {
   // Lớp "mồ côi": có CourseId không khớp bất kỳ khóa học nào đang tồn tại (khóa học đã bị xóa
   // hoặc lớp được tạo với CourseId không hợp lệ) — Academic cần thấy để xử lý (sửa/xóa/ghi danh).
   const orphanClasses = useMemo(() => {
+    // Nếu Courses API bị lỗi tải, không phân loại sai thành lớp mồ côi
+    if (courseLoadError) return [];
     const validCourseIds = new Set(
       allCoursesRaw.map((c) => String(c.courseId)),
     );
@@ -1244,7 +1254,7 @@ const CourseClassManagement = () => {
         };
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allClassesRaw, allCoursesRaw, instructorsList, tr, allSubjects, allEnrollmentsRaw, allAttendanceRaw, allSessions, allAccountsRaw, allProfilesRaw]);
+  }, [allClassesRaw, allCoursesRaw, instructorsList, tr, allSubjects, allEnrollmentsRaw, allAttendanceRaw, allSessions, allAccountsRaw, allProfilesRaw, courseLoadError]);
 
   // Phân trang: khóa học (nhóm có thể mở rộng) + lớp mồ côi — tối đa 5 nút trang.
   const {
@@ -1483,6 +1493,34 @@ const CourseClassManagement = () => {
           </div>
         </div>
       </section>
+
+      {/* Warning banner when Courses API fails */}
+      {courseLoadError && (
+        <div
+          role="alert"
+          style={{
+            padding: "14px 18px",
+            marginBottom: "20px",
+            borderRadius: "8px",
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#991b1b",
+            fontSize: "14px",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          }}
+        >
+          <span style={{ fontSize: "18px" }}>⚠️</span>
+          <div>
+            <strong>{tr("Không thể tải danh sách khóa học")}:</strong>{" "}
+            {tr(
+              "Đã xảy ra lỗi khi kết nối máy chủ hoặc cơ sở dữ liệu chưa hoàn tất cập nhật. Vui lòng làm mới trang hoặc liên hệ quản trị viên.",
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Loading State */}
       {loading ? (

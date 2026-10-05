@@ -21,6 +21,7 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
   const [availableDepartments, setAvailableDepartments] = useState([]);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [departmentLoadError, setDepartmentLoadError] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -30,11 +31,21 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
       try {
         setLoadingSubjects(true);
         setLoadingDepartments(true);
+        setDepartmentLoadError(false);
+        let deptErr = false;
         const [subList, cDetail, deptList] = await Promise.all([
           api.get('/Subjects').catch(() => []),
           api.get(`/Courses/${course.courseId}`).catch(() => null),
-          api.get('/Departments').catch(() => [])
+          api.get('/Departments').catch((err) => {
+            console.error('Error fetching departments:', err);
+            deptErr = true;
+            return [];
+          })
         ]);
+
+        if (deptErr) {
+          setDepartmentLoadError(true);
+        }
 
         const subs = Array.isArray(subList) ? subList : [];
         setAvailableSubjects(subs);
@@ -45,7 +56,13 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
           if (d.isTrainingAudience === false) return false;
           const code = (d.departmentCode || '').toUpperCase();
           const name = (d.departmentName || '').toLowerCase();
-          return code !== 'ADM' && code !== 'TRN' && !name.includes('administration') && !name.includes('training') && !name.includes('hành chính');
+          return (
+            code !== 'ADM' &&
+            code !== 'TRN' &&
+            !name.includes('administration') &&
+            !name.includes('training') &&
+            !name.includes('hành chính')
+          );
         });
         setAvailableDepartments(audienceDepts);
 
@@ -366,6 +383,19 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
               {loadingDepartments ? (
                 <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
                   {tr('Đang tải danh sách phòng ban...')}
+                </div>
+              ) : departmentLoadError ? (
+                <div
+                  style={{
+                    fontSize: '12px',
+                    color: '#dc2626',
+                    backgroundColor: '#fef2f2',
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: '1px solid #fecaca',
+                  }}
+                >
+                  ⚠️ {tr('Không thể tải danh sách phòng ban do lỗi máy chủ (Database chưa áp dụng Migration). Vui lòng thử lại sau.')}
                 </div>
               ) : availableDepartments.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>

@@ -21,6 +21,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
   const [availableDepartments, setAvailableDepartments] = useState([]);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [departmentLoadError, setDepartmentLoadError] = useState(false);
 
   // Subjects selection state (Business Rule: Course MUST have at least 1 Subject)
   const [availableSubjects, setAvailableSubjects] = useState([]);
@@ -45,18 +46,27 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
     const fetchDepartments = async () => {
       try {
         setLoadingDepartments(true);
-        const data = await api.get("/Departments").catch(() => []);
+        setDepartmentLoadError(false);
+        const data = await api.get("/Departments");
         const deptsArr = Array.isArray(data) ? data : [];
         // Filter training audience departments (exclude internal admin/training depts)
         const audienceDepts = deptsArr.filter((d) => {
           if (d.isTrainingAudience === false) return false;
           const code = (d.departmentCode || "").toUpperCase();
           const name = (d.departmentName || "").toLowerCase();
-          return code !== "ADM" && code !== "TRN" && !name.includes("administration") && !name.includes("training") && !name.includes("hành chính");
+          return (
+            code !== "ADM" &&
+            code !== "TRN" &&
+            !name.includes("administration") &&
+            !name.includes("training") &&
+            !name.includes("hành chính")
+          );
         });
         setAvailableDepartments(audienceDepts);
       } catch (err) {
         console.error("Error fetching departments for CreateCourse:", err);
+        setDepartmentLoadError(true);
+        setAvailableDepartments([]);
       } finally {
         setLoadingDepartments(false);
       }
@@ -490,6 +500,19 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
               {loadingDepartments ? (
                 <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic" }}>
                   {tr("Đang tải danh sách phòng ban đào tạo...")}
+                </div>
+              ) : departmentLoadError ? (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#dc2626",
+                    backgroundColor: "#fef2f2",
+                    padding: "8px 12px",
+                    borderRadius: "4px",
+                    border: "1px solid #fecaca",
+                  }}
+                >
+                  ⚠️ {tr("Không thể tải danh sách phòng ban do lỗi máy chủ (Database chưa áp dụng Migration). Vui lòng thử lại sau.")}
                 </div>
               ) : availableDepartments.length === 0 ? (
                 <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic" }}>

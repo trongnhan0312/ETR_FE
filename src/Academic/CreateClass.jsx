@@ -177,7 +177,12 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
     }
 
     const selectedCourseObj = courses.find((c) => String(c.courseId) === String(parentCourse));
-    if (selectedCourseObj && selectedCourseObj.status === 'Draft') {
+    if (!selectedCourseObj) {
+      alert(tr('Khóa học đào tạo đã chọn không hợp lệ hoặc không tồn tại. Vui lòng chọn lại.'));
+      return;
+    }
+
+    if (selectedCourseObj.status === 'Draft') {
       alert(tr('Không thể mở lớp học cho khóa học ở trạng thái Bản nháp (Draft). Vui lòng kích hoạt (Active) khóa học trước khi mở lớp.'));
       return;
     }
