@@ -74,25 +74,29 @@ const FacilityManagement = () => {
   }, [facilities, searchTerm, typeFilter, statusFilter]);
 
   const {
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    paginatedItems: paginatedFacilities,
-  } = usePagination(filteredFacilities, 10);
+    page: currentPage,
+    setPage: setCurrentPage,
+    pageCount: totalPages,
+    pageItems: paginatedFacilities,
+  } = usePagination(filteredFacilities, {
+    pageSize: 10,
+    resetKey: `${searchTerm}|${typeFilter}|${statusFilter}`,
+  });
 
   // Statistics
   const stats = useMemo(() => {
-    const total = facilities.length;
-    const simCount = facilities.filter(
+    const list = Array.isArray(facilities) ? facilities : [];
+    const total = list.length;
+    const simCount = list.filter(
       (f) => String(f.facilityType).toUpperCase() === "SIMULATOR"
     ).length;
-    const airfieldCount = facilities.filter(
+    const airfieldCount = list.filter(
       (f) => String(f.facilityType).toUpperCase() === "AIRFIELD"
     ).length;
-    const classroomCount = facilities.filter(
+    const classroomCount = list.filter(
       (f) => String(f.facilityType).toUpperCase() === "CLASSROOM"
     ).length;
-    const workshopCount = facilities.filter(
+    const workshopCount = list.filter(
       (f) => String(f.facilityType).toUpperCase() === "WORKSHOP"
     ).length;
     return { total, simCount, airfieldCount, classroomCount, workshopCount };
@@ -537,7 +541,7 @@ const FacilityManagement = () => {
                   {tr("Đang tải danh sách cơ sở đào tạo...")}
                 </td>
               </tr>
-            ) : paginatedFacilities.length === 0 ? (
+            ) : (!paginatedFacilities || paginatedFacilities.length === 0) ? (
               <tr>
                 <td colSpan="7" style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
                   {tr("Không tìm thấy cơ sở đào tạo phù hợp.")}
