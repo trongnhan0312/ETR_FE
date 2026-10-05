@@ -1448,6 +1448,28 @@ const CourseClassManagement = () => {
           >
             <span>{tr("📝 GHI DANH HỌC VIÊN")}</span>
           </button>
+
+          <button
+            className="create-btn"
+            type="button"
+            style={{
+              backgroundColor: "#7e22ce",
+              color: "#ffffff",
+              border: "none",
+              padding: "10px 18px",
+              borderRadius: "4px",
+              fontWeight: 700,
+              fontSize: "12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(126,34,206,0.2)",
+            }}
+            onClick={() => navigate("/academic/facilities")}
+          >
+            <span>🏢 {tr("CƠ SỞ VẬT CHẤT (FACILITIES)")}</span>
+          </button>
         </div>
       </section>
 

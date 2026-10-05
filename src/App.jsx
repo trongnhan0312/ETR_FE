@@ -34,6 +34,7 @@ import CourseClassManagement from './Academic/CourseClassManagement';
 import EtrManagement from './Academic/EtrManagement';
 import ExpiringStudents from './Academic/ExpiringStudents';
 import SubjectManagement from './Academic/SubjectManagement';
+import FacilityManagement from './Academic/FacilityManagement';
 import AcademicAuditLogs from './Academic/AcademicAuditLogs';
 import InstructorLayout from './Instructor/InstructorLayout';
 import InstructorDashboard from './Instructor/InstructorDashboard';
@@ -205,6 +206,7 @@ function App() {
 						<Route path="evidence" element={<EtrManagement defaultView="evidence" />} />
 						<Route path="expiring-students" element={<ExpiringStudents />} />
 						<Route path="subjects" element={<SubjectManagement />} />
+						<Route path="facilities" element={<FacilityManagement />} />
 						<Route path="audit" element={<AcademicAuditLogs />} />
 						<Route path="profile" element={<StaffProfile portalName="Academic Space" roleScope="Academic Operations & Evidence Verification" />} />
 					</Route>

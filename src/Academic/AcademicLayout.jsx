@@ -99,6 +99,24 @@ const navigationItems = [
     ),
   },
   {
+    label: "CƠ SỞ VẬT CHẤT",
+    to: "/academic/facilities",
+    icon: (
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M3 21h18M3 7v14M21 7v14M6 7V3h12v4M9 11h2v2H9zM13 11h2v2h-2zM9 16h2v2H9zM13 16h2v2h-2z" />
+      </svg>
+    ),
+  },
+  {
     label: "HẾT HẠN CC",
     to: "/academic/expiring-students",
     icon: (
