@@ -357,10 +357,10 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                       letterSpacing: '0.05em',
                     }}
                   >
-                    {tr('Phòng ban / Đối tượng đào tạo')}
+                    {tr('TARGET AUDIENCE / DEPARTMENTS ELIGIBLE FOR ENROLLMENT')}
                   </span>
                   <div style={{ fontSize: '11px', color: '#64748b', marginTop: '1px' }}>
-                    {tr('Để trống = Mọi phòng ban đều được phép học.')}
+                    {tr('Select departments eligible for this course. Leave blank to allow all departments (Unrestricted).')}
                   </div>
                 </div>
                 <span
@@ -375,14 +375,14 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                   }}
                 >
                   {selectedDepartmentIds.length > 0
-                    ? `🎯 ${tr('Đã giới hạn')} (${selectedDepartmentIds.length})`
-                    : `🌐 ${tr('Tất cả phòng ban')}`}
+                    ? `🎯 ${tr('Restricted')} (${selectedDepartmentIds.length})`
+                    : `🌐 ${tr('All Departments (Unrestricted)')}`}
                 </span>
               </div>
 
               {loadingDepartments ? (
                 <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
-                  {tr('Đang tải danh sách phòng ban...')}
+                  {tr('Loading department list...')}
                 </div>
               ) : departmentLoadError ? (
                 <div
@@ -395,11 +395,11 @@ const UpdateCourseModal = ({ course, onSave, onCancel }) => {
                     border: '1px solid #fecaca',
                   }}
                 >
-                  ⚠️ {tr('Không thể tải danh sách phòng ban do lỗi máy chủ (Database chưa áp dụng Migration). Vui lòng thử lại sau.')}
+                  ⚠️ {tr('Unable to load departments due to server issue. Please try again later.')}
                 </div>
               ) : availableDepartments.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
-                  {tr('Không có danh mục phòng ban. Khóa học mở cho mọi học viên.')}
+                  {tr('No specific departments found. Course will be open to all learners.')}
                 </div>
               ) : (
                 <div
