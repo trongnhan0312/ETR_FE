@@ -161,11 +161,31 @@ const handleResponse = async (response, method, endpoint, options = {}, requestB
       "\n[DIAG] Request body gửi lên:",
       requestBody,
     );
+
+    let readableError = err;
+    try {
+      const parsed = JSON.parse(err);
+      if (parsed && typeof parsed === "object") {
+        if (typeof parsed.detail === "string" && parsed.detail.trim()) {
+          readableError = parsed.detail.trim();
+        } else if (typeof parsed.message === "string" && parsed.message.trim()) {
+          readableError = parsed.message.trim();
+        } else if (parsed.errors && typeof parsed.errors === "object") {
+          const vals = Object.values(parsed.errors).flat().filter(Boolean);
+          if (vals.length > 0) readableError = vals.join("; ");
+        } else if (typeof parsed.title === "string" && parsed.title.trim()) {
+          readableError = parsed.title.trim();
+        }
+      }
+    } catch {
+      // not JSON, keep raw text
+    }
+
     // Ghi lịch sử thao tác THẤT BẠI — chỉ request GHI
     if (method !== "GET") {
-      addActivity({ type: "error", method, endpoint, status: response.status, message: err.slice(0, 150) });
+      addActivity({ type: "error", method, endpoint, status: response.status, message: readableError.slice(0, 150) });
     }
-    throw new Error(err || `Request failed with status ${response.status}`);
+    throw new Error(readableError || `Request failed with status ${response.status}`);
   }
 
   // Ghi lịch sử thao tác THÀNH CÔNG — chỉ request GHI (GET = đọc dữ liệu, không ghi log)
