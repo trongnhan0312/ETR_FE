@@ -390,7 +390,7 @@ const StudentFlightSimLogSection = ({ enrollmentId }) => {
                       background: r.sessionTrainingType === 'Flight' ? 'rgba(3, 105, 161, 0.1)' : 'rgba(147, 51, 234, 0.1)',
                       color: r.sessionTrainingType === 'Flight' ? '#0369a1' : '#7e22ce'
                     }}>
-                      {r.sessionTrainingType === 'Flight' ? '✈️ Bay' : '🕹️ SIM'}
+                      {r.sessionTrainingType === 'Flight' ? 'Bay' : 'SIM'}
                     </span>
                   </td>
                   <td style={{ fontWeight: 700, color: '#002147' }}>

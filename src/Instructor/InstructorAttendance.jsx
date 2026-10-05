@@ -1124,7 +1124,7 @@ const InstructorAttendance = () => {
                     color: selectedSession.trainingType === "Flight" ? "#0369a1" : selectedSession.trainingType === "Simulator" ? "#7e22ce" : "#475569",
                     border: `1px solid ${selectedSession.trainingType === "Flight" ? "#bae6fd" : selectedSession.trainingType === "Simulator" ? "#e9d5ff" : "#cbd5e1"}`
                   }}>
-                    {selectedSession.trainingType === "Flight" ? "✈️ Bay (Flight)" : selectedSession.trainingType === "Simulator" ? "🕹️ Mô phỏng (SIM)" : "📖 Lý thuyết (Theory)"}
+                    {selectedSession.trainingType === "Flight" ? tr("Bay (Flight)") : selectedSession.trainingType === "Simulator" ? tr("Mô phỏng (SIM)") : tr("Lý thuyết (Theory)")}
                   </span>
                 )}
               </h1>
@@ -1407,7 +1407,7 @@ const InstructorAttendance = () => {
                                 gap: "4px",
                               }}
                             >
-                              <span>✈️ {tr("Nhật ký & Ký")}</span>
+                              <span>{tr("Nhật ký & Ký")}</span>
                             </button>
                             <span
                               style={{
@@ -1736,8 +1736,8 @@ const InstructorAttendance = () => {
                       }}
                     >
                       {selectedSession.trainingType === "Flight"
-                        ? "✈️ Nhật ký Huấn luyện Bay"
-                        : "🕹️ Nhật ký Huấn luyện Mô phỏng"}{" "}
+                        ? tr("Nhật ký Huấn luyện Bay")
+                        : tr("Nhật ký Huấn luyện Mô phỏng")}{" "}
                       — {flightSimModalStudent.name} (
                       {flightSimModalStudent.code})
                     </h2>

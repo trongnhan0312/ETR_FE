@@ -1446,7 +1446,7 @@ const CourseClassManagement = () => {
               setIsEnrollingStudent(true);
             }}
           >
-            <span>{tr("📝 GHI DANH HỌC VIÊN")}</span>
+            <span>{tr("GHI DANH HỌC VIÊN")}</span>
           </button>
 
           <button
@@ -1468,7 +1468,7 @@ const CourseClassManagement = () => {
             }}
             onClick={() => navigate("/academic/facilities")}
           >
-            <span>🏢 {tr("CƠ SỞ VẬT CHẤT (FACILITIES)")}</span>
+            <span>{tr("CƠ SỞ VẬT CHẤT (FACILITIES)")}</span>
           </button>
         </div>
       </section>

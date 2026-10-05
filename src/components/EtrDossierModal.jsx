@@ -209,39 +209,39 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
             className={`tab-item ${activeTab === "overview" ? "active" : ""}`}
             onClick={() => setActiveTab("overview")}
           >
-            📊 {tr("1. Overview & Progress")}
+            {tr("1. Overview & Progress")}
           </button>
           <button
             className={`tab-item ${activeTab === "subjects" ? "active" : ""}`}
             onClick={() => setActiveTab("subjects")}
           >
-            📚 {tr("2. Subjects & Assessments")}
+            {tr("2. Subjects & Assessments")}
           </button>
           <button
             className={`tab-item ${activeTab === "sessions" ? "active" : ""}`}
             onClick={() => setActiveTab("sessions")}
           >
-            ✈️ {tr("3. Sessions & Logbook")}
+            {tr("3. Sessions & Logbook")}
           </button>
           {dossier?.credentials && (
             <button
               className={`tab-item ${activeTab === "credentials" ? "active" : ""}`}
               onClick={() => setActiveTab("credentials")}
             >
-              🪪 {tr("4. Credentials & Medical")}
+              {tr("4. Credentials & Medical")}
             </button>
           )}
           <button
             className={`tab-item ${activeTab === "evidences" ? "active" : ""}`}
             onClick={() => setActiveTab("evidences")}
           >
-            📁 {tr("5. Training Evidences")}
+            {tr("5. Training Evidences")}
           </button>
           <button
             className={`tab-item ${activeTab === "approvalHistory" ? "active" : ""}`}
             onClick={() => setActiveTab("approvalHistory")}
           >
-            🕒 {tr("6. Processing History")}
+            {tr("6. Processing History")}
           </button>
         </div>
 

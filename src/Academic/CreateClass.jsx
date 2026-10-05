@@ -520,7 +520,7 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
                 lineHeight: '1.5'
               }}>
                 <div style={{ fontWeight: 700, marginBottom: '2px' }}>
-                  ✈️ {tr('Quy định thời gian đào tạo chuẩn ICAO / CAAV:')}
+                  {tr('Quy định thời gian đào tạo chuẩn ICAO / CAAV:')}
                 </div>
                 <div>
                   {tr('Khóa học yêu cầu tối thiểu')} <strong>{durationInfo.totalMinDays} {tr('ngày')}</strong> ({durationInfo.minTrainingDays} {tr('ngày học')} + {durationInfo.minBufferDays} {tr('ngày đệm 15% cho retake & bảo trì')}).

@@ -1962,7 +1962,7 @@ const LearnerManagement = () => {
                       textAlign: 'center'
                     }}
                   >
-                    📄 {tr('1. Tài liệu đính kèm')} ({verifyAttachments.length})
+                    {tr('1. Tài liệu đính kèm')} ({verifyAttachments.length})
                   </button>
                   <button
                     type="button"
@@ -1979,7 +1979,7 @@ const LearnerManagement = () => {
                       textAlign: 'center'
                     }}
                   >
-                    🏢 {tr('2. Xác minh trực tiếp / Ngoại tuyến')}
+                    {tr('2. Xác minh trực tiếp / Ngoại tuyến')}
                   </button>
                 </div>
               </div>

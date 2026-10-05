@@ -197,19 +197,18 @@ const FacilityManagement = () => {
       return (
         <span
           style={{
-            padding: "4px 10px",
-            borderRadius: "6px",
-            fontSize: "12px",
-            fontWeight: "600",
-            backgroundColor: "rgba(147, 51, 234, 0.1)",
+            padding: "3px 8px",
+            borderRadius: "4px",
+            fontSize: "11px",
+            fontWeight: "700",
+            backgroundColor: "#f3e8ff",
             color: "#7e22ce",
-            border: "1px solid #e9d5ff",
+            border: "1px solid #d8b4fe",
             display: "inline-flex",
             alignItems: "center",
-            gap: "4px",
           }}
         >
-          🕹️ {tr("Mô phỏng (Simulator)")}
+          {tr("Mô phỏng (Simulator)")}
         </span>
       );
     }
@@ -217,19 +216,18 @@ const FacilityManagement = () => {
       return (
         <span
           style={{
-            padding: "4px 10px",
-            borderRadius: "6px",
-            fontSize: "12px",
-            fontWeight: "600",
-            backgroundColor: "rgba(3, 105, 161, 0.1)",
+            padding: "3px 8px",
+            borderRadius: "4px",
+            fontSize: "11px",
+            fontWeight: "700",
+            backgroundColor: "#e0f2fe",
             color: "#0369a1",
             border: "1px solid #bae6fd",
             display: "inline-flex",
             alignItems: "center",
-            gap: "4px",
           }}
         >
-          ✈️ {tr("Sân bay / Căn cứ bay")}
+          {tr("Sân bay / Căn cứ bay")}
         </span>
       );
     }
@@ -237,38 +235,36 @@ const FacilityManagement = () => {
       return (
         <span
           style={{
-            padding: "4px 10px",
-            borderRadius: "6px",
-            fontSize: "12px",
-            fontWeight: "600",
-            backgroundColor: "rgba(217, 119, 6, 0.1)",
+            padding: "3px 8px",
+            borderRadius: "4px",
+            fontSize: "11px",
+            fontWeight: "700",
+            backgroundColor: "#fef3c7",
             color: "#b45309",
             border: "1px solid #fde68a",
             display: "inline-flex",
             alignItems: "center",
-            gap: "4px",
           }}
         >
-          🛠️ {tr("Xưởng kỹ thuật / Cabin")}
+          {tr("Xưởng kỹ thuật / Cabin")}
         </span>
       );
     }
     return (
       <span
         style={{
-          padding: "4px 10px",
-          borderRadius: "6px",
-          fontSize: "12px",
-          fontWeight: "600",
-          backgroundColor: "rgba(100, 116, 139, 0.1)",
+          padding: "3px 8px",
+          borderRadius: "4px",
+          fontSize: "11px",
+          fontWeight: "700",
+          backgroundColor: "#f1f5f9",
           color: "#475569",
           border: "1px solid #cbd5e1",
           display: "inline-flex",
           alignItems: "center",
-          gap: "4px",
         }}
       >
-        📖 {tr("Phòng lý thuyết (Classroom)")}
+        {tr("Phòng lý thuyết (Classroom)")}
       </span>
     );
   };
@@ -344,8 +340,7 @@ const FacilityManagement = () => {
             transition: "all 0.2s ease",
           }}
         >
-          <span>➕</span>
-          <span>{tr("THÊM CƠ SỞ MỚI")}</span>
+          <span>+ {tr("THÊM CƠ SỞ MỚI")}</span>
         </button>
       </div>
 
@@ -385,7 +380,7 @@ const FacilityManagement = () => {
           }}
         >
           <div style={{ fontSize: "11px", fontWeight: "700", color: "#7e22ce", textTransform: "uppercase" }}>
-            🕹️ {tr("Buồng lái mô phỏng (SIM)")}
+            {tr("Buồng lái mô phỏng (SIM)")}
           </div>
           <div style={{ fontSize: "24px", fontWeight: "800", color: "#7e22ce", marginTop: "4px" }}>
             {stats.simCount}
@@ -402,7 +397,7 @@ const FacilityManagement = () => {
           }}
         >
           <div style={{ fontSize: "11px", fontWeight: "700", color: "#0369a1", textTransform: "uppercase" }}>
-            ✈️ {tr("Sân bay / Căn cứ bay")}
+            {tr("Sân bay / Căn cứ bay")}
           </div>
           <div style={{ fontSize: "24px", fontWeight: "800", color: "#0369a1", marginTop: "4px" }}>
             {stats.airfieldCount}
@@ -419,7 +414,7 @@ const FacilityManagement = () => {
           }}
         >
           <div style={{ fontSize: "11px", fontWeight: "700", color: "#475569", textTransform: "uppercase" }}>
-            📖 {tr("Phòng học lý thuyết")}
+            {tr("Phòng học lý thuyết")}
           </div>
           <div style={{ fontSize: "24px", fontWeight: "800", color: "#475569", marginTop: "4px" }}>
             {stats.classroomCount}
@@ -436,7 +431,7 @@ const FacilityManagement = () => {
           }}
         >
           <div style={{ fontSize: "11px", fontWeight: "700", color: "#b45309", textTransform: "uppercase" }}>
-            🛠️ {tr("Xưởng kỹ thuật / Cabin")}
+            {tr("Xưởng kỹ thuật / Cabin")}
           </div>
           <div style={{ fontSize: "24px", fontWeight: "800", color: "#b45309", marginTop: "4px" }}>
             {stats.workshopCount}
@@ -621,7 +616,7 @@ const FacilityManagement = () => {
                           cursor: "pointer",
                         }}
                       >
-                        ✏️ {tr("Sửa")}
+                        {tr("Sửa")}
                       </button>
                       <button
                         onClick={() => setDeletingFacility(fac)}
@@ -637,7 +632,7 @@ const FacilityManagement = () => {
                           cursor: "pointer",
                         }}
                       >
-                        🗑️ {tr("Xóa")}
+                        {tr("Xóa")}
                       </button>
                     </div>
                   </td>

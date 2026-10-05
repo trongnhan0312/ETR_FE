@@ -1012,7 +1012,7 @@ const InstructorClasses = () => {
               gap: "8px"
             }}
           >
-            <span>👨‍✈️</span> {tr("Học viên & Sổ bay / Readiness")} ({(selectedClass.students || []).length})
+            {tr("Học viên & Sổ bay / Readiness")} ({(selectedClass.students || []).length})
           </button>
         </div>
 
@@ -1815,7 +1815,7 @@ const InstructorClasses = () => {
                           );
                           return currentMismatch ? (
                             <option key={currentMismatch.facilityId} value={currentMismatch.facilityId}>
-                              ⚠️ [{currentMismatch.facilityCode}] {currentMismatch.facilityName} ({currentMismatch.facilityType} - {tr('Không tương thích')})
+                              [{currentMismatch.facilityCode}] {currentMismatch.facilityName} ({currentMismatch.facilityType} - {tr('Không tương thích')})
                             </option>
                           ) : null;
                         })()}

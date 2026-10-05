@@ -1235,7 +1235,7 @@ const StudentProfiles = () => {
                       textAlign: 'center'
                     }}
                   >
-                    📄 {tr('Tài liệu đính kèm')} ({verifyAttachments.length})
+                    {tr('Tài liệu đính kèm')} ({verifyAttachments.length})
                   </button>
                   <button
                     type="button"
@@ -1252,7 +1252,7 @@ const StudentProfiles = () => {
                       textAlign: 'center'
                     }}
                   >
-                    🏢 {tr('Xác minh trực tiếp / Ngoại tuyến')}
+                    {tr('Xác minh trực tiếp / Ngoại tuyến')}
                   </button>
                 </div>
               </div>
