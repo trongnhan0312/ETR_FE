@@ -3,7 +3,7 @@ import { api } from '../utils/api';
 import { announce } from '../utils/crudNotify';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
-import { uploadToCloudinary, validateEvidenceFile } from '../utils/cloudinary';
+import { uploadToCloudinary, validateEvidenceFile, EXT_TO_MIME } from '../utils/cloudinary';
 
 /** Format a Date or ISO string → yyyy-MM-dd for <input type="date"> */
 const toDateInputValue = (d) => {
@@ -299,12 +299,15 @@ const StudentProfile = () => {
         cloudFile = await uploadToCloudinary(uploadFile);
       }
 
+      const fileExt = (uploadFileName || '').slice((uploadFileName || '').lastIndexOf('.')).toLowerCase();
+      const fallbackMime = EXT_TO_MIME[fileExt] || (fileExt === '.pdf' ? 'application/pdf' : 'image/jpeg');
+
       const payload = {
         docType: uploadDocType,
         url: cloudFile ? cloudFile.fileUrl : uploadFileUrl.trim(),
         fileName: cloudFile ? cloudFile.fileName : (uploadFileName.trim() || 'evidence.pdf'),
         publicId: cloudFile?.publicId || null,
-        mimeType: cloudFile ? cloudFile.mimeType : (uploadFileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+        mimeType: cloudFile ? cloudFile.mimeType : fallbackMime,
         fileSize: cloudFile?.fileSize || null,
       };
 
@@ -904,7 +907,7 @@ const StudentProfile = () => {
                   <input
                     id="credential-file-input"
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp,application/pdf"
                     style={{ display: 'none' }}
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {

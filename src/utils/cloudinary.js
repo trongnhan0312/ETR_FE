@@ -17,6 +17,9 @@ const UPLOAD_PRESET =
   import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "";
 
 // Whitelist khớp EvidenceService.AllowedExtensions / AllowedMimeTypes phía BE —
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+// Whitelist khớp EvidenceService.AllowedExtensions / AllowedMimeTypes phía BE —
 // chặn sớm tại FE để user không phải đợi upload xong mới biết lỗi.
 export const ALLOWED_EXTENSIONS = [
   ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf",
@@ -27,6 +30,9 @@ export const ALLOWED_MIME_TYPES = new Set([
   "image/pjpeg",
   "image/png",
   "image/x-png",
+  "image/apng",
+  "application/x-png",
+  "image/x-citrix-png",
   "image/gif",
   "image/webp",
   "application/pdf",
@@ -42,28 +48,40 @@ export const EXT_TO_MIME = {
 };
 
 export const resolveEvidenceMimeType = (file) => {
+  const dot = file?.name ? file.name.lastIndexOf(".") : -1;
+  const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : "";
+  if (EXT_TO_MIME[ext]) {
+    return EXT_TO_MIME[ext];
+  }
   if (file?.type && ALLOWED_MIME_TYPES.has(file.type.toLowerCase())) {
     return file.type.toLowerCase();
   }
-  const dot = file?.name ? file.name.lastIndexOf(".") : -1;
-  const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : "";
-  return EXT_TO_MIME[ext] || file?.type || "application/octet-stream";
+  return "application/octet-stream";
 };
 
-export const EVIDENCE_ACCEPT_ATTR = ".jpg,.jpeg,.png,.gif,.webp,.pdf";
+export const EVIDENCE_ACCEPT_ATTR = ".jpg,.jpeg,.png,.gif,.webp,.pdf,image/jpeg,image/png,image/gif,image/webp,application/pdf";
 
 /** Kiểm tra đuôi file + mime có nằm trong whitelist của BE không. Trả về chuỗi lỗi hoặc null.
  *  Chuỗi lỗi giữ tĩnh (không nội suy) để tr() dịch được sang tiếng Anh. */
 export const validateEvidenceFile = (file) => {
   if (!file) return "Thiếu tệp tin.";
+  if (file.size && file.size > MAX_FILE_SIZE) {
+    return "Dung lượng tệp vượt quá giới hạn tối đa cho phép là 10 MB.";
+  }
   const dot = file.name.lastIndexOf(".");
   const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : "";
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
     return "Định dạng tệp không được hỗ trợ. Vui lòng chọn PDF hoặc ảnh (JPG/PNG/GIF/WEBP).";
   }
-  // Một số trình duyệt để type rỗng — khi đó tin vào extension.
-  if (file.type && !ALLOWED_MIME_TYPES.has(file.type.toLowerCase())) {
-    return "Kiểu tệp không được hỗ trợ. Vui lòng chọn PDF hoặc ảnh (JPG/PNG/GIF/WEBP).";
+  // Một số trình duyệt để type rỗng hoặc application/octet-stream khi kéo thả/tải về — khi đó tin vào extension.
+  const rawType = file.type ? file.type.toLowerCase().trim() : "";
+  if (rawType && rawType !== "application/octet-stream") {
+    const isImageExt = [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext);
+    const isValidImage = isImageExt && rawType.startsWith("image/");
+    const isAllowedMime = ALLOWED_MIME_TYPES.has(rawType);
+    if (!isValidImage && !isAllowedMime) {
+      return "Kiểu tệp không được hỗ trợ. Vui lòng chọn PDF hoặc ảnh (JPG/PNG/GIF/WEBP).";
+    }
   }
   return null;
 };

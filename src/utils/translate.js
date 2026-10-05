@@ -2014,6 +2014,12 @@ export const VN_TO_EN = {
     "Record is completed and locked — data cannot be modified.",
   "Hỗ trợ PDF, PNG, JPG, GIF, WEBP — lưu trữ trên Cloudinary":
     "Supports PDF, PNG, JPG, GIF, WEBP — hosted on Cloudinary",
+  "Định dạng tệp không được hỗ trợ. Vui lòng chọn PDF hoặc ảnh (JPG/PNG/GIF/WEBP).":
+    "Unsupported file format. Please select a PDF or image (JPG/PNG/GIF/WEBP).",
+  "Kiểu tệp không được hỗ trợ. Vui lòng chọn PDF hoặc ảnh (JPG/PNG/GIF/WEBP).":
+    "Unsupported file type. Please select a PDF or image (JPG/PNG/GIF/WEBP).",
+  "Dung lượng tệp vượt quá giới hạn tối đa cho phép là 10 MB.":
+    "File size exceeds the maximum limit of 10 MB.",
   "KHÓA ĐÀO TẠO": "TRAINING COURSE",
   "KHÓA ĐÀO TẠO (Bắt buộc) *": "TRAINING COURSE (Mandatory) *",
   "Không chọn assessment": "No assessment selected",

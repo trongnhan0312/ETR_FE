@@ -1007,7 +1007,7 @@ const CourseClassManagement = () => {
                 sessionDate:
                   sess.sessionDate || sess.date || updatePayload.startDate,
                 location:
-                  sess.location || updatePayload.location || "Phòng Sim A320",
+                  sess.location || updatePayload.location || "",
                 instructorAccountId: primaryInstructorId,
                 assessmentId: sess.assessmentId
                   ? Number(sess.assessmentId)

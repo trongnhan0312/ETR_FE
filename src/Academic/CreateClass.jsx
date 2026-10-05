@@ -19,7 +19,9 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
   const [parentCourse, setParentCourse] = useState(getInitialCourseId);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [location, setLocation] = useState('Phòng Sim A320');
+  const [location, setLocation] = useState('');
+  const [defaultFacilityId, setDefaultFacilityId] = useState('');
+  const [facilities, setFacilities] = useState([]);
   const [capacity, setCapacity] = useState(30);
 
   // Default dates: Today & Today + 30 days — dùng ngày LOCAL (không dùng toISOString/UTC)
@@ -152,6 +154,20 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
       });
   }, [parentCourse, courses, subjects]);
 
+  useEffect(() => {
+    api.get('/TrainingFacilities')
+      .then((res) => {
+        if (Array.isArray(res)) setFacilities(res);
+      })
+      .catch(() => {
+        api.get('/trainingfacilities')
+          .then((res) => {
+            if (Array.isArray(res)) setFacilities(res);
+          })
+          .catch(() => {});
+      });
+  }, []);
+
   const subjectName = (subjectId) => {
     const sub = subjects.find((s) => String(s.subjectId) === String(subjectId));
     if (sub) {
@@ -235,12 +251,16 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
         : null
     }));
 
+    const matchedFacility = facilities.find((f) => String(f.facilityId) === String(defaultFacilityId));
+    const finalLocation = location.trim() || (matchedFacility ? matchedFacility.facilityName : '');
+
     const newClass = {
       code: trimmedCode,
       name: trimmedName,
       startDate: startDate || todayStr,
       endDate: endDate || minEndDateStr || nextMonthStr,
-      location: location.trim() || 'Phòng Sim A320',
+      location: finalLocation,
+      defaultFacilityId: defaultFacilityId ? Number(defaultFacilityId) : null,
       capacity: Number(capacity) || 30,
       status,
       attendanceRate: 0,
@@ -382,14 +402,25 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
 
               <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
-                  <label htmlFor="class-location-input">{tr('Địa điểm đào tạo (Location)')}</label>
-                  <input
-                    id="class-location-input"
-                    type="text"
-                    placeholder={tr('Ví dụ: Phòng Sim A320, Hangar 1...')}
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
+                  <label htmlFor="class-facility-select">{tr('Cơ sở đào tạo mặc định (Facility)')}</label>
+                  <select
+                    id="class-facility-select"
+                    value={defaultFacilityId}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDefaultFacilityId(val);
+                      const f = facilities.find((item) => String(item.facilityId) === String(val));
+                      if (f) setLocation(f.facilityName);
+                    }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '4px', border: '1px solid #e0e4e8', fontSize: '13px', backgroundColor: '#fff' }}
+                  >
+                    <option value="">{tr('-- Chưa gán cơ sở (TBA) --')}</option>
+                    {facilities.map((fac) => (
+                      <option key={fac.facilityId} value={fac.facilityId}>
+                        [{fac.facilityCode}] {fac.facilityName} ({fac.facilityType})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-group">

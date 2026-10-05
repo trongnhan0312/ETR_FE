@@ -373,8 +373,13 @@ const InstructorEvidence = () => {
       loadEvidences();
     } catch (err) {
       console.error("[Upload Evidence] Lỗi khi upload minh chứng:", err);
-
-      toast.error(tr("Tải lên thất bại"));
+      const detail =
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.response?.data?.title ||
+        err.message ||
+        tr("Vui lòng thử lại.");
+      toast.error(tr("Tải lên thất bại"), detail);
     } finally {
       setUploading(false);
       setUploadingFileName("");
@@ -1077,7 +1082,7 @@ const InstructorEvidence = () => {
               <input
                 type="file"
                 id="file-upload-input"
-                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,image/jpeg,image/png,image/gif,image/webp,application/pdf"
                 style={{ display: "none" }}
                 onChange={(e) => {
                   if (e.target.files && e.target.files.length > 0) {

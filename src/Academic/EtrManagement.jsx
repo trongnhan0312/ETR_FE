@@ -674,7 +674,13 @@ const EtrManagement = ({ defaultView = "list" }) => {
       await refreshData();
     } catch (error) {
       console.error("Error uploading evidence:", error);
-      toast.error(tr("Tải lên thất bại"));
+      const detail =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.response?.data?.title ||
+        error.message ||
+        tr("Vui lòng thử lại.");
+      toast.error(tr("Tải lên thất bại"), detail);
     }
   };
 
@@ -3357,7 +3363,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
                       <input
                         id="upload-file"
                         type="file"
-                        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
+                        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,image/jpeg,image/png,image/gif,image/webp,application/pdf"
                         onChange={(e) => {
                           if (e.target.files && e.target.files.length > 0) {
                             setUploadFile(e.target.files[0]);

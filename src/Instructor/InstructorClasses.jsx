@@ -67,10 +67,16 @@ const InstructorClasses = () => {
     subjectId: "",
     sessionTitle: "",
     sessionDate: "",
+    startAt: "",
+    endAt: "",
+    trainingType: "Theory",
+    facilityId: "",
     location: "",
+    isRemedial: false,
     assessmentId: "",
     practicalChecklistId: "",
   });
+  const [trainingFacilities, setTrainingFacilities] = useState([]);
   const [assessmentsList, setAssessmentsList] = useState([]);
   const [practicalChecklistsList, setPracticalChecklistsList] = useState([]);
   const [sessionError, setSessionError] = useState("");
@@ -118,6 +124,7 @@ const InstructorClasses = () => {
           apiSessions,
           apiEnrollments,
           apiProfiles,
+          apiFacilities,
         ] = await Promise.all([
           api.get("/Classes").catch(() => api.get("/classes").catch(() => [])),
           api.get("/Courses").catch(() => api.get("/courses").catch(() => [])),
@@ -131,6 +138,7 @@ const InstructorClasses = () => {
           api.get("/Sessions").catch(() => api.get("/sessions").catch(() => [])),
           api.get("/Enrollments").catch(() => api.get("/enrollments").catch(() => [])),
           api.get("/UserProfiles/learners").catch(() => api.get("/UserProfiles").catch(() => [])),
+          api.get("/TrainingFacilities").catch(() => api.get("/trainingfacilities").catch(() => [])),
         ]);
 
         const rawClasses = Array.isArray(apiClasses) ? apiClasses : [];
@@ -138,12 +146,14 @@ const InstructorClasses = () => {
         const rawSessions = Array.isArray(apiSessions) ? apiSessions : [];
         const rawEnrollments = Array.isArray(apiEnrollments) ? apiEnrollments : [];
         const rawProfiles = Array.isArray(apiProfiles) ? apiProfiles : [];
+        const rawFacilities = Array.isArray(apiFacilities) ? apiFacilities : [];
 
         setSubjectsList(Array.isArray(apiSubjects) ? apiSubjects : []);
         setAssessmentsList(Array.isArray(apiAssessments) ? apiAssessments : []);
         setPracticalChecklistsList(
           Array.isArray(apiPracticalChecklists) ? apiPracticalChecklists : [],
         );
+        setTrainingFacilities(rawFacilities);
 
         const currentAccountId = getCurrentAccountId();
         const storedOverrides = (() => {
@@ -404,16 +414,41 @@ const InstructorClasses = () => {
           }
         }
 
+        const facId = s.facilityId ?? s.FacilityId ?? null;
+        const facName = s.facilityName ?? s.FacilityName ?? "";
+        const facCode = s.facilityCode ?? s.FacilityCode ?? "";
+        const resolvedRoom = facName ? `[${facCode || "CS"}] ${facName}` : (s.location || tr("Chưa xếp cơ sở (TBA)"));
+
+        // Format startAt / endAt time slot
+        let timeSlotStr = "";
+        if (s.startAt && s.endAt) {
+          const sD = new Date(s.startAt);
+          const eD = new Date(s.endAt);
+          if (!isNaN(sD.getTime()) && !isNaN(eD.getTime())) {
+            const pad = (n) => String(n).padStart(2, "0");
+            timeSlotStr = `${pad(sD.getHours())}:${pad(sD.getMinutes())} - ${pad(eD.getHours())}:${pad(eD.getMinutes())}`;
+          }
+        }
+
         return {
           sessionId: s.sessionId,
           stt: String(idx + 1).padStart(2, "0"),
           date: dateStr,
+          timeSlot: timeSlotStr,
+          startAt: s.startAt || "",
+          endAt: s.endAt || "",
+          trainingType: s.trainingType || "Theory",
+          isRemedial: !!s.isRemedial,
+          facilityId: facId,
+          facilityName: facName,
+          facilityCode: facCode,
           name: s.sessionTitle || tr("Buổi học"),
           subjectName:
             resolvedSubjectName ||
             (resolvedSubjectCode ? resolvedSubjectCode : tr("Môn học")),
           subjectCode: resolvedSubjectCode,
-          room: s.location || tr("Phòng học"),
+          room: resolvedRoom,
+          rawLocation: s.location || "",
           instructor: resolvedInstructorName || tr("Chưa phân công"),
           instructorAccountId: assignedInstructorId,
           isMine,
@@ -573,7 +608,7 @@ const InstructorClasses = () => {
     return { id: assignedId, name, isMine };
   }, [selectedClass, sessionForm.subjectId, tr]);
 
-  // Mở modal tạo buổi học mới cho lớp đã chọn
+  // Mở modal tạo buổi học mới cho lớp đã chọn (Chỉ dành cho buổi học phụ đạo / Bổ sung)
   const openCreateSessionModal = () => {
     if (!selectedClass) {
       toast.error(tr("Vui lòng chọn lớp học trước khi tạo buổi học"));
@@ -586,12 +621,21 @@ const InstructorClasses = () => {
         (subject) =>
           subject.subjectId === (selectedClass?.subjectId || 1),
       ) || subjectsList[0];
+    const now = new Date();
+    const defaultStart = new Date(now.getTime() + 60 * 60 * 1000);
+    const defaultEnd = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+
     setSessionForm({
       classId: selectedClass?.classId || "",
       subjectId: selectedSubject?.subjectId || 1,
-      sessionTitle: "",
-      sessionDate: new Date().toISOString(),
-      location: "Phòng Sim A320",
+      sessionTitle: tr("Buổi phụ đạo / Bổ sung"),
+      sessionDate: now.toISOString(),
+      startAt: defaultStart.toISOString(),
+      endAt: defaultEnd.toISOString(),
+      trainingType: "Theory",
+      facilityId: "",
+      location: "",
+      isRemedial: true,
       assessmentId: "",
       practicalChecklistId: "",
     });
@@ -613,7 +657,12 @@ const InstructorClasses = () => {
       subjectId: selectedSubject?.subjectId || 1,
       sessionTitle: session.name,
       sessionDate: session.sessionDateValue || new Date().toISOString(),
-      location: session.room,
+      startAt: session.startAt || "",
+      endAt: session.endAt || "",
+      trainingType: session.trainingType || "Theory",
+      facilityId: session.facilityId != null ? String(session.facilityId) : "",
+      location: session.rawLocation || "",
+      isRemedial: !!session.isRemedial,
       assessmentId:
         session.assessmentId != null ? String(session.assessmentId) : "",
       practicalChecklistId:
@@ -643,8 +692,8 @@ const InstructorClasses = () => {
 
   const handleSubmitSession = async (e) => {
     e.preventDefault();
-    if (!sessionForm.sessionTitle.trim() || !sessionForm.location.trim()) {
-      setSessionError(tr("Vui lòng nhập đầy đủ tên buổi học và phòng học."));
+    if (!sessionForm.sessionTitle.trim()) {
+      setSessionError(tr("Vui lòng nhập tên buổi học."));
       return;
     }
 
@@ -653,17 +702,36 @@ const InstructorClasses = () => {
       return;
     }
 
+    if (sessionForm.startAt && sessionForm.endAt) {
+      const sT = new Date(sessionForm.startAt).getTime();
+      const eT = new Date(sessionForm.endAt).getTime();
+      if (eT <= sT) {
+        setSessionError(tr("Giờ kết thúc buổi học phải sau giờ bắt đầu."));
+        return;
+      }
+    }
+
     setSubmittingSession(true);
     setSessionError("");
 
     try {
       const currentAccountId = getCurrentAccountId();
+      const selectedFac = trainingFacilities.find(
+        (f) => String(f.facilityId) === String(sessionForm.facilityId),
+      );
+      const finalLoc = sessionForm.location.trim() || (selectedFac ? selectedFac.facilityName : "");
+
       const payload = {
         classId: Number(sessionForm.classId || selectedClass?.classId),
         subjectId: Number(sessionForm.subjectId || selectedClass?.subjectId || 1),
         sessionTitle: sessionForm.sessionTitle.trim(),
         sessionDate: sessionForm.sessionDate,
-        location: sessionForm.location.trim(),
+        startAt: sessionForm.startAt || null,
+        endAt: sessionForm.endAt || null,
+        trainingType: sessionForm.trainingType || "Theory",
+        facilityId: sessionForm.facilityId ? Number(sessionForm.facilityId) : null,
+        location: finalLoc,
+        isRemedial: !!sessionForm.isRemedial,
         instructorAccountId: currentAccountId ? Number(currentAccountId) : null,
         assessmentId: sessionForm.assessmentId
           ? Number(sessionForm.assessmentId)
@@ -689,7 +757,7 @@ const InstructorClasses = () => {
         await api
           .post("/Sessions", payload)
           .catch(() => api.post("/sessions", payload));
-        toast.success(tr("Tạo buổi học thành công!"));
+        toast.success(tr("Tạo buổi học phụ đạo thành công!"));
       }
 
       await loadSessions();
@@ -1105,24 +1173,58 @@ const InstructorClasses = () => {
                     >
                       {session.stt}
                     </span>
-                    <span
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        color: "#002147",
-                      }}
-                    >
-                      {session.date}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        color: "#002147",
-                      }}
-                    >
-                      {session.name}
-                    </span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "#002147",
+                        }}
+                      >
+                        {session.date}
+                      </span>
+                      {session.timeSlot && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: "700",
+                            color: "#1e40af",
+                            backgroundColor: "#eff6ff",
+                            padding: "1px 6px",
+                            borderRadius: "4px",
+                            width: "fit-content",
+                          }}
+                        >
+                          ⏰ {session.timeSlot}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "#002147",
+                        }}
+                      >
+                        {session.name}
+                      </span>
+                      {session.isRemedial && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: "700",
+                            color: "#b45309",
+                            backgroundColor: "#fef3c7",
+                            padding: "1px 6px",
+                            borderRadius: "4px",
+                            width: "fit-content",
+                          }}
+                        >
+                          {tr("Phụ đạo / Remedial")}
+                        </span>
+                      )}
+                    </div>
                     <div
                       style={{
                         display: "flex",
@@ -1157,11 +1259,27 @@ const InstructorClasses = () => {
                           </span>
                         )}
                     </div>
-                    <span
-                      style={{ fontSize: "12px", color: "rgba(0,33,71,0.6)" }}
-                    >
-                      {session.room}
-                    </span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          color: session.facilityId ? "#0f766e" : "rgba(0,33,71,0.6)",
+                        }}
+                      >
+                        {session.room}
+                      </span>
+                      {session.trainingType && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            color: "#64748b",
+                          }}
+                        >
+                          {session.trainingType}
+                        </span>
+                      )}
+                    </div>
                     <div
                       style={{
                         display: "flex",
@@ -1540,7 +1658,7 @@ const InstructorClasses = () => {
                 >
                   {editingSessionId
                     ? tr("Cập nhật buổi học")
-                    : tr("Tạo buổi học")}
+                    : tr("Tạo buổi học phụ đạo / Bổ sung (Remedial)")}
                 </h3>
                 <button
                   onClick={() => setShowSessionModal(false)}
@@ -1594,65 +1712,146 @@ const InstructorClasses = () => {
                   />
                 </div>
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      color: "rgba(0,33,71,0.55)",
-                      textTransform: "uppercase",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {tr('Phòng học')}
-                  </label>
-                  <input
-                    value={sessionForm.location}
-                    onChange={(e) =>
-                      handleSessionFormChange("location", e.target.value)
-                    }
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      border: "1px solid #d9e1ec",
-                      fontSize: "13px",
-                    }}
-                  />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: "rgba(0,33,71,0.55)",
+                        textTransform: "uppercase",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {tr('Hình thức đào tạo (Training Type)')}
+                    </label>
+                    <select
+                      value={sessionForm.trainingType}
+                      onChange={(e) =>
+                        handleSessionFormChange("trainingType", e.target.value)
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        border: "1px solid #d9e1ec",
+                        fontSize: "13px",
+                        backgroundColor: "#ffffff",
+                      }}
+                    >
+                      <option value="Theory">{tr("Lý thuyết (Theory)")}</option>
+                      <option value="Simulator">{tr("Mô phỏng (Simulator)")}</option>
+                      <option value="Flight">{tr("Bay thực tế (Flight)")}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: "rgba(0,33,71,0.55)",
+                        textTransform: "uppercase",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {tr('Cơ sở đào tạo (Facility)')}
+                    </label>
+                    <select
+                      value={sessionForm.facilityId}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleSessionFormChange("facilityId", val);
+                        const f = trainingFacilities.find((item) => String(item.facilityId) === String(val));
+                        if (f) {
+                          handleSessionFormChange("location", f.facilityName);
+                        }
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        border: "1px solid #d9e1ec",
+                        fontSize: "13px",
+                        backgroundColor: "#ffffff",
+                      }}
+                    >
+                      <option value="">{tr('-- Chưa xếp cơ sở (TBA) --')}</option>
+                      {trainingFacilities.map((fac) => (
+                        <option key={fac.facilityId} value={fac.facilityId}>
+                          [{fac.facilityCode}] {fac.facilityName} ({fac.facilityType})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      color: "rgba(0,33,71,0.55)",
-                      textTransform: "uppercase",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {tr('Ngày học')} {tr('(trống = TBA — bắt buộc chọn trước khi lưu)')}
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={toDateTimeLocalValue(sessionForm.sessionDate)}
-                    onChange={(e) =>
-                      handleSessionFormChange(
-                        "sessionDate",
-                        e.target.value
-                          ? new Date(e.target.value).toISOString()
-                          : "",
-                      )
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      border: "1px solid #d9e1ec",
-                      fontSize: "13px",
-                    }}
-                  />
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: "rgba(0,33,71,0.55)",
+                        textTransform: "uppercase",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {tr('Giờ bắt đầu (Start At)')}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={toDateTimeLocalValue(sessionForm.startAt || sessionForm.sessionDate)}
+                      onChange={(e) => {
+                        const val = e.target.value ? new Date(e.target.value).toISOString() : "";
+                        handleSessionFormChange("startAt", val);
+                        if (!sessionForm.sessionDate && val) {
+                          handleSessionFormChange("sessionDate", val);
+                        }
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        border: "1px solid #d9e1ec",
+                        fontSize: "13px",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: "rgba(0,33,71,0.55)",
+                        textTransform: "uppercase",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {tr('Giờ kết thúc (End At)')}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={toDateTimeLocalValue(sessionForm.endAt)}
+                      onChange={(e) =>
+                        handleSessionFormChange(
+                          "endAt",
+                          e.target.value ? new Date(e.target.value).toISOString() : "",
+                        )
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        border: "1px solid #d9e1ec",
+                        fontSize: "13px",
+                      }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label

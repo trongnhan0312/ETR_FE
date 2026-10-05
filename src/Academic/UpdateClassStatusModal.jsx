@@ -367,7 +367,7 @@ const UpdateClassStatusModal = ({ targetClass, instructors = [], subjects = [], 
                   disabled={isCompletedClass}
                   required
                 >
-                  <option value="InProgress">{tr('🟢 InProgress (Đang diễn ra - Cho phép Ghi danh)')}</option>
+                  <option value="InProgress">{tr('🟢 InProgress (Đang diễn ra - Khóa ghi danh mới)')}</option>
                   <option value="Planned">{tr('🟡 Planned (Sắp diễn ra - Cho phép Ghi danh)')}</option>
                   {isCompletedClass && (
                     <option value="Completed" disabled>{tr('🔴 Completed (Đã kết thúc - Tự động)')}</option>
