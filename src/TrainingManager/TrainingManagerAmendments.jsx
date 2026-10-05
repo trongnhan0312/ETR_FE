@@ -31,6 +31,34 @@ const TrainingManagerAmendments = () => {
   // Modal duyệt/từ chối — BE: POST /api/Amendments/{id}/approve|reject { comment }
   const [approveTarget, setApproveTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
+  const [creatingSample, setCreatingSample] = useState(false);
+
+  const handleCreateSampleRequest = async () => {
+    setCreatingSample(true);
+    try {
+      // 1. Try dedicated demo endpoint
+      const res = await api.post("/demo/amendment/create-sample-request").catch(() => null);
+      if (res) {
+        toast.success(tr("Đã tạo yêu cầu mở khóa mẫu thành công!"), announce("add", tr("Yêu cầu mở khóa")));
+        await loadData(true);
+        return;
+      }
+
+      // 2. Fallback: find any subject result and call unlock-request
+      const subjects = await api.get("/Etr/1/dossier").catch(() => null);
+      const srId = subjects?.subjects?.[0]?.subjectResultId || 1;
+      await api.post(`/SubjectSignoff/${srId}/unlock-request`, {
+        reason: "Instructor requested unlock to update practical assessment score following re-evaluation."
+      });
+      toast.success(tr("Đã tạo yêu cầu mở khóa môn học thành công!"), announce("add", tr("Yêu cầu mở khóa")));
+      await loadData(true);
+    } catch (err) {
+      console.error("Lỗi khi tạo yêu cầu mẫu:", err);
+      toast.error(tr("Không thể tạo yêu cầu mở khóa tự động. Vui lòng thử lại!"));
+    } finally {
+      setCreatingSample(false);
+    }
+  };
 
   // Pattern chuẩn của các trang FE: hàm thường + useEffect chạy 1 lần (không dùng
   // useCallback phụ thuộc toast/tr vì useToast trả object mới mỗi render → vòng lặp fetch).
@@ -159,7 +187,29 @@ const TrainingManagerAmendments = () => {
               {tr("DANH SÁCH YÊU CẦU")} ({requests.length})
             </h2>
           </div>
-          <div className="toolbar-right">
+          <div className="toolbar-right" style={{ display: "flex", gap: "8px" }}>
+            <button
+              className="gold-btn"
+              type="button"
+              onClick={handleCreateSampleRequest}
+              disabled={creatingSample || loading}
+              style={{
+                padding: "8px 16px",
+                fontSize: "13px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                backgroundColor: "#c5a059",
+                color: "#002147",
+                fontWeight: 700,
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}
+            >
+              <span>🔓</span>
+              <span>{creatingSample ? tr("Đang tạo...") : tr("Tạo yêu cầu mẫu (Demo)")}</span>
+            </button>
             <button
               className="ghost-btn"
               type="button"
@@ -200,10 +250,31 @@ const TrainingManagerAmendments = () => {
 
           <div className="table-body">
             {loading ? (
-              <div className="empty-table-state">{tr("Đang tải...")}</div>
+              <div className="empty-table-state">{tr("Đang tải danh sách yêu cầu...")}</div>
             ) : requests.length === 0 ? (
-              <div className="empty-table-state">
-                {tr("Chưa có yêu cầu mở khóa nào.")}
+              <div className="empty-table-state" style={{ padding: "40px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+                <div style={{ fontSize: "14px", color: "rgba(0,33,71,0.7)" }}>
+                  {tr("Chưa có yêu cầu mở khóa nào.")}
+                </div>
+                <button
+                  type="button"
+                  className="gold-btn"
+                  onClick={handleCreateSampleRequest}
+                  disabled={creatingSample}
+                  style={{
+                    padding: "8px 18px",
+                    fontSize: "13px",
+                    backgroundColor: "#c5a059",
+                    color: "#002147",
+                    fontWeight: 700,
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    marginTop: "4px",
+                  }}
+                >
+                  🔓 {creatingSample ? tr("Đang tạo...") : tr("Tạo 1 yêu cầu mở khóa mẫu để kiểm tra")}
+                </button>
               </div>
             ) : (
               pageItems.map((r) => {

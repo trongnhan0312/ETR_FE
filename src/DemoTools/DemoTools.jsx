@@ -154,6 +154,23 @@ export default function DemoTools() {
     }
   };
 
+  // 5. Create Sample Amendment / Subject Unlock Request
+  const handleCreateAmendmentRequest = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/demo/amendment/create-sample-request`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Lỗi thao tác");
+      addLog(`[Yêu cầu mở khóa] ${data.message}`, "success");
+    } catch (err) {
+      addLog(`[Lỗi tạo yêu cầu mở khóa] ${err.message}`, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#0f172a", color: "#f8fafc", fontFamily: "Segoe UI, sans-serif", padding: "24px" }}>
       {/* Top Header */}
@@ -411,6 +428,25 @@ export default function DemoTools() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* CARD 5: YÊU CẦU MỞ KHÓA MÔN HỌC */}
+          <div style={{ backgroundColor: "#1e293b", borderRadius: "10px", border: "1px solid #334155", padding: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+              <span style={{ fontSize: "18px" }}>🔓</span>
+              <h2 style={{ fontSize: "16px", fontWeight: "bold", margin: 0, color: "#f8fafc" }}>YÊU CẦU MỞ KHÓA MÔN HỌC (SUBJECT UNLOCK / AMENDMENT REQUEST)</h2>
+            </div>
+            <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 14px 0", lineHeight: "1.4" }}>
+              Tạo nhanh 1 yêu cầu mở khóa môn học (Amendment Request) ở trạng thái Chờ duyệt (Pending) để kiểm tra luồng xét duyệt của Training Manager và Admin tại <code>/trainingmanager/amendments</code> hoặc <code>/admin/amendments</code>.
+            </p>
+
+            <button
+              disabled={loading}
+              onClick={handleCreateAmendmentRequest}
+              style={{ width: "100%", backgroundColor: "#c5a059", color: "#002147", border: "none", padding: "12px", borderRadius: "6px", fontSize: "14px", fontWeight: "bold", cursor: "pointer", transition: "0.2s" }}
+            >
+              🔓 TẠO 1 YÊU CẦU MỞ KHÓA MẪU ĐANG CHỜ DUYỆT (PENDING)
+            </button>
           </div>
         </div>
 
