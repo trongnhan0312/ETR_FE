@@ -188,6 +188,7 @@ describe('StudentMyETR - hiển thị môn giữ nguyên / cần học lại', (
       import('react-router-dom'),
     ])
 
+    localStorage.setItem('app_language', 'vi')
     render(
       <MemoryRouter>
         <LanguageProvider>

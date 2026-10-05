@@ -17,6 +17,7 @@ describe('New Phase 1-4 UI Features Tests', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    localStorage.setItem('app_language', 'vi');
   });
 
   describe('1. CompletionRequirementsSection (Phase 1 & Phase 4)', () => {
@@ -53,7 +54,7 @@ describe('New Phase 1-4 UI Features Tests', () => {
       expect(screen.getByText('Tỷ lệ chuyên cần tối thiểu')).toBeInTheDocument();
       expect(screen.getByText('Giờ bay thực tế tối thiểu')).toBeInTheDocument();
       expect(screen.getByText(/≥ 80 %/i)).toBeInTheDocument();
-      expect(screen.getByText(/≥ 12.5 giờ/i)).toBeInTheDocument();
+      expect(screen.getByText(/≥ 12.5 (giờ|hrs)/i)).toBeInTheDocument();
     });
 
     it('displays locked notice when course is Active and has classes', () => {

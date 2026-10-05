@@ -1060,7 +1060,17 @@ const StudentMyETR = () => {
                       <div className="student-table-cell">{e.enrollmentId ? `${tr('Mã GD: ')}${e.enrollmentId}` : '--'}</div>
                       <div className="student-table-cell">{formatDate(e.completedAt || e.verifiedAt || e.submittedAt)}</div>
                       <div className="student-table-cell"><Badge status={e.status} /></div>
-                      <div className="student-table-cell student-table-cell--end">
+                      <div className="student-table-cell student-table-cell--end" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                        <button
+                          className="action-btn"
+                          type="button"
+                          onClick={(e2) => {
+                            e2.stopPropagation();
+                            openDetail(etrs.find((r) => (r.ETRCourseRecordId ?? r.etrCourseRecordId) === e.id) || etrs[idx]);
+                          }}
+                        >
+                          {tr('Chi tiết')}
+                        </button>
                         {e.id && (
                           <button
                             className="action-btn"
