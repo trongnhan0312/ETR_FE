@@ -1124,14 +1124,14 @@ const InstructorAttendance = () => {
                     color: selectedSession.trainingType === "Flight" ? "#0369a1" : selectedSession.trainingType === "Simulator" ? "#7e22ce" : "#475569",
                     border: `1px solid ${selectedSession.trainingType === "Flight" ? "#bae6fd" : selectedSession.trainingType === "Simulator" ? "#e9d5ff" : "#cbd5e1"}`
                   }}>
-                    {selectedSession.trainingType === "Flight" ? tr("Bay (Flight)") : selectedSession.trainingType === "Simulator" ? tr("Mô phỏng (SIM)") : tr("Lý thuyết (Theory)")}
+                    {selectedSession.trainingType === "Flight" ? tr("Bay thực tế") : selectedSession.trainingType === "Simulator" ? tr("Mô phỏng (SIM)") : tr("Lý thuyết")}
                   </span>
                 )}
               </h1>
             </div>
             <div className="divider-gold" />
             <p className="header-description">
-              {selectedSession.date} · {selectedSession.room} · {tr("Lớp: ")}
+              {(selectedSession.date === "TBA" ? tr("Chưa xếp lịch (TBA)") : selectedSession.date)} · {selectedSession.room} · {tr("Lớp: ")}
               {selectedClass ? selectedClass.code : "N/A"}
             </p>
           </div>
@@ -3037,7 +3037,7 @@ const InstructorAttendance = () => {
                     color: "#002147",
                   }}
                 >
-                  {session.date}
+                  {session.date === "TBA" ? tr("Chưa xếp lịch (TBA)") : session.date}
                 </span>
                 <span
                   style={{

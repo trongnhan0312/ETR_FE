@@ -208,7 +208,7 @@ const FacilityManagement = () => {
             alignItems: "center",
           }}
         >
-          {tr("Mô phỏng (Simulator)")}
+          {tr("Mô phỏng (SIM)")}
         </span>
       );
     }
@@ -483,10 +483,10 @@ const FacilityManagement = () => {
             }}
           >
             <option value="ALL">{tr("Tất cả loại cơ sở")}</option>
-            <option value="Simulator">{tr("Mô phỏng (Simulator)")}</option>
-            <option value="Airfield">{tr("Sân bay / Căn cứ bay (Airfield)")}</option>
-            <option value="Classroom">{tr("Phòng học lý thuyết (Classroom)")}</option>
-            <option value="Workshop">{tr("Xưởng kỹ thuật / Cabin (Workshop)")}</option>
+            <option value="Simulator">{tr("Mô phỏng (SIM)")}</option>
+            <option value="Airfield">{tr("Sân bay / Căn cứ bay")}</option>
+            <option value="Classroom">{tr("Phòng học lý thuyết")}</option>
+            <option value="Workshop">{tr("Xưởng kỹ thuật / Cabin")}</option>
           </select>
 
           <select
@@ -745,7 +745,7 @@ const FacilityManagement = () => {
                       marginBottom: "6px",
                     }}
                   >
-                    {tr("Mã cơ sở (Code) *")}
+                    {tr("Mã cơ sở *")}
                   </label>
                   <input
                     type="text"
@@ -776,7 +776,7 @@ const FacilityManagement = () => {
                       marginBottom: "6px",
                     }}
                   >
-                    {tr("Phân loại (Type) *")}
+                    {tr("Loại cơ sở *")}
                   </label>
                   <select
                     value={formData.facilityType}
@@ -792,10 +792,10 @@ const FacilityManagement = () => {
                       backgroundColor: "#ffffff",
                     }}
                   >
-                    <option value="Classroom">{tr("Phòng lý thuyết (Classroom)")}</option>
-                    <option value="Simulator">{tr("Mô phỏng (Simulator)")}</option>
-                    <option value="Airfield">{tr("Sân bay / Căn cứ bay (Airfield)")}</option>
-                    <option value="Workshop">{tr("Xưởng kỹ thuật / Cabin (Workshop)")}</option>
+                    <option value="Classroom">{tr("Phòng học lý thuyết")}</option>
+                    <option value="Simulator">{tr("Mô phỏng (SIM)")}</option>
+                    <option value="Airfield">{tr("Sân bay / Căn cứ bay")}</option>
+                    <option value="Workshop">{tr("Xưởng kỹ thuật / Cabin")}</option>
                   </select>
                 </div>
               </div>

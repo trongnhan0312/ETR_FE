@@ -377,6 +377,42 @@ export const VN_TO_EN = {
   "Lưu cơ sở đào tạo thất bại": "Failed to save training facility",
   "Đã xóa cơ sở đào tạo!": "Training facility deleted!",
   "Xóa cơ sở đào tạo thất bại": "Failed to delete training facility",
+  "Cơ sở đào tạo mặc định": "Default Training Facility",
+  "Cơ sở đào tạo": "Training Facility",
+  "Mã cơ sở *": "Facility Code *",
+  "Loại cơ sở *": "Facility Type *",
+  "Phân loại cơ sở *": "Facility Type *",
+  "-- Chưa gán cơ sở (Chờ sắp xếp) --": "-- Unassigned Facility (TBA) --",
+  "-- Chưa gán cơ sở (TBA) --": "-- Unassigned Facility (TBA) --",
+  "-- Chưa xếp cơ sở (Chờ sắp xếp) --": "-- Unassigned Facility (TBA) --",
+  "-- Chưa xếp cơ sở (TBA) --": "-- Unassigned Facility (TBA) --",
+  "Chưa xếp cơ sở (Chờ sắp xếp)": "Facility TBA (Unassigned)",
+  "Chưa xếp cơ sở (TBA)": "Facility TBA (Unassigned)",
+  "Chưa xếp lịch (TBA)": "Unscheduled (TBA)",
+  "Sĩ số tối đa *": "Maximum Capacity *",
+  "Sĩ số tối đa (Capacity) *": "Maximum Capacity *",
+  "Cơ sở đào tạo mặc định (Facility)": "Default Training Facility",
+  "Cơ sở đào tạo (Facility)": "Training Facility",
+  "Hình thức đào tạo": "Training Type",
+  "Hình thức đào tạo (Training Type)": "Training Type",
+  "Giờ bắt đầu": "Start Time",
+  "Giờ bắt đầu (Start At)": "Start Time",
+  "Giờ kết thúc": "End Time",
+  "Giờ kết thúc (End At)": "End Time",
+  "Buổi học phụ đạo": "Remedial Session",
+  "Tạo buổi học phụ đạo / bổ sung": "Create Remedial / Supplementary Session",
+  "Tạo buổi học phụ đạo / Bổ sung (Remedial)": "Create Remedial / Supplementary Session",
+  "Phụ đạo / Remedial": "Remedial Session",
+  "Bay thực tế": "Flight Training",
+  "Bay thực tế (Flight)": "Flight Training",
+  "Bay (Flight)": "Flight Training",
+  "Lý thuyết": "Theory",
+  "Không tương thích": "Incompatible",
+  "TBA": "TBA",
+  "Classroom": "Classroom",
+  "Simulator": "Simulator",
+  "Airfield": "Airfield",
+  "Workshop": "Workshop",
   "CẤU TRÚC ĐÁNH GIÁ": "ASSESSMENT STRUCTURE",
   "YÊU CẦU MỞ KHÓA": "UNLOCK REQUESTS",
   "Vắng mặt": "Absent",
@@ -4588,3 +4624,23 @@ export const renderTemplate = (template, params) => {
     return params && params[k] !== undefined ? params[k] : "";
   });
 };
+
+export const formatFacilityType = (type, tr = (s) => s) => {
+  if (!type) return "";
+  const t = String(type).trim().toUpperCase();
+  if (t === "SIMULATOR") return tr("Mô phỏng (SIM)");
+  if (t === "AIRFIELD") return tr("Sân bay / Căn cứ bay");
+  if (t === "WORKSHOP") return tr("Xưởng kỹ thuật / Cabin");
+  if (t === "CLASSROOM") return tr("Phòng học lý thuyết");
+  return tr(type);
+};
+
+export const formatTrainingType = (type, tr = (s) => s) => {
+  if (!type) return "";
+  const t = String(type).trim().toUpperCase();
+  if (t === "THEORY") return tr("Lý thuyết");
+  if (t === "SIMULATOR") return tr("Mô phỏng (SIM)");
+  if (t === "FLIGHT") return tr("Bay thực tế");
+  return tr(type);
+};
+

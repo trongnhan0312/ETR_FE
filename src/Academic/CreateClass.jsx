@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
+import { formatFacilityType } from '../utils/translate';
 
 const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instructors = [], subjects = [], onSave, onCancel }) => {
   const { tr } = useLanguage();
@@ -217,7 +218,7 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
     const trimmedCode = code.trim();
     const codeUpper = trimmedCode.toUpperCase();
     if ((classes || []).some((c) => String(c.classCode || '').trim().toUpperCase() === codeUpper)) {
-      toast.error(tr('Class Code existed'));
+      toast.error(tr('Mã lớp học đã tồn tại. Vui lòng nhập một mã mới duy nhất.'));
       return;
     }
 
@@ -229,7 +230,7 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
         String(c.courseId) === String(parentCourse) &&
         String(c.className || '').trim().toLowerCase() === nameLower,
     )) {
-      toast.error(tr('Class Name existed. Please use a different name to distinct classes.'));
+      toast.error(tr('Tên lớp học đã tồn tại. Vui lòng nhập tên khác để phân biệt.'));
       return;
     }
 
@@ -402,7 +403,7 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
 
               <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
-                  <label htmlFor="class-facility-select">{tr('Cơ sở đào tạo mặc định (Facility)')}</label>
+                  <label htmlFor="class-facility-select">{tr('Cơ sở đào tạo mặc định')}</label>
                   <select
                     id="class-facility-select"
                     value={defaultFacilityId}
@@ -417,14 +418,14 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
                     <option value="">{tr('-- Chưa gán cơ sở (TBA) --')}</option>
                     {facilities.map((fac) => (
                       <option key={fac.facilityId} value={fac.facilityId}>
-                        [{fac.facilityCode}] {fac.facilityName} ({fac.facilityType})
+                        [{fac.facilityCode}] {fac.facilityName} ({formatFacilityType(fac.facilityType, tr)})
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="class-capacity-input">{tr('Sĩ số tối đa (Capacity) *')}</label>
+                  <label htmlFor="class-capacity-input">{tr('Sĩ số tối đa *')}</label>
                   <input
                     id="class-capacity-input"
                     type="number"

@@ -6,6 +6,7 @@ import { announce } from "../utils/crudNotify";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
+import { formatFacilityType, formatTrainingType } from "../utils/translate";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
 import { useSubViewBack } from "../utils/navigation";
@@ -1202,7 +1203,7 @@ const InstructorClasses = () => {
                           color: "#002147",
                         }}
                       >
-                        {session.date}
+                        {session.date === "TBA" ? tr("Chưa xếp lịch (TBA)") : session.date}
                       </span>
                       {session.timeSlot && (
                         <span
@@ -1242,7 +1243,7 @@ const InstructorClasses = () => {
                             width: "fit-content",
                           }}
                         >
-                          {tr("Phụ đạo / Remedial")}
+                          {tr("Buổi học phụ đạo")}
                         </span>
                       )}
                     </div>
@@ -1297,7 +1298,7 @@ const InstructorClasses = () => {
                             color: "#64748b",
                           }}
                         >
-                          {session.trainingType}
+                          {formatTrainingType(session.trainingType, tr)}
                         </span>
                       )}
                     </div>
@@ -1679,7 +1680,7 @@ const InstructorClasses = () => {
                 >
                   {editingSessionId
                     ? tr("Cập nhật buổi học")
-                    : tr("Tạo buổi học phụ đạo / Bổ sung (Remedial)")}
+                    : tr("Tạo buổi học phụ đạo / bổ sung")}
                 </h3>
                 <button
                   onClick={() => setShowSessionModal(false)}
@@ -1744,7 +1745,7 @@ const InstructorClasses = () => {
                         marginBottom: "6px",
                       }}
                     >
-                      {tr('Hình thức đào tạo (Training Type)')}
+                      {tr('Hình thức đào tạo')}
                     </label>
                     <select
                       value={sessionForm.trainingType}
@@ -1760,9 +1761,9 @@ const InstructorClasses = () => {
                         backgroundColor: "#ffffff",
                       }}
                     >
-                      <option value="Theory">{tr("Lý thuyết (Theory)")}</option>
-                      <option value="Simulator">{tr("Mô phỏng (Simulator)")}</option>
-                      <option value="Flight">{tr("Bay thực tế (Flight)")}</option>
+                      <option value="Theory">{tr("Lý thuyết")}</option>
+                      <option value="Simulator">{tr("Mô phỏng (SIM)")}</option>
+                      <option value="Flight">{tr("Bay thực tế")}</option>
                     </select>
                   </div>
 
@@ -1777,7 +1778,7 @@ const InstructorClasses = () => {
                         marginBottom: "6px",
                       }}
                     >
-                      {tr('Cơ sở đào tạo (Facility)')}
+                      {tr('Cơ sở đào tạo')}
                     </label>
                     <select
                       value={sessionForm.facilityId}
@@ -1803,7 +1804,7 @@ const InstructorClasses = () => {
                         .filter((fac) => isFacilityCompatible(fac, sessionForm.trainingType || "Theory"))
                         .map((fac) => (
                           <option key={fac.facilityId} value={fac.facilityId}>
-                            [{fac.facilityCode}] {fac.facilityName} ({fac.facilityType})
+                            [{fac.facilityCode}] {fac.facilityName} ({formatFacilityType(fac.facilityType, tr)})
                           </option>
                         ))}
                       {sessionForm.facilityId &&
@@ -1815,7 +1816,7 @@ const InstructorClasses = () => {
                           );
                           return currentMismatch ? (
                             <option key={currentMismatch.facilityId} value={currentMismatch.facilityId}>
-                              [{currentMismatch.facilityCode}] {currentMismatch.facilityName} ({currentMismatch.facilityType} - {tr('Không tương thích')})
+                              [{currentMismatch.facilityCode}] {currentMismatch.facilityName} ({formatFacilityType(currentMismatch.facilityType, tr)} - {tr('Không tương thích')})
                             </option>
                           ) : null;
                         })()}
@@ -1835,7 +1836,7 @@ const InstructorClasses = () => {
                         marginBottom: "6px",
                       }}
                     >
-                      {tr('Giờ bắt đầu (Start At)')}
+                      {tr('Giờ bắt đầu')}
                     </label>
                     <input
                       type="datetime-local"
@@ -1867,7 +1868,7 @@ const InstructorClasses = () => {
                         marginBottom: "6px",
                       }}
                     >
-                      {tr('Giờ kết thúc (End At)')}
+                      {tr('Giờ kết thúc')}
                     </label>
                     <input
                       type="datetime-local"
