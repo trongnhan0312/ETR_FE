@@ -674,14 +674,35 @@ const InstructorClasses = () => {
     setShowSessionModal(true);
   };
 
+  const isFacilityCompatible = (fac, trainingType) => {
+    if (!fac) return true;
+    if (trainingType === "Simulator") return fac.facilityType === "Simulator";
+    if (trainingType === "Flight") return fac.facilityType === "Airfield";
+    return fac.facilityType === "Classroom" || fac.facilityType === "Workshop";
+  };
+
   const handleSessionFormChange = (field, value) => {
-    setSessionForm((prev) => ({
-      ...prev,
-      [field]: value,
-      ...(field === "subjectId"
-        ? { assessmentId: "", practicalChecklistId: "" }
-        : {}),
-    }));
+    setSessionForm((prev) => {
+      const next = {
+        ...prev,
+        [field]: value,
+        ...(field === "subjectId"
+          ? { assessmentId: "", practicalChecklistId: "" }
+          : {}),
+      };
+
+      if (field === "trainingType") {
+        const currentFac = trainingFacilities.find(
+          (f) => String(f.facilityId) === String(prev.facilityId)
+        );
+        if (currentFac && !isFacilityCompatible(currentFac, value)) {
+          next.facilityId = "";
+          next.location = "";
+        }
+      }
+
+      return next;
+    });
     if (field === "subjectId") {
       const selectedSubject = subjectsList.find(
         (subject) => subject.subjectId === Number(value),
@@ -1778,11 +1799,26 @@ const InstructorClasses = () => {
                       }}
                     >
                       <option value="">{tr('-- Chưa xếp cơ sở (TBA) --')}</option>
-                      {trainingFacilities.map((fac) => (
-                        <option key={fac.facilityId} value={fac.facilityId}>
-                          [{fac.facilityCode}] {fac.facilityName} ({fac.facilityType})
-                        </option>
-                      ))}
+                      {trainingFacilities
+                        .filter((fac) => isFacilityCompatible(fac, sessionForm.trainingType || "Theory"))
+                        .map((fac) => (
+                          <option key={fac.facilityId} value={fac.facilityId}>
+                            [{fac.facilityCode}] {fac.facilityName} ({fac.facilityType})
+                          </option>
+                        ))}
+                      {sessionForm.facilityId &&
+                        !trainingFacilities
+                          .filter((fac) => isFacilityCompatible(fac, sessionForm.trainingType || "Theory"))
+                          .some((f) => String(f.facilityId) === String(sessionForm.facilityId)) && (() => {
+                          const currentMismatch = trainingFacilities.find(
+                            (f) => String(f.facilityId) === String(sessionForm.facilityId)
+                          );
+                          return currentMismatch ? (
+                            <option key={currentMismatch.facilityId} value={currentMismatch.facilityId}>
+                              ⚠️ [{currentMismatch.facilityCode}] {currentMismatch.facilityName} ({currentMismatch.facilityType} - {tr('Không tương thích')})
+                            </option>
+                          ) : null;
+                        })()}
                     </select>
                   </div>
                 </div>
