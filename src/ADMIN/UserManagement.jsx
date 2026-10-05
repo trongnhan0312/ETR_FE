@@ -1545,7 +1545,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                         setDepartmentId(String(studentDepts[0]?.id || '1'));
                       }
                     }}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                   >
                     <option value="1">{tr('Admin')}</option>
                     <option value="2">{tr('Instructor')}</option>
@@ -1571,7 +1571,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                     <select
                       value={departmentId}
                       onChange={(e) => setDepartmentId(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                     >
                       {getStudentDepartments().map((d) => (
                         <option key={d.id} value={d.id}>
@@ -1599,7 +1599,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px' }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
                   >
                     <option value="Male">{tr('Nam')}</option>
                     <option value="Female">{tr('Nữ')}</option>
@@ -1664,7 +1664,7 @@ const UserManagement = ({ defaultTab = 'users' }) => {
                   >
                     {EDITABLE_ROLES.map((r) => (
                       <option key={r.id} value={r.id}>
-                        {r.name}
+                        {tr(r.name)}
                       </option>
                     ))}
                   </select>
