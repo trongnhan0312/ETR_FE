@@ -136,7 +136,7 @@ describe('Course Versioning Frontend UI Tests', () => {
 
     // Verify immutability notice is rendered
     expect(screen.getByText(/Lưu ý phiên bản giáo trình:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tạo bản mới \(Clone Version\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/(?:Tạo bản mới|Create New Version) \(Clone Version\)/i)).toBeInTheDocument();
   });
 
   it('CreateClass displays course versions and prevents creating class for Draft course', async () => {
@@ -381,15 +381,15 @@ describe('Course Versioning Frontend UI Tests', () => {
 
       // CLS-INPROGRESS is disabled
       expect(options[1].disabled).toBe(true);
-      expect(options[1].textContent).toContain('Lớp đang diễn ra');
+      expect(options[1].textContent).toMatch(/Lớp đang diễn ra|Class in progress/);
 
       // CLS-PAST is disabled
       expect(options[2].disabled).toBe(true);
-      expect(options[2].textContent).toContain('Đã qua ngày bắt đầu');
+      expect(options[2].textContent).toMatch(/Đã qua ngày bắt đầu|Past start date/);
 
       // CLS-NODATE is disabled
       expect(options[3].disabled).toBe(true);
-      expect(options[3].textContent).toContain('Ngày bắt đầu không hợp lệ');
+      expect(options[3].textContent).toMatch(/Ngày bắt đầu không hợp lệ|Invalid start date/);
     });
   });
 });

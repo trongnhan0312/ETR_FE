@@ -1540,13 +1540,13 @@ const CourseClassManagement = () => {
           <div className="table-responsive-scroll">
             <div className="table-header course-table-grid">
               <div className="col-expand-trigger"></div>
-              <div>{tr("MÃ KHÓA/LỚP")}</div>
-              <div>{tr("TÊN KHÓA HỌC/LỚP")}</div>
-              <div>{tr("THỜI LƯỢNG/LỊCH TRÌNH")}</div>
-              <div>{tr("CHI TIẾT CẤU TRÚC / TRẠNG THÁI")}</div>
-              <div>{tr("GIẢNG VIÊN")}</div>
+              <div>{tr("MÃ KHÓA HỌC")}</div>
+              <div>{tr("TÊN KHÓA HỌC")}</div>
+              <div>{tr("THỜI LƯỢNG")}</div>
+              <div>{tr("CẤU TRÚC MÔN HỌC")}</div>
+              <div>{tr("LỚP HỌC & TIẾN ĐỘ")}</div>
               <div style={{ textAlign: "right" }}>
-                {tr("THAO TÁC KHÓA / LỚP")}
+                {tr("THAO TÁC KHÓA HỌC")}
               </div>
             </div>
 
@@ -1630,9 +1630,12 @@ const CourseClassManagement = () => {
                               {course.attendanceProgress}%
                             </span>
                           </div>
+                          <div style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", marginTop: "4px" }}>
+                            {course.classes.length} {tr("Lớp")}
+                          </div>
                         </div>
 
-                        {/* Course Action Buttons: SỬA & XÓA KHÓA HỌC & TẠO BẢN MỚI */}
+                        {/* Course Action Buttons */}
                         <div
                           className="col-count text-right"
                           style={{
@@ -1643,18 +1646,6 @@ const CourseClassManagement = () => {
                             flexWrap: "nowrap",
                           }}
                         >
-                          <span
-                            style={{
-                              fontWeight: 600,
-                              fontSize: "12px",
-                              color: "#64748b",
-                              marginRight: "4px",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {course.classes.length} {tr("Lớp")}
-                          </span>
-
                           <button
                             type="button"
                             title={tr("Tạo phiên bản mới (Clone Version) cho Khóa này")}
@@ -1664,7 +1655,7 @@ const CourseClassManagement = () => {
                               color: "#0284c7",
                               fontSize: "11px",
                               fontWeight: 700,
-                              padding: "4px 8px",
+                              padding: "5px 10px",
                               borderRadius: "4px",
                               cursor: "pointer",
                               whiteSpace: "nowrap",
@@ -1687,7 +1678,7 @@ const CourseClassManagement = () => {
                               border: "1px solid #002147",
                               fontSize: "11px",
                               fontWeight: 700,
-                              padding: "4px 8px",
+                              padding: "5px 10px",
                               borderRadius: "4px",
                               cursor: "pointer",
                               whiteSpace: "nowrap",
@@ -1711,7 +1702,7 @@ const CourseClassManagement = () => {
                               color: "#c5a059",
                               fontSize: "11px",
                               fontWeight: 700,
-                              padding: "4px 8px",
+                              padding: "5px 10px",
                               borderRadius: "4px",
                               cursor: "pointer",
                               whiteSpace: "nowrap",
@@ -1734,7 +1725,7 @@ const CourseClassManagement = () => {
                               color: "#e11d48",
                               fontSize: "11px",
                               fontWeight: 700,
-                              padding: "4px 8px",
+                              padding: "5px 10px",
                               borderRadius: "4px",
                               cursor: "pointer",
                               whiteSpace: "nowrap",
@@ -1750,9 +1741,35 @@ const CourseClassManagement = () => {
                         </div>
                       </div>
 
-                      {/* Nested Class Rows */}
+                      {/* Dedicated Nested Class Sub-Table */}
                       {isExpanded && (
                         <div className="classes-nested-container">
+                          {/* Sub-Table Header Bar */}
+                          <div className="nested-classes-header-bar">
+                            <div className="nested-classes-title">
+                              <span style={{ fontSize: "15px" }}>📂</span>
+                              <span>
+                                {tr("Danh sách Lớp học thuộc khóa")}{" "}
+                                <strong className="highlight-code">[{course.code}]</strong>:
+                              </span>
+                              <span className="nested-count-badge">
+                                {course.classes.length} {tr("Lớp")}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              className="nested-quick-add-btn"
+                              title={tr("Tạo Lớp học mới cho Khóa này")}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCreatingClassCourseId(course.courseId);
+                                setIsCreatingClass(true);
+                              }}
+                            >
+                              {tr("➕ Tạo Lớp")}
+                            </button>
+                          </div>
+
                           {course.filteredClasses.length === 0 ? (
                             <div className="no-nested-classes">
                               {tr(
@@ -1760,250 +1777,271 @@ const CourseClassManagement = () => {
                               )}
                             </div>
                           ) : (
-                            course.filteredClasses.map((cls) => (
-                              <div
-                                key={cls.code}
-                                className="table-row course-table-grid class-nested-row"
-                                style={{ alignItems: "center" }}
-                              >
-                                <div className="col-expand-trigger"></div>
-                                <div className="col-code nested-class-code" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                  <span>{cls.code}</span>
-                                  <span className="version-badge version-badge-sm">v{cls.courseVersionNo || course.versionNo || 1}</span>
-                                </div>
-                                <div className="col-name nested-class-name">
-                                  {cls.name}
-                                </div>
-                                <div className="col-schedule">
-                                  {cls.startDate} - {cls.endDate}
-                                </div>
-                                <div
-                                  className="col-status-badge"
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "8px",
-                                  }}
-                                >
-                                  <span
-                                    className={`class-status ${
-                                      cls.status === "Đang diễn ra"
-                                        ? "status-active"
-                                        : cls.status === "Sắp diễn ra"
-                                          ? "status-pending"
-                                          : "status-completed"
-                                    }`}
-                                  >
-                                    {tr(cls.status)}
-                                  </span>
-
-                                  {/* Badge: SĨ SỐ LỚP */}
-                                  <span
-                                    title={tr("Sĩ số hiện tại / Sức chứa tối đa")}
-                                    style={{
-                                      backgroundColor: "#e0f2fe",
-                                      color: "#0369a1",
-                                      border: "1px solid #bae6fd",
-                                      padding: "2px 8px",
-                                      borderRadius: "12px",
-                                      fontSize: "11px",
-                                      fontWeight: 700,
-                                      whiteSpace: "nowrap",
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    👥 {cls.enrolledCount ?? 0}{cls.capacity ? `/${cls.capacity}` : ""} {tr("HV")}
-                                  </span>
-
-                                  {/* Button: CẬP NHẬT TRẠNG THÁI LỚP */}
-                                  <button
-                                    type="button"
-                                    title={tr(
-                                      "Cập nhật trạng thái & thông tin lớp",
-                                    )}
-                                    style={{
-                                      backgroundColor: "#f1f5f9",
-                                      border: "1px solid #cbd5e1",
-                                      color: "#0f172a",
-                                      fontSize: "11px",
-                                      fontWeight: 600,
-                                      padding: "3px 8px",
-                                      borderRadius: "4px",
-                                      cursor: "pointer",
-                                      whiteSpace: "nowrap",
-                                      flexShrink: 0,
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingClassTarget(cls);
-                                    }}
-                                  >
-                                    {tr("✏️ Trạng thái")}
-                                  </button>
-                                </div>
-
-                                <div className="col-instructor">
-                                  {tr("GV:")} {cls.instructor}
-                                </div>
-
-                                <div
-                                  className="col-actions text-right"
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "flex-end",
-                                    gap: "6px",
-                                    flexWrap: "nowrap",
-                                  }}
-                                >
-                                  {/* Button: GHI DANH HỌC VIÊN VÀO LỚP HỌC NÀY */}
-                                  {(() => {
-                                    const elig = isClassEligibleForEnrollment(cls);
-                                    const isClassBlocked = !elig.eligible;
-                                    return (
-                                      <button
-                                        type="button"
-                                        disabled={isClassBlocked}
-                                        title={
-                                          isClassBlocked
-                                            ? `${tr(elig.reason)} — ${tr(elig.detail)}`
-                                            : tr(
-                                                "Ghi danh học viên mới vào lớp",
-                                              )
-                                        }
-                                        style={{
-                                          backgroundColor: isClassBlocked
-                                            ? "#e2e8f0"
-                                            : "#002147",
-                                          color: isClassBlocked
-                                            ? "#94a3b8"
-                                            : "#c5a059",
-                                          border: isClassBlocked
-                                            ? "1px solid #cbd5e1"
-                                            : "1px solid #c5a059",
-                                          fontSize: "11px",
-                                          fontWeight: 700,
-                                          padding: "4px 8px",
-                                          borderRadius: "4px",
-                                          cursor: isClassBlocked
-                                            ? "not-allowed"
-                                            : "pointer",
-                                          whiteSpace: "nowrap",
-                                          opacity: isClassBlocked ? 0.7 : 1,
-                                          flexShrink: 0,
-                                        }}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          if (isClassBlocked) return;
-                                          setEnrollClassId(cls.classId);
-                                          setIsEnrollingStudent(true);
-                                        }}
-                                      >
-                                        {isClassBlocked
-                                          ? `⛔ ${tr(elig.reason)}`
-                                          : tr("➕ Ghi danh")}
-                                      </button>
-                                    );
-                                  })()}
-
-                                  {/* Button: XEM CHI TIẾT LỚP */}
-                                  <button
-                                    type="button"
-                                    style={{
-                                      backgroundColor: "#f8fafc",
-                                      color: "#475569",
-                                      border: "1px solid #e2e8f0",
-                                      fontSize: "11px",
-                                      fontWeight: 600,
-                                      padding: "4px 8px",
-                                      borderRadius: "4px",
-                                      cursor: "pointer",
-                                      whiteSpace: "nowrap",
-                                      flexShrink: 0,
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setViewingClassDetail(cls);
-                                    }}
-                                  >
-                                    {tr("Xem")}
-                                  </button>
-
-                                  {/* Button: XEM ĐIỂM DANH */}
-                                  <button
-                                    type="button"
-                                    style={{
-                                      backgroundColor: "#f0f9ff",
-                                      color: "#0369a1",
-                                      border: "1px solid #bae6fd",
-                                      fontSize: "11px",
-                                      fontWeight: 600,
-                                      padding: "4px 8px",
-                                      borderRadius: "4px",
-                                      cursor: "pointer",
-                                      whiteSpace: "nowrap",
-                                      flexShrink: 0,
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSelectClassForHistory(cls);
-                                    }}
-                                  >
-                                    {tr("Điểm danh")}
-                                  </button>
-
-                                  {/* Button: XÓA LỚP HỌC */}
-                                  <button
-                                    type="button"
-                                    title={tr("Xóa Lớp học này")}
-                                    style={{
-                                      backgroundColor: "#fff1f2",
-                                      color: "#e11d48",
-                                      border: "1px solid #fecdd3",
-                                      fontSize: "11px",
-                                      fontWeight: 600,
-                                      padding: "4px 8px",
-                                      borderRadius: "4px",
-                                      cursor: "pointer",
-                                      whiteSpace: "nowrap",
-                                      flexShrink: 0,
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDeletingClassTarget(cls);
-                                    }}
-                                  >
-                                    {tr("🗑️ Xóa Lớp")}
-                                  </button>
-
-                                  {/* Button: XUẤT BÁO CÁO LỚP (POST /api/Exports/attendance|assessment|class-summary) */}
-                                  <button
-                                    type="button"
-                                    title={tr(
-                                      "Xuất báo cáo điểm danh / đánh giá / tổng hợp lớp",
-                                    )}
-                                    style={{
-                                      backgroundColor: "#f8fafc",
-                                      color: "#475569",
-                                      border: "1px solid #e2e8f0",
-                                      fontSize: "11px",
-                                      fontWeight: 600,
-                                      padding: "4px 8px",
-                                      borderRadius: "4px",
-                                      cursor: "pointer",
-                                      whiteSpace: "nowrap",
-                                      flexShrink: 0,
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setExportClassTarget(cls);
-                                      setExportError("");
-                                    }}
-                                  >
-                                    📤 {tr("Xuất báo cáo")}
-                                  </button>
+                            <div className="class-subtable">
+                              {/* Dedicated Class Column Headers */}
+                              <div className="class-subtable-header class-subtable-grid">
+                                <div>{tr("MÃ LỚP")}</div>
+                                <div>{tr("TÊN LỚP HỌC")}</div>
+                                <div>{tr("LỊCH ĐÀO TẠO")}</div>
+                                <div>{tr("GIẢNG VIÊN")}</div>
+                                <div>{tr("SĨ SỐ")}</div>
+                                <div>{tr("TRẠNG THÁI LỚP")}</div>
+                                <div style={{ textAlign: "right" }}>
+                                  {tr("THAO TÁC LỚP")}
                                 </div>
                               </div>
-                            ))
+
+                              {/* Class Data Rows */}
+                              {course.filteredClasses.map((cls) => (
+                                <div
+                                  key={cls.code}
+                                  className="class-subtable-row class-subtable-grid"
+                                >
+                                  {/* 1. MÃ LỚP (Class Code) */}
+                                  <div className="col-class-code">
+                                    <span className="class-code-text">{cls.code}</span>
+                                    <span className="version-badge version-badge-sm">
+                                      v{cls.courseVersionNo || course.versionNo || 1}
+                                    </span>
+                                  </div>
+
+                                  {/* 2. TÊN LỚP HỌC (Class Name) */}
+                                  <div className="col-class-name" title={cls.name}>
+                                    {cls.name}
+                                  </div>
+
+                                  {/* 3. LỊCH ĐÀO TẠO (Schedule) */}
+                                  <div className="col-class-schedule">
+                                    {cls.startDate} – {cls.endDate}
+                                  </div>
+
+                                  {/* 4. GIẢNG VIÊN (Instructor) */}
+                                  <div className="col-class-instructor" title={cls.instructor}>
+                                    {cls.instructor ? `${cls.instructor}` : <span style={{ color: "#94a3b8", fontStyle: "italic" }}>{tr("Chưa phân công")}</span>}
+                                  </div>
+
+                                  {/* 5. SĨ SỐ (Enrollment) */}
+                                  <div className="col-class-capacity">
+                                    <span
+                                      title={tr("Sĩ số hiện tại / Sức chứa tối đa")}
+                                      style={{
+                                        backgroundColor: "#e0f2fe",
+                                        color: "#0369a1",
+                                        border: "1px solid #bae6fd",
+                                        padding: "2px 8px",
+                                        borderRadius: "12px",
+                                        fontSize: "11px",
+                                        fontWeight: 700,
+                                        whiteSpace: "nowrap",
+                                        display: "inline-block",
+                                      }}
+                                    >
+                                      👥 {cls.enrolledCount ?? 0}{cls.capacity ? `/${cls.capacity}` : ""} {tr("HV")}
+                                    </span>
+                                  </div>
+
+                                  {/* 6. TRẠNG THÁI LỚP (Class Status) */}
+                                  <div className="col-class-status">
+                                    <span
+                                      className={`class-status ${
+                                        cls.status === "Đang diễn ra"
+                                          ? "status-active"
+                                          : cls.status === "Sắp diễn ra"
+                                            ? "status-pending"
+                                            : "status-completed"
+                                      }`}
+                                    >
+                                      {tr(cls.status)}
+                                    </span>
+                                  </div>
+
+                                  {/* 7. THAO TÁC LỚP (Class Actions) */}
+                                  <div
+                                    className="col-class-actions text-right"
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "flex-end",
+                                      alignItems: "center",
+                                      gap: "5px",
+                                      flexWrap: "nowrap",
+                                    }}
+                                  >
+                                    {/* Button: CẬP NHẬT TRẠNG THÁI LỚP */}
+                                    <button
+                                      type="button"
+                                      title={tr(
+                                        "Cập nhật trạng thái & thông tin lớp",
+                                      )}
+                                      style={{
+                                        backgroundColor: "#f1f5f9",
+                                        border: "1px solid #cbd5e1",
+                                        color: "#0f172a",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                        padding: "3px 8px",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                        whiteSpace: "nowrap",
+                                        flexShrink: 0,
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingClassTarget(cls);
+                                      }}
+                                    >
+                                      {tr("✏️ Trạng thái")}
+                                    </button>
+
+                                    {/* Button: GHI DANH HỌC VIÊN */}
+                                    {(() => {
+                                      const elig = isClassEligibleForEnrollment(cls);
+                                      const isClassBlocked = !elig.eligible;
+                                      return (
+                                        <button
+                                          type="button"
+                                          disabled={isClassBlocked}
+                                          title={
+                                            isClassBlocked
+                                              ? `${tr(elig.reason)} — ${tr(elig.detail)}`
+                                              : tr(
+                                                  "Ghi danh học viên mới vào lớp",
+                                                )
+                                          }
+                                          style={{
+                                            backgroundColor: isClassBlocked
+                                              ? "#e2e8f0"
+                                              : "#002147",
+                                            color: isClassBlocked
+                                              ? "#94a3b8"
+                                              : "#c5a059",
+                                            border: isClassBlocked
+                                              ? "1px solid #cbd5e1"
+                                              : "1px solid #c5a059",
+                                            fontSize: "11px",
+                                            fontWeight: 700,
+                                            padding: "4px 8px",
+                                            borderRadius: "4px",
+                                            cursor: isClassBlocked
+                                              ? "not-allowed"
+                                              : "pointer",
+                                            whiteSpace: "nowrap",
+                                            opacity: isClassBlocked ? 0.7 : 1,
+                                            flexShrink: 0,
+                                          }}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isClassBlocked) return;
+                                            setEnrollClassId(cls.classId);
+                                            setIsEnrollingStudent(true);
+                                          }}
+                                        >
+                                          {isClassBlocked
+                                            ? `⛔ ${tr(elig.reason)}`
+                                            : tr("➕ Ghi danh")}
+                                        </button>
+                                      );
+                                    })()}
+
+                                    {/* Button: XEM CHI TIẾT LỚP */}
+                                    <button
+                                      type="button"
+                                      style={{
+                                        backgroundColor: "#f8fafc",
+                                        color: "#475569",
+                                        border: "1px solid #e2e8f0",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                        padding: "4px 8px",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                        whiteSpace: "nowrap",
+                                        flexShrink: 0,
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setViewingClassDetail(cls);
+                                      }}
+                                    >
+                                      {tr("Xem")}
+                                    </button>
+
+                                    {/* Button: XEM ĐIỂM DANH */}
+                                    <button
+                                      type="button"
+                                      style={{
+                                        backgroundColor: "#f0f9ff",
+                                        color: "#0369a1",
+                                        border: "1px solid #bae6fd",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                        padding: "4px 8px",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                        whiteSpace: "nowrap",
+                                        flexShrink: 0,
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelectClassForHistory(cls);
+                                      }}
+                                    >
+                                      {tr("Điểm danh")}
+                                    </button>
+
+                                    {/* Button: XÓA LỚP HỌC */}
+                                    <button
+                                      type="button"
+                                      title={tr("Xóa Lớp học này")}
+                                      style={{
+                                        backgroundColor: "#fff1f2",
+                                        color: "#e11d48",
+                                        border: "1px solid #fecdd3",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                        padding: "4px 8px",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                        whiteSpace: "nowrap",
+                                        flexShrink: 0,
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeletingClassTarget(cls);
+                                      }}
+                                    >
+                                      {tr("🗑️ Xóa Lớp")}
+                                    </button>
+
+                                    {/* Button: XUẤT BÁO CÁO LỚP */}
+                                    <button
+                                      type="button"
+                                      title={tr(
+                                        "Xuất báo cáo điểm danh / đánh giá / tổng hợp lớp",
+                                      )}
+                                      style={{
+                                        backgroundColor: "#f8fafc",
+                                        color: "#475569",
+                                        border: "1px solid #e2e8f0",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                        padding: "4px 8px",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                        whiteSpace: "nowrap",
+                                        flexShrink: 0,
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setExportClassTarget(cls);
+                                        setExportError("");
+                                      }}
+                                    >
+                                      📤 {tr("Báo cáo")}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}
