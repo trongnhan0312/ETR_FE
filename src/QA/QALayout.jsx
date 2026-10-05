@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NotificationsDropdown from '../components/NotificationsDropdown';
+import TopbarUserWidget from '../components/TopbarUserWidget';
 import { useLanguage } from '../context/LanguageContext';
 import RouteErrorBoundary from '../components/RouteErrorBoundary';
 import { handleAppBack } from '../utils/navigation';
@@ -32,6 +33,12 @@ const navigationGroups = [
       { label: 'RETAKE HISTORY', to: '/qa/retake-history' },
     ],
   },
+  {
+    label: 'Account',
+    items: [
+      { label: 'MY PROFILE', to: '/qa/profile' },
+    ],
+  },
 ];
 
 const QALayout = () => {
@@ -41,6 +48,29 @@ const QALayout = () => {
   const { tr, trEn } = useLanguage();
   // Top-bar search — dùng chung cho các trang con qua Outlet context (hiện tại: ETR list)
   const [searchQuery, setSearchQuery] = useState('');
+
+  let user = { fullName: "QA Staff", username: "qa", roleName: "QA Staff" };
+  try {
+    const userJson = localStorage.getItem("user");
+    if (userJson) {
+      const parsedUser = JSON.parse(userJson);
+      user = {
+        ...user,
+        ...parsedUser,
+        fullName: parsedUser.fullName || parsedUser.username || user.fullName,
+        roleName: parsedUser.roleName || parsedUser.role || user.roleName,
+      };
+    }
+  } catch (e) {
+    console.error("Error parsing user storage", e);
+  }
+
+  const getInitials = (name) => {
+    if (!name) return "QA";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   return (
     <div className="academic-page">
@@ -82,13 +112,20 @@ const QALayout = () => {
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
+          <div
+            className="user-profile"
+            onClick={() => navigate('/qa/profile')}
+            style={{ cursor: "pointer", transition: "opacity 0.2s" }}
+            title={tr("Xem hồ sơ & thông tin cá nhân")}
+          >
             <div className="avatar-container">
-              <div className="avatar-fallback">Q</div>
+              <div className="avatar-fallback">{getInitials(user.fullName)}</div>
             </div>
             <div className="user-info">
-              <div className="user-name">{trEn('QA Staff')}</div>
-              <div className="user-role">{trEn('Quality Assurance')}</div>
+              <div className="user-name" title={user.fullName}>
+                {user.fullName.length > 16 ? user.fullName.substring(0, 14) + "..." : user.fullName}
+              </div>
+              <div className="user-role">{trEn(user.roleName)}</div>
             </div>
           </div>
           <button
@@ -188,6 +225,10 @@ const QALayout = () => {
           </div>
 
           <div className="topbar-right">
+            <TopbarUserWidget profilePath="/qa/profile" />
+
+            <div className="divider"></div>
+
             <NotificationsDropdown />
 
             <div className="divider"></div>

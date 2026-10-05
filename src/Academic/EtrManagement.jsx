@@ -3020,7 +3020,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
                         </span>
                       </button>
                       <button
-                        className="create-btn gold-gradient-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border-0 !bg-[#002147] !px-0 !py-0 !text-[#c5a059] !shadow-sm !transition hover:-translate-y-0.5 hover:!bg-[#003366] xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5"
+                        className="create-btn gold-gradient-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border-0 !bg-[#002147] !px-0 !py-0 !text-[#c5a059] !shadow-sm !transition hover:-translate-y-0.5 hover:!bg-[#003366] xl:!w-auto xl:!gap-2 xl:!px-3.5 xl:!py-2.5"
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -3032,28 +3032,6 @@ const EtrManagement = ({ defaultView = "list" }) => {
                         <span style={{ fontSize: "14px" }}>📂</span>
                         <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none xl:text-[#c5a059]">
                           {tr("DOSSIER")}
-                        </span>
-                      </button>
-                      <button
-                        className="create-btn gold-gradient-btn !inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !gap-0 !rounded-full !border-0 !bg-[#002147] !px-0 !py-0 !text-[#c5a059] !shadow-sm !transition hover:-translate-y-0.5 hover:!bg-[#003366] xl:!w-auto xl:!gap-2 xl:!px-3 xl:!py-2.5"
-                        type="button"
-                        onClick={(e) => handleOpenFinalView(record, e)}
-                        aria-label={tr("Xem final")}
-                      >
-                        <svg
-                          width="14"
-                          height="10"
-                          viewBox="0 0 15 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M7.33333 8C8.16667 8 8.875 7.70833 9.45833 7.125C10.0417 6.54167 10.3333 5.83333 10.3333 5C10.3333 4.16667 10.0417 3.45833 9.45833 2.875C8.875 2.29167 8.16667 2 7.33333 2C6.5 2 5.79167 2.29167 5.20833 2.875C4.625 3.45833 4.33333 4.16667 4.33333 5C4.33333 5.83333 4.625 6.54167 5.20833 7.125C5.79167 7.70833 6.5 8 7.33333 8ZM7.33333 10C5.71111 10 4.23333 9.54722 2.9 8.64167C1.56667 7.73611 0.6 6.52222 0 5C0.6 3.47778 1.56667 2.26389 2.9 1.35833C4.23333 0.452778 5.71111 0 7.33333 0C8.95556 0 10.4333 0.452778 11.7667 1.35833C13.1 2.26389 14.0667 3.47778 14.6667 5C14.0667 6.52222 13.1 7.73611 11.7667 8.64167C10.4333 9.54722 8.95556 10 7.33333 10Z"
-                            fill="#c5a059"
-                          />
-                        </svg>
-                        <span className="sr-only xl:not-sr-only xl:whitespace-nowrap xl:text-[10px] xl:font-semibold xl:leading-none xl:text-[#c5a059]">
-                          {tr("VIEW FINAL")}
                         </span>
                       </button>
 
@@ -3451,10 +3429,8 @@ const EtrManagement = ({ defaultView = "list" }) => {
             document.body,
           )}
 
-        {/* Modal - ETR Final View Sheet (portal vào document.body: luôn nằm chính giữa toàn màn
-          hình kể cả vùng menu trái — tránh bị "position: fixed" kẹt trong vùng nội dung do
-          animation transform của shell). */}
-        {isFinalViewOpen &&
+        {/* Modal - ETR Final View Sheet: Deprecated & disabled, fully replaced by comprehensive ETR Dossier Modal */}
+        {false && isFinalViewOpen &&
           finalViewRecord &&
           createPortal(
             <div className="modal-overlay">

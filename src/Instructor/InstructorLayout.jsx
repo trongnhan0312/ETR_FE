@@ -7,9 +7,11 @@ import {
   FaFileAlt,
   FaCalendarAlt,
   FaListOl,
+  FaUser,
 } from "react-icons/fa";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import NotificationsDropdown from "../components/NotificationsDropdown";
+import TopbarUserWidget from "../components/TopbarUserWidget";
 import { useLanguage } from "../context/LanguageContext";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 import { handleAppBack } from "../utils/navigation";
@@ -50,6 +52,11 @@ const navigationItems = [
     label: "LỊCH GIẢNG DẠY",
     to: "/instructor/schedule",
     icon: <FaCalendarAlt size={18} />,
+  },
+  {
+    label: "HỒ SƠ CỦA TÔI",
+    to: "/instructor/profile",
+    icon: <FaUser size={18} />,
   },
 ];
 
@@ -127,7 +134,12 @@ const InstructorLayout = () => {
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
+          <div
+            className="user-profile"
+            onClick={() => navigate("/instructor/profile")}
+            style={{ cursor: "pointer", transition: "opacity 0.2s" }}
+            title={tr("Xem hồ sơ & thông tin cá nhân")}
+          >
             <div className="avatar-container">
               <div className="avatar-fallback">
                 {getInitials(user.fullName)}
@@ -139,7 +151,7 @@ const InstructorLayout = () => {
                   ? (user.fullName || tr("Giảng viên")).substring(0, 13) + "..."
                   : user.fullName || tr("Giảng viên")}
               </div>
-              <div className="user-role">{tr("Giảng viên")}</div>
+              <div className="user-role">{tr(user.roleName || "Giảng viên")}</div>
             </div>
           </div>
           <button
@@ -242,6 +254,10 @@ const InstructorLayout = () => {
           </div>
 
           <div className="topbar-right">
+            <TopbarUserWidget profilePath="/instructor/profile" />
+
+            <div className="divider"></div>
+
             {/* Notifications */}
             <NotificationsDropdown />
 

@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NotificationsDropdown from '../components/NotificationsDropdown';
+import TopbarUserWidget from '../components/TopbarUserWidget';
 import { useLanguage } from '../context/LanguageContext';
 import RouteErrorBoundary from '../components/RouteErrorBoundary';
 import { handleAppBack } from '../utils/navigation';
@@ -73,6 +74,18 @@ const navigationItems = [
       </svg>
     ),
   },
+  {
+    label: 'HỒ SƠ CỦA TÔI',
+    to: '/admin/profile',
+    icon: (
+      <svg width="18" height="20" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M9 10C7.9 10 6.95833 9.60833 6.175 8.825C5.39167 8.04167 5 7.1 5 6C5 4.9 5.39167 3.95833 6.175 3.175C6.95833 2.39167 7.9 2 9 2C10.1 2 11.0417 2.39167 11.825 3.175C12.6083 3.95833 13 4.9 13 6C13 7.1 12.6083 8.04167 11.825 8.825C11.0417 9.60833 10.1 10 9 10ZM0 18V16C0 15.45 0.195833 14.9792 0.5875 14.5875C0.979167 14.1958 1.45 14 2 14H16C16.55 14 17.0208 14.1958 17.4125 14.5875C17.8042 14.9792 18 15.45 18 16V18H0Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
 ];
 
 const AdminLayout = () => {
@@ -82,6 +95,29 @@ const AdminLayout = () => {
   const { tr } = useLanguage();
   // Top-bar search — dùng chung cho các trang con qua Outlet context (hiện tại: User Management)
   const [searchQuery, setSearchQuery] = useState('');
+
+  let user = { fullName: "Administrator", username: "admin", roleName: "Administrator" };
+  try {
+    const userJson = localStorage.getItem("user");
+    if (userJson) {
+      const parsedUser = JSON.parse(userJson);
+      user = {
+        ...user,
+        ...parsedUser,
+        fullName: parsedUser.fullName || parsedUser.username || user.fullName,
+        roleName: parsedUser.roleName || parsedUser.role || user.roleName,
+      };
+    }
+  } catch (e) {
+    console.error("Error parsing user storage", e);
+  }
+
+  const getInitials = (name) => {
+    if (!name) return "AD";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   return (
     <div className="academic-page">
@@ -116,13 +152,20 @@ const AdminLayout = () => {
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
+          <div
+            className="user-profile"
+            onClick={() => navigate('/admin/profile')}
+            style={{ cursor: "pointer", transition: "opacity 0.2s" }}
+            title={tr("Xem hồ sơ & thông tin cá nhân")}
+          >
             <div className="avatar-container">
-              <div className="avatar-fallback">A</div>
+              <div className="avatar-fallback">{getInitials(user.fullName)}</div>
             </div>
             <div className="user-info">
-              <div className="user-name">{tr('Administrator')}</div>
-              <div className="user-role">{tr('Full Access')}</div>
+              <div className="user-name" title={user.fullName}>
+                {user.fullName.length > 16 ? user.fullName.substring(0, 14) + "..." : user.fullName}
+              </div>
+              <div className="user-role">{tr(user.roleName)}</div>
             </div>
           </div>
           <button
@@ -222,6 +265,10 @@ const AdminLayout = () => {
           </div>
 
           <div className="topbar-right">
+            <TopbarUserWidget profilePath="/admin/profile" />
+
+            <div className="divider"></div>
+
             <NotificationsDropdown />
 
             <div className="divider"></div>

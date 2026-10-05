@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState } from 'react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NotificationsDropdown from '../components/NotificationsDropdown';
+import TopbarUserWidget from '../components/TopbarUserWidget';
 import { useLanguage } from '../context/LanguageContext';
 import RouteErrorBoundary from '../components/RouteErrorBoundary';
 import { handleAppBack } from '../utils/navigation';
@@ -174,7 +175,12 @@ const StudentLayout = () => {
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
+          <div
+            className="user-profile"
+            onClick={() => navigate("/student/profile")}
+            style={{ cursor: "pointer", transition: "opacity 0.2s" }}
+            title={tr("Xem hồ sơ & thông tin cá nhân")}
+          >
             <div className="avatar-container">
               <div className="avatar-fallback">
                 {getInitials(user.fullName)}
@@ -271,6 +277,10 @@ const StudentLayout = () => {
           </div>
 
           <div className="topbar-right">
+            <TopbarUserWidget profilePath="/student/profile" />
+
+            <div className="divider"></div>
+
             <NotificationsDropdown />
 
             <div className="divider"></div>

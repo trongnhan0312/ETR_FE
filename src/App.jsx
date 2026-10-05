@@ -64,6 +64,7 @@ import StudentLayout from './Student/StudentLayout';
 import StudentDashboard from './Student/StudentDashboard';
 import StudentMyETR from './Student/StudentMyETR';
 import StudentCertificateStatus from './Student/StudentCertificateStatus';
+import StaffProfile from './components/StaffProfile';
 import StudentProfile from './Student/StudentProfile';
 import StudentLogbook from './Student/StudentLogbook';
 import AuditorLayout from './Auditor/AuditorLayout';
@@ -185,6 +186,7 @@ function App() {
 						<Route path="config" element={<SystemConfiguration />} />
 						<Route path="etr-approval" element={<EtrReopen />} />
 						<Route path="amendments" element={<TrainingManagerAmendments />} />
+						<Route path="profile" element={<StaffProfile portalName="Admin Portal" roleScope="Full System Administration" />} />
 					</Route>
 				</Route>
 
@@ -204,6 +206,7 @@ function App() {
 						<Route path="expiring-students" element={<ExpiringStudents />} />
 						<Route path="subjects" element={<SubjectManagement />} />
 						<Route path="audit" element={<AcademicAuditLogs />} />
+						<Route path="profile" element={<StaffProfile portalName="Academic Space" roleScope="Academic Operations & Evidence Verification" />} />
 					</Route>
 				</Route>
 
@@ -217,6 +220,7 @@ function App() {
 						<Route path="structure" element={<InstructorAssessmentStructure />} />
 						<Route path="evidence" element={<InstructorEvidence />} />
 						<Route path="schedule" element={<InstructorSchedule />} />
+						<Route path="profile" element={<StaffProfile portalName="Instructor Portal" roleScope="Course Instruction & Assessment Grading" />} />
 					</Route>
 				</Route>
 
@@ -249,6 +253,7 @@ function App() {
 						<Route path="etr-approval" element={<EtrApproval />} />
 						<Route path="expiring-students" element={<ExpiringStudents />} />
 						<Route path="amendments" element={<TrainingManagerAmendments />} />
+						<Route path="profile" element={<StaffProfile portalName="Training Manager Space" roleScope="Course Completion & Final Approval Authority" />} />
 					</Route>
 				</Route>
 

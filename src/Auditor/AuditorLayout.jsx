@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import NotificationsDropdown from "../components/NotificationsDropdown";
+import TopbarUserWidget from "../components/TopbarUserWidget";
 import { useLanguage } from "../context/LanguageContext";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 import { handleAppBack } from "../utils/navigation";
@@ -153,6 +154,29 @@ const AuditorLayout = () => {
   const isHomePage = location.pathname === "/auditor";
   const { tr, trEn } = useLanguage();
 
+  let user = { fullName: "Auditor Officer", username: "auditor", roleName: "Auditor" };
+  try {
+    const userJson = localStorage.getItem("user");
+    if (userJson) {
+      const parsedUser = JSON.parse(userJson);
+      user = {
+        ...user,
+        ...parsedUser,
+        fullName: parsedUser.fullName || parsedUser.username || user.fullName,
+        roleName: parsedUser.roleName || parsedUser.role || user.roleName,
+      };
+    }
+  } catch (e) {
+    console.error("Error parsing user storage", e);
+  }
+
+  const getInitials = (name) => {
+    if (!name) return "AU";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
   return (
     <div className="academic-page">
       {/* Sidebar */}
@@ -194,13 +218,20 @@ const AuditorLayout = () => {
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
+          <div
+            className="user-profile"
+            onClick={() => navigate("/auditor/profile")}
+            style={{ cursor: "pointer", transition: "opacity 0.2s" }}
+            title={tr("Xem hồ sơ & thông tin cá nhân")}
+          >
             <div className="avatar-container">
-              <div className="avatar-fallback">AU</div>
+              <div className="avatar-fallback">{getInitials(user.fullName)}</div>
             </div>
             <div className="user-info">
-              <div className="user-name">{trEn("Auditor Officer")}</div>
-              <div className="user-role">{trEn("Read-Only Compliance")}</div>
+              <div className="user-name" title={user.fullName}>
+                {user.fullName.length > 16 ? user.fullName.substring(0, 14) + "..." : user.fullName}
+              </div>
+              <div className="user-role">{trEn(user.roleName)}</div>
             </div>
           </div>
           <button
@@ -283,6 +314,10 @@ const AuditorLayout = () => {
           </div>
 
           <div className="topbar-right">
+            <TopbarUserWidget profilePath="/auditor/profile" />
+
+            <div className="divider"></div>
+
             <NotificationsDropdown />
 
             <div className="divider"></div>

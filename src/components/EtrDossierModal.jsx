@@ -43,8 +43,8 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
         setOpenSubjects({ [data.subjects[0].subjectId]: true });
       }
     } catch (err) {
-      console.error("Lỗi khi tải ETR Dossier:", err);
-      setError(parseApiError(err, tr("Không thể tải hồ sơ chi tiết ETR.")));
+      console.error("Error loading ETR Dossier:", err);
+      setError(parseApiError(err, tr("Unable to load detailed ETR dossier.")));
     } finally {
       setLoading(false);
     }
@@ -68,22 +68,22 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
     try {
       if (actionType === "submit") {
         await api.post(`/Etr/${etrId}/submit`);
-        toast.success(tr("Hồ sơ ETR đã được gửi đi thẩm định thành công."));
+        toast.success(tr("ETR dossier submitted for verification successfully."));
       } else if (actionType === "verify") {
         await api.post(`/Etr/${etrId}/verify`);
-        toast.success(tr("QA đã xác minh hồ sơ ETR thành công."));
+        toast.success(tr("QA verified ETR dossier successfully."));
       } else if (actionType === "complete") {
         await api.post(`/Etr/${etrId}/complete`);
-        toast.success(tr("Training Manager đã phê duyệt hoàn tất hồ sơ ETR."));
+        toast.success(tr("Training Manager approved and completed ETR dossier."));
       } else if (actionType === "return") {
         await api.post(`/Etr/${etrId}/return`, { comment });
-        toast.success(tr("Đã trả lại hồ sơ ETR để bổ sung/chỉnh sửa."));
+        toast.success(tr("ETR dossier returned for correction."));
       } else if (actionType === "reopen") {
         await api.post(`/Etr/${etrId}/reopen`, { comment });
-        toast.success(tr("Admin đã mở lại hồ sơ ETR thành công."));
+        toast.success(tr("Administrator reopened ETR dossier successfully."));
       } else if (actionType === "exportPdf") {
         await api.post(`/Exports/pdf`, { etrCourseRecordId: Number(etrId) });
-        toast.success(tr("Đã kích hoạt xuất file PDF hồ sơ ETR."));
+        toast.success(tr("PDF export job initiated successfully."));
       }
 
       setConfirmAction(null);
@@ -91,7 +91,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
       await loadDossier();
       if (onActionSuccess) onActionSuccess();
     } catch (err) {
-      toast.error(parseApiError(err, tr("Thao tác thất bại.")));
+      toast.error(parseApiError(err, tr("Action failed.")));
     } finally {
       setActionSubmitting(false);
     }
@@ -107,7 +107,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
           <div className="header-info">
             <div className="title-row">
               <h2>
-                Hồ sơ ETR #{dossier?.etrCourseRecordId || etrId}
+                {tr("ETR Dossier")} #{dossier?.etrCourseRecordId || etrId}
                 {dossier?.student && ` — ${dossier.student.fullName} (${dossier.student.userCode})`}
               </h2>
               {dossier && (
@@ -117,7 +117,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
               )}
             </div>
             <p className="meta-subtitle">
-              Khóa: <strong>{dossier?.course?.courseName || "—"}</strong> ({dossier?.course?.courseCode || "—"} · Phiên bản v{dossier?.courseVersionNo || 1}) • Lớp: <strong>{dossier?.class?.className || "—"}</strong> ({dossier?.class?.classCode || "—"})
+              {tr("Course")}: <strong>{dossier?.course?.courseName || "—"}</strong> ({dossier?.course?.courseCode || "—"} · {tr("Version")} v{dossier?.courseVersionNo || 1}) • {tr("Class")}: <strong>{dossier?.class?.className || "—"}</strong> ({dossier?.class?.classCode || "—"})
             </p>
           </div>
 
@@ -128,7 +128,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 onClick={() => setConfirmAction("submit")}
                 disabled={actionSubmitting}
               >
-                📤 {tr("Gửi thẩm định (Submit)")}
+                📤 {tr("Submit Dossier")}
               </button>
             )}
 
@@ -138,7 +138,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 onClick={() => setConfirmAction("verify")}
                 disabled={actionSubmitting}
               >
-                ✓ {tr("QA Thẩm định (Verify)")}
+                ✓ {tr("QA Verify")}
               </button>
             )}
 
@@ -148,7 +148,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 onClick={() => setConfirmAction("complete")}
                 disabled={actionSubmitting}
               >
-                🏆 {tr("Phê duyệt (Complete)")}
+                🏆 {tr("Approve & Complete")}
               </button>
             )}
 
@@ -158,7 +158,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 onClick={() => setPromptAction("return")}
                 disabled={actionSubmitting}
               >
-                ↩ {tr("Trả lại (Return)")}
+                ↩ {tr("Return for Correction")}
               </button>
             )}
 
@@ -168,7 +168,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 onClick={() => setPromptAction("reopen")}
                 disabled={actionSubmitting}
               >
-                🔓 {tr("Mở lại (Re-open)")}
+                🔓 {tr("Re-open Record")}
               </button>
             )}
 
@@ -178,11 +178,11 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 onClick={() => handleExecuteAction("exportPdf")}
                 disabled={actionSubmitting}
               >
-                📄 {tr("Xuất PDF")}
+                📄 {tr("Export PDF")}
               </button>
             )}
 
-            <button className="close-btn" onClick={onClose} aria-label={tr("Đóng")}>
+            <button className="close-btn" onClick={onClose} aria-label={tr("Close")}>
               &times;
             </button>
           </div>
@@ -194,39 +194,39 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
             className={`tab-item ${activeTab === "overview" ? "active" : ""}`}
             onClick={() => setActiveTab("overview")}
           >
-            📊 {tr("1. Tổng quan & Tiến độ")}
+            📊 {tr("1. Overview & Progress")}
           </button>
           <button
             className={`tab-item ${activeTab === "subjects" ? "active" : ""}`}
             onClick={() => setActiveTab("subjects")}
           >
-            📚 {tr("2. Môn học & Đánh giá")}
+            📚 {tr("2. Subjects & Assessments")}
           </button>
           <button
             className={`tab-item ${activeTab === "sessions" ? "active" : ""}`}
             onClick={() => setActiveTab("sessions")}
           >
-            ✈️ {tr("3. Buổi học & Nhật ký")}
+            ✈️ {tr("3. Sessions & Logbook")}
           </button>
           {dossier?.credentials && (
             <button
               className={`tab-item ${activeTab === "credentials" ? "active" : ""}`}
               onClick={() => setActiveTab("credentials")}
             >
-              🪪 {tr("4. Năng định & Sức khỏe")}
+              🪪 {tr("4. Credentials & Medical")}
             </button>
           )}
           <button
             className={`tab-item ${activeTab === "evidences" ? "active" : ""}`}
             onClick={() => setActiveTab("evidences")}
           >
-            📁 {tr("5. Minh chứng đào tạo")}
+            📁 {tr("5. Training Evidences")}
           </button>
           <button
             className={`tab-item ${activeTab === "approvalHistory" ? "active" : ""}`}
             onClick={() => setActiveTab("approvalHistory")}
           >
-            🕒 {tr("6. Lịch sử xử lý")}
+            🕒 {tr("6. Processing History")}
           </button>
         </div>
 
@@ -235,13 +235,13 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
           {loading && (
             <div style={{ textAlign: "center", padding: "60px 20px", color: "#64748b" }}>
               <div style={{ fontSize: "24px", marginBottom: "12px" }}>⏳</div>
-              <strong>{tr("Đang tải dữ liệu hồ sơ ETR Dossier...")}</strong>
+              <strong>{tr("Loading ETR Dossier details...")}</strong>
             </div>
           )}
 
           {error && (
             <div style={{ background: "#fee2e2", border: "1px solid #fecaca", padding: "16px", borderRadius: "8px", color: "#b91c1c" }}>
-              <strong>⚠️ {tr("Lỗi:")}</strong> {error}
+              <strong>⚠️ {tr("Error:")}</strong> {error}
             </div>
           )}
 
@@ -252,33 +252,33 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 <div>
                   <div className="metrics-grid">
                     <div className="metric-card">
-                      <div className="metric-label">{tr("Môn học hoàn thành")}</div>
+                      <div className="metric-label">{tr("Completed Subjects")}</div>
                       <div className="metric-value">
                         {dossier.readiness?.passedSubjects} / {dossier.readiness?.totalSubjects}
                       </div>
-                      <div className="metric-desc">{tr("Số môn đạt hoặc miễn trừ theo Course Version")}</div>
+                      <div className="metric-desc">{tr("Passed or exempted subjects per Course Version")}</div>
                     </div>
                     <div className="metric-card">
-                      <div className="metric-label">{tr("Chuyên cần trung bình")}</div>
+                      <div className="metric-label">{tr("Average Attendance")}</div>
                       <div className="metric-value">{dossier.readiness?.averageAttendance}%</div>
-                      <div className="metric-desc">{tr("Tỷ lệ tham gia các buổi học")}</div>
+                      <div className="metric-desc">{tr("Training and classroom participation rate")}</div>
                     </div>
                     <div className="metric-card">
-                      <div className="metric-label">{tr("Giờ bay thực tế")}</div>
+                      <div className="metric-label">{tr("Actual Flight Hours")}</div>
                       <div className="metric-value">{dossier.readiness?.totalFlightHours}h</div>
-                      <div className="metric-desc">{tr("Đã tích lũy và xác nhận")}</div>
+                      <div className="metric-desc">{tr("Logged and verified flight hours")}</div>
                     </div>
                     <div className="metric-card">
-                      <div className="metric-label">{tr("Giờ mô phỏng FSTD/SIM")}</div>
+                      <div className="metric-label">{tr("Simulator Hours (FSTD/SIM)")}</div>
                       <div className="metric-value">{dossier.readiness?.totalSimulatorHours}h</div>
-                      <div className="metric-desc">{tr("Đã tích lũy và xác nhận")}</div>
+                      <div className="metric-desc">{tr("Logged and verified simulator hours")}</div>
                     </div>
                     <div className="metric-card">
-                      <div className="metric-label">{tr("Trạng thái hoàn thành")}</div>
+                      <div className="metric-label">{tr("Readiness Status")}</div>
                       <div className="metric-value" style={{ color: dossier.readiness?.overallReadinessStatus === "Met" ? "#10b981" : "#b45309" }}>
-                        {dossier.readiness?.overallReadinessStatus === "Met" ? tr("ĐỦ ĐIỀU KIỆN (MET)") : tr("CHƯA ĐẠT (NOT MET)")}
+                        {dossier.readiness?.overallReadinessStatus === "Met" ? tr("ELIGIBLE (MET)") : tr("NOT MET")}
                       </div>
-                      <div className="metric-desc">{tr("Đối chiếu quy tắc hoàn thành khóa")}</div>
+                      <div className="metric-desc">{tr("Evaluation against course completion rules")}</div>
                     </div>
                   </div>
 
@@ -286,7 +286,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                     <div className="compliance-alert">
                       <div className="alert-icon">⚠️</div>
                       <div>
-                        <strong>{tr("Các điều kiện còn thiếu để hoàn thành khóa học:")}</strong>
+                        <strong>{tr("Pending conditions for course completion:")}</strong>
                         <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
                           {dossier.readiness.pendingConditions.map((cond, idx) => (
                             <li key={idx}>{cond}</li>
@@ -298,24 +298,24 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
 
                   <div className="section-card">
                     <div className="section-header">
-                      <h3>{tr("Thông tin Học viên & Đào tạo")}</h3>
+                      <h3>{tr("Trainee & Training Information")}</h3>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "12px" }}>
                       <div>
-                        <p style={{ margin: "4px 0" }}><strong>Họ và tên:</strong> {dossier.student?.fullName}</p>
-                        <p style={{ margin: "4px 0" }}><strong>Mã học viên:</strong> {dossier.student?.userCode}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("Full Name")}:</strong> {dossier.student?.fullName}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("Trainee ID")}:</strong> {dossier.student?.userCode}</p>
                         {dossier.student?.email && (
-                          <p style={{ margin: "4px 0" }}><strong>Email:</strong> {dossier.student.email}</p>
+                          <p style={{ margin: "4px 0" }}><strong>{tr("Email")}:</strong> {dossier.student.email}</p>
                         )}
                         {dossier.student?.phone && (
-                          <p style={{ margin: "4px 0" }}><strong>Điện thoại:</strong> {dossier.student.phone}</p>
+                          <p style={{ margin: "4px 0" }}><strong>{tr("Phone")}:</strong> {dossier.student.phone}</p>
                         )}
                       </div>
                       <div>
-                        <p style={{ margin: "4px 0" }}><strong>Khóa học:</strong> {dossier.course?.courseName} ({dossier.course?.courseCode})</p>
-                        <p style={{ margin: "4px 0" }}><strong>Phiên bản khóa:</strong> Version {dossier.courseVersionNo}</p>
-                        <p style={{ margin: "4px 0" }}><strong>Lớp đào tạo:</strong> {dossier.class?.className} ({dossier.class?.classCode})</p>
-                        <p style={{ margin: "4px 0" }}><strong>Thời gian lớp:</strong> {dossier.class?.startDate ? formatDateTime(dossier.class.startDate) : "N/A"} → {dossier.class?.endDate ? formatDateTime(dossier.class.endDate) : "N/A"}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("Course")}:</strong> {dossier.course?.courseName} ({dossier.course?.courseCode})</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("Course Version")}:</strong> Version {dossier.courseVersionNo}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("Training Class")}:</strong> {dossier.class?.className} ({dossier.class?.classCode})</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("Class Duration")}:</strong> {dossier.class?.startDate ? formatDateTime(dossier.class.startDate) : "N/A"} → {dossier.class?.endDate ? formatDateTime(dossier.class.endDate) : "N/A"}</p>
                       </div>
                     </div>
                   </div>
@@ -326,7 +326,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
               {activeTab === "subjects" && (
                 <div>
                   <div style={{ marginBottom: "16px", fontSize: "12px", color: "#64748b" }}>
-                    💡 <em>{tr("Thông tin môn học được hiển thị theo bản chụp (snapshot) tại thời điểm học viên ghi danh vào Course Version này.")}</em>
+                    💡 <em>{tr("Course subjects and requirements are displayed based on the snapshot at enrollment time.")}</em>
                   </div>
 
                   {(dossier.subjects || []).map((sub) => {
@@ -339,12 +339,12 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                           <div className="sub-title">
                             {sub.subjectCode} — {sub.subjectName}
                             <span style={{ marginLeft: "8px", fontSize: "11px", fontWeight: "normal", color: "#64748b" }}>
-                              ({sub.subjectType} · Yêu cầu: {sub.requiredHours}h · Chuẩn đạt: {sub.passingScore}đ)
+                              ({sub.subjectType} · {tr("Required")}: {sub.requiredHours}h · {tr("Passing Score")}: {sub.passingScore})
                             </span>
                           </div>
                           <div className="sub-badges">
                             <span style={{ fontSize: "11px", color: "#64748b" }}>
-                              Điểm: <strong>{sub.score != null ? `${sub.score}đ` : "—"}</strong> | Chuyên cần: <strong>{sub.attendanceRate != null ? `${sub.attendanceRate}%` : "—"}</strong>
+                              {tr("Score")}: <strong>{sub.score != null ? sub.score : "—"}</strong> | {tr("Attendance")}: <strong>{sub.attendanceRate != null ? `${sub.attendanceRate}%` : "—"}</strong>
                             </span>
                             <span
                               style={{
@@ -366,36 +366,36 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                           <div className="subject-details">
                             {/* Signoff info */}
                             <div style={{ background: "#f8fafc", padding: "10px 14px", borderRadius: "8px", marginBottom: "14px", fontSize: "12px", border: "1px solid #e2e8f0" }}>
-                              <strong>{tr("Chữ ký xác nhận môn (Subject Signoff):")}</strong>{" "}
+                              <strong>{tr("Subject Signoff:")}</strong>{" "}
                               {sub.isSignedOff ? (
                                 <span style={{ color: "#15803d" }}>
-                                  ✓ Đã ký bởi <strong>{sub.signoffByName || "Giảng viên"}</strong> ({sub.signoffRole || "Instructor"}) vào lúc {sub.signedOffAt ? formatDateTime(sub.signedOffAt) : "N/A"}.
-                                  {sub.signoffComment && <em> — Nhận xét: "{sub.signoffComment}"</em>}
+                                  ✓ {tr("Signed off by")} <strong>{sub.signoffByName || tr("Instructor")}</strong> ({sub.signoffRole || "Instructor"}) {tr("at")} {sub.signedOffAt ? formatDateTime(sub.signedOffAt) : "N/A"}.
+                                  {sub.signoffComment && <em> — {tr("Note")}: "{sub.signoffComment}"</em>}
                                 </span>
                               ) : (
-                                <span style={{ color: "#b45309" }}>⏳ Chưa được giảng viên phụ trách ký chốt môn.</span>
+                                <span style={{ color: "#b45309" }}>⏳ {tr("Not signed off yet by assigned instructor.")}</span>
                               )}
                             </div>
 
                             {/* Assessments */}
                             <div style={{ marginBottom: "16px" }}>
                               <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", color: "#002147" }}>
-                                📝 {tr("Bài kiểm tra (Assessments)")}
+                                📝 {tr("Assessments")}
                               </h4>
                               {sub.assessments?.length === 0 ? (
-                                <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>{tr("Không có bài kiểm tra lý thuyết/thực hành nào được gắn cho môn này.")}</p>
+                                <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>{tr("No assessments recorded for this subject.")}</p>
                               ) : (
                                 <table className="dossier-table">
                                   <thead>
                                     <tr>
-                                      <th>{tr("Tên bài đánh giá")}</th>
-                                      <th>{tr("Loại")}</th>
-                                      <th>{tr("Trọng số")}</th>
-                                      <th>{tr("Điểm chuẩn")}</th>
-                                      <th>{tr("Điểm số")}</th>
-                                      <th>{tr("Lần thi")}</th>
-                                      <th>{tr("Kết quả")}</th>
-                                      <th>{tr("Người chấm")}</th>
+                                      <th>{tr("ASSESSMENT NAME")}</th>
+                                      <th>{tr("TYPE")}</th>
+                                      <th>{tr("WEIGHT")}</th>
+                                      <th>{tr("PASSING SCORE")}</th>
+                                      <th>{tr("SCORE")}</th>
+                                      <th>{tr("ATTEMPT")}</th>
+                                      <th>{tr("RESULTS")}</th>
+                                      <th>{tr("EVALUATOR")}</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -404,9 +404,9 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                                         <td><strong>{a.componentName}</strong></td>
                                         <td>{a.assessmentType}</td>
                                         <td>{a.weight}%</td>
-                                        <td>{a.passingScore}đ</td>
-                                        <td><strong>{a.score}đ</strong></td>
-                                        <td>Lần {a.attemptNo}</td>
+                                        <td>{a.passingScore}</td>
+                                        <td><strong>{a.score}</strong></td>
+                                        <td>{tr("Attempt")} {a.attemptNo}</td>
                                         <td>
                                           <span style={{ color: a.resultStatus === "Pass" ? "#16a34a" : "#dc2626", fontWeight: "700" }}>
                                             {a.resultStatus}
@@ -423,19 +423,19 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                             {/* Practical Checklists */}
                             <div>
                               <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", color: "#002147" }}>
-                                📋 {tr("Bảng kiểm thao tác thực hành (Practical Checklists)")}
+                                📋 {tr("Practical Checklists")}
                               </h4>
                               {sub.practicalChecklists?.length === 0 ? (
-                                <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>{tr("Không có bảng kiểm thao tác thực hành nào cho môn này.")}</p>
+                                <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>{tr("No practical checklists recorded for this subject.")}</p>
                               ) : (
                                 <table className="dossier-table">
                                   <thead>
                                     <tr>
-                                      <th>{tr("Nội dung thao tác")}</th>
-                                      <th>{tr("Kết quả")}</th>
-                                      <th>{tr("Người thẩm định")}</th>
-                                      <th>{tr("Ngày hoàn thành")}</th>
-                                      <th>{tr("Nhận xét")}</th>
+                                      <th>{tr("TASK / ITEM NAME")}</th>
+                                      <th>{tr("RESULT")}</th>
+                                      <th>{tr("VERIFIER")}</th>
+                                      <th>{tr("COMPLETED DATE")}</th>
+                                      <th>{tr("COMMENTS")}</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -470,33 +470,33 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                   <div className="compliance-alert">
                     <div className="alert-icon">ℹ️</div>
                     <div>
-                      <strong>{tr("Ranh giới dữ liệu & Lưu ý thẩm định tuân thủ:")}</strong>
+                      <strong>{tr("Data Scope & Compliance Notice:")}</strong>
                       <div style={{ marginTop: "4px" }}>
-                        • Hệ thống ghi nhận <strong>Giảng viên phân công</strong> (theo môn của lớp) và <strong>Người ký xác nhận buổi học</strong> (chữ ký số trên sổ nhật ký đào tạo).<br />
-                        • <em>Chưa có dữ liệu hệ thống ghi nhận người thực dạy riêng biệt</em> (trường hợp dạy thay chưa được phân tách trường riêng trong DB).<br />
-                        • <em>Chưa có bản chụp lịch sử hiệu lực chứng chỉ tại ngày dạy (Historical Qualification Snapshot); không tự động suy đoán năng lực từ chữ ký.</em>
+                        • {tr("System tracks")} <strong>{tr("Assigned Instructor")}</strong> ({tr("by class subject")}) {tr("and")} <strong>{tr("Signed Instructor")}</strong> ({tr("digital signature on session logbook")}).<br />
+                        • <em>{tr("Actual conducting instructor is not tracked separately in current schema (substitute teaching field pending).")}</em><br />
+                        • <em>{tr("Historical qualification snapshot at session date is not tracked; competence is not inferred solely from signature.")}</em>
                       </div>
                     </div>
                   </div>
 
                   <div className="section-card">
                     <div className="section-header">
-                      <h3>{tr("Nhật ký chi tiết từng buổi học & Giờ bay/SIM")}</h3>
+                      <h3>{tr("Detailed Session Logbook & Flight/SIM Hours")}</h3>
                     </div>
 
                     <div style={{ overflowX: "auto" }}>
                       <table className="dossier-table">
                         <thead>
                           <tr>
-                            <th>{tr("Buổi / Bài học")}</th>
-                            <th>{tr("Ngày học")}</th>
-                            <th>{tr("Hình thức")}</th>
-                            <th>{tr("Điểm danh")}</th>
-                            <th>{tr("Giờ đào tạo")}</th>
-                            <th>{tr("Hành trình / Thiết bị")}</th>
-                            <th>{tr("GV Phân công")}</th>
-                            <th>{tr("Người ký xác nhận")}</th>
-                            <th>{tr("Ghi chú thực dạy & năng lực")}</th>
+                            <th>{tr("Session / Lesson")}</th>
+                            <th>{tr("Date")}</th>
+                            <th>{tr("Type")}</th>
+                            <th>{tr("Attendance")}</th>
+                            <th>{tr("Hours")}</th>
+                            <th>{tr("Routing / Device")}</th>
+                            <th>{tr("Assigned Instructor")}</th>
+                            <th>{tr("Signed By")}</th>
+                            <th>{tr("Conducting Note")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -505,8 +505,8 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                               <tr key={sess.sessionId}>
                                 <td>
                                   <strong>{sess.sessionTitle}</strong>
-                                  {sess.lessonCode && <div style={{ fontSize: "10px", color: "#64748b" }}>Mã: {sess.lessonCode}</div>}
-                                  <div style={{ fontSize: "10px", color: "#0284c7" }}>Môn: {sub.subjectCode}</div>
+                                  {sess.lessonCode && <div style={{ fontSize: "10px", color: "#64748b" }}>{tr("Code")}: {sess.lessonCode}</div>}
+                                  <div style={{ fontSize: "10px", color: "#0284c7" }}>{tr("Subject")}: {sub.subjectCode}</div>
                                 </td>
                                 <td>{sess.sessionDate ? formatDateTime(sess.sessionDate) : "—"}</td>
                                 <td>
@@ -527,15 +527,15 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                                   </span>
                                 </td>
                                 <td>
-                                  {sess.flightHours != null && <div>Bay: <strong>{sess.flightHours}h</strong></div>}
-                                  {sess.simulatorHours != null && <div>SIM: <strong>{sess.simulatorHours}h</strong></div>}
+                                  {sess.flightHours != null && <div>{tr("Flight")}: <strong>{sess.flightHours}h</strong></div>}
+                                  {sess.simulatorHours != null && <div>{tr("SIM")}: <strong>{sess.simulatorHours}h</strong></div>}
                                   {sess.flightHours == null && sess.simulatorHours == null && <div>—</div>}
                                 </td>
                                 <td>
-                                  {sess.departureIcao && <div>Tuyến: {sess.departureIcao} → {sess.arrivalIcao || "?"}</div>}
-                                  {sess.aircraftRegistration && <div>Tàu bay: {sess.aircraftRegistration}</div>}
-                                  {sess.simulatorDevice && <div>Thiết bị: {sess.simulatorDevice}</div>}
-                                  {!sess.departureIcao && !sess.aircraftRegistration && !sess.simulatorDevice && <div>{sess.location || "Lớp học"}</div>}
+                                  {sess.departureIcao && <div>{tr("Route")}: {sess.departureIcao} → {sess.arrivalIcao || "?"}</div>}
+                                  {sess.aircraftRegistration && <div>{tr("Aircraft")}: {sess.aircraftRegistration}</div>}
+                                  {sess.simulatorDevice && <div>{tr("Device")}: {sess.simulatorDevice}</div>}
+                                  {!sess.departureIcao && !sess.aircraftRegistration && !sess.simulatorDevice && <div>{sess.location || tr("Classroom")}</div>}
                                 </td>
                                 <td>{sess.assignedInstructorName || "—"}</td>
                                 <td>
@@ -544,12 +544,12 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                                       <strong>{sess.signedInstructorName}</strong>
                                       {sess.instructorSignedAt && (
                                         <div style={{ fontSize: "10px", color: "#16a34a" }}>
-                                          Ký: {formatDateTime(sess.instructorSignedAt)}
+                                          {tr("Signed")}: {formatDateTime(sess.instructorSignedAt)}
                                         </div>
                                       )}
                                     </div>
                                   ) : (
-                                    <span style={{ color: "#94a3b8" }}>Chưa ký</span>
+                                    <span style={{ color: "#94a3b8" }}>{tr("Unsigned")}</span>
                                   )}
                                 </td>
                                 <td>
@@ -572,7 +572,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 <div>
                   <div className="section-card">
                     <div className="section-header">
-                      <h3>{tr("Hồ sơ Năng định, Bằng lái & Giám định Sức khỏe")}</h3>
+                      <h3>{tr("Credentials, Licenses & Medical Assessment")}</h3>
                       <span
                         style={{
                           padding: "4px 10px",
@@ -583,22 +583,22 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                           color: dossier.credentials.isCredentialsVerified ? "#15803d" : "#b45309",
                         }}
                       >
-                        {dossier.credentials.isCredentialsVerified ? tr("ĐÃ XÁC MINH (VERIFIED)") : tr("CHƯA XÁC MINH")}
+                        {dossier.credentials.isCredentialsVerified ? tr("VERIFIED") : tr("UNVERIFIED")}
                       </span>
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "12px" }}>
                       <div>
-                        <p style={{ margin: "4px 0" }}><strong>Loại bằng lái:</strong> {dossier.credentials.licenseType || "—"}</p>
-                        <p style={{ margin: "4px 0" }}><strong>Số bằng lái:</strong> {dossier.credentials.licenseNumber || "—"}</p>
-                        <p style={{ margin: "4px 0" }}><strong>Hạn bằng lái:</strong> {dossier.credentials.licenseExpiryDate ? formatDateTime(dossier.credentials.licenseExpiryDate) : "—"}</p>
-                        <p style={{ margin: "4px 0" }}><strong>Định chuẩn máy bay (Type Ratings):</strong> {dossier.credentials.typeRatings || "—"}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("License Type")}:</strong> {dossier.credentials.licenseType || "—"}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("License Number")}:</strong> {dossier.credentials.licenseNumber || "—"}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("License Expiry")}:</strong> {dossier.credentials.licenseExpiryDate ? formatDateTime(dossier.credentials.licenseExpiryDate) : "—"}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("Type Ratings")}:</strong> {dossier.credentials.typeRatings || "—"}</p>
                       </div>
                       <div>
-                        <p style={{ margin: "4px 0" }}><strong>Cấp giám định y khoa:</strong> {dossier.credentials.medicalClass || "—"}</p>
-                        <p style={{ margin: "4px 0" }}><strong>Hạn giám định sức khỏe:</strong> {dossier.credentials.medicalExpiryDate ? formatDateTime(dossier.credentials.medicalExpiryDate) : "—"}</p>
-                        <p style={{ margin: "4px 0" }}><strong>Tiếng Anh ICAO:</strong> Level {dossier.credentials.icaoElpLevel || "—"}</p>
-                        <p style={{ margin: "4px 0" }}><strong>Hạn chứng chỉ ICAO:</strong> {dossier.credentials.icaoElpExpiryDate ? formatDateTime(dossier.credentials.icaoElpExpiryDate) : "—"}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("Medical Class")}:</strong> {dossier.credentials.medicalClass || "—"}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("Medical Expiry")}:</strong> {dossier.credentials.medicalExpiryDate ? formatDateTime(dossier.credentials.medicalExpiryDate) : "—"}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("ICAO ELP")}:</strong> Level {dossier.credentials.icaoElpLevel || "—"}</p>
+                        <p style={{ margin: "4px 0" }}><strong>{tr("ICAO Expiry")}:</strong> {dossier.credentials.icaoElpExpiryDate ? formatDateTime(dossier.credentials.icaoElpExpiryDate) : "—"}</p>
                       </div>
                     </div>
                   </div>
@@ -606,18 +606,18 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                   {/* Attachments Section */}
                   <div className="section-card">
                     <div className="section-header">
-                      <h3>{tr("Tài liệu Minh chứng Năng định & Y tế đính kèm")}</h3>
+                      <h3>{tr("Attached Credential & Medical Documents")}</h3>
                     </div>
 
                     {dossier.credentials.attachments?.length > 0 ? (
                       <table className="dossier-table">
                         <thead>
                           <tr>
-                            <th>{tr("Tên tài liệu")}</th>
-                            <th>{tr("Loại")}</th>
-                            <th>{tr("Dung lượng")}</th>
-                            <th>{tr("Ngày tải")}</th>
-                            <th>{tr("Thao tác")}</th>
+                            <th>{tr("DOCUMENT NAME")}</th>
+                            <th>{tr("TYPE")}</th>
+                            <th>{tr("SIZE")}</th>
+                            <th>{tr("UPLOADED DATE")}</th>
+                            <th>{tr("ACTIONS")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -634,7 +634,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                                   rel="noopener noreferrer"
                                   style={{ color: "#0284c7", fontWeight: "600", textDecoration: "none" }}
                                 >
-                                  🔗 {tr("Xem tệp")}
+                                  🔗 {tr("View File")}
                                 </a>
                               </td>
                             </tr>
@@ -643,7 +643,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                       </table>
                     ) : (
                       <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
-                        {tr("Không có tệp đính kèm nào được tải lên hoặc tài khoản hiện tại chỉ được xem thông tin trạng thái theo chính sách phân quyền riêng tư.")}
+                        {tr("No attachments uploaded or current account is restricted to metadata-only view under privacy policy.")}
                       </p>
                     )}
                   </div>
@@ -655,19 +655,19 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 <div>
                   <div className="section-card">
                     <div className="section-header">
-                      <h3>{tr("Danh sách Minh chứng Đào tạo theo Môn học (Training Evidences)")}</h3>
+                      <h3>{tr("Subject Training Evidences")}</h3>
                     </div>
 
                     <table className="dossier-table">
                       <thead>
                         <tr>
-                          <th>{tr("Tên tệp minh chứng")}</th>
-                          <th>{tr("Môn học")}</th>
-                          <th>{tr("Loại tệp")}</th>
-                          <th>{tr("Người tải")}</th>
-                          <th>{tr("Ngày tải")}</th>
-                          <th>{tr("QA Thẩm định")}</th>
-                          <th>{tr("Thao tác")}</th>
+                          <th>{tr("FILE NAME")}</th>
+                          <th>{tr("SUBJECT")}</th>
+                          <th>{tr("FILE TYPE")}</th>
+                          <th>{tr("UPLOADED BY")}</th>
+                          <th>{tr("UPLOADED DATE")}</th>
+                          <th>{tr("QA VERIFICATION")}</th>
+                          <th>{tr("ACTIONS")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -706,7 +706,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                                     rel="noopener noreferrer"
                                     style={{ color: "#0284c7", fontWeight: "600", textDecoration: "none" }}
                                   >
-                                    🔗 {tr("Xem tệp")}
+                                    🔗 {tr("View File")}
                                   </a>
                                 ) : (
                                   "—"
@@ -726,12 +726,12 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                 <div>
                   <div className="section-card">
                     <div className="section-header">
-                      <h3>{tr("Lịch sử Phê duyệt & Luồng xử lý ETR (Approval History)")}</h3>
+                      <h3>{tr("Approval History & Workflow Timeline")}</h3>
                     </div>
 
                     {dossier.approvalHistories?.length === 0 ? (
                       <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
-                        {tr("Chưa có bước phê duyệt hoặc thay đổi trạng thái nào được ghi nhận.")}
+                        {tr("No approval history or status transition recorded yet.")}
                       </p>
                     ) : (
                       <div className="timeline">
@@ -743,11 +743,11 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                             </div>
                             <div className="timeline-body">
                               <div>
-                                Thực hiện bởi: <strong>{hist.actionByName || `Account #${hist.actionByAccountId}`}</strong>
+                                {tr("Action by")}: <strong>{hist.actionByName || `Account #${hist.actionByAccountId}`}</strong>
                               </div>
                               {hist.previousStatus && hist.newStatus && (
                                 <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                                  Trạng thái: <span>{hist.previousStatus}</span> → <strong>{hist.newStatus}</strong>
+                                  {tr("Status")}: <span>{hist.previousStatus}</span> → <strong>{hist.newStatus}</strong>
                                 </div>
                               )}
                               {hist.comments && (
@@ -774,20 +774,20 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
           isOpen={true}
           title={
             confirmAction === "submit"
-              ? tr("Xác nhận gửi hồ sơ ETR")
+              ? tr("Confirm Dossier Submission")
               : confirmAction === "verify"
-              ? tr("Xác nhận thẩm định hồ sơ ETR")
-              : tr("Xác nhận hoàn tất hồ sơ ETR")
+              ? tr("Confirm QA Verification")
+              : tr("Confirm Course Completion")
           }
           message={
             confirmAction === "submit"
-              ? tr("Bạn có chắc chắn muốn gửi hồ sơ ETR này để QA thẩm định? Hồ sơ sẽ được chuyển sang trạng thái Submitted.")
+              ? tr("Are you sure you want to submit this ETR dossier for QA verification? Status will transition to Submitted.")
               : confirmAction === "verify"
-              ? tr("Bạn xác nhận đã rà soát đầy đủ minh chứng, chữ ký môn và điều kiện môn học? Hồ sơ sẽ được chuyển sang trạng thái Verified.")
-              : tr("Bạn xác nhận phê duyệt hoàn tất khóa học cho học viên này? Hồ sơ ETR sẽ được chuyển sang trạng thái Completed và khóa bất biến.")
+              ? tr("Do you confirm all evidences, subject signoffs, and course requirements are verified? Status will transition to Verified.")
+              : tr("Do you confirm approval and completion of training for this student? ETR will transition to Completed and become permanently locked.")
           }
-          confirmLabel={tr("Xác nhận")}
-          cancelLabel={tr("Hủy")}
+          confirmLabel={tr("Confirm")}
+          cancelLabel={tr("Cancel")}
           onConfirm={() => handleExecuteAction(confirmAction)}
           onCancel={() => setConfirmAction(null)}
           loading={actionSubmitting}
@@ -800,18 +800,18 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
           isOpen={true}
           title={
             promptAction === "return"
-              ? tr("Trả lại hồ sơ ETR để chỉnh sửa")
-              : tr("Mở lại hồ sơ ETR đã hoàn tất")
+              ? tr("Return Dossier for Correction")
+              : tr("Re-open Completed ETR")
           }
           message={
             promptAction === "return"
-              ? tr("Vui lòng nhập lý do/yêu cầu chỉnh sửa gửi cho người phụ trách:")
-              : tr("Vui lòng nêu rõ lý do mở lại hồ sơ đã hoàn thành (sẽ được ghi vào nhật ký kiểm toán):")
+              ? tr("Please enter the correction feedback/reason to be sent to the owner:")
+              : tr("Please specify the reason for reopening this completed record (will be logged in audit trail):")
           }
-          placeholder={tr("Nhập lý do chi tiết...")}
+          placeholder={tr("Enter detailed reason...")}
           required={true}
-          confirmLabel={promptAction === "return" ? tr("Trả lại") : tr("Mở lại")}
-          cancelLabel={tr("Hủy")}
+          confirmLabel={promptAction === "return" ? tr("Return") : tr("Re-open")}
+          cancelLabel={tr("Cancel")}
           onConfirm={(comment) => handleExecuteAction(promptAction, comment)}
           onCancel={() => setPromptAction(null)}
           loading={actionSubmitting}

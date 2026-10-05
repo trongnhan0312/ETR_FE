@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NotificationsDropdown from '../components/NotificationsDropdown';
+import TopbarUserWidget from '../components/TopbarUserWidget';
 import { useLanguage } from '../context/LanguageContext';
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import RouteErrorBoundary from '../components/RouteErrorBoundary';
@@ -25,6 +26,7 @@ const navigationItems = [
   { label: 'TRẠNG THÁI LỚP HỌC', to: '/trainingmanager/classes', icon: iconClass },
   { label: 'CHỨNG CHỈ HẾT HẠN', to: '/trainingmanager/expiring-students', icon: iconDocument },
   { label: 'YÊU CẦU MỞ KHÓA', to: '/trainingmanager/amendments', icon: iconDocument },
+  { label: 'HỒ SƠ CỦA TÔI', to: '/trainingmanager/profile', icon: iconDocument },
 ];
 
 const TrainingManagerLayout = () => {
@@ -36,6 +38,28 @@ const TrainingManagerLayout = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { tr } = useLanguage();
 
+  let user = { fullName: "Training Manager", username: "trainingmanager", roleName: "Training Manager" };
+  try {
+    const userJson = localStorage.getItem("user");
+    if (userJson) {
+      const parsedUser = JSON.parse(userJson);
+      user = {
+        ...user,
+        ...parsedUser,
+        fullName: parsedUser.fullName || parsedUser.username || user.fullName,
+        roleName: parsedUser.roleName || parsedUser.role || user.roleName,
+      };
+    }
+  } catch (e) {
+    console.error("Error parsing user storage", e);
+  }
+
+  const getInitials = (name) => {
+    if (!name) return "TM";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   useEffect(() => {
     if (showToast) {
@@ -79,13 +103,20 @@ const TrainingManagerLayout = () => {
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
+          <div
+            className="user-profile"
+            onClick={() => navigate('/trainingmanager/profile')}
+            style={{ cursor: "pointer", transition: "opacity 0.2s" }}
+            title={tr("Xem hồ sơ & thông tin cá nhân")}
+          >
             <div className="avatar-container">
-              <div className="avatar-fallback">TM</div>
+              <div className="avatar-fallback">{getInitials(user.fullName)}</div>
             </div>
             <div className="user-info">
-              <div className="user-name">{tr('Training Manager')}</div>
-              <div className="user-role">{tr('Management')}</div>
+              <div className="user-name" title={user.fullName}>
+                {user.fullName.length > 16 ? user.fullName.substring(0, 14) + "..." : user.fullName}
+              </div>
+              <div className="user-role">{tr(user.roleName)}</div>
             </div>
           </div>
           <button
@@ -185,6 +216,8 @@ const TrainingManagerLayout = () => {
           </div>
 
           <div className="topbar-right">
+            <TopbarUserWidget profilePath="/trainingmanager/profile" />
+            <div className="divider"></div>
             <NotificationsDropdown />
             <div className="divider"></div>
             <LanguageSwitcher />

@@ -1045,7 +1045,7 @@ const StudentMyETR = () => {
               <div className="student-empty">{searchTerm ? tr('Không tìm thấy hồ sơ phù hợp.') : tr('Bạn chưa có hồ sơ ETR nào.')}</div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <div className="student-table-grid" style={{ gridTemplateColumns: '48px 1.2fr 1.2fr 120px 140px 100px' }}>
+                <div className="student-table-grid" style={{ gridTemplateColumns: '48px 1.2fr 1.2fr 120px 140px 120px' }}>
                   <div className="student-table-cell student-table-cell--header">{tr('STT')}</div>
                   <div className="student-table-cell student-table-cell--header">{tr('Mã hồ sơ')}</div>
                   <div className="student-table-cell student-table-cell--header">{tr('Ghi danh')}</div>
@@ -1054,27 +1054,36 @@ const StudentMyETR = () => {
                   <div className="student-table-cell student-table-cell--header student-table-cell--end">&nbsp;</div>
 
                   {filtered.map((e, idx) => (
-                    <div className="student-table-row" key={e.id || idx} style={{ cursor: 'pointer' }} onClick={() => openDetail(etrs.find(r => (r.ETRCourseRecordId ?? r.etrCourseRecordId) === e.id) || etrs[idx])}>
+                    <div className="student-table-row" key={e.id || idx} style={{ cursor: 'pointer' }} onClick={() => e.id && setDossierEtrId(e.id)}>
                       <div className="student-table-cell student-table-cell--index">{idx + 1}</div>
                       <div className="student-table-cell student-table-cell--strong">{e.id ? `ETR #${e.id}` : `${tr('Hồ sơ #')}${idx + 1}`}</div>
                       <div className="student-table-cell">{e.enrollmentId ? `${tr('Mã GD: ')}${e.enrollmentId}` : '--'}</div>
                       <div className="student-table-cell">{formatDate(e.completedAt || e.verifiedAt || e.submittedAt)}</div>
                       <div className="student-table-cell"><Badge status={e.status} /></div>
                       <div className="student-table-cell student-table-cell--end">
-                        <button className="action-btn" type="button" onClick={(e2) => { e2.stopPropagation(); openDetail(etrs.find(r => (r.ETRCourseRecordId ?? r.etrCourseRecordId) === e.id) || etrs[idx]); }}>
-                          {tr('Chi tiết')}
-                        </button>
                         {e.id && (
                           <button
                             className="action-btn"
                             type="button"
-                            style={{ marginLeft: 6, background: '#002147', color: '#fff', border: '1px solid #c5a059' }}
+                            style={{
+                              background: '#002147',
+                              color: '#c5a059',
+                              border: '1px solid #c5a059',
+                              fontWeight: 700,
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '11px',
+                            }}
                             onClick={(e2) => {
                               e2.stopPropagation();
                               setDossierEtrId(e.id);
                             }}
+                            title={tr('Xem hồ sơ ETR Dossier')}
                           >
-                            {tr('Dossier')}
+                            📂 <span>{tr('DOSSIER')}</span>
                           </button>
                         )}
                       </div>
