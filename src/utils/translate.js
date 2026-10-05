@@ -2818,6 +2818,8 @@ export const VN_TO_EN = {
   "Nhập mật khẩu mới (tối thiểu 6 ký tự)...": "Enter new password (min 6 characters)...",
   "Nhập lại mật khẩu mới...": "Re-enter new password...",
   "Xem hồ sơ (Dossier)": "View Dossier",
+  "CHÚ THÍCH": "Legend",
+  "Chú thích": "Legend",
 };
 
 export const REVERSE_VN_TO_EN = {};
@@ -2903,6 +2905,25 @@ export const translateEn = (text) => {
  * sẽ được dịch sang tiếng Việt. Khi lang = 'en' giữ nguyên tiếng Anh.
  */
 export const EN_TO_VN = {
+  "Awaiting QA Verification": "Chờ QA duyệt",
+  "AWAITING QA VERIFICATION": "CHỜ QA DUYỆT",
+  "Academic Staff submits the record awaiting QA review": "Academic Staff gửi hồ sơ chờ QA thẩm định",
+  "QA Staff verifies the record and all evidences": "QA Staff xác thực hồ sơ và toàn bộ minh chứng",
+  "Final approval — record marked Completed": "Phê duyệt cuối cùng — hồ sơ chuyển trạng thái Completed",
+  "Subject": "Môn học",
+  "File Format": "Định dạng tệp",
+  "Uploaded By": "Người tải lên",
+  "Uploaded At": "Thời gian tải lên",
+  "QA Verification Status": "Trạng thái kiểm tra QA",
+  "Verified By": "Người xác minh",
+  "QA Notes": "Ghi chú của QA",
+  "File Content & Preview": "Nội dung tệp & Xem trước",
+  "Document File / PDF": "Tệp tài liệu văn bản / PDF",
+  "Open Link / Download": "Mở liên kết / Tải xuống",
+  "Controlled File Content Access": "Quyền truy cập nội dung tệp được kiểm soát",
+  "The current account can review all verification metadata. Direct file access is granted to QA, Inspectors, and Course Instructors.": "Tài khoản hiện tại được xem đầy đủ thông tin siêu dữ liệu kiểm định. Quyền tải trực tiếp nội dung nhị phân được phân quyền cho QA, Thanh tra và Người phụ trách.",
+  "LEGEND": "CHÚ THÍCH",
+  "Legend": "Chú thích",
   "ETR Dossier": "Hồ sơ ETR",
   "1. Overview & Progress": "1. Tổng quan & Tiến độ",
   "2. Subjects & Assessments": "2. Môn học & Đánh giá",

@@ -148,10 +148,15 @@ const EtrApproval = () => {
       const relevantEtrs = etrsArr.filter(
         (e) => e.status === "Verified" || isEtrCompleted(e.status) || isEtrPendingApproval(e.status) || isEtrReturned(e.status)
       );
-      const detailsArr = await Promise.all(
-        relevantEtrs.map((e) =>
-          api.get(`/Etr/${e.etrCourseRecordId || e.eTRCourseRecordId}`).catch(() => null)
-        )
+      const detailsAndDossiers = await Promise.all(
+        relevantEtrs.map(async (e) => {
+          const etrId = e.etrCourseRecordId || e.eTRCourseRecordId;
+          const [detail, dossier] = await Promise.all([
+            api.get(`/Etr/${etrId}`).catch(() => null),
+            api.get(`/Etr/${etrId}/dossier`).catch(() => null),
+          ]);
+          return { detail, dossier };
+        })
       );
       const evfsRaw = await api.get("/Evidences").catch(() => []);
       const evfsArr = Array.isArray(evfsRaw) ? evfsRaw : [];
@@ -164,16 +169,24 @@ const EtrApproval = () => {
       } else {
       mapped = relevantEtrs.map((etr, i) => {
           const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
-          const detail = detailsArr[i];
+          const { detail, dossier } = detailsAndDossiers[i] || {};
           const enrollmentLink = resolveEnrollment(etr.enrollmentId);
-          const accountId = enrollmentLink?.accountId || detail?.accountId;
-          const classId = enrollmentLink?.classId || detail?.classId;
+          const accountId = enrollmentLink?.accountId || detail?.accountId || dossier?.student?.accountId;
+          const classId = enrollmentLink?.classId || detail?.classId || dossier?.class?.classId;
           const profile =
             accountId != null
               ? profilesArr.find((p) => p.accountId === accountId)
               : null;
           const classInfo = classId != null ? classMap[classId] : null;
-          const subjectResults = (detail?.subjectResults || []).map((sr) => sr);
+
+          const traineeName = dossier?.student?.fullName || profile?.fullName || (accountId ? `Student #${accountId}` : `Trainee #${etrId}`);
+          const traineeCode = dossier?.student?.studentCode || profile?.employeeCode || profile?.userCode || (accountId ? `AV-${accountId}` : `AV-${etrId}`);
+          const initials = (traineeName || "XX").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "XX";
+          const className = dossier?.class?.className || classInfo?.className || (classId ? `Class #${classId}` : (dossier?.course?.courseName || `Class #${etrId}`));
+
+          const subjectResults = (dossier?.curriculum && dossier.curriculum.length > 0)
+            ? dossier.curriculum
+            : (detail?.subjectResults || []).map((sr) => sr);
           const subjectResultIds = subjectResults.map((sr) => sr.subjectResultId);
           // Evidence đầy đủ (fileSize/verificationStatus) từ GET /Evidences.
           // Nếu tài khoản chưa được cấp quyền đọc /Evidences (403 → rỗng), fallback sang
@@ -215,13 +228,10 @@ const EtrApproval = () => {
           return {
             id: `#ETR-${String(etrId).padStart(4, "0")}`,
             etrId,
-            traineeName: profile?.fullName || `Student #${accountId ?? ""}`,
-            traineeCode: `ID: ${profile?.employeeCode || `AV-${accountId ?? ""}`}`,
-            initials: (profile?.fullName || "XX").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "XX",
-            // Tên lớp THẬT (className) thay vì "Class #" khi nối được qua /Classes
-            className: classInfo
-              ? classInfo.className
-              : `Class #${classId ?? ""}`,
+            traineeName,
+            traineeCode: `ID: ${traineeCode}`,
+            initials,
+            className,
             avgScore: avgAttendance,
             qaVerified: etr.status === "Verified" || isEtrCompleted(etr.status),
             qaVerifier: "QA Staff",
@@ -649,7 +659,7 @@ const EtrApproval = () => {
                   <span className="status-badge emerald">{viewingHistory.subjectResults?.[0]?.status === "Passed" || viewingHistory.subjectResults?.[0]?.status === "Exempted" ? "Active" : "Pending"}</span>
                 </div>
                 <div className="cert-title-group">
-                  <h4>{viewingHistory.subjectResults?.[0] ? `${tr('Chuyên đề')} #${viewingHistory.subjectResults[0].subjectId}` : tr("Chưa có dữ liệu")}</h4>
+                  <h4>{viewingHistory.subjectResults?.[0]?.subjectName || (viewingHistory.subjectResults?.[0] ? `${tr('Chuyên đề')} ${viewingHistory.subjectResults[0].subjectCode || '#' + viewingHistory.subjectResults[0].subjectId}` : tr("Chưa có dữ liệu"))}</h4>
                   <p>{viewingHistory.subjectResults?.[0]?.status || tr("Chưa có kết quả môn học")}</p>
                 </div>
                 <div className="cert-footer">
@@ -674,7 +684,7 @@ const EtrApproval = () => {
                   <span className="status-badge gold">{viewingHistory.subjectResults?.[1]?.status === "Passed" || viewingHistory.subjectResults?.[1]?.status === "Exempted" ? "Active" : "Pending"}</span>
                 </div>
                 <div className="cert-title-group">
-                  <h4>{viewingHistory.subjectResults?.[1] ? `${tr('Chuyên đề')} #${viewingHistory.subjectResults[1].subjectId}` : tr("Chưa có dữ liệu")}</h4>
+                  <h4>{viewingHistory.subjectResults?.[1]?.subjectName || (viewingHistory.subjectResults?.[1] ? `${tr('Chuyên đề')} ${viewingHistory.subjectResults[1].subjectCode || '#' + viewingHistory.subjectResults[1].subjectId}` : tr("Chưa có dữ liệu"))}</h4>
                   <p>{viewingHistory.subjectResults?.[1]?.status || tr("Chưa có kết quả môn học")}</p>
                 </div>
                 <div className="cert-footer">
@@ -696,7 +706,7 @@ const EtrApproval = () => {
                   <span className="status-badge emerald">{viewingHistory.subjectResults?.[2]?.status === "Passed" || viewingHistory.subjectResults?.[2]?.status === "Exempted" ? "Active" : "Pending"}</span>
                 </div>
                 <div className="cert-title-group">
-                  <h4>{viewingHistory.subjectResults?.[2] ? `${tr('Chuyên đề')} #${viewingHistory.subjectResults[2].subjectId}` : tr("Chưa có dữ liệu")}</h4>
+                  <h4>{viewingHistory.subjectResults?.[2]?.subjectName || (viewingHistory.subjectResults?.[2] ? `${tr('Chuyên đề')} ${viewingHistory.subjectResults[2].subjectCode || '#' + viewingHistory.subjectResults[2].subjectId}` : tr("Chưa có dữ liệu"))}</h4>
                   <p>{viewingHistory.subjectResults?.[2]?.status || tr("Chưa có kết quả môn học")}</p>
                 </div>
                 <div className="cert-footer">
@@ -718,7 +728,7 @@ const EtrApproval = () => {
                     <div className="card-info">
                       <span className="date">{viewingHistory.submissionDate || "—"}</span>
                       <h4 className="title">{tr('ETR Submitted')}</h4>
-                      <p className="desc">{tr('Academic Staff gửi hồ sơ chờ QA thẩm định')}</p>
+                      <p className="desc">{tr('Academic Staff submits the record awaiting QA review')}</p>
                     </div>
                     <div className="card-progress">
                       <div className="status-group">
@@ -743,7 +753,7 @@ const EtrApproval = () => {
                     <div className="card-info">
                       <span className="date">{viewingHistory.qaDate || "—"}</span>
                       <h4 className="title">{tr('QA Verified')}</h4>
-                      <p className="desc">{tr('QA Staff xác thực hồ sơ và toàn bộ minh chứng')}</p>
+                      <p className="desc">{tr('QA Staff verifies the record and all evidences')}</p>
                     </div>
                     <div className="card-progress">
                       <div className="status-group">
@@ -768,7 +778,7 @@ const EtrApproval = () => {
                     <div className="card-info">
                       <span className="date">{viewingHistory.approvalDate || "—"}</span>
                       <h4 className="title">{tr('Training Manager Approved')}</h4>
-                      <p className="desc">{tr('Phê duyệt cuối cùng — hồ sơ chuyển trạng thái Completed')}</p>
+                      <p className="desc">{tr('Final approval — record marked Completed')}</p>
                     </div>
                     <div className="card-progress">
                       <div className="status-group">
@@ -1503,7 +1513,7 @@ const EtrApproval = () => {
                                 }}
                                 title={tr("Hồ sơ đang chờ QA thẩm định tại mục ETR Review Queue. Training Manager chỉ có thể duyệt hoặc trả về sau khi QA đã thẩm định.")}
                               >
-                                ⏳ {tr('CHỜ QA DUYỆT')}
+                                ⏳ {tr('AWAITING QA VERIFICATION')}
                               </button>
                             )}
                           </div>

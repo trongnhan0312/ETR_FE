@@ -5,9 +5,9 @@
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top left, rgba(212, 175, 55, 0.14), transparent 26%),
-    radial-gradient(circle at 100% 0%, rgba(10, 44, 85, 0.1), transparent 22%),
-    linear-gradient(135deg, #031126 0%, #06284f 52%, #f7f9fd 52%, #f7f9fd 100%);
+    radial-gradient(circle at top left, rgba(212, 175, 55, 0.08), transparent 26%),
+    radial-gradient(circle at 100% 0%, rgba(10, 44, 85, 0.05), transparent 22%),
+    #f7f9fd;
   color: #17314f;
   isolation: isolate;
   font-family: 'Inter', system-ui, sans-serif;
