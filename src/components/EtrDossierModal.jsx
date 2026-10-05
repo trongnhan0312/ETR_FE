@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { api, parseApiError, formatDateTime } from "../utils/api";
 import { useToast } from "./Toast";
 import { useLanguage } from "../context/LanguageContext";
+import { downloadExportFile } from "../Auditor/auditorApi";
 import PromptModal from "./PromptModal";
 import ConfirmModal from "./ConfirmModal";
 import "./etr-dossier.scss";
@@ -82,8 +83,22 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
         await api.post(`/Etr/${etrId}/reopen`, { comment });
         toast.success(tr("Administrator reopened ETR dossier successfully."));
       } else if (actionType === "exportPdf") {
-        await api.post(`/Exports/pdf`, { etrCourseRecordId: Number(etrId) });
-        toast.success(tr("PDF export job initiated successfully."));
+        toast.info(tr("Generating PDF report..."));
+        const job = await api.post(`/Exports/pdf`, { etrCourseRecordId: Number(etrId) });
+        const jobId = job?.exportJobId ?? job?.ExportJobId;
+        if (!jobId) {
+          throw new Error(tr("Export job could not be created."));
+        }
+        let status = job?.status ?? job?.Status ?? "";
+        for (let i = 0; i < 20; i++) {
+          if (String(status).toLowerCase() === "completed") break;
+          await new Promise((r) => setTimeout(r, 600));
+          const detail = await api.get(`/Exports/${jobId}`).catch(() => null);
+          status = detail?.status ?? detail?.Status ?? status;
+        }
+        const fileName = job?.fileName ?? job?.FileName ?? `ETR_${etrId}_Summary.pdf`;
+        await downloadExportFile(jobId, fileName);
+        toast.success(tr("PDF report downloaded successfully."));
       }
 
       setConfirmAction(null);
@@ -106,7 +121,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
         <div className="dossier-header">
           <div className="header-info">
             <div className="title-row">
-              <h2>
+              <h2 style={{ color: "#ffffff", margin: 0, fontSize: "18px", fontWeight: "800" }}>
                 {tr("ETR Dossier")} #{dossier?.etrCourseRecordId || etrId}
                 {dossier?.student && ` — ${dossier.student.fullName} (${dossier.student.userCode})`}
               </h2>
