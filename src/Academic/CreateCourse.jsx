@@ -339,7 +339,6 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                 marginBottom: "20px",
               }}
             >
-              📌{" "}
               <strong>
                 {tr(
                   "Mandatory ETR Business Rule (Section 3 - Business Rules):",
@@ -501,8 +500,8 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   }}
                 >
                   {selectedDepartmentIds.length > 0
-                    ? `🎯 ${tr("Restricted")} (${selectedDepartmentIds.length})`
-                    : `🌐 ${tr("All Departments (Unrestricted)")}`}
+                    ? `${tr("Restricted")} (${selectedDepartmentIds.length})`
+                    : tr("All Departments (Unrestricted)")}
                 </span>
               </div>
 
@@ -521,7 +520,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                     border: "1px solid #fecaca",
                   }}
                 >
-                  ⚠️ {tr("Unable to load departments due to server issue. Please try again later.")}
+                  {tr("Unable to load departments due to server issue. Please try again later.")}
                 </div>
               ) : availableDepartments.length === 0 ? (
                 <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic" }}>
@@ -657,8 +656,8 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   }}
                 >
                   {isSubjectValid
-                    ? `✓ ${tr("Selected")} ${selectedSubjectIds.length} ${tr("subjects (Condition met)")}`
-                    : tr("❌ Select at least 1 subject")}
+                    ? `${tr("Selected:")} ${selectedSubjectIds.length} ${tr("subjects")}`
+                    : tr("Select at least 1 subject")}
                 </span>
               </div>
 
@@ -675,11 +674,11 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
               ) : (
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
                     backgroundColor: "#f8fafc",
-                    padding: "16px",
+                    padding: "12px",
                     borderRadius: "6px",
                     border: "1px solid #e2e8f0",
                   }}
@@ -710,104 +709,117 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                           borderRadius: "8px",
                           cursor: "pointer",
                           transition: "all 0.15s ease",
-                          boxShadow: isChecked ? "0 2px 6px rgba(197, 160, 89, 0.18)" : "none",
+                          boxShadow: isChecked ? "0 2px 4px rgba(197, 160, 89, 0.12)" : "none",
                         }}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleSubjectToggle(subIdStr)}
-                          style={{ marginTop: "4px", accentColor: "#c5a059", cursor: "pointer", width: "16px", height: "16px" }}
+                          style={{
+                            marginTop: "3px",
+                            accentColor: "#c5a059",
+                            cursor: "pointer",
+                            width: "16px",
+                            height: "16px",
+                            flexShrink: 0,
+                          }}
                         />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginBottom: "4px" }}>
-                            <span
-                              style={{
-                                fontSize: "11px",
-                                fontWeight: "800",
-                                color: "#002147",
-                                backgroundColor: "rgba(0, 33, 71, 0.08)",
-                                padding: "2px 6px",
-                                borderRadius: "4px",
-                                letterSpacing: "0.03em",
-                              }}
-                            >
-                              {sub.subjectCode}
-                            </span>
-                            {sub.subjectType && (
-                              <span
-                                style={{
-                                  fontSize: "10px",
-                                  fontWeight: "700",
-                                  textTransform: "uppercase",
-                                  backgroundColor: typeStyle.bg,
-                                  color: typeStyle.text,
-                                  border: `1px solid ${typeStyle.border}`,
-                                  padding: "1px 6px",
-                                  borderRadius: "4px",
-                                }}
-                              >
-                                {tr(sub.subjectType)}
-                              </span>
-                            )}
-                            <span
-                              style={{
-                                fontSize: "10px",
-                                color: "#16a34a",
-                                backgroundColor: "#dcfce7",
-                                padding: "1px 5px",
-                                borderRadius: "4px",
-                                fontWeight: "600",
-                                marginLeft: "auto",
-                              }}
-                            >
-                              {tr("Active")}
-                            </span>
-                          </div>
-
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              fontWeight: 700,
-                              color: isChecked ? "#002147" : "#334155",
-                              lineHeight: "1.3",
-                              marginBottom: "6px",
-                            }}
-                          >
-                            {sub.subjectName}
-                          </div>
-
                           <div
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: "8px",
-                              fontSize: "11px",
-                              color: "#64748b",
+                              justifyContent: "space-between",
+                              gap: "10px",
                               flexWrap: "wrap",
+                              marginBottom: "4px",
                             }}
                           >
-                            <span>⏱️ <strong>{sub.defaultHours || 20}</strong> {tr("hrs")}</span>
-                            <span>•</span>
-                            <span>📅 <strong>{sub.minSessions || Math.max(1, Math.ceil((sub.defaultHours || 20) / 4))}</strong> {tr("sessions")}</span>
-                            <span>•</span>
-                            <span>📝 {tr("Method:")} <strong>{sub.assessmentMethod || "Exam"}</strong></span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: "800",
+                                  color: "#002147",
+                                  backgroundColor: "rgba(0, 33, 71, 0.08)",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  letterSpacing: "0.03em",
+                                }}
+                              >
+                                {sub.subjectCode}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: "13px",
+                                  fontWeight: 700,
+                                  color: isChecked ? "#002147" : "#1e293b",
+                                }}
+                              >
+                                {sub.subjectName}
+                              </span>
+                              {sub.subjectType && (
+                                <span
+                                  style={{
+                                    fontSize: "10px",
+                                    fontWeight: "700",
+                                    textTransform: "uppercase",
+                                    backgroundColor: typeStyle.bg,
+                                    color: typeStyle.text,
+                                    border: `1px solid ${typeStyle.border}`,
+                                    padding: "1px 6px",
+                                    borderRadius: "4px",
+                                  }}
+                                >
+                                  {tr(sub.subjectType)}
+                                </span>
+                              )}
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                fontSize: "11px",
+                                color: "#475569",
+                                marginLeft: "auto",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <span>{tr("Duration:")} <strong>{sub.defaultHours || 20}</strong> {tr("hrs")}</span>
+                              <span>•</span>
+                              <span>{tr("Sessions:")} <strong>{sub.minSessions || Math.max(1, Math.ceil((sub.defaultHours || 20) / 4))}</strong></span>
+                              <span>•</span>
+                              <span>{tr("Method:")} <strong>{sub.assessmentMethod || "Exam"}</strong></span>
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  color: "#16a34a",
+                                  backgroundColor: "#dcfce7",
+                                  padding: "1px 5px",
+                                  borderRadius: "4px",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {tr("Active")}
+                              </span>
+                            </div>
                           </div>
 
                           {sub.description && (
                             <div
                               style={{
-                                fontSize: "11px",
-                                color: "#94a3b8",
+                                fontSize: "12px",
+                                color: "#64748b",
                                 marginTop: "6px",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                fontStyle: "italic",
+                                lineHeight: "1.45",
+                                whiteSpace: "normal",
+                                wordBreak: "break-word",
                               }}
-                              title={sub.description}
                             >
-                              📖 {sub.description}
+                              {sub.description}
                             </div>
                           )}
                         </div>
@@ -826,7 +838,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   }}
                 >
                   {tr(
-                    "⚠️ Select at least 1 subject. Courses without subjects are strictly blocked by the backend during enrollment.",
+                    "Select at least 1 subject. Courses without subjects are strictly blocked by the backend during enrollment.",
                   )}
                 </div>
               )}

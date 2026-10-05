@@ -284,7 +284,7 @@ const CompletionRequirementsSection = ({
               gap: "8px"
             }}
           >
-            <span>🎯</span> {tr("COMPLETION REQUIREMENTS")}
+            {tr("COMPLETION REQUIREMENTS")}
             <span
               style={{
                 fontSize: "11px",
@@ -338,7 +338,7 @@ const CompletionRequirementsSection = ({
             lineHeight: 1.5
           }}
         >
-          ℹ️ <strong>{tr("Configuration Locked:")}</strong>{" "}
+          <strong>{tr("Configuration Locked:")}</strong>{" "}
           {tr("Course is active with enrolled classes. Completion criteria are protected to preserve student audit snapshots. To adjust thresholds or criteria, please use")} <strong>{tr("Clone Version")}</strong>.
         </div>
       )}
@@ -360,7 +360,7 @@ const CompletionRequirementsSection = ({
           }}
         >
           <div>
-            <strong>⚠️ {tr("Error:")}</strong> {errorMsg}
+            <strong>{tr("Error:")}</strong> {errorMsg}
           </div>
           {courseId && (
             <button
@@ -378,7 +378,7 @@ const CompletionRequirementsSection = ({
                 whiteSpace: "nowrap"
               }}
             >
-              🔄 {tr("Retry")}
+              {tr("Retry")}
             </button>
           )}
         </div>
