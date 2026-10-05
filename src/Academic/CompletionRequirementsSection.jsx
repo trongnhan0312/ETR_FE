@@ -6,49 +6,49 @@ import { useLanguage } from "../context/LanguageContext";
 export const REQUIREMENT_TYPES = [
   {
     type: "MinAttendance",
-    label: "Minimum Attendance Rate (MinAttendance)",
+    label: "Tỷ lệ tham dự tối thiểu",
     unit: "%",
     defaultThreshold: 80,
     min: 0,
     max: 100,
     hasThreshold: true,
-    description: "Requires learner attendance rate to meet minimum threshold (0 - 100%)."
+    description: "Yêu cầu tỷ lệ tham dự của học viên đạt ngưỡng tối thiểu (0 - 100%)."
   },
   {
     type: "MinFlightHours",
-    label: "Minimum Flight Training Hours (MinFlightHours)",
+    label: "Giờ bay tích lũy tối thiểu",
     unit: "hrs",
     defaultThreshold: 10,
     min: 0,
     max: 999.99,
     hasThreshold: true,
-    description: "Minimum accumulated flight training hours required (0 - 999.99 hrs)."
+    description: "Tổng giờ bay huấn luyện thực tế tích lũy bắt buộc (0 - 999.99 giờ)."
   },
   {
     type: "MinSimulatorHours",
-    label: "Minimum Simulator FSTD Hours (MinSimulatorHours)",
+    label: "Giờ mô phỏng SIM/FSTD tối thiểu",
     unit: "hrs",
     defaultThreshold: 15,
     min: 0,
     max: 999.99,
     hasThreshold: true,
-    description: "Minimum synthetic flight simulator training hours required (0 - 999.99 hrs)."
+    description: "Tổng giờ buồng lái mô phỏng tích lũy bắt buộc (0 - 999.99 giờ)."
   },
   {
     type: "AllAssessmentsPassed",
-    label: "All Theory Assessments Passed (AllAssessmentsPassed)",
+    label: "Đạt tất cả bài kiểm tra lý thuyết",
     unit: null,
     defaultThreshold: null,
     hasThreshold: false,
-    description: "Learner must achieve passing score in all theoretical assessments and exams."
+    description: "Học viên phải đạt điểm sàn ở tất cả các bài đánh giá lý thuyết."
   },
   {
     type: "AllChecklistsSignedOff",
-    label: "All Practical Checklists Signed Off (AllChecklistsSignedOff)",
+    label: "Ký xác nhận tất cả bảng kiểm thực hành",
     unit: null,
     defaultThreshold: null,
     hasThreshold: false,
-    description: "All practical skill checklists must be verified and signed off by authorized instructors."
+    description: "Tất cả bảng kiểm thao tác / kỹ năng thực hành bắt buộc phải được giảng viên ký xác nhận."
   }
 ];
 
@@ -90,7 +90,7 @@ const CompletionRequirementsSection = ({
       if (onChange) onChange(list);
     } catch (err) {
       console.error("Lỗi tải CompletionRequirements:", err);
-      setErrorMsg(parseApiError(err, tr("Unable to load completion requirements from server."), tr));
+      setErrorMsg(parseApiError(err, tr("Không thể tải điều kiện hoàn thành từ máy chủ."), tr));
     } finally {
       setLoading(false);
     }
@@ -115,8 +115,8 @@ const CompletionRequirementsSection = ({
   const handleOpenAdd = () => {
     setEditingId(null);
     setReqType("MinFlightHours");
-    setReqName("Minimum Flight Training Hours");
-    setReqDesc("Minimum flight training hours accumulated according to syllabus.");
+    setReqName(tr("Giờ bay tích lũy tối thiểu"));
+    setReqDesc(tr("Tổng giờ bay huấn luyện thực tế tích lũy bắt buộc (0 - 999.99 giờ)."));
     setThreshold("10");
     setIsMandatory(true);
     setFormValidation("");
@@ -139,8 +139,8 @@ const CompletionRequirementsSection = ({
     const cfg = REQUIREMENT_TYPES.find((t) => t.type === typeVal);
     if (cfg) {
       if (!editingId) {
-        setReqName(cfg.label.split(" (")[0]);
-        setReqDesc(cfg.description);
+        setReqName(tr(cfg.label));
+        setReqDesc(tr(cfg.description));
       }
       if (cfg.hasThreshold) {
         setThreshold(cfg.defaultThreshold != null ? String(cfg.defaultThreshold) : "");
@@ -284,7 +284,7 @@ const CompletionRequirementsSection = ({
               gap: "8px"
             }}
           >
-            {tr("COMPLETION REQUIREMENTS")}
+            {tr("TIÊU CHUẨN HOÀN THÀNH KHÓA HỌC")}
             <span
               style={{
                 fontSize: "11px",
@@ -298,7 +298,7 @@ const CompletionRequirementsSection = ({
             </span>
           </h4>
           <p style={{ margin: "4px 0 0", fontSize: "12px", color: "#64748b" }}>
-            {tr("Configure minimum thresholds for attendance, flight hours, and simulator hours for automated readiness evaluation.")}
+            {tr("Cấu hình ngưỡng tối thiểu về điểm danh, giờ bay và giờ buồng lái mô phỏng để đánh giá tự động tính sẵn sàng hoàn thành.")}
           </p>
         </div>
 
@@ -320,7 +320,7 @@ const CompletionRequirementsSection = ({
               gap: "6px"
             }}
           >
-            <span>+</span> {tr("Add Requirement")}
+            <span>+</span> {tr("Thêm tiêu chí")}
           </button>
         )}
       </div>
@@ -338,8 +338,9 @@ const CompletionRequirementsSection = ({
             lineHeight: 1.5
           }}
         >
-          <strong>{tr("Configuration Locked:")}</strong>{" "}
-          {tr("Course is active with enrolled classes. Completion criteria are protected to preserve student audit snapshots. To adjust thresholds or criteria, please use")} <strong>{tr("Clone Version")}</strong>.
+          <strong>{tr("Khóa cấu hình tiêu chuẩn hoàn thành:")}</strong>{" "}
+          {tr("Khóa học đang hoạt động và có lớp ghi danh. Tiêu chí hoàn thành được bảo vệ để đảm bảo tính toàn vẹn hồ sơ học viên. Để điều chỉnh tiêu chí, vui lòng sử dụng")}{" "}
+          <strong>{tr("Nhân bản phiên bản")}</strong>.
         </div>
       )}
 
@@ -360,7 +361,7 @@ const CompletionRequirementsSection = ({
           }}
         >
           <div>
-            <strong>{tr("Error:")}</strong> {errorMsg}
+            <strong>{tr("Lỗi:")}</strong> {errorMsg}
           </div>
           {courseId && (
             <button
@@ -378,7 +379,7 @@ const CompletionRequirementsSection = ({
                 whiteSpace: "nowrap"
               }}
             >
-              {tr("Retry")}
+              {tr("Thử lại")}
             </button>
           )}
         </div>
@@ -387,7 +388,7 @@ const CompletionRequirementsSection = ({
       {/* Requirements Table */}
       {loading ? (
         <div style={{ textAlign: "center", padding: "16px", color: "#64748b", fontSize: "12px" }}>
-          {tr("Loading completion requirements...")}
+          {tr("Đang tải điều kiện hoàn thành...")}
         </div>
       ) : items.length === 0 ? (
         <div
@@ -401,7 +402,7 @@ const CompletionRequirementsSection = ({
             fontSize: "12px"
           }}
         >
-          {tr("No specific completion requirements configured yet. The system will apply standard defaults (Attendance >= 80%, all assessments passed, and checklists signed off).")}
+          {tr("Chưa cấu hình điều kiện hoàn thành cụ thể. Hệ thống sẽ áp dụng tiêu chuẩn mặc định (Điểm danh >= 80%, đạt tất cả bài kiểm tra và ký xác nhận bảng kiểm).")}
           {!isLocked && (
             <div style={{ marginTop: "8px" }}>
               <button
@@ -417,7 +418,7 @@ const CompletionRequirementsSection = ({
                   textDecoration: "underline"
                 }}
               >
-                {tr("+ Add Criteria Now")}
+                {tr("+ Bổ sung ngay")}
               </button>
             </div>
           )}
@@ -428,11 +429,11 @@ const CompletionRequirementsSection = ({
             <thead>
               <tr style={{ background: "#f1f5f9", color: "#334155", textAlign: "left" }}>
                 <th style={{ padding: "8px 12px", width: "40px" }}>STT</th>
-                <th style={{ padding: "8px 12px" }}>{tr("Requirement & Type")}</th>
-                <th style={{ padding: "8px 12px", width: "130px" }}>{tr("Threshold")}</th>
-                <th style={{ padding: "8px 12px", width: "100px" }}>{tr("Mandatory")}</th>
-                <th style={{ padding: "8px 12px", width: "80px" }}>{tr("Version")}</th>
-                {!isLocked && <th style={{ padding: "8px 12px", textAlign: "right", width: "100px" }}>{tr("Actions")}</th>}
+                <th style={{ padding: "8px 12px" }}>{tr("Tiêu chí & Phân loại")}</th>
+                <th style={{ padding: "8px 12px", width: "130px" }}>{tr("Ngưỡng yêu cầu")}</th>
+                <th style={{ padding: "8px 12px", width: "100px" }}>{tr("Bắt buộc")}</th>
+                <th style={{ padding: "8px 12px", width: "80px" }}>{tr("Phiên bản")}</th>
+                {!isLocked && <th style={{ padding: "8px 12px", textAlign: "right", width: "100px" }}>{tr("Thao tác")}</th>}
               </tr>
             </thead>
             <tbody>
@@ -445,7 +446,7 @@ const CompletionRequirementsSection = ({
                     <td style={{ padding: "8px 12px" }}>
                       <strong style={{ color: "#002147", display: "block" }}>{item.requirementName}</strong>
                       <span style={{ fontSize: "11px", color: "#64748b" }}>
-                        {item.requirementType || "Advisory"} {item.description ? `• ${item.description}` : ""}
+                        {item.requirementType || tr("Tham khảo")} {item.description ? `• ${item.description}` : ""}
                       </span>
                     </td>
                     <td style={{ padding: "8px 12px" }}>
@@ -462,7 +463,7 @@ const CompletionRequirementsSection = ({
                           ≥ {Number(item.thresholdValue).toFixed(item.requirementType === "MinAttendance" ? 0 : 1)} {unitStr}
                         </span>
                       ) : (
-                        <span style={{ color: "#64748b", fontStyle: "italic" }}>{tr("Qualitative")}</span>
+                        <span style={{ color: "#64748b", fontStyle: "italic" }}>{tr("Định tính")}</span>
                       )}
                     </td>
                     <td style={{ padding: "8px 12px" }}>
@@ -477,10 +478,10 @@ const CompletionRequirementsSection = ({
                             fontSize: "11px"
                           }}
                         >
-                          {tr("Mandatory")}
+                          {tr("Bắt buộc")}
                         </span>
                       ) : (
-                        <span style={{ color: "#64748b", fontSize: "11px" }}>{tr("Advisory")}</span>
+                        <span style={{ color: "#64748b", fontSize: "11px" }}>{tr("Tham khảo")}</span>
                       )}
                     </td>
                     <td style={{ padding: "8px 12px", color: "#475569", fontWeight: "600" }}>
@@ -500,7 +501,7 @@ const CompletionRequirementsSection = ({
                             marginRight: "8px"
                           }}
                         >
-                          {tr("Edit")}
+                          {tr("Sửa")}
                         </button>
                         <button
                           type="button"
@@ -513,7 +514,7 @@ const CompletionRequirementsSection = ({
                             fontSize: "12px"
                           }}
                         >
-                          {tr("Delete")}
+                          {tr("Xóa")}
                         </button>
                       </td>
                     )}
@@ -563,7 +564,7 @@ const CompletionRequirementsSection = ({
               }}
             >
               <h3 style={{ margin: 0, fontSize: "16px", color: "#002147", fontWeight: "700" }}>
-                {editingId ? tr("Edit Completion Requirement") : tr("Add New Completion Requirement")}
+                {editingId ? tr("Chỉnh sửa Tiêu chuẩn Hoàn thành") : tr("Thêm Tiêu chuẩn Hoàn thành Mới")}
               </h3>
               <button
                 type="button"
@@ -594,7 +595,7 @@ const CompletionRequirementsSection = ({
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 <div>
                   <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "4px" }}>
-                    {tr("Requirement Type *")}
+                    {tr("Phân loại tiêu chuẩn *")}
                   </label>
                   <select
                     value={reqType}
@@ -620,13 +621,13 @@ const CompletionRequirementsSection = ({
 
                 <div>
                   <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "4px" }}>
-                    {tr("Requirement Display Name *")}
+                    {tr("Tên tiêu chuẩn hiển thị *")}
                   </label>
                   <input
                     type="text"
                     value={reqName}
                     onChange={(e) => setReqName(e.target.value)}
-                    placeholder={tr("Enter requirement name...")}
+                    placeholder={tr("Nhập tên điều kiện...")}
                     required
                     style={{
                       width: "100%",
@@ -641,7 +642,7 @@ const CompletionRequirementsSection = ({
                 {selectedTypeConfig.hasThreshold && (
                   <div>
                     <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "4px" }}>
-                      {tr("Threshold Value")} ({selectedTypeConfig.unit}) *
+                      {tr("Ngưỡng giá trị")} ({selectedTypeConfig.unit}) *
                     </label>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <input
@@ -665,20 +666,20 @@ const CompletionRequirementsSection = ({
                       </span>
                     </div>
                     <div style={{ fontSize: "11px", color: "#64748b", marginTop: "3px" }}>
-                      {tr("Allowed range:")} {selectedTypeConfig.min} - {selectedTypeConfig.max} {selectedTypeConfig.unit}
+                      {tr("Khoảng giá trị cho phép:")} {selectedTypeConfig.min} - {selectedTypeConfig.max} {selectedTypeConfig.unit}
                     </div>
                   </div>
                 )}
 
                 <div>
                   <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "4px" }}>
-                    {tr("Description / Notes")}
+                    {tr("Mô tả / Ghi chú")}
                   </label>
                   <textarea
                     rows={2}
                     value={reqDesc}
                     onChange={(e) => setReqDesc(e.target.value)}
-                    placeholder={tr("Enter additional notes for this requirement...")}
+                    placeholder={tr("Nhập ghi chú bổ sung cho tiêu chí này...")}
                     style={{
                       width: "100%",
                       padding: "8px 10px",
@@ -698,7 +699,7 @@ const CompletionRequirementsSection = ({
                     style={{ accentColor: "#002147", cursor: "pointer", width: "16px", height: "16px" }}
                   />
                   <label htmlFor="isMandatoryCheck" style={{ fontSize: "13px", color: "#334155", cursor: "pointer" }}>
-                    <strong>{tr("Mandatory to complete course (Mandatory)")}</strong>
+                    <strong>{tr("Bắt buộc để hoàn thành khóa học")}</strong>
                   </label>
                 </div>
               </div>
@@ -728,7 +729,7 @@ const CompletionRequirementsSection = ({
                     cursor: "pointer"
                   }}
                 >
-                  {tr("Cancel")}
+                  {tr("Hủy")}
                 </button>
                 <button
                   type="submit"

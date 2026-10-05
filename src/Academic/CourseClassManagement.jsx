@@ -740,7 +740,7 @@ const CourseClassManagement = () => {
               .toUpperCase() === codeUpper,
         )
       ) {
-        toast.error(tr("Class Code existed"));
+        toast.error(tr("Mã lớp học đã tồn tại. Vui lòng nhập một mã mới duy nhất."));
         return;
       }
 
@@ -754,7 +754,7 @@ const CourseClassManagement = () => {
             String(c.className || "").trim().toLowerCase() === cleanName.toLowerCase(),
         )
       ) {
-        toast.error(tr("Class Name existed. Please use a different name to distinct classes."));
+        toast.error(tr("Tên lớp học đã tồn tại. Vui lòng nhập tên khác để phân biệt."));
         return;
       }
 
@@ -2042,7 +2042,7 @@ const CourseClassManagement = () => {
                                         setViewingClassDetail(cls);
                                       }}
                                     >
-                                      👁️ {tr("Xem")}
+                                      {tr("Xem")}
                                     </button>
 
                                     {/* More Actions Menu Button: ⋯ */}
@@ -2871,7 +2871,6 @@ const CourseClassManagement = () => {
                       setViewingClassDetail(cls);
                     }}
                   >
-                    <span style={{ fontSize: "14px" }}>👁️</span>
                     <span>{tr("Xem chi tiết lớp học")}</span>
                   </button>
 

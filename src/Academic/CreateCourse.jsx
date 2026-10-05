@@ -226,7 +226,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
       return !(Number(crit?.requiredHours) >= 1);
     });
     if (hasZeroHourSubject) {
-      toast.error(tr('subject default hours must be larger than 0'));
+      toast.error(tr('Số giờ mặc định của từng môn học phải lớn hơn 0'));
       return;
     }
 
@@ -311,12 +311,12 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
         }}
       >
         <header className="modal-header">
-          <h2>{tr("CREATE NEW COURSE (SUBJECT CONFIGURATION REQUIRED)")}</h2>
+          <h2>{tr("TẠO KHÓA HỌC MỚI (YÊU CẦU CẤU HÌNH MÔN HỌC)")}</h2>
           <button
             className="close-btn"
             type="button"
             onClick={onCancel}
-            aria-label={tr("Close")}
+            aria-label={tr("Đóng")}
           >
             &times;
           </button>
@@ -341,13 +341,13 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
             >
               <strong>
                 {tr(
-                  "Mandatory ETR Business Rule (Section 3 - Business Rules):",
+                  "Quy tắc nghiệp vụ ETR bắt buộc (Mục 3 - Business Rules):",
                 )}
               </strong>
               <br />
               <i>
                 {tr(
-                  '"A Course must have at least one Subject configured in COURSE_SUBJECT before opening Enrollment."',
+                  '"Khóa học phải có ít nhất một Môn học được cấu hình trong COURSE_SUBJECT trước khi mở Ghi danh."',
                 )}
               </i>
             </div>
@@ -370,15 +370,15 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   paddingBottom: "8px",
                 }}
               >
-                {tr("BASIC COURSE INFORMATION")}
+                {tr("THÔNG TIN KHÓA HỌC CƠ BẢN")}
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="course-code">{tr("Course Code *")}</label>
+                  <label htmlFor="course-code">{tr("Mã khóa học *")}</label>
                   <input
                     id="course-code"
                     type="text"
-                    placeholder={tr("e.g. AV-MNT-102")}
+                    placeholder={tr("Ví dụ: AV-MNT-102")}
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     required
@@ -386,8 +386,8 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                 </div>
                 <div className="form-group">
                   <label htmlFor="course-duration">
-                    {tr("Duration (Hours)")}{" "}
-                    {tr("(Calculated from selected subjects)")}
+                    {tr("Thời lượng (Giờ)")}{" "}
+                    {tr("(Tính tự động từ các môn học đã chọn)")}
                   </label>
                   <input
                     id="course-duration"
@@ -404,12 +404,12 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="course-name">{tr("Course Name *")}</label>
+                <label htmlFor="course-name">{tr("Tên khóa học *")}</label>
                 <input
                   id="course-name"
                   type="text"
                   placeholder={tr(
-                    "Enter training course name (e.g. Aircraft Maintenance & Systems Engineering)",
+                    "Nhập tên khóa đào tạo (Ví dụ: Kỹ thuật Bảo dưỡng Tàu bay & Hệ thống)",
                   )}
                   value={name}
                   onChange={handleNameChange}
@@ -430,7 +430,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="course-desc">{tr("Course Description")}</label>
+                <label htmlFor="course-desc">{tr("Mô tả khóa học")}</label>
                 <textarea
                   id="course-desc"
                   className="premium-textarea"
@@ -444,7 +444,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                     outline: "none",
                   }}
                   placeholder={tr(
-                    "Enter training syllabus summary or course overview...",
+                    "Nhập tóm tắt giáo trình hoặc tổng quan khóa học...",
                   )}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -482,10 +482,10 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                       color: "#002147",
                     }}
                   >
-                    {tr("TARGET AUDIENCE / DEPARTMENTS ELIGIBLE FOR ENROLLMENT")}
+                    {tr("ĐỐI TƯỢNG ĐÀO TẠO / PHÒNG BAN ĐƯỢC PHÉP GHI DANH")}
                   </span>
                   <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                    {tr("Select departments eligible for this course. Leave blank to allow all departments (Unrestricted).")}
+                    {tr("Chọn các phòng ban được phép tham gia khóa học này. Để trống nếu áp dụng cho tất cả phòng ban (Không giới hạn).")}
                   </div>
                 </div>
                 <span
@@ -500,14 +500,14 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   }}
                 >
                   {selectedDepartmentIds.length > 0
-                    ? `${tr("Restricted")} (${selectedDepartmentIds.length})`
-                    : tr("All Departments (Unrestricted)")}
+                    ? `${tr("Giới hạn")} (${selectedDepartmentIds.length})`
+                    : tr("Tất cả phòng ban (Không giới hạn)")}
                 </span>
               </div>
 
               {loadingDepartments ? (
                 <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic" }}>
-                  {tr("Loading department list...")}
+                  {tr("Đang tải danh sách phòng ban...")}
                 </div>
               ) : departmentLoadError ? (
                 <div
@@ -520,11 +520,11 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                     border: "1px solid #fecaca",
                   }}
                 >
-                  {tr("Unable to load departments due to server issue. Please try again later.")}
+                  {tr("Không thể tải danh sách phòng ban do lỗi máy chủ. Vui lòng thử lại sau.")}
                 </div>
               ) : availableDepartments.length === 0 ? (
                 <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic" }}>
-                  {tr("No specific departments found. Course will be open to all learners.")}
+                  {tr("Không tìm thấy phòng ban cụ thể. Khóa học sẽ mở cho tất cả học viên.")}
                 </div>
               ) : (
                 <div
@@ -609,7 +609,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                       color: "#002147",
                     }}
                   >
-                    {tr("COURSE SUBJECT CONFIGURATION (COURSE SUBJECTS) *")}
+                    {tr("CẤU HÌNH MÔN HỌC KHÓA ĐÀO TẠO *")}
                   </span>
                   {availableSubjects.length > 0 && (
                     <div style={{ display: "flex", gap: "6px" }}>
@@ -627,7 +627,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                           fontWeight: "600",
                         }}
                       >
-                        {tr("Select All")} ({availableSubjects.length})
+                        {tr("Chọn tất cả")} ({availableSubjects.length})
                       </button>
                       <button
                         type="button"
@@ -643,7 +643,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                           fontWeight: "500",
                         }}
                       >
-                        {tr("Deselect All")}
+                        {tr("Bỏ chọn tất cả")}
                       </button>
                     </div>
                   )}
@@ -656,8 +656,8 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   }}
                 >
                   {isSubjectValid
-                    ? `${tr("Selected:")} ${selectedSubjectIds.length} ${tr("subjects")}`
-                    : tr("Select at least 1 subject")}
+                    ? `${tr("Đã chọn:")} ${selectedSubjectIds.length} ${tr("môn học")}`
+                    : tr("Chọn tối thiểu 1 môn học")}
                 </span>
               </div>
 
@@ -669,7 +669,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                     padding: "8px 0",
                   }}
                 >
-                  {tr("Loading subject curriculum...")}
+                  {tr("Đang tải danh mục môn học...")}
                 </div>
               ) : (
                 <div
@@ -788,11 +788,11 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                                 flexWrap: "wrap",
                               }}
                             >
-                              <span>{tr("Duration:")} <strong>{sub.defaultHours || 20}</strong> {tr("hrs")}</span>
+                              <span>{tr("Thời lượng:")} <strong>{sub.defaultHours || 20}</strong> {tr("giờ")}</span>
                               <span>•</span>
-                              <span>{tr("Sessions:")} <strong>{sub.minSessions || Math.max(1, Math.ceil((sub.defaultHours || 20) / 4))}</strong></span>
+                              <span>{tr("Số buổi:")} <strong>{sub.minSessions || Math.max(1, Math.ceil((sub.defaultHours || 20) / 4))}</strong></span>
                               <span>•</span>
-                              <span>{tr("Method:")} <strong>{sub.assessmentMethod || "Exam"}</strong></span>
+                              <span>{tr("Hình thức đánh giá:")} <strong>{sub.assessmentMethod ? tr(sub.assessmentMethod) : tr("Thi")}</strong></span>
                               <span
                                 style={{
                                   fontSize: "10px",
@@ -803,7 +803,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                                   fontWeight: "600",
                                 }}
                               >
-                                {tr("Active")}
+                                {tr("Đang hoạt động")}
                               </span>
                             </div>
                           </div>
@@ -838,7 +838,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   }}
                 >
                   {tr(
-                    "Select at least 1 subject. Courses without subjects are strictly blocked by the backend during enrollment.",
+                    "Vui lòng chọn tối thiểu 1 môn học. Khóa học không có môn học sẽ bị chặn khi ghi danh.",
                   )}
                 </div>
               )}
@@ -863,7 +863,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                     }}
                   >
                     {tr(
-                      "⚙️ Subject Criteria (Hours, Passing Score, Required Sessions, Mandatory)",
+                      "Tiêu chí môn học (Số giờ, Điểm đạt, Số buổi, Bắt buộc)",
                     )}
                   </div>
                   {availableSubjects
@@ -918,7 +918,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                                 textTransform: "uppercase",
                               }}
                             >
-                              {tr("Required Hours")}
+                              {tr("Số giờ yêu cầu")}
                             </span>
                             <input
                               type="number"
@@ -957,7 +957,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                                 textTransform: "uppercase",
                               }}
                             >
-                              {tr("Passing Score")} (0-100)
+                              {tr("Điểm đạt")} (0-100)
                             </span>
                             <input
                               type="number"
@@ -997,7 +997,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                                 textTransform: "uppercase",
                               }}
                             >
-                              {tr("Required Sessions")} *
+                              {tr("Số buổi bắt buộc")} *
                             </span>
                             <input
                               type="number"
@@ -1036,7 +1036,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                                 textTransform: "uppercase",
                               }}
                             >
-                              {tr("Mandatory")}
+                              {tr("Bắt buộc")}
                             </span>
                             <input
                               type="checkbox"
@@ -1076,11 +1076,11 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   paddingBottom: "8px",
                 }}
               >
-                {tr("GRADE WEIGHT STRUCTURE (TOTAL = 100%)")}
+                {tr("CẤU TRÚC TRỌNG SỐ ĐIỂM (TỔNG = 100%)")}
               </div>
 
               <div className="form-group">
-                <label htmlFor="course-theory">{tr("Theory (%)")}</label>
+                <label htmlFor="course-theory">{tr("Lý thuyết (%)")}</label>
                 <input
                   id="course-theory"
                   type="number"
@@ -1095,7 +1095,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="course-practice">{tr("Practical (%)")}</label>
+                <label htmlFor="course-practice">{tr("Thực hành (%)")}</label>
                 <input
                   id="course-practice"
                   type="number"
@@ -1112,7 +1112,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="course-assign">{tr("Assignment (%)")}</label>
+                  <label htmlFor="course-assign">{tr("Bài tập (%)")}</label>
                   <input
                     id="course-assign"
                     type="number"
@@ -1127,7 +1127,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="course-attend">{tr("Attendance (%)")}</label>
+                  <label htmlFor="course-attend">{tr("Chuyên cần (%)")}</label>
                   <input
                     id="course-attend"
                     type="number"
@@ -1175,7 +1175,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                       color: "#002147",
                     }}
                   >
-                    {tr("TOTAL WEIGHT:")} {totalWeight}%
+                    {tr("TỔNG TRỌNG SỐ:")} {totalWeight}%
                   </span>
                 </div>
                 <span
@@ -1186,8 +1186,8 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   }}
                 >
                   {isWeightValid
-                    ? tr("Valid (100%)")
-                    : tr("Total weight must equal 100%")}
+                    ? tr("Hợp lệ (100%)")
+                    : tr("Tổng trọng số các cột điểm phải bằng 100%")}
                 </span>
               </div>
             </div>
@@ -1205,7 +1205,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                   paddingBottom: "8px",
                 }}
               >
-                {tr("OPERATING STATUS")}
+                {tr("TRẠNG THÁI HOẠT ĐỘNG")}
               </div>
               <div style={{ display: "flex", gap: "16px" }}>
                 <label
@@ -1227,7 +1227,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                     onChange={() => setStatus("HOẠT ĐỘNG")}
                     style={{ accentColor: "#002147" }}
                   />
-                  <span>{tr("Active (Ready to open classes & enrollments)")}</span>
+                  <span>{tr("Hoạt động (Sẵn sàng mở lớp & ghi danh)")}</span>
                 </label>
                 <label
                   style={{
@@ -1248,7 +1248,7 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
                     onChange={() => setStatus("TẠM DỪNG")}
                     style={{ accentColor: "#002147" }}
                   />
-                  <span>{tr("Paused (Enrollment not opened)")}</span>
+                  <span>{tr("Tạm dừng (Chưa mở ghi danh)")}</span>
                 </label>
               </div>
             </div>
@@ -1273,14 +1273,14 @@ const CreateCourse = ({ onSave, onCancel, nextCourseCode }) => {
             }}
           >
             <button className="cancel-btn" type="button" onClick={onCancel}>
-              {tr("CANCEL")}
+              {tr("HỦY BỎ")}
             </button>
             <button
               className="save-btn gold-gradient-btn"
               type="submit"
               disabled={!isWeightValid || !isSubjectValid}
             >
-              {tr("CREATE COURSE & CONFIGURE SUBJECTS")}
+              {tr("TẠO KHÓA HỌC & CẤU HÌNH MÔN HỌC")}
             </button>
           </footer>
         </form>

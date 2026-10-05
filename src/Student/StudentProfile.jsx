@@ -788,7 +788,7 @@ const StudentProfile = () => {
                         className="secondary-btn"
                         style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '6px', textDecoration: 'none', color: '#004a99' }}
                       >
-                        👁️ {tr('Xem')}
+                        {tr('Xem')}
                       </a>
                       <button
                         type="button"

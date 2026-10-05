@@ -490,7 +490,7 @@ const SubjectManagement = () => {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    👁️ {tr('Chi tiết')}
+                    {tr('Chi tiết')}
                   </button>
                   <button
                     type="button"
