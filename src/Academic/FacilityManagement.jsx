@@ -650,9 +650,11 @@ const FacilityManagement = () => {
         {totalPages > 1 && (
           <div style={{ padding: "14px 18px", borderTop: "1px solid #e2e8f0" }}>
             <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
+              page={currentPage}
+              pageCount={totalPages}
+              onChange={setCurrentPage}
+              total={filteredFacilities.length}
+              pageSize={10}
             />
           </div>
         )}
