@@ -33,6 +33,7 @@ export const buildSrToAccountMap = async (etrs) => {
   );
 
   const srToAccount = {};
+  const srToMeta = {};
   const lockedSrIds = new Set();
   const etrDetailsById = {};
   await Promise.all(
@@ -49,35 +50,77 @@ export const buildSrToAccountMap = async (etrs) => {
         if (enrollment && enrollment.accountId) {
           srToAccount[sr.subjectResultId] = enrollment.accountId;
         }
+        srToMeta[sr.subjectResultId] = {
+          subjectId: sr.subjectId,
+          etrId,
+          enrollmentId: details.enrollmentId,
+          accountId: enrollment?.accountId,
+          classId: enrollment?.classId,
+          courseId: enrollment?.courseId,
+        };
         if (isLockedEtr) {
           lockedSrIds.add(sr.subjectResultId);
         }
       });
     })
   );
-  return { srToAccount, lockedSrIds, etrDetailsById };
+  return { srToAccount, srToMeta, lockedSrIds, etrDetailsById };
 };
 
 /**
  * Trả về tên học viên của một evidence.
+ * - Ưu tiên ev.learnerName từ BE (đã enrich).
  * - Ưu tiên accountId trực tiếp (bản ghi mới đã được sửa).
- * - Fallback sang accountId suy ra từ subjectResultId (bản ghi cũ bị lưu nhầm accountId).
- *
- * @param {Object} ev Evidence response từ GET /Evidences.
- * @param {Array} profilesArr UserProfileResponse list.
- * @param {Object} srToAccount map subjectResultId → accountId.
- * @returns {string} Tên học viên hoặc fallback "Student #<accountId>".
+ * - Fallback sang accountId suy ra từ subjectResultId.
  */
-export const resolveEvidenceLearner = (ev, profilesArr, srToAccount = {}) => {
-  const findName = (accountId) => {
+export const resolveEvidenceLearner = (ev, profilesArr = [], srToAccount = {}) => {
+  if (ev?.learnerName && ev.learnerName !== "-") {
+    return ev.learnerCode ? `${ev.learnerName} (${ev.learnerCode})` : ev.learnerName;
+  }
+
+  const findProfile = (accountId) => {
     if (!accountId) return null;
-    const profile = profilesArr.find((p) => p.accountId === accountId);
-    return profile?.fullName || null;
+    return profilesArr.find((p) => p.accountId === accountId);
   };
 
-  return (
-    findName(ev.accountId) ||
-    findName(srToAccount[ev.subjectResultId]) ||
-    `Student #${ev.accountId || ""}`
-  );
+  const profile = findProfile(ev?.accountId) || findProfile(srToAccount[ev?.subjectResultId]);
+  if (profile?.fullName) {
+    return profile.userCode ? `${profile.fullName} (${profile.userCode})` : profile.fullName;
+  }
+
+  return `Student #${ev?.accountId || ""}`;
 };
+
+/**
+ * Trả về tên người tải lên (giảng viên / nhân viên).
+ */
+export const resolveEvidenceInstructor = (ev, profilesArr = []) => {
+  if (ev?.uploadedByName) return ev.uploadedByName;
+  if (!ev?.uploadedByAccountId) return "—";
+  const profile = profilesArr.find((p) => p.accountId === ev.uploadedByAccountId);
+  if (profile?.fullName) {
+    return profile.userCode ? `${profile.fullName} (${profile.userCode})` : profile.fullName;
+  }
+  return `Account #${ev.uploadedByAccountId}`;
+};
+
+const DEFAULT_EVIDENCE_TYPES = {
+  1: "Practical Checklist",
+  2: "Flight / Simulator Logbook",
+  3: "Assessment Result Sheet",
+  4: "Medical / License Credential",
+  5: "Training Signoff / Certificate",
+};
+
+/**
+ * Trả về tên loại minh chứng.
+ */
+export const resolveEvidenceType = (ev, evidenceTypesArr = []) => {
+  if (ev?.evidenceTypeName) return ev.evidenceTypeName;
+  const match = (Array.isArray(evidenceTypesArr) ? evidenceTypesArr : []).find(
+    (t) => (t.evidenceTypeId || t.id) === ev?.evidenceTypeId
+  );
+  if (match?.typeName || match?.name) return match.typeName || match.name;
+  return DEFAULT_EVIDENCE_TYPES[ev?.evidenceTypeId] || `Type #${ev?.evidenceTypeId || "—"}`;
+};
+

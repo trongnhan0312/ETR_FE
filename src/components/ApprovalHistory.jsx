@@ -18,9 +18,30 @@ const ApprovalHistory = ({ etrId, onClose }) => {
     setLoading(true);
     setError("");
     try {
-      // Backend /Audit trả PagedResponse ({ items }) và chỉ cho role Admin/Audit.
-      // QA/Instructor/TrainingManager không đọc được /Audit → fallback sang /Approvals
-      // (role: Admin,Instructor,QA,TrainingManager,Audit) để vẫn hiển thị trạng thái phê duyệt.
+      // 1. Ưu tiên đọc từ /Etr/{id}/dossier — backend đã tổng hợp toàn bộ các mốc vòng đời
+      // (Submit -> Verify -> Approve -> Lock, Return, Reopen) kèm tên đầy đủ người duyệt và nhận xét.
+      try {
+        const dossier = await api.get(`/Etr/${etrId}/dossier`);
+        const histories = Array.isArray(dossier?.approvalHistories) ? dossier.approvalHistories : [];
+        if (histories.length > 0) {
+          const mapped = histories
+            .sort((a, b) => new Date(b.actionAt || 0) - new Date(a.actionAt || 0))
+            .map((h) => ({
+              time: formatDateTime(h.actionAt),
+              action: (h.actionType || "—").toUpperCase(),
+              actor: h.actionByName || `Account #${h.actionByAccountId || "?"}`,
+              fromStatus: h.previousStatus || "—",
+              toStatus: h.newStatus || "—",
+              description: h.comments || "",
+            }));
+          setLogEntries(mapped);
+          return;
+        }
+      } catch (err) {
+        console.warn("Dossier approval history unavailable, falling back...", err);
+      }
+
+      // 2. Fallback: đọc từ /Audit (dành cho Admin/Audit role)
       let audits = null;
       try {
         const data = await api.get("/Audit?page=1&pageSize=100");
@@ -60,7 +81,7 @@ const ApprovalHistory = ({ etrId, onClose }) => {
 
         setLogEntries(mapped);
       } else {
-        // Fallback: đọc ApprovalRequest theo ETR (QA/Instructor/TrainingManager)
+        // 3. Fallback: đọc ApprovalRequest theo ETR (QA/Instructor/TrainingManager)
         const approvals = await api.get("/Approvals").catch(() => []);
         const reqs = (Array.isArray(approvals) ? approvals : []).filter(
           (r) =>

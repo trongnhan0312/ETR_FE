@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ApexChart from "../components/ApexChart";
 import { fetchMyDashboard } from "../utils/dashboardApi";
+import { api } from "../utils/api";
+import EtrDossierModal from "../components/EtrDossierModal";
 import { useLanguage } from '../context/LanguageContext';
 import "../dashboard.scss";
 
@@ -10,19 +12,60 @@ const QADashboard = () => {
   const { trEn } = useLanguage();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingEtrs, setPendingEtrs] = useState([]);
+  const [selectedDossierEtrId, setSelectedDossierEtrId] = useState(null);
 
-  // Chỉ 1 lần gọi GET /api/Dashboard/my-dashboard — backend đã gom sẵn evidenceSummary,
-  // reviewedToday và recentEvidenceFiles (kèm learnerName) cho role QA.
+  const loadData = async () => {
+    try {
+      const [dash, etrs, enrollments, profiles, courses, classes] = await Promise.all([
+        fetchMyDashboard().catch(() => null),
+        api.get("/Etr").catch(() => []),
+        api.get("/Enrollments").catch(() => []),
+        api.get("/UserProfiles").catch(() => api.get("/UserProfiles/learners").catch(() => [])),
+        api.get("/Courses").catch(() => []),
+        api.get("/Classes").catch(() => []),
+      ]);
+      setDashboard(dash);
+
+      const etrsArr = Array.isArray(etrs) ? etrs : [];
+      const enrollmentsArr = Array.isArray(enrollments) ? enrollments : [];
+      const profilesArr = Array.isArray(profiles) ? profiles : [];
+      const coursesArr = Array.isArray(courses) ? courses : [];
+      const classesArr = Array.isArray(classes) ? classes : [];
+
+      const profileMap = new Map(profilesArr.map((p) => [p.accountId, p]));
+      const classMap = new Map(classesArr.map((c) => [c.classId, c]));
+      const courseMap = new Map(coursesArr.map((c) => [c.courseId, c]));
+
+      const submitted = etrsArr
+        .filter((e) => e.status === "Submitted")
+        .map((e) => {
+          const enr = enrollmentsArr.find((en) => en.enrollmentId === e.enrollmentId);
+          const p = enr ? profileMap.get(enr.accountId) : null;
+          const cls = enr ? classMap.get(enr.classId) : null;
+          const crs = cls ? courseMap.get(cls.courseId) : null;
+          return {
+            etrId: e.etrCourseRecordId || e.eTRCourseRecordId,
+            etrCode: `ETR-${String(e.etrCourseRecordId || e.eTRCourseRecordId).padStart(4, "0")}`,
+            learner: p?.fullName
+              ? (p.userCode ? `${p.fullName} (${p.userCode})` : p.fullName)
+              : `Student #${enr?.accountId || ""}`,
+            course: crs?.courseName
+              ? `${crs.courseName} (${cls?.classCode || cls?.className || `Lớp #${enr?.classId}`})`
+              : (cls?.className || `Lớp #${enr?.classId || ""}`),
+            submittedAt: e.submittedAt ? new Date(e.submittedAt).toLocaleString("vi-VN") : "—",
+          };
+        });
+
+      setPendingEtrs(submitted);
+    } catch (err) {
+      console.error("Error loading QA dashboard:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setDashboard(await fetchMyDashboard());
-      } catch (err) {
-        console.error("Error loading QA dashboard:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadData();
   }, []);
 
@@ -31,7 +74,7 @@ const QADashboard = () => {
 
   const metrics = {
     pendingEvidence: es?.pending ?? 0,
-    pendingEtrs: dashboard?.pendingVerificationEtrIds?.length ?? 0,
+    pendingEtrs: pendingEtrs.length || (dashboard?.pendingVerificationEtrIds?.length ?? 0),
     rejectedEvidence: es?.rejected ?? 0,
     reviewedToday: dashboard?.reviewedToday ?? 0,
   };
@@ -290,43 +333,142 @@ const QADashboard = () => {
         </div>
       </section>
 
-      {/* Recent Evidence Files */}
-      <section className="table-card" style={{ padding: "20px 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <div>
-            <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#002147", margin: 0 }}>{trEn('Uploaded Evidence Files')}</h2>
-            <p style={{ fontSize: "12px", color: "rgba(0,33,71,0.5)", margin: "4px 0 0" }}>
-              {trEn('Recently uploaded evidence files across the system.')}
-            </p>
+      {/* Dual Work Queues: Pending ETR Reviews & Uploaded Evidence Files */}
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px" }}>
+        {/* Pending ETR Reviews Queue */}
+        <div className="table-card" style={{ padding: "20px 24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div>
+              <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#002147", margin: 0 }}>
+                {trEn('Pending ETR Reviews')}
+              </h2>
+              <p style={{ fontSize: "12px", color: "rgba(0,33,71,0.5)", margin: "4px 0 0" }}>
+                {trEn('Dossiers submitted and awaiting QA verification.')}
+              </p>
+            </div>
+            <span className="dash-badge dash-badge-warn">
+              {pendingEtrs.length} {trEn('pending')}
+            </span>
           </div>
-          <span className="dash-badge dash-badge-locked">{evidenceTotal} {trEn('files')}</span>
-        </div>
-        {loading ? (
-          <div className="dash-empty">{trEn('Loading data...')}</div>
-        ) : evidenceFiles.length === 0 ? (
-          <div className="dash-empty">{trEn('No evidence files uploaded yet.')}</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {evidenceFiles.map((file) => (
-              <div
-                key={file.id}
-                style={{ padding: "12px 14px", borderRadius: "12px", background: "#f8fafc", border: "1px solid #dfe6f1", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: "13px", fontWeight: "700", color: "#002147" }}>{file.fileName}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
-                    {file.learner}
-                    {file.uploadedAt ? ` · ${new Date(file.uploadedAt).toLocaleString("vi-VN")}` : ""}
-                  </p>
+
+          {loading ? (
+            <div className="dash-empty">{trEn('Loading data...')}</div>
+          ) : pendingEtrs.length === 0 ? (
+            <div className="dash-empty">{trEn('No ETRs awaiting QA review.')}</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {pendingEtrs.slice(0, 5).map((etr) => (
+                <div
+                  key={etr.etrId}
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: "12px",
+                    background: "#f8fafc",
+                    border: "1px solid #dfe6f1",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: "13px", fontWeight: "700", color: "#002147" }}>
+                      <span style={{ color: "#c5a059", marginRight: "6px" }}>{etr.etrCode}</span>
+                      {etr.learner}
+                    </p>
+                    <p style={{ margin: "2px 0 0", fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
+                      {etr.course} · {etr.submittedAt}
+                    </p>
+                  </div>
+                  <button
+                    className="dash-btn-sm"
+                    type="button"
+                    onClick={() => setSelectedDossierEtrId(etr.etrId)}
+                    style={{ padding: "6px 12px", fontSize: "11px", whiteSpace: "nowrap" }}
+                  >
+                    {trEn('Review')} →
+                  </button>
                 </div>
-                <span className={`dash-badge ${file.status === "Verified" ? "dash-badge-compliant" : file.status === "Rejected" ? "dash-badge-danger" : "dash-badge-warn"}`}>
-                  {trEn(file.status)}
-                </span>
-              </div>
-            ))}
+              ))}
+              {pendingEtrs.length > 5 && (
+                <button
+                  type="button"
+                  className="qa-btn-secondary"
+                  onClick={() => navigate("/qa/reviews")}
+                  style={{ marginTop: "6px", width: "100%", textAlign: "center", fontSize: "12px" }}
+                >
+                  {trEn('View All')} ({pendingEtrs.length}) →
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Evidence Files */}
+        <div className="table-card" style={{ padding: "20px 24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div>
+              <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#002147", margin: 0 }}>
+                {trEn('Uploaded Evidence Files')}
+              </h2>
+              <p style={{ fontSize: "12px", color: "rgba(0,33,71,0.5)", margin: "4px 0 0" }}>
+                {trEn('Recently uploaded evidence files across the system.')}
+              </p>
+            </div>
+            <span className="dash-badge dash-badge-locked">{evidenceTotal} {trEn('files')}</span>
           </div>
-        )}
+          {loading ? (
+            <div className="dash-empty">{trEn('Loading data...')}</div>
+          ) : evidenceFiles.length === 0 ? (
+            <div className="dash-empty">{trEn('No evidence files uploaded yet.')}</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {evidenceFiles.slice(0, 5).map((file) => (
+                <div
+                  key={file.id}
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: "12px",
+                    background: "#f8fafc",
+                    border: "1px solid #dfe6f1",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: "13px", fontWeight: "700", color: "#002147" }}>{file.fileName}</p>
+                    <p style={{ margin: "2px 0 0", fontSize: "12px", color: "rgba(0,33,71,0.6)" }}>
+                      {file.learner}
+                      {file.uploadedAt ? ` · ${new Date(file.uploadedAt).toLocaleString("vi-VN")}` : ""}
+                    </p>
+                  </div>
+                  <span className={`dash-badge ${file.status === "Verified" ? "dash-badge-compliant" : file.status === "Rejected" ? "dash-badge-danger" : "dash-badge-warn"}`}>
+                    {trEn(file.status)}
+                  </span>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="qa-btn-secondary"
+                onClick={() => navigate("/qa/evidence")}
+                style={{ marginTop: "6px", width: "100%", textAlign: "center", fontSize: "12px" }}
+              >
+                {trEn('Go to Evidence Verification')} →
+              </button>
+            </div>
+          )}
+        </div>
       </section>
+
+      {/* Dossier Modal when reviewing an ETR from Dashboard */}
+      <EtrDossierModal
+        etrId={selectedDossierEtrId}
+        isOpen={!!selectedDossierEtrId}
+        onClose={() => setSelectedDossierEtrId(null)}
+        onActionSuccess={loadData}
+      />
     </div>
   );
 };

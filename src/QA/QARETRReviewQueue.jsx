@@ -1,33 +1,13 @@
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { api } from "../utils/api";
 import ConfirmModal from "../components/ConfirmModal";
 import PromptModal from "../components/PromptModal";
 import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import ApprovalHistory from "../components/ApprovalHistory";
+import EtrDossierModal from "../components/EtrDossierModal";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
-import {
-  isEtrCompleted,
-  areAllAttendanceRatesOk,
-  areSubjectScoresFinalized,
-  subjectStatusBadge,
-} from "../utils/etrStatus";
-
-// Dòng hiển thị 1 bước kiểm duyệt trong modal chi tiết ETR
-const StepStatusRow = ({ label, ok }) => {
-  const { tr } = useLanguage();
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-      <span>{tr(label)}</span>
-      <span style={{ color: ok ? '#15803d' : '#d97706', fontWeight: 'bold' }}>
-        {ok ? tr('✓ ĐÃ XÁC THỰC') : tr('⌛ ĐANG CHỜ')}
-      </span>
-    </div>
-  );
-};
-
 const QARETRReviewQueue = () => {
   const { tr, trEn } = useLanguage();
   const [etrRecords, setEtrRecords] = useState([]);
@@ -46,8 +26,6 @@ const QARETRReviewQueue = () => {
 
   // Modal xem chi tiết đầy đủ ETR + bản đồ tên môn/đánh giá/checklist/evidence
   const [detailTarget, setDetailTarget] = useState(null);
-  const [etrDetail, setEtrDetail] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
 
   // Lịch sử duyệt: mở rộng nội tuyến dòng history để xem ApprovalHistory của ETR đó
   const [expandedHistoryEtrId, setExpandedHistoryEtrId] = useState(null);
@@ -68,16 +46,43 @@ const QARETRReviewQueue = () => {
   const loadEtrs = async () => {
     setLoading(true);
     try {
-      const data = await api.get("/Etr").catch(() => []);
+      const [data, enrollments, profiles, approvals, courses, classes] = await Promise.all([
+        api.get("/Etr").catch(() => []),
+        api.get("/Enrollments").catch(() => []),
+        api.get("/UserProfiles").catch(() => api.get("/UserProfiles/learners").catch(() => [])),
+        api.get("/Approvals").catch(() => []),
+        api.get("/Courses").catch(() => []),
+        api.get("/Classes").catch(() => []),
+      ]);
       const etrs = Array.isArray(data) ? data : [];
-      const enrollments = await api.get("/Enrollments").catch(() => []);
       const enrollmentsArr = Array.isArray(enrollments) ? enrollments : [];
-      const profiles = await api.get("/UserProfiles/learners").catch(() => []);
       const profilesArr = Array.isArray(profiles) ? profiles : [];
-      // Approval requests: CurrentStatus phân biệt Rejected vs ReturnedForCorrection
-      // (ETR.Status của cả 2 đều là ReturnedForCorrection — chỉ ApprovalRequest phân biệt được).
-      const approvals = await api.get("/Approvals").catch(() => []);
       const approvalsArr = Array.isArray(approvals) ? approvals : [];
+      const coursesArr = Array.isArray(courses) ? courses : [];
+      const classesArr = Array.isArray(classes) ? classes : [];
+
+      const profileMap = new Map(profilesArr.map((p) => [p.accountId, p]));
+      const classMap = new Map(classesArr.map((c) => [c.classId, c]));
+      const courseMap = new Map(coursesArr.map((c) => [c.courseId, c]));
+
+      const getLearnerText = (enrollment) => {
+        if (!enrollment) return "—";
+        const profile = profileMap.get(enrollment.accountId);
+        if (profile?.fullName) {
+          return profile.userCode ? `${profile.fullName} (${profile.userCode})` : profile.fullName;
+        }
+        return `Student #${enrollment.accountId || ""}`;
+      };
+
+      const getCourseText = (enrollment) => {
+        if (!enrollment) return "—";
+        const cls = classMap.get(enrollment.classId);
+        const course = courseMap.get(cls?.courseId);
+        if (course?.courseName) {
+          return `${course.courseName} (${cls?.classCode || cls?.className || `Lớp #${enrollment.classId}`})`;
+        }
+        return cls?.className || `Lớp #${enrollment.classId || ""}`;
+      };
 
       const submitted = etrs
         .filter((e) => e.status === "Submitted")
@@ -85,24 +90,16 @@ const QARETRReviewQueue = () => {
           const enrollment = enrollmentsArr.find(
             (enr) => enr.enrollmentId === etr.enrollmentId
           );
-          const profile = enrollment
-            ? profilesArr.find((p) => p.accountId === enrollment.accountId)
-            : null;
           return {
             id: `ETR-${String(etr.etrCourseRecordId || etr.eTRCourseRecordId).padStart(4, "0")}`,
             etrId: etr.etrCourseRecordId || etr.eTRCourseRecordId,
-            learner: profile?.fullName || `Student #${enrollment?.accountId || ""}`,
-            course: `Lớp #${enrollment?.classId || ""}`,
+            learner: getLearnerText(enrollment),
+            course: getCourseText(enrollment),
             stage: "Submitted",
           };
         });
 
-      // Lịch sử duyệt: HIỂN THỊ TẤT CẢ các ETR (không lọc trạng thái) kèm trạng thái duyệt:
-      //   - approvalStatus ưu tiên từ ApprovalRequest (Approved/Rejected/ReturnedForCorrection/Verified/Pending)
-      //   - fallback về ETR.Status (Completed/ReturnedForCorrection/Verified/Submitted/InProgress/...)
-      // LƯU Ý: mỗi lần Submit tạo MỘT ApprovalRequest mới → cùng ETR có thể có nhiều request
-      // theo vòng đời (Pending → Rejected → gửi lại → Pending mới). Phải sắp xếp theo
-      // submittedAt giảm dần rồi mới build map (last-wins) để request MỚI NHẤT được ưu tiên.
+      // Lịch sử duyệt: HIỂN THỊ TẤT CẢ các ETR kèm trạng thái duyệt
       const approvalByEtr = {};
       [...approvalsArr]
         .sort(
@@ -121,9 +118,6 @@ const QARETRReviewQueue = () => {
           const enrollment = enrollmentsArr.find(
             (enr) => enr.enrollmentId === etr.enrollmentId
           );
-          const profile = enrollment
-            ? profilesArr.find((p) => p.accountId === enrollment.accountId)
-            : null;
           const etrId = etr.etrCourseRecordId || etr.eTRCourseRecordId;
           const approvalStatus = approvalByEtr[etrId] || null;
           const rawStatus = approvalStatus || etr.status;
@@ -155,8 +149,8 @@ const QARETRReviewQueue = () => {
           return {
             id: `ETR-${String(etrId).padStart(4, "0")}`,
             etrId,
-            learner: profile?.fullName || `Student #${enrollment?.accountId || ""}`,
-            course: `Lớp #${enrollment?.classId || ""}`,
+            learner: getLearnerText(enrollment),
+            course: getCourseText(enrollment),
             status: rawStatus,
             outcome,
             decidedAt:
@@ -182,7 +176,6 @@ const QARETRReviewQueue = () => {
   };
 
   // Tải bản đồ tên (môn học / assessment / practical checklist) + trạng thái evidence
-  // để modal chi tiết hiển thị tên thật thay vì chỉ mã ID.
   const loadDetailMaps = async () => {
     const [subjects, assessments, checklists, evidences] = await Promise.all([
       api.get("/Subjects").catch(() => []),
@@ -213,22 +206,9 @@ const QARETRReviewQueue = () => {
     setEvidenceBySrId(evMap);
   };
 
-  // Mở modal chi tiết ETR: lấy GET /Etr/{id} (kết quả môn học, điểm, approval history, evidence)
-  const handleViewDetails = async (record) => {
+  // Mở modal ETR Dossier đầy đủ (6 tabs, điểm số, chuyên cần, chữ ký, minh chứng, lịch sử)
+  const handleViewDetails = (record) => {
     setDetailTarget(record);
-    setEtrDetail(null);
-    setDetailLoading(true);
-    try {
-      const details = await api.get(`/Etr/${record.etrId}`).catch(() => null);
-      // Chống race condition: bỏ qua response cũ nếu user đã mở ETR khác trong lúc chờ
-      setDetailTarget((cur) => {
-        if (!cur || cur.etrId !== record.etrId) return cur;
-        setEtrDetail(details);
-        return cur;
-      });
-    } finally {
-      setDetailLoading(false);
-    }
   };
 
   const confirmVerify = async () => {
@@ -267,32 +247,6 @@ const QARETRReviewQueue = () => {
       setReturnTarget(null);
     }
   };
-
-  // —— Tính trạng thái các bước kiểm duyệt từ dữ liệu thật (không gắn vào ETR status) ——
-  const detailSubjectResults = Array.isArray(etrDetail?.subjectResults)
-    ? etrDetail.subjectResults
-    : [];
-  // Logic dùng chung với trang Academic — xem utils/etrStatus.js +
-  // src/test/EtrWorkflowSteps.test.jsx (ETR mới: chưa điểm danh/chưa chốt điểm → ⌛).
-  const detailAttendanceOk = areAllAttendanceRatesOk(detailSubjectResults);
-  const detailResultsOk = areSubjectScoresFinalized(detailSubjectResults);
-  const detailEvidenceTotal = detailSubjectResults.reduce(
-    (n, sr) => n + (evidenceBySrId[sr.subjectResultId]?.length || 0),
-    0
-  );
-  const detailEvidenceVerified = detailSubjectResults.reduce(
-    (n, sr) =>
-      n +
-      (evidenceBySrId[sr.subjectResultId]?.filter(
-        (e) => e.verificationStatus === "Verified"
-      ).length || 0),
-    0
-  );
-  const detailEvidenceOk =
-    (detailEvidenceTotal > 0 &&
-      detailEvidenceVerified === detailEvidenceTotal) ||
-    etrDetail?.status === "Verified" ||
-    isEtrCompleted(etrDetail?.status);
 
   // Lọc lịch sử duyệt theo từ khóa: mã ETR (ETR-0001 / 1), tên học viên, khóa, trạng thái
   const filteredHistoryRecords = historyRecords.filter((record) => {
@@ -673,543 +627,13 @@ const QARETRReviewQueue = () => {
         />
       </section>
 
-      {/* Modal xem chi tiết đầy đủ ETR (toàn bộ thông tin trước khi Verify/Return)
-          Render qua createPortal → document.body: tránh bị "position: fixed" kẹt trong vùng
-          nội dung (lệch phải do menu trái + animation transform của .qa-shell), giúp modal
-          luôn nằm chính giữa toàn màn hình. */}
-      {detailTarget &&
-        createPortal(
-          <div className="modal-overlay">
-          <div className="modal-container" style={{ width: "860px", maxWidth: "95%" }}>
-            <header className="modal-header">
-              <h2>{trEn('ETR Full Details')}</h2>
-              <button
-                className="close-btn"
-                type="button"
-                onClick={() => setDetailTarget(null)}
-                aria-label={tr('Đóng')}
-              >
-                &times;
-              </button>
-            </header>
-
-            <div
-              className="modal-body"
-              style={{
-                padding: "28px",
-                maxHeight: "78vh",
-                overflowY: "auto",
-                backgroundColor: "#fdfdfd",
-              }}
-            >
-              {detailLoading ? (
-                <div style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>
-                  {tr('Đang tải...')}
-                </div>
-              ) : !etrDetail ? (
-                <div style={{ padding: "32px", textAlign: "center", color: "#dc2626" }}>
-                  {tr('Không thể tải chi tiết ETR.')}
-                </div>
-              ) : (
-                <>
-                  {/* ETR Header Title — giống ETR FINAL SHEET bên Academic */}
-                  <div style={{ textAlign: "center", marginBottom: "22px" }}>
-                    <h3
-                      style={{
-                        fontSize: "20px",
-                        fontWeight: 900,
-                        color: "#002147",
-                        textTransform: "uppercase",
-                        margin: 0,
-                      }}
-                    >
-                      ETR TRAINING ACADEMY
-                    </h3>
-                    <h4
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 700,
-                        color: "#c5a059",
-                        margin: "4px 0 0",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      ELECTRONIC TRAINING RECORD (ETR)
-                    </h4>
-                    <div
-                      style={{
-                        width: "60px",
-                        height: "2px",
-                        backgroundColor: "#c5a059",
-                        margin: "10px auto 0",
-                      }}
-                    />
-                  </div>
-
-                  {/* Thông tin hồ sơ */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, 1fr)",
-                      gap: "14px",
-                      border: "1px solid #e0e4e8",
-                      borderRadius: "8px",
-                      padding: "18px",
-                      backgroundColor: "#ffffff",
-                      marginBottom: "18px",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 900,
-                          color: "rgba(0,33,71,0.4)",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {tr('MÃ ETR HỒ SƠ')}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "15px",
-                          fontWeight: 800,
-                          color: "#c5a059",
-                          marginTop: "4px",
-                        }}
-                      >
-                        {detailTarget.id}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 900,
-                          color: "rgba(0,33,71,0.4)",
-                          textTransform: "uppercase",
-                          marginTop: "12px",
-                        }}
-                      >
-                        {tr('HỌC VIÊN ĐÀO TẠO')}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "14px",
-                          fontWeight: 700,
-                          color: "#002147",
-                          marginTop: "4px",
-                        }}
-                      >
-                        {detailTarget.learner}
-                      </div>
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 900,
-                          color: "rgba(0,33,71,0.4)",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {tr('KHÓA ĐÀO TẠO')}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "14px",
-                          fontWeight: 700,
-                          color: "#002147",
-                          marginTop: "4px",
-                        }}
-                      >
-                        {detailTarget.course}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 900,
-                          color: "rgba(0,33,71,0.4)",
-                          textTransform: "uppercase",
-                          marginTop: "12px",
-                        }}
-                      >
-                        {tr('TRẠNG THÁI')}
-                      </div>
-                      <span
-                        className={`qa-status ${
-                          isEtrCompleted(etrDetail.status) ||
-                          etrDetail.status === "Verified"
-                            ? "reviewed"
-                            : "pending"
-                        }`}
-                        style={{ marginTop: "4px" }}
-                      >
-                        {trEn(etrDetail.status)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* CHI TIẾT KIỂM DUYỆT CÁC BƯỚC HỒ SƠ */}
-                  <div
-                    style={{
-                      border: "1px solid #e0e4e8",
-                      borderRadius: "8px",
-                      padding: "18px",
-                      backgroundColor: "#ffffff",
-                      marginBottom: "18px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: "12px",
-                        color: "#002147",
-                        textTransform: "uppercase",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      {tr('CHI TIẾT KIỂM DUYỆT CÁC BƯỚC HỒ SƠ')}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <StepStatusRow label={`1. ${tr('Hồ sơ thông tin cá nhân:')}`} ok />
-                      <StepStatusRow
-                        label={`2. ${tr('Điểm danh / Chuyên cần:')}`}
-                        ok={detailAttendanceOk}
-                      />
-                      <StepStatusRow
-                        label={`3. ${tr('Điểm số kết quả kiểm tra:')}`}
-                        ok={detailResultsOk}
-                      />
-                      <StepStatusRow
-                        label={`4. ${tr('Minh chứng đính kèm hồ sơ:')}`}
-                        ok={detailEvidenceOk}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Kết quả môn học + điểm chi tiết */}
-                  <div
-                    style={{
-                      border: "1px solid #e0e4e8",
-                      borderRadius: "8px",
-                      padding: "18px",
-                      backgroundColor: "#ffffff",
-                      marginBottom: "18px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: "12px",
-                        color: "#002147",
-                        textTransform: "uppercase",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      {tr('KẾT QUẢ MÔN HỌC & ĐIỂM')} ({detailSubjectResults.length})
-                    </div>
-                    {detailSubjectResults.length === 0 ? (
-                      <div
-                        style={{
-                          padding: "12px",
-                          textAlign: "center",
-                          color: "#64748b",
-                          fontStyle: "italic",
-                        }}
-                      >
-                        {tr('Chưa có kết quả môn học.')}
-                      </div>
-                    ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                        {detailSubjectResults.map((sr) => {
-                          const subject = subjectMap[sr.subjectId];
-                          const assessments = sr.assessmentResults || [];
-                          const practicals = sr.practicalChecklistResults || [];
-                          const srEvidences = evidenceBySrId[sr.subjectResultId] || [];
-                          return (
-                            <div
-                              key={sr.subjectResultId}
-                              style={{
-                                border: "1px solid #e5eaf2",
-                                borderRadius: "10px",
-                                padding: "12px 14px",
-                                backgroundColor: "#fbfdff",
-                              }}
-                            >
-                              {/* Tiêu đề môn học */}
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  flexWrap: "wrap",
-                                  gap: "8px",
-                                }}
-                              >
-                                <strong style={{ fontSize: "13px", color: "#002147" }}>
-                                  {subject
-                                    ? `${subject.subjectCode || ""} — ${subject.subjectName}`
-                                    : `Môn #${sr.subjectId}`}
-                                </strong>
-                                <span
-                                  style={{
-                                    fontSize: "11px",
-                                    fontWeight: 700,
-                                    color: "#475569",
-                                  }}
-                                >
-                                  {tr('Trạng thái')}:{" "}
-                                  {/* Nhãn/màu dùng chung với trang Academic (utils/etrStatus.js)
-                                      để không hiển thị enum thô (Pending/Passed/...) ở đây nữa. */}
-                                  <span
-                                    style={{
-                                      color: subjectStatusBadge(sr).color,
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    {tr(subjectStatusBadge(sr).label)}
-                                  </span>
-                                  {" "}
-                                  · {tr('Chuyên cần')}:{" "}
-                                  <strong>{sr.attendanceRate ?? 0}%</strong>
-                                  {" "}
-                                  · {tr('Ký duyệt')}:{" "}
-                                  <strong>{sr.isSignedOff ? "✓" : "—"}</strong>
-                                </span>
-                              </div>
-
-                              {/* Điểm assessment */}
-                              {assessments.length > 0 && (
-                                <div style={{ marginTop: "10px" }}>
-                                  <div
-                                    style={{
-                                      fontSize: "10px",
-                                      fontWeight: 800,
-                                      color: "#94a3b8",
-                                      textTransform: "uppercase",
-                                      marginBottom: "4px",
-                                    }}
-                                  >
-                                    {tr('ĐIỂM KIỂM TRA (ASSESSMENT)')}
-                                  </div>
-                                  {assessments.map((ar) => {
-                                    const a = assessmentMap[ar.assessmentId];
-                                    return (
-                                      <div
-                                        key={ar.assessmentResultId}
-                                        style={{
-                                          display: "flex",
-                                          justifyContent: "space-between",
-                                          fontSize: "12px",
-                                          padding: "4px 0",
-                                          borderTop: "1px dashed #e2e8f0",
-                                        }}
-                                      >
-                                        <span style={{ color: "#475569" }}>
-                                          {a
-                                            ? a.componentName
-                                            : `Assessment #${ar.assessmentId}`}
-                                        </span>
-                                        <span style={{ color: "#475569" }}>
-                                          {tr('Điểm')}:{" "}
-                                          <strong style={{ color: "#002147" }}>
-                                            {ar.score}
-                                          </strong>{" "}
-                                          · {ar.resultStatus} · {tr('Lần')} {ar.attemptNo}{" "}
-                                          ·{" "}
-                                          <span
-                                            style={{
-                                              color: ar.isPublished
-                                                ? "#15803d"
-                                                : "#b45309",
-                                              fontWeight: 700,
-                                            }}
-                                          >
-                                            {ar.isPublished
-                                              ? tr('ĐÃ CHỐT')
-                                              : tr('CHƯA CHỐT')}
-                                          </span>
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-
-                              {/* Kết quả practical checklist */}
-                              {practicals.length > 0 && (
-                                <div style={{ marginTop: "8px" }}>
-                                  <div
-                                    style={{
-                                      fontSize: "10px",
-                                      fontWeight: 800,
-                                      color: "#94a3b8",
-                                      textTransform: "uppercase",
-                                      marginBottom: "4px",
-                                    }}
-                                  >
-                                    {tr('BẢNG KIỂM THỰC HÀNH (PRACTICAL)')}
-                                  </div>
-                                  {practicals.map((pr) => {
-                                    const c = checklistMap[pr.practicalChecklistId];
-                                    return (
-                                      <div
-                                        key={pr.practicalChecklistResultId}
-                                        style={{
-                                          display: "flex",
-                                          justifyContent: "space-between",
-                                          fontSize: "12px",
-                                          padding: "4px 0",
-                                          borderTop: "1px dashed #e2e8f0",
-                                        }}
-                                      >
-                                        <span style={{ color: "#475569" }}>
-                                          {c
-                                            ? c.itemName
-                                            : `Checklist #${pr.practicalChecklistId}`}
-                                        </span>
-                                        <span style={{ color: "#475569" }}>
-                                          {pr.resultStatus}{" "}
-                                          ·{" "}
-                                          <span
-                                            style={{
-                                              color: pr.isPublished
-                                                ? "#15803d"
-                                                : "#b45309",
-                                              fontWeight: 700,
-                                            }}
-                                          >
-                                            {pr.isPublished
-                                              ? tr('ĐÃ CHỐT')
-                                              : tr('CHƯA CHỐT')}
-                                          </span>
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-
-                              {/* Evidence của môn này */}
-                              {srEvidences.length > 0 && (
-                                <div style={{ marginTop: "8px" }}>
-                                  <div
-                                    style={{
-                                      fontSize: "10px",
-                                      fontWeight: 800,
-                                      color: "#94a3b8",
-                                      textTransform: "uppercase",
-                                      marginBottom: "4px",
-                                    }}
-                                  >
-                                    {tr('MINH CHỨNG')} ({srEvidences.length})
-                                  </div>
-                                  {srEvidences.map((ev) => (
-                                    <div
-                                      key={ev.evidenceFileId}
-                                      style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        fontSize: "12px",
-                                        padding: "4px 0",
-                                        borderTop: "1px dashed #e2e8f0",
-                                      }}
-                                    >
-                                      <span
-                                        style={{
-                                          color: "#475569",
-                                          overflow: "hidden",
-                                          textOverflow: "ellipsis",
-                                          whiteSpace: "nowrap",
-                                          maxWidth: "60%",
-                                        }}
-                                        title={ev.fileName}
-                                      >
-                                        {ev.fileName || `Evidence #${ev.evidenceFileId}`}
-                                      </span>
-                                      <span
-                                        style={{
-                                          fontWeight: 700,
-                                          fontSize: "11px",
-                                          color:
-                                            ev.verificationStatus === "Verified"
-                                              ? "#15803d"
-                                              : ev.verificationStatus === "Rejected"
-                                                ? "#b91c1c"
-                                                : "#b45309",
-                                        }}
-                                      >
-                                        {ev.verificationStatus || "Pending"}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Lịch sử phê duyệt */}
-                  <div
-                    style={{
-                      border: "1px solid #e0e4e8",
-                      borderRadius: "8px",
-                      padding: "18px",
-                      backgroundColor: "#ffffff",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: "12px",
-                        color: "#002147",
-                        textTransform: "uppercase",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      {tr('LỊCH SỬ PHÊ DUYỆT')}
-                    </div>
-                    <ApprovalHistory etrId={detailTarget.etrId} />
-                  </div>
-
-                  {/* Action buttons inside detail modal for Submitted ETRs */}
-                  {etrDetail?.status === "Submitted" && (
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px", padding: "14px 0", borderTop: "1px solid #e0e4e8" }}>
-                      <button
-                        className="qa-btn-secondary"
-                        type="button"
-                        style={{ color: "#b91c1c", borderColor: "#fca5a5", padding: "8px 16px" }}
-                        onClick={() => {
-                          setReturnTarget(detailTarget.etrId);
-                          setDetailTarget(null);
-                        }}
-                        disabled={verifying}
-                      >
-                        ↺ {trEn('Return for Correction')}
-                      </button>
-                      <button
-                        className="qa-btn"
-                        type="button"
-                        style={{ backgroundColor: "#15803d", borderColor: "#15803d", color: "#ffffff", fontWeight: "600", padding: "8px 18px" }}
-                        onClick={() => {
-                          setConfirmVerifyId(detailTarget.etrId);
-                          setDetailTarget(null);
-                        }}
-                        disabled={verifying}
-                      >
-                        ✓ {trEn('Verify ETR')}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-          </div>,
-          document.body
-        )}
+      {/* Modal ETR Dossier Đầy Đủ — 6 Tabs (Tổng quan, Môn học, Điểm danh, Điểm kiểm tra, Minh chứng & Ký duyệt, Lịch sử phê duyệt) */}
+      <EtrDossierModal
+        etrId={detailTarget?.etrId}
+        isOpen={!!detailTarget}
+        onClose={() => setDetailTarget(null)}
+        onActionSuccess={loadEtrs}
+      />
 
       {/* Xác nhận xác thực ETR */}
       <ConfirmModal

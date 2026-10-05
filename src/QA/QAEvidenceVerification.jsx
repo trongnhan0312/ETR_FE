@@ -8,6 +8,8 @@ import { useLanguage } from '../context/LanguageContext';
 import {
   buildSrToAccountMap,
   resolveEvidenceLearner,
+  resolveEvidenceInstructor,
+  resolveEvidenceType,
 } from "../utils/evidenceEnrich";
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
@@ -35,23 +37,46 @@ const QAEvidenceVerification = () => {
   const loadEvidences = async () => {
     setLoading(true);
     try {
-      const data = await api.get("/Evidences").catch(() => []);
-      const evfs = Array.isArray(data) ? data : [];
-      // EvidenceFile trả về AccountId (học viên) + SubjectResultId — nối tên học viên qua AccountId,
-      // fallback qua subjectResultId (bản ghi tải lên cũ bị lưu nhầm accountId của giảng viên).
-      const [profiles, srData] = await Promise.all([
-        api.get("/UserProfiles/learners").catch(() => []),
+      const [data, profiles, subjects, evidenceTypes, courses, classes, srData] = await Promise.all([
+        api.get("/Evidences").catch(() => []),
+        api.get("/UserProfiles").catch(() => api.get("/UserProfiles/learners").catch(() => [])),
+        api.get("/Subjects").catch(() => []),
+        api.get("/EvidenceTypes").catch(() => []),
+        api.get("/Courses").catch(() => []),
+        api.get("/Classes").catch(() => []),
         buildSrToAccountMap(),
       ]);
+
+      const evfs = Array.isArray(data) ? data : [];
       const profilesArr = Array.isArray(profiles) ? profiles : [];
       const srToAccount = srData?.srToAccount || {};
-      // subjectResultId thuộc ETR đang Completed/Locked — backend chặn sửa evidence (không Verify/Reject được)
+      const srToMeta = srData?.srToMeta || {};
       const lockedSrIds = srData?.lockedSrIds || new Set();
 
+      const subjectMap = new Map((Array.isArray(subjects) ? subjects : []).map((s) => [s.subjectId, s]));
+      const courseMap = new Map((Array.isArray(courses) ? courses : []).map((c) => [c.courseId, c]));
+      const classMap = new Map((Array.isArray(classes) ? classes : []).map((c) => [c.classId, c]));
+      const profileMap = new Map(profilesArr.map((p) => [p.accountId, p]));
+
       const mapped = evfs.map((ev) => {
+        const srMeta = srToMeta[ev.subjectResultId] || {};
+        const subject = subjectMap.get(srMeta.subjectId);
+        const cls = classMap.get(srMeta.classId);
+        const course = courseMap.get(cls?.courseId || srMeta.courseId);
+
+        const instructorName = ev.uploadedByName || resolveEvidenceInstructor(ev, profilesArr);
+        const learner = resolveEvidenceLearner(ev, profilesArr, srToAccount);
+        const evidenceTypeName = resolveEvidenceType(ev, evidenceTypes);
+        const subjectCode = ev.subjectCode || subject?.subjectCode || "";
+        const subjectName = ev.subjectName || subject?.subjectName || "";
+        const courseName = ev.courseName || course?.courseName || "";
+        const className = ev.className || cls?.className || cls?.classCode || "";
+        const verifiedProfile = ev.verifiedByAccountId ? profileMap.get(ev.verifiedByAccountId) : null;
+        const verifiedByName = verifiedProfile?.fullName || (ev.verifiedByAccountId ? `Account #${ev.verifiedByAccountId}` : null);
+
         return {
           id: ev.evidenceFileId,
-          learner: resolveEvidenceLearner(ev, profilesArr, srToAccount),
+          learner,
           locked: lockedSrIds.has(ev.subjectResultId),
           evidence: ev.fileName || "File",
           fileName: ev.fileName || "File",
@@ -68,15 +93,19 @@ const QAEvidenceVerification = () => {
           verificationComment: ev.verificationComment || "",
           subjectResultId: ev.subjectResultId,
           accountId: ev.accountId,
-          // URL Cloudinary thật của file — dùng để tải/xem trước trực tiếp.
-          // Lưu ý: GET /Evidences/{id}/download của BE trả 302 REDIRECT sang Cloudinary
-          // (không trả byte file), nên fetch qua api.downloadFile bị CORS chặn → "Download failed".
           fileUrl: ev.fileUrl || ev.FileUrl || "",
           uploadedByAccountId: ev.uploadedByAccountId ?? ev.uploadedBy ?? null,
+          instructorName,
           verifiedByAccountId: ev.verifiedByAccountId ?? null,
+          verifiedByName,
           verifiedAt: ev.verifiedAt
             ? new Date(ev.verifiedAt).toLocaleString("vi-VN")
             : "",
+          evidenceTypeName,
+          subjectCode,
+          subjectName,
+          courseName,
+          className,
         };
       });
 
@@ -478,9 +507,20 @@ const QAEvidenceVerification = () => {
                   onClick={() => openReview(row)}
                   title={trEn('Xem trước / Review')}
                 >
-                  <p className="qa-list-title">{row.learner}</p>
+                  <p className="qa-list-title">
+                    {row.learner}
+                    {row.courseName ? ` · ${row.courseName}` : ""}
+                    {row.className ? ` (${row.className})` : ""}
+                  </p>
                   <p className="qa-list-desc">
+                    {row.evidenceTypeName && (
+                      <span style={{ fontWeight: 700, color: "#002147", marginRight: "6px" }}>
+                        [{row.evidenceTypeName}]
+                      </span>
+                    )}
                     {row.evidence}
+                    {row.subjectName ? ` · ${row.subjectCode ? `[${row.subjectCode}] ` : ""}${row.subjectName}` : ""}
+                    {row.instructorName ? ` · ${trEn('by')} ${row.instructorName}` : ""}
                     {row.uploadedAt ? ` · ${row.uploadedAt}` : ""}
                   </p>
                 </div>
@@ -744,7 +784,37 @@ const QAEvidenceVerification = () => {
                 <div className="qa-kv-grid">
                   <div className="qa-kv">
                     <strong>{trEn('Learner')}</strong>
-                    <span>{reviewTarget.learner}</span>
+                    <span style={{ fontWeight: 600, color: "#002147" }}>{reviewTarget.learner}</span>
+                  </div>
+                  <div className="qa-kv">
+                    <strong>{trEn('Evidence Type')}</strong>
+                    <span style={{ fontWeight: 600, color: "#c5a059" }}>
+                      {reviewTarget.evidenceTypeName || "—"}
+                    </span>
+                  </div>
+                  <div className="qa-kv">
+                    <strong>{trEn('Course')}</strong>
+                    <span>{reviewTarget.courseName || "—"}</span>
+                  </div>
+                  <div className="qa-kv">
+                    <strong>{trEn('Class')}</strong>
+                    <span>{reviewTarget.className || "—"}</span>
+                  </div>
+                  <div className="qa-kv">
+                    <strong>{tr('Subject')}</strong>
+                    <span>
+                      {reviewTarget.subjectCode ? `[${reviewTarget.subjectCode}] ` : ""}
+                      {reviewTarget.subjectName || (reviewTarget.subjectResultId ? `SR #${reviewTarget.subjectResultId}` : "—")}
+                    </span>
+                  </div>
+                  <div className="qa-kv">
+                    <strong>{trEn('Uploaded By')}</strong>
+                    <span>
+                      {reviewTarget.instructorName || (reviewTarget.uploadedByAccountId ? `Account #${reviewTarget.uploadedByAccountId}` : "—")}
+                      {reviewTarget.uploadedByAccountId && reviewTarget.instructorName && !reviewTarget.instructorName.includes(String(reviewTarget.uploadedByAccountId))
+                        ? ` (Account #${reviewTarget.uploadedByAccountId})`
+                        : ""}
+                    </span>
                   </div>
                   <div className="qa-kv">
                     <strong>{trEn('File')}</strong>
@@ -755,27 +825,12 @@ const QAEvidenceVerification = () => {
                     <span>{reviewTarget.uploadedAt || "N/A"}</span>
                   </div>
                   <div className="qa-kv">
-                    <strong>{trEn('Size')}</strong>
+                    <strong>{trEn('Size')} / {trEn('Type')}</strong>
                     <span>
                       {reviewTarget.fileSize
                         ? `${(reviewTarget.fileSize / (1024 * 1024)).toFixed(2)} MB`
                         : "—"}
-                    </span>
-                  </div>
-                  <div className="qa-kv">
-                    <strong>{trEn('Type')}</strong>
-                    <span>{reviewTarget.mimeType || "—"}</span>
-                  </div>
-                  <div className="qa-kv">
-                    <strong>{tr('Subject Result')}</strong>
-                    <span>#{reviewTarget.subjectResultId ?? "—"}</span>
-                  </div>
-                  <div className="qa-kv">
-                    <strong>{trEn('Uploaded By')}</strong>
-                    <span>
-                      {reviewTarget.uploadedByAccountId
-                        ? `Account #${reviewTarget.uploadedByAccountId}`
-                        : "—"}
+                      {reviewTarget.mimeType ? ` · ${reviewTarget.mimeType}` : ""}
                     </span>
                   </div>
                 </div>
@@ -803,14 +858,17 @@ const QAEvidenceVerification = () => {
                   <ul style={{ margin: "6px 0 0", paddingLeft: 16, fontSize: 12, color: "rgba(0,33,71,0.75)" }}>
                     <li>
                       {trEn('Submitted')}: {reviewTarget.uploadedAt || "—"}
+                      {reviewTarget.instructorName ? ` — by ${reviewTarget.instructorName}` : ""}
                     </li>
                     {reviewTarget.verifiedAt ? (
                       <li>
                         {trEn(reviewTarget.status === 'Rejected' ? 'Rejected' : 'Verified')}:{" "}
                         {reviewTarget.verifiedAt}
-                        {reviewTarget.verifiedByAccountId
-                          ? ` — Account #${reviewTarget.verifiedByAccountId}`
-                          : ""}
+                        {reviewTarget.verifiedByName
+                          ? ` — by ${reviewTarget.verifiedByName}`
+                          : reviewTarget.verifiedByAccountId
+                            ? ` — Account #${reviewTarget.verifiedByAccountId}`
+                            : ""}
                       </li>
                     ) : (
                       <li>{trEn('Awaiting QA decision')}</li>
