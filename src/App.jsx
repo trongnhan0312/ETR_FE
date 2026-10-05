@@ -239,8 +239,8 @@ function App() {
 						<Route path="export" element={<QASearchExport />} />
 						<Route path="retake-history" element={<QARetakeHistory />} />
 						<Route path="audit" element={<QAAuditTrail />} />
-						<Route path="profile" element={<QAAccount />} />
-						<Route path="password" element={<QAAccount />} />
+						<Route path="profile" element={<StaffProfile portalName="QA Space" roleScope="Quality Assurance & Regulatory Compliance" />} />
+						<Route path="password" element={<StaffProfile portalName="QA Space" roleScope="Quality Assurance & Regulatory Compliance" />} />
 						<Route path="recent" element={<QADashboard />} />
 						<Route path="rejected" element={<QAEvidenceVerification />} />
 						<Route path="history" element={<QARetakeHistory />} />
@@ -280,7 +280,7 @@ function App() {
 						<Route path="approval-history" element={<AuditorApprovalHistory />} />
 						<Route path="audit-logs" element={<AuditorAuditLogs />} />
 						<Route path="export-packages" element={<AuditorExportPackages />} />
-						<Route path="profile" element={<AuditorProfile />} />
+						<Route path="profile" element={<StaffProfile portalName="Auditor Space" roleScope="Regulatory Audit & Independent Verification" />} />
 					</Route>
 				</Route>
 

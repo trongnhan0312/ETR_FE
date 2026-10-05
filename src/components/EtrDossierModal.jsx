@@ -21,6 +21,7 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
   const [promptAction, setPromptAction] = useState(null); // 'return' | 'reopen'
   const [confirmAction, setConfirmAction] = useState(null); // 'submit' | 'verify' | 'complete'
   const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [selectedEvidence, setSelectedEvidence] = useState(null); // Evidence preview modal
 
   // Accordion open/close state for subjects
   const [openSubjects, setOpenSubjects] = useState({});
@@ -688,7 +689,12 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                       <tbody>
                         {(dossier.subjects || []).flatMap((sub) =>
                           (sub.evidenceFiles || []).map((ev) => (
-                            <tr key={ev.evidenceFileId}>
+                            <tr
+                              key={ev.evidenceFileId}
+                              style={{ cursor: "pointer" }}
+                              onClick={() => setSelectedEvidence({ ...ev, subjectCode: sub.subjectCode, subjectName: sub.subjectName })}
+                              title={tr("Nhấp để xem chi tiết minh chứng")}
+                            >
                               <td><strong>{ev.fileName}</strong></td>
                               <td>{sub.subjectCode} - {sub.subjectName}</td>
                               <td>{ev.fileType}</td>
@@ -713,19 +719,46 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
                                   </div>
                                 )}
                               </td>
-                              <td>
-                                {ev.fileUrl ? (
-                                  <a
-                                    href={ev.fileUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{ color: "#0284c7", fontWeight: "600", textDecoration: "none" }}
+                              <td onClick={(e) => e.stopPropagation()}>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedEvidence({ ...ev, subjectCode: sub.subjectCode, subjectName: sub.subjectName })}
+                                    style={{
+                                      padding: "4px 10px",
+                                      fontSize: "11px",
+                                      fontWeight: "600",
+                                      background: "#f1f5f9",
+                                      border: "1px solid #cbd5e1",
+                                      borderRadius: "6px",
+                                      color: "#0f172a",
+                                      cursor: "pointer",
+                                    }}
                                   >
-                                    🔗 {tr("View File")}
-                                  </a>
-                                ) : (
-                                  "—"
-                                )}
+                                    🔍 {tr("Chi tiết")}
+                                  </button>
+                                  {ev.fileUrl && (
+                                    <a
+                                      href={ev.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{
+                                        padding: "4px 10px",
+                                        fontSize: "11px",
+                                        fontWeight: "600",
+                                        background: "#f0f9ff",
+                                        border: "1px solid #bae6fd",
+                                        borderRadius: "6px",
+                                        color: "#0284c7",
+                                        textDecoration: "none",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                      }}
+                                    >
+                                      🔗 {tr("Mở tệp")}
+                                    </a>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))
@@ -832,9 +865,249 @@ const EtrDossierModal = ({ etrId, isOpen, onClose, onActionSuccess }) => {
           loading={actionSubmitting}
         />
       )}
+
+      {/* EVIDENCE DETAILS & PREVIEW MODAL */}
+      {selectedEvidence && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 33, 71, 0.75)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000000,
+            padding: "20px",
+          }}
+          onClick={() => setSelectedEvidence(null)}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "680px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                background: "#002147",
+                padding: "16px 24px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderBottom: "3px solid #c5a059",
+                borderTopLeftRadius: "16px",
+                borderTopRightRadius: "16px",
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, color: "#ffffff", fontSize: "16px", fontWeight: "700" }}>
+                  📎 {tr("Chi tiết minh chứng đào tạo")}
+                </h3>
+                <p style={{ margin: "4px 0 0", color: "#c5a059", fontSize: "12px", fontWeight: "600" }}>
+                  {selectedEvidence.fileName}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedEvidence(null)}
+                style={{
+                  background: "rgba(255,255,255,0.1)",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: "18px",
+                  cursor: "pointer",
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+              {/* Metadata Grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: "12px",
+                  background: "#f8fafc",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: "1px solid #e2e8f0",
+                  fontSize: "13px",
+                }}
+              >
+                <div>
+                  <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>{tr("Môn học")}</span>
+                  <div style={{ fontWeight: "700", color: "#002147", marginTop: "2px" }}>
+                    {selectedEvidence.subjectCode ? `${selectedEvidence.subjectCode} - ${selectedEvidence.subjectName}` : "—"}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>{tr("Định dạng tệp")}</span>
+                  <div style={{ fontWeight: "600", color: "#0f172a", marginTop: "2px" }}>
+                    {selectedEvidence.fileType || "application/octet-stream"}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>{tr("Người tải lên")}</span>
+                  <div style={{ fontWeight: "600", color: "#0f172a", marginTop: "2px" }}>
+                    {selectedEvidence.uploadedByName || "—"}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>{tr("Thời gian tải lên")}</span>
+                  <div style={{ fontWeight: "600", color: "#0f172a", marginTop: "2px" }}>
+                    {selectedEvidence.uploadedAt ? formatDateTime(selectedEvidence.uploadedAt) : "—"}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>{tr("Trạng thái kiểm tra QA")}</span>
+                  <div style={{ marginTop: "4px" }}>
+                    <span
+                      style={{
+                        padding: "3px 10px",
+                        borderRadius: "12px",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        background: selectedEvidence.verificationStatus === "Verified" ? "#dcfce7" : "#fee2e2",
+                        color: selectedEvidence.verificationStatus === "Verified" ? "#15803d" : "#b91c1c",
+                      }}
+                    >
+                      ● {selectedEvidence.verificationStatus || "Pending"}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>{tr("Người xác minh")}</span>
+                  <div style={{ fontWeight: "600", color: "#0f172a", marginTop: "2px" }}>
+                    {selectedEvidence.verifiedByName || "—"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Verification Comment */}
+              {selectedEvidence.verificationComment && (
+                <div style={{ background: "#fffbeb", border: "1px solid #fde68a", padding: "12px 16px", borderRadius: "10px", fontSize: "12px", color: "#92400e" }}>
+                  <strong>{tr("Ghi chú của QA")}:</strong> "{selectedEvidence.verificationComment}"
+                </div>
+              )}
+
+              {/* File Preview & Actions */}
+              <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <span style={{ fontSize: "12px", fontWeight: "700", color: "#002147", textTransform: "uppercase" }}>
+                  {tr("Nội dung tệp & Xem trước")}
+                </span>
+
+                {selectedEvidence.fileUrl ? (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+                    {/* Check if image */}
+                    {(selectedEvidence.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) || selectedEvidence.fileType?.startsWith("image/")) ? (
+                      <div style={{ width: "100%", textAlign: "center", background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                        <img
+                          src={selectedEvidence.fileUrl}
+                          alt={selectedEvidence.fileName}
+                          style={{ maxWidth: "100%", maxHeight: "320px", objectFit: "contain", borderRadius: "6px" }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ padding: "20px", textAlign: "center", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", width: "100%" }}>
+                        <p style={{ margin: "0 0 10px", fontSize: "13px", color: "#475569" }}>
+                          📄 {tr("Tệp tài liệu văn bản / PDF")} ({selectedEvidence.fileName})
+                        </p>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", gap: "10px", width: "100%", justifyContent: "flex-end" }}>
+                      <a
+                        href={selectedEvidence.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={selectedEvidence.fileName}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "10px 18px",
+                          background: "#002147",
+                          color: "#c5a059",
+                          border: "1px solid #c5a059",
+                          borderRadius: "8px",
+                          fontWeight: "700",
+                          fontSize: "12px",
+                          textDecoration: "none",
+                        }}
+                      >
+                        🔗 {tr("Mở liên kết / Tải xuống")}
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: "16px",
+                      background: "#f1f5f9",
+                      borderRadius: "10px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "12px",
+                      color: "#475569",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <span style={{ fontSize: "18px" }}>🔒</span>
+                    <div>
+                      <strong>{tr("Quyền truy cập nội dung tệp được kiểm soát")}:</strong>{" "}
+                      {tr("Tài khoản hiện tại được xem đầy đủ thông tin siêu dữ liệu kiểm định. Quyền tải trực tiếp nội dung nhị phân được phân quyền cho QA, Thanh tra và Người phụ trách.")}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: "16px 24px", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setSelectedEvidence(null)}
+                style={{
+                  padding: "8px 20px",
+                  background: "#e2e8f0",
+                  border: "none",
+                  borderRadius: "8px",
+                  color: "#334155",
+                  fontWeight: "600",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                {tr("Đóng")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );
 };
 
 export default EtrDossierModal;
+

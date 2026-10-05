@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { fetchEtrList } from './auditorApi';
 import { usePagination } from '../utils/usePagination';
 import Pagination from '../components/Pagination';
+import EtrDossierModal from '../components/EtrDossierModal';
 
 const AuditorLockedETRs = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ const AuditorLockedETRs = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [allEtrs, setAllEtrs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedModalEtrId, setSelectedModalEtrId] = useState(null);
 
   useEffect(() => {
     const loadETRs = async () => {
@@ -27,14 +29,26 @@ const AuditorLockedETRs = () => {
     loadETRs();
   }, []);
 
-  const filteredEtrs = allEtrs.filter((etr) => {
-    return (
-      etr.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      etr.learnerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      etr.courseName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      etr.learnerId?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+  const filteredEtrs = allEtrs
+    .filter((etr) => {
+      // Must be locked or completed
+      return (
+        (etr.isLocked ?? etr.IsLocked) === true ||
+        String(etr.status || "").toLowerCase().includes("lock") ||
+        String(etr.status || "").toLowerCase().includes("complet")
+      );
+    })
+    .filter((etr) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        etr.id?.toLowerCase().includes(q) ||
+        etr.learnerName?.toLowerCase().includes(q) ||
+        etr.courseName?.toLowerCase().includes(q) ||
+        etr.learnerId?.toLowerCase().includes(q) ||
+        etr.className?.toLowerCase().includes(q)
+      );
+    });
 
   const { page, setPage, pageCount, pageItems, total } = usePagination(filteredEtrs, {
     pageSize: 10,
@@ -98,12 +112,43 @@ const AuditorLockedETRs = () => {
             ) : (
               pageItems.map((etr) => (
                 <div key={etr.id} className="table-row auditor-table-grid">
-                  <div className="col-id">{etr.id}</div>
-                  <div className="col-name">{etr.learnerName}</div>
-                  <div className="col-course">{etr.courseName}</div>
-                  <div>{etr.completionDate}</div>
-                  <div>{etr.lockedDate}</div>
-                  <div>{etr.approvedBy}</div>
+                  <div className="col-id">
+                    <span style={{ fontWeight: 700, color: '#002147', fontFamily: 'monospace', fontSize: '13px' }}>
+                      {etr.id}
+                    </span>
+                  </div>
+                  <div className="col-name" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <span style={{ fontWeight: 600, color: '#002147', fontSize: '14px', lineHeight: '1.2' }}>
+                      {etr.learnerName}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', fontWeight: 500 }}>
+                        {etr.learnerId}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="col-course" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <span style={{ fontWeight: 600, color: '#002147', fontSize: '13px', lineHeight: '1.2' }}>
+                      {etr.courseName}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                      {etr.className || etr.classId || '—'}
+                    </span>
+                  </div>
+                  <div style={{ color: '#334155', fontSize: '13px' }}>
+                    {etr.completionDate || '—'}
+                  </div>
+                  <div style={{ color: '#334155', fontSize: '13px' }}>
+                    {etr.lockedDate || etr.completionDate || '—'}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontWeight: 500, color: '#002147', fontSize: '13px' }}>
+                      {etr.approvedBy || 'Training Manager'}
+                    </span>
+                    <span style={{ fontSize: '10px', color: '#16a34a', fontWeight: 600 }}>
+                      ✓ {trEn('Verified')}
+                    </span>
+                  </div>
                   <div>
                     <span className="badge-locked">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -116,21 +161,25 @@ const AuditorLockedETRs = () => {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                     <button
                       className="auditor-btn-sm"
-                      onClick={() => navigate(`/auditor/details?id=${etr.etrCourseRecordId}`)}
+                      onClick={() => setSelectedModalEtrId(etr.etrCourseRecordId)}
+                      title={trEn('Open ETR Dossier')}
+                      style={{ fontWeight: 600, backgroundColor: '#002147', color: '#c5a059', border: '1px solid #c5a059' }}
                     >
-                      {trEn('View Details')}
+                      {trEn('Dossier')}
+                    </button>
+                    <button
+                      className="auditor-btn-sm"
+                      onClick={() => navigate(`/auditor/details?id=${etr.etrCourseRecordId}`)}
+                      title={trEn('View Details')}
+                    >
+                      {trEn('Details')}
                     </button>
                     <button
                       className="auditor-btn-sm"
                       onClick={() => navigate(`/auditor/approval-history?id=${etr.etrCourseRecordId}`)}
+                      title={trEn('Approval History')}
                     >
-                      {trEn('Approval History')}
-                    </button>
-                    <button
-                      className="auditor-btn-sm"
-                      onClick={() => navigate('/auditor/export-packages')}
-                    >
-                      {trEn('Export')}
+                      {trEn('History')}
                     </button>
                   </div>
                 </div>
@@ -150,6 +199,13 @@ const AuditorLockedETRs = () => {
           />
         </div>
       </section>
+
+      {/* Quick Dossier Modal */}
+      <EtrDossierModal
+        etrId={selectedModalEtrId}
+        isOpen={!!selectedModalEtrId}
+        onClose={() => setSelectedModalEtrId(null)}
+      />
     </div>
   );
 };

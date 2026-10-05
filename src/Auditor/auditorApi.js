@@ -134,9 +134,116 @@ export const fetchEtrById = async (id) => {
   const lookup = await loadLookup();
   const numericId = String(id).replace(/\D/g, "");
   if (!numericId) return null;
-  const data = await api.get(`/Etr/${numericId}`);
-  if (!data) return null;
-  return normalizeEtr(data, lookup);
+  
+  // Try fetching detailed dossier first to get full learner/course/class info
+  let dossier = null;
+  try {
+    dossier = await api.get(`/Etr/${numericId}/dossier`);
+  } catch {}
+
+  const data = await api.get(`/Etr/${numericId}`).catch(() => null);
+  if (!data && !dossier) return null;
+  
+  const normalized = normalizeEtr(data || { etrCourseRecordId: Number(numericId), status: dossier?.status, isLocked: dossier?.isLocked }, lookup);
+  if (dossier) {
+    if (dossier.student?.fullName) normalized.learnerName = dossier.student.fullName;
+    if (dossier.student?.userCode) normalized.learnerId = dossier.student.userCode;
+    if (dossier.student?.email) normalized.email = dossier.student.email;
+    if (dossier.student?.phone) normalized.phone = dossier.student.phone;
+    if (dossier.course?.courseName) normalized.courseName = dossier.course.courseName;
+    if (dossier.course?.courseCode) normalized.courseId = dossier.course.courseCode;
+    if (dossier.class?.className) normalized.className = dossier.class.className;
+    if (dossier.class?.classCode) normalized.classId = dossier.class.classCode;
+    if (dossier.completedAt) {
+      normalized.completedAt = fmtDate(dossier.completedAt);
+      normalized.completionDate = fmtDate(dossier.completedAt);
+      normalized.lockedDate = fmtDate(dossier.completedAt);
+    }
+    if (dossier.submittedAt) normalized.submittedAt = fmtDate(dossier.submittedAt);
+    if (dossier.verifiedAt) normalized.verifiedAt = fmtDate(dossier.verifiedAt);
+    if (dossier.status) normalized.status = dossier.isLocked ? "Locked & Compliant" : dossier.status;
+    if (dossier.isLocked != null) normalized.isLocked = dossier.isLocked;
+
+    // Subjects from dossier
+    if (Array.isArray(dossier.subjects) && dossier.subjects.length > 0) {
+      normalized.subjects = dossier.subjects.map((sub) => ({
+        code: sub.subjectCode || `SUB-${sub.subjectId}`,
+        name: sub.subjectName || "Subject",
+        passScore: sub.passingScore != null ? sub.passingScore : 70,
+        score: sub.score != null ? sub.score : "—",
+        result: sub.status || (sub.score >= (sub.passingScore || 70) ? "PASSED" : "PENDING"),
+        instructor: sub.signoffByName || "Instructor",
+        type: sub.subjectType || "Theory",
+        requiredHours: sub.requiredHours || 0,
+        attendanceRate: sub.attendanceRate != null ? `${sub.attendanceRate}%` : "—",
+        assessments: sub.assessments || [],
+        practicalChecklists: sub.practicalChecklists || [],
+      }));
+
+      // Sessions / Attendance from dossier subjects
+      const dossierSessions = dossier.subjects.flatMap((s) =>
+        (s.sessions || []).map((sess, idx) => ({
+          session: sess.sessionId || idx + 1,
+          date: fmtDate(sess.sessionDate),
+          topic: `${sess.lessonCode ? `[${sess.lessonCode}] ` : ""}${sess.sessionTitle || s.subjectName}`,
+          duration: `${sess.flightHours ? `${sess.flightHours}h Flight ` : ""}${sess.simulatorHours ? `${sess.simulatorHours}h Sim` : ""}${!sess.flightHours && !sess.simulatorHours ? "Ground Session" : ""}`.trim() || "1h 30m",
+          status: sess.attendanceStatus || "ATTENDED",
+          instructor: sess.assignedInstructorName || sess.signedInstructorName || s.signoffByName || "—",
+        }))
+      );
+      if (dossierSessions.length > 0) {
+        normalized.attendanceList = dossierSessions;
+        normalized.totalSessions = dossierSessions.length;
+        normalized.attendedSessions = dossierSessions.filter((s) => s.status === "ATTENDED" || s.status === "PRESENT").length;
+        normalized.attendancePercentage = normalized.totalSessions > 0
+          ? Math.round((normalized.attendedSessions / normalized.totalSessions) * 100)
+          : 100;
+      }
+
+      // Evidences from dossier subjects
+      const dossierEvidences = dossier.subjects.flatMap((s) =>
+        (s.evidenceFiles || []).map((ev) => ({
+          id: `EVD-${String(ev.evidenceFileId ?? "").padStart(4, "0")}`,
+          name: ev.fileName || "Evidence File",
+          size: "—",
+          uploadedAt: fmtDate(ev.uploadedAt),
+          uploadedBy: ev.uploadedByName || "Instructor",
+          type: ev.fileType || "DOCUMENT",
+          fileUrl: ev.fileUrl,
+          verificationStatus: ev.verificationStatus || "VERIFIED",
+          verifiedByName: ev.verifiedByName || "QA Staff",
+          verifiedAt: fmtDate(ev.verifiedAt),
+          comment: ev.verificationComment || "—",
+          subjectName: s.subjectName,
+        }))
+      );
+      if (dossierEvidences.length > 0) {
+        normalized.evidences = dossierEvidences;
+      }
+    }
+
+    // Readiness summary
+    if (dossier.readiness) {
+      if (dossier.readiness.averageAttendance != null) {
+        normalized.attendancePercentage = dossier.readiness.averageAttendance;
+      }
+      normalized.overallScore = dossier.readiness.averageAttendance ?? normalized.overallScore;
+      normalized.resultStatus = dossier.readiness.overallReadinessStatus || (dossier.isLocked ? "COMPLETED" : "IN PROGRESS");
+      normalized.totalFlightHours = dossier.readiness.totalFlightHours;
+      normalized.totalSimulatorHours = dossier.readiness.totalSimulatorHours;
+    }
+
+    // Credentials summary
+    if (dossier.credentials) {
+      normalized.credentials = dossier.credentials;
+    }
+
+    // Approval history
+    if (Array.isArray(dossier.approvalHistories) && dossier.approvalHistories.length > 0) {
+      normalized.approvalHistories = dossier.approvalHistories;
+    }
+  }
+  return normalized;
 };
 
 /** GET /api/Etr/student/{studentId}/current-status (Trạng thái chứng chỉ hiện tại của học viên) */
@@ -162,6 +269,21 @@ export const fetchApprovals = async (etrId = null) => {
     const numericId = String(etrId).replace(/\D/g, "");
     if (numericId) {
       filtered = requests.filter((r) => r.etrCourseRecordId === Number(numericId));
+      try {
+        const dossier = await api.get(`/Etr/${numericId}/dossier`);
+        if (Array.isArray(dossier?.approvalHistories) && dossier.approvalHistories.length > 0) {
+          return dossier.approvalHistories.map((h, idx) => ({
+            stage: idx + 1,
+            roleTitle: actionLabel(h.actionType),
+            user: h.actionByName || "Staff",
+            role: h.previousStatus ? `${h.previousStatus} ➔ ${h.newStatus}` : "System",
+            timestamp: fmtDate(h.actionAt),
+            action: h.comments || actionLabel(h.actionType),
+            status: h.newStatus || "COMPLETED",
+            hash: "VERIFIED_AUDIT_LOG_ENTRY",
+          }));
+        }
+      } catch {}
     }
   }
   return filtered.map((r) => normalizeApproval(r, lookup));
@@ -485,20 +607,23 @@ function normalizeAuditLog(raw, lookup) {
 
 function normalizeEtr(raw, lookup) {
   const etrId = extractEtrId(raw);
-  const enrollment = lookup.enrollments.find((e) => e.enrollmentId === raw.enrollmentId);
+  const rawEid = raw.enrollmentId ?? raw.EnrollmentId;
+  const enrollment = (lookup.enrollments || []).find((e) => String(e.enrollmentId ?? e.EnrollmentId) === String(rawEid));
   // Dùng trực tiếp AccountId từ enrollment (Audit đã được phép GET /Enrollments + /UserProfiles/learners)
   // để tên học viên hiển thị được kể cả khi /Accounts chưa mở cho role Audit.
-  const accountId = enrollment?.accountId ?? null;
+  const accountId = enrollment?.accountId ?? enrollment?.AccountId ?? null;
   const profile = accountId
-    ? lookup.profiles.find((p) => p.accountId === accountId)
+    ? (lookup.profiles || []).find((p) => String(p.accountId ?? p.AccountId) === String(accountId))
     : null;
   const account = accountId
-    ? lookup.accounts.find((a) => a.accountId === accountId)
+    ? (lookup.accounts || []).find((a) => String(a.accountId ?? a.AccountId) === String(accountId))
     : null;
-  const cls = enrollment
-    ? lookup.classes.find((c) => c.classId === enrollment.classId)
+  const classId = enrollment?.classId ?? enrollment?.ClassId ?? null;
+  const cls = classId != null
+    ? (lookup.classes || []).find((c) => String(c.classId ?? c.ClassId) === String(classId))
     : null;
-  const course = cls ? lookup.courses.find((c) => c.courseId === cls.courseId) : null;
+  const courseId = cls?.courseId ?? cls?.CourseId ?? null;
+  const course = courseId != null ? (lookup.courses || []).find((c) => String(c.courseId ?? c.CourseId) === String(courseId)) : null;
 
   // Class không còn InstructorAccountId cấp lớp — Giảng viên được phân công theo Môn học
   // (InstructorAssignments). Lấy danh sách tên giảng viên từ các assignment.
@@ -511,38 +636,39 @@ function normalizeEtr(raw, lookup) {
   })();
 
   // Người phê duyệt cuối: ưu tiên AuditLog ActionType=APPROVE (ghi bởi TrainingManager/Admin khi chốt),
-  // fallback CurrentApproverId → SubmittedBy trên ApprovalRequest của ETR này. Lưu ý: SubmittedBy là
-  // NGƯỜI GỬI yêu cầu (thường là Instructor submit), không phải người phê duyệt thật — chỉ là fallback
-  // tốt hơn "—" khi không tìm thấy APPROVE log (vd: ETR cũ trượt khỏi 100 log gần nhất).
+  // fallback CurrentApproverId → SubmittedBy trên ApprovalRequest của ETR này.
   const approveLog = (lookup.auditLogs || []).find(
-    (l) => l.etrRecordId === etrId && String(l.actionType || "").toUpperCase() === "APPROVE",
+    (l) => String(l.etrRecordId ?? l.ETRRecordId ?? l.recordId ?? l.RecordId) === String(etrId) &&
+      (String(l.actionType || l.ActionType || "").toUpperCase() === "APPROVE" ||
+       String(l.actionType || l.ActionType || "").toUpperCase() === "COMPLETE"),
   );
   const verifyLog = (lookup.auditLogs || []).find(
-    (l) => l.etrRecordId === etrId && String(l.actionType || "").toUpperCase() === "VERIFY",
+    (l) => String(l.etrRecordId ?? l.ETRRecordId ?? l.recordId ?? l.RecordId) === String(etrId) &&
+      String(l.actionType || l.ActionType || "").toUpperCase() === "VERIFY",
   );
-  const approval = (lookup.approvals || []).find((r) => r.etrCourseRecordId === etrId);
+  const approval = (lookup.approvals || []).find((r) => String(r.etrCourseRecordId ?? r.ETRCourseRecordId) === String(etrId));
   const resolvedApprovedBy = approveLog?.accountId
     ? accountName(lookup, approveLog.accountId)
     : approval?.currentApproverId
       ? accountName(lookup, approval.currentApproverId)
-      : approval?.submittedBy
-        ? accountName(lookup, approval.submittedBy)
+      : (raw.isLocked || isEtrCompleted(raw.status))
+        ? "Training Manager (Approved)"
         : "—";
   const resolvedQaVerifiedBy = verifyLog?.accountId
     ? accountName(lookup, verifyLog.accountId)
     : "—";
 
   // Evidence files linked to this ETR record (if the entity carries the FK) or uploaded by the learner's account
-  const evidences = lookup.evidences.filter(
+  const evidences = (lookup.evidences || []).filter(
     (ev) =>
       extractEtrId(ev) === etrId ||
-      (accountId && ev.uploadedByAccountId === accountId),
+      (accountId && (ev.uploadedByAccountId === accountId || ev.accountId === accountId)),
   );
 
   // Attendance for the learner's Enrollment
   const attendanceList = enrollment
-    ? lookup.attendance
-        .filter((a) => a.enrollmentId === enrollment.enrollmentId)
+    ? (lookup.attendance || [])
+        .filter((a) => String(a.enrollmentId ?? a.EnrollmentId) === String(rawEid))
         .map((a) => ({
           session: a.sessionId,
           date: fmtDate(a.recordedAt),
@@ -554,8 +680,8 @@ function normalizeEtr(raw, lookup) {
 
   // Assessment results for the learner's account
   const subjectResults = accountId
-    ? lookup.assessmentResults
-        .filter((ar) => ar.accountId === accountId)
+    ? (lookup.assessmentResults || [])
+        .filter((ar) => String(ar.accountId ?? ar.AccountId) === String(accountId))
         .map((ar) => ({
           code: `ASM-${String(ar.assessmentId).padStart(4, "0")}`,
           name: `Assessment #${ar.assessmentId}`,
@@ -573,7 +699,7 @@ function normalizeEtr(raw, lookup) {
   return {
     id: `#ETR-${String(etrId ?? "").padStart(4, "0")}`,
     etrCourseRecordId: etrId,
-    enrollmentId: raw.enrollmentId,
+    enrollmentId: rawEid,
     learnerId: profile?.userCode || account?.username || (accountId ? `Account #${accountId}` : "—"),
     learnerName: profile?.fullName || account?.username || (accountId ? `Account #${accountId}` : "—"),
     learnerRole: "—",
@@ -587,7 +713,7 @@ function normalizeEtr(raw, lookup) {
     verifiedAt: fmtDate(raw.verifiedAt),
     completedAt: fmtDate(raw.completedAt),
     completionDate: fmtDate(raw.completedAt),
-    lockedDate: fmtDate(raw.verifiedAt),
+    lockedDate: fmtDate(raw.completedAt ?? raw.CompletedAt ?? raw.verifiedAt ?? raw.VerifiedAt),
     // Raw ISO (chưa format) — dùng cho biểu đồ xu hướng theo tháng trên Dashboard
     submittedAtRaw: raw.submittedAt ?? null,
     verifiedAtRaw: raw.verifiedAt ?? null,

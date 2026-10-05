@@ -24,54 +24,57 @@ const monthLabel = (m) => {
   return `${new Date(y, mo - 1, 1).toLocaleString("en-US", { month: "short" })} ${String(y).slice(2)}`;
 };
 
-const ACTION_META = {
-  INSERT: { label: "Tạo mới (INSERT)", color: "#2563eb", bg: "rgba(37,99,235,0.12)" },
-  UPDATE: { label: "Cập nhật (UPDATE)", color: "#d97706", bg: "rgba(217,119,6,0.12)" },
-  DELETE: { label: "Xóa (DELETE)", color: "#dc2626", bg: "rgba(220,38,38,0.12)" },
-  APPROVE: { label: "Phê duyệt (APPROVE)", color: "#16a34a", bg: "rgba(22,163,74,0.12)" },
-  VERIFY: { label: "Xác minh (VERIFY)", color: "#0891b2", bg: "rgba(8,145,178,0.12)" },
-  REJECT: { label: "Từ chối (REJECT)", color: "#dc2626", bg: "rgba(220,38,38,0.12)" },
-  LOCK: { label: "Khóa (LOCK)", color: "#475569", bg: "rgba(71,85,105,0.12)" },
-  UNLOCK: { label: "Mở khóa (UNLOCK)", color: "#0d9488", bg: "rgba(13,148,136,0.12)" },
-  IMPORT: { label: "Import dữ liệu", color: "#4f46e5", bg: "rgba(79,70,229,0.12)" },
-  IMPORT_ATTENDANCE: { label: "Import điểm danh", color: "#4f46e5", bg: "rgba(79,70,229,0.12)" },
-  IMPORT_ASSESSMENT: { label: "Import điểm", color: "#4f46e5", bg: "rgba(79,70,229,0.12)" },
-  SIGN_OFF: { label: "Ký xác nhận", color: "#0f766e", bg: "rgba(15,118,110,0.12)" },
-  SIGNOFF: { label: "Ký xác nhận", color: "#0f766e", bg: "rgba(15,118,110,0.12)" },
-  EXPORT: { label: "Xuất dữ liệu", color: "#6d28d9", bg: "rgba(109,40,217,0.12)" },
-};
-
-const formatEntityName = (name) => {
-  const map = {
-    ClassSubject: "Phân công môn học (ClassSubject)",
-    Course: "Khóa học (Course)",
-    Class: "Lớp học (Class)",
-    Subject: "Môn học (Subject)",
-    ETRCourseRecord: "Hồ sơ ETR (ETRCourseRecord)",
-    AttendanceRecord: "Bản ghi điểm danh (Attendance)",
-    AssessmentResult: "Kết quả đánh giá (Assessment)",
-    EvidenceFile: "Tệp minh chứng (EvidenceFile)",
-    ApprovalRequest: "Yêu cầu phê duyệt (ApprovalRequest)",
-    ApprovalHistory: "Lịch sử phê duyệt (ApprovalHistory)",
-    Account: "Tài khoản người dùng (Account)",
-    UserProfile: "Hồ sơ cá nhân (UserProfile)",
+const getActionMeta = (key, trEn) => {
+  const meta = {
+    INSERT: { label: trEn("Create (INSERT)"), color: "#2563eb", bg: "rgba(37,99,235,0.12)" },
+    UPDATE: { label: trEn("Update (UPDATE)"), color: "#d97706", bg: "rgba(217,119,6,0.12)" },
+    DELETE: { label: trEn("Delete (DELETE)"), color: "#dc2626", bg: "rgba(220,38,38,0.12)" },
+    APPROVE: { label: trEn("Approve (APPROVE)"), color: "#16a34a", bg: "rgba(22,163,74,0.12)" },
+    VERIFY: { label: trEn("Verify (VERIFY)"), color: "#0891b2", bg: "rgba(8,145,178,0.12)" },
+    REJECT: { label: trEn("Reject (REJECT)"), color: "#dc2626", bg: "rgba(220,38,38,0.12)" },
+    LOCK: { label: trEn("Lock (LOCK)"), color: "#475569", bg: "rgba(71,85,105,0.12)" },
+    UNLOCK: { label: trEn("Unlock (UNLOCK)"), color: "#0d9488", bg: "rgba(13,148,136,0.12)" },
+    IMPORT: { label: trEn("Import Data"), color: "#4f46e5", bg: "rgba(79,70,229,0.12)" },
+    IMPORT_ATTENDANCE: { label: trEn("Import Attendance"), color: "#4f46e5", bg: "rgba(79,70,229,0.12)" },
+    IMPORT_ASSESSMENT: { label: trEn("Import Scores"), color: "#4f46e5", bg: "rgba(79,70,229,0.12)" },
+    SIGN_OFF: { label: trEn("Sign-Off"), color: "#0f766e", bg: "rgba(15,118,110,0.12)" },
+    SIGNOFF: { label: trEn("Sign-Off"), color: "#0f766e", bg: "rgba(15,118,110,0.12)" },
+    EXPORT: { label: trEn("Export Data"), color: "#6d28d9", bg: "rgba(109,40,217,0.12)" },
   };
-  return map[name] || name || "Hệ thống";
+  return meta[key] || { label: key || trEn("Event"), color: "#c5a059", bg: "rgba(197,160,89,0.15)" };
 };
 
-const formatValueSnippet = (val) => {
+const formatEntityName = (name, trEn) => {
+  const map = {
+    ClassSubject: trEn("Class Subject Assignment"),
+    Course: trEn("Course"),
+    Class: trEn("Class"),
+    Subject: trEn("Subject"),
+    ETRCourseRecord: trEn("ETR Record"),
+    AttendanceRecord: trEn("Attendance Record"),
+    AssessmentResult: trEn("Assessment Result"),
+    EvidenceFile: trEn("Evidence File"),
+    ApprovalRequest: trEn("Approval Request"),
+    ApprovalHistory: trEn("Approval History"),
+    Account: trEn("User Account"),
+    UserProfile: trEn("User Profile"),
+  };
+  return map[name] || name || trEn("System");
+};
+
+const formatValueSnippet = (val, trEn) => {
   if (!val) return null;
   const str = String(val).trim();
   if (str.startsWith("{") && str.endsWith("}")) {
     try {
       const obj = JSON.parse(str);
       const parts = [];
-      if (obj.ClassId) parts.push(`Lớp #${obj.ClassId}`);
-      if (obj.SubjectId) parts.push(`Môn #${obj.SubjectId}`);
-      if (obj.InstructorAccountId) parts.push(`GV #${obj.InstructorAccountId}`);
-      if (obj.Status) parts.push(`Trạng thái: ${obj.Status}`);
-      if (obj.Score != null) parts.push(`Điểm: ${obj.Score}`);
-      if (obj.AttendanceRate != null) parts.push(`Điểm danh: ${obj.AttendanceRate}%`);
+      if (obj.ClassId) parts.push(`${trEn('Class')} #${obj.ClassId}`);
+      if (obj.SubjectId) parts.push(`${trEn('Subject')} #${obj.SubjectId}`);
+      if (obj.InstructorAccountId) parts.push(`${trEn('Instructor')} #${obj.InstructorAccountId}`);
+      if (obj.Status) parts.push(`${trEn('Status')}: ${obj.Status}`);
+      if (obj.Score != null) parts.push(`${trEn('Score')}: ${obj.Score}`);
+      if (obj.AttendanceRate != null) parts.push(`${trEn('Attendance')}: ${obj.AttendanceRate}%`);
       if (parts.length > 0) return parts.join(", ");
 
       const keys = Object.keys(obj).filter(
@@ -606,19 +609,15 @@ const AuditorDashboard = () => {
               <div className="empty-table-state">{trEn("No audit events recorded.")}</div>
             ) : (
               recentLogs.map((log, idx) => {
-                const meta = ACTION_META[String(log.actionType || "").toUpperCase()] || {
-                  label: log.actionType || "Sự kiện",
-                  color: "#c5a059",
-                  bg: "rgba(197,160,89,0.15)",
-                };
-                const entityLabel = formatEntityName(log.entityName);
-                const actorLabel = log.accountId ? `Account #${log.accountId}` : trEn("Hệ thống (System / Admin)");
+                const meta = getActionMeta(String(log.actionType || "").toUpperCase(), trEn);
+                const entityLabel = formatEntityName(log.entityName, trEn);
+                const actorLabel = log.accountId ? `Account #${log.accountId}` : trEn("System / Admin");
                 const detailText = log.description
                   ? log.description
                   : `${meta.label.split(" ")[0]} ${entityLabel}${log.recordId != null ? ` #${log.recordId}` : ""}`;
 
-                const oldSnippet = formatValueSnippet(log.oldValue);
-                const newSnippet = formatValueSnippet(log.newValue);
+                const oldSnippet = formatValueSnippet(log.oldValue, trEn);
+                const newSnippet = formatValueSnippet(log.newValue, trEn);
 
                 return (
                   <div

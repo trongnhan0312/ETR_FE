@@ -35,7 +35,7 @@ const EtrReopen = () => {
       const [etrs, enrollments, profiles, classes, courses] = await Promise.all([
         api.get('/Etr').catch(() => []),
         api.get('/Enrollments').catch(() => []),
-        api.get('/UserProfiles').catch(() => []),
+        api.get('/UserProfiles/learners').catch(() => api.get('/UserProfiles').catch(() => [])),
         api.get('/Classes').catch(() => []),
         api.get('/Courses').catch(() => []),
       ]);
@@ -48,27 +48,30 @@ const EtrReopen = () => {
       const mapped = etrsArr
         .filter((e) => (e.isLocked ?? e.IsLocked) === true)
         .map((e) => {
-          const etrId = e.etrCourseRecordId ?? e.eTRCourseRecordId;
-          const enr = enrArr.find((e2) => e2.enrollmentId === e.enrollmentId);
-          const accountId = enr?.accountId;
+          const etrId = e.etrCourseRecordId ?? e.eTRCourseRecordId ?? e.ETRCourseRecordId;
+          const rawEid = e.enrollmentId ?? e.EnrollmentId;
+          const enr = enrArr.find((e2) => String(e2.enrollmentId ?? e2.EnrollmentId) === String(rawEid));
+          const accountId = enr?.accountId ?? enr?.AccountId;
           const prof = accountId != null
-            ? profArr.find((p) => String(p.accountId) === String(accountId))
+            ? profArr.find((p) => String(p.accountId ?? p.AccountId) === String(accountId))
             : null;
-          const cls = enr?.classId != null
-            ? clsArr.find((c) => String(c.classId) === String(enr.classId))
+          const classId = enr?.classId ?? enr?.ClassId;
+          const cls = classId != null
+            ? clsArr.find((c) => String(c.classId ?? c.ClassId) === String(classId))
             : null;
-          const course = cls?.courseId != null
-            ? courseArr.find((c) => String(c.courseId) === String(cls.courseId))
+          const courseId = cls?.courseId ?? cls?.CourseId;
+          const course = courseId != null
+            ? courseArr.find((c) => String(c.courseId ?? c.CourseId) === String(courseId))
             : null;
           return {
             etrId,
             id: `#ETR-${String(etrId).padStart(4, '0')}`,
-            enrollmentId: e.enrollmentId,
+            enrollmentId: rawEid,
             accountId,
-            studentName: prof?.fullName || enr?.fullName || (accountId != null ? `Student #${accountId}` : tr('Học viên')),
-            studentCode: prof?.userCode || prof?.employeeCode || '',
-            courseName: course?.courseName || course?.name || cls?.className || '',
-            className: cls?.className || cls?.classCode || '',
+            studentName: prof?.fullName || prof?.FullName || enr?.fullName || enr?.FullName || (accountId != null ? `Learner #${accountId}` : tr('Học viên')),
+            studentCode: prof?.userCode || prof?.UserCode || prof?.employeeCode || '',
+            courseName: course?.courseName || course?.CourseName || course?.name || cls?.className || cls?.ClassName || '',
+            className: cls?.className || cls?.ClassName || cls?.classCode || cls?.ClassCode || '',
             status: e.status || '',
             isLocked: true,
             submittedAt: e.submittedAt ?? e.SubmittedAt ?? null,
@@ -86,6 +89,19 @@ const EtrReopen = () => {
           return (b.etrId || 0) - (a.etrId || 0);
         });
       setRecords(mapped);
+
+      // Async enrich with dossier if any field is still missing
+      Promise.all(mapped.map(async (rec) => {
+        if (!rec.courseName || rec.studentName.includes('#')) {
+          try {
+            const dos = await api.get(`/Etr/${rec.etrId}/dossier`);
+            if (dos?.student?.fullName) rec.studentName = dos.student.fullName;
+            if (dos?.student?.userCode) rec.studentCode = dos.student.userCode;
+            if (dos?.course?.courseName) rec.courseName = dos.course.courseName;
+            if (dos?.class?.className) rec.className = dos.class.className;
+          } catch {}
+        }
+      })).then(() => setRecords([...mapped]));
     } catch (err) {
       console.error('Error loading locked ETRs:', err);
       setRecords([]);

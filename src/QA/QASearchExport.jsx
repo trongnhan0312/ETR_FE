@@ -5,6 +5,7 @@ import { useToast } from "../components/Toast";
 import { useLanguage } from '../context/LanguageContext';
 import { usePagination } from "../utils/usePagination";
 import Pagination from "../components/Pagination";
+import EtrDossierModal from "../components/EtrDossierModal";
 import {
   isEtrCompleted,
   isEtrReturned,
@@ -150,38 +151,15 @@ const QASearchExport = () => {
     handleSearch("");
   }, [statusFilter]);
 
-  // ===== View Details: lấy đầy đủ ETR (subject results + evidence + approval) =====
-  const openDetails = async (row) => {
-    const id = row?.etrCourseRecordId ?? row?.eTRCourseRecordId;
+  // ===== View Details: mở chuẩn hồ sơ ETR Dossier đa tầng =====
+  const openDetails = (row) => {
     setDetailRow(row);
-    setDetail(null);
-    setAuditLogs([]);
     setDetailOpen(true);
-    if (!id) return;
-    setDetailLoading(true);
-    try {
-      // GET /Etr/{id} được phép cho QA (Instructor,QA,Admin,Audit,Academic,TrainingManager)
-      // → trả subjectResults / evidenceFiles / approvalHistories mà /Search/etrs không có.
-      const [etrDetail, logs] = await Promise.all([
-        api.get(`/Etr/${id}`, { suppressAuthRedirect: true }).catch(() => null),
-        api
-          .get(`/Audit/search?query=${encodeURIComponent(id)}&page=1&pageSize=50`)
-          .catch(() => []),
-      ]);
-      setDetail(etrDetail);
-      setAuditLogs(Array.isArray(logs) ? logs : Array.isArray(logs?.items) ? logs.items : []);
-    } catch (err) {
-      toast.error(`${tr("Không tải được chi tiết")}: ${err?.message || ""}`);
-    } finally {
-      setDetailLoading(false);
-    }
   };
 
   const closeDetails = () => {
     setDetailOpen(false);
-    setDetail(null);
     setDetailRow(null);
-    setAuditLogs([]);
   };
 
   // ===== Export Training Package (PDF) =====
@@ -430,197 +408,12 @@ const QASearchExport = () => {
         </div>
       </section>
 
-      {/* ===== Modal View Details ===== */}
-      {detailOpen &&
-        createPortal(
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              width: "100vw",
-              height: "100vh",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "rgba(0,33,71,0.75)",
-              zIndex: 999999,
-              backdropFilter: "blur(4px)",
-            }}
-            onClick={closeDetails}
-          >
-            <div
-              className="qa-panel"
-              style={{
-                width: "980px",
-                maxWidth: "96vw",
-                maxHeight: "92vh",
-                margin: "auto",
-                display: "flex",
-                flexDirection: "column",
-                borderRadius: "18px",
-                overflow: "hidden",
-                padding: 0,
-                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div
-                style={{
-                  background: "#002147",
-                  padding: "16px 20px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  borderBottom: "3px solid #c5a059",
-                  flexShrink: 0,
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#fff" }}>
-                    {trEn('ETR Details')} —{" "}
-                    {detailRow?.studentName || detailRow?.learnerName || "—"}
-                  </h3>
-                  <p style={{ margin: "4px 0 0", fontSize: "12px", color: "rgba(255,255,255,0.65)" }}>
-                    ETR #{detailRow?.etrCourseRecordId || detailRow?.eTRCourseRecordId || "—"}
-                    {detailRow?.classCode ? ` · ${detailRow.classCode}` : ""}
-                    {detailRow?.courseName ? ` · ${detailRow.courseName}` : ""}
-                  </p>
-                </div>
-                <span className={`qa-status ${statusClass(detailRow?.status)}`}>
-                  {STATUS_LABELS[detailRow?.status] || detailRow?.status || "—"}
-                </span>
-                <button
-                  type="button"
-                  onClick={closeDetails}
-                  aria-label={tr('Close')}
-                  style={{
-                    background: "rgba(255,255,255,0.08)",
-                    border: "none",
-                    color: "#fff",
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    fontSize: 15,
-                    lineHeight: 1,
-                    flexShrink: 0,
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Body */}
-              <div style={{ padding: "18px 22px", overflow: "auto" }}>
-                {detailLoading ? (
-                  <p style={{ textAlign: "center", color: "#64748b", padding: "32px 0" }}>
-                    {tr('Đang tải chi tiết...')}
-                  </p>
-                ) : (
-                  <>
-                    {/* Subject Results — nguồn thật từ GET /Etr/{id} (không còn "No subject result data") */}
-                    <p className="qa-eyebrow">{trEn('SUBJECT RESULTS')}</p>
-                    {Array.isArray(detail?.subjectResults) && detail.subjectResults.length > 0 ? (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px", marginBottom: "18px" }}>
-                        <thead>
-                          <tr style={{ background: "#f1f5f9" }}>
-                            <th style={{ textAlign: "left", padding: "8px" }}>{trEn('Subject')}</th>
-                            <th style={{ textAlign: "left", padding: "8px" }}>{trEn('Status')}</th>
-                            <th style={{ textAlign: "left", padding: "8px" }}>{trEn('Score')}</th>
-                            <th style={{ textAlign: "left", padding: "8px" }}>{trEn('Attendance')}</th>
-                            <th style={{ textAlign: "left", padding: "8px" }}>{trEn('Signed Off')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {detail.subjectResults.map((sr, i) => (
-                            <tr key={sr.subjectResultId ?? i} style={{ borderTop: "1px solid #e2e8f0" }}>
-                              <td style={{ padding: "8px" }}>#{sr.subjectId ?? "—"}</td>
-                              {/* Nhãn/màu trạng thái môn dùng chung với Academic + QA (utils/etrStatus.js),
-                                  không hiển thị enum thô (Pending/Passed/...). */}
-                              <td
-                                style={{
-                                  padding: "8px",
-                                  fontWeight: 700,
-                                  color: subjectStatusBadge(sr).color,
-                                }}
-                              >
-                                {trEn(subjectStatusBadge(sr).label)}
-                              </td>
-                              <td style={{ padding: "8px" }}>
-                                {sr.score != null ? `${sr.score}%` : "—"}
-                              </td>
-                              <td style={{ padding: "8px" }}>
-                                {sr.attendanceRate != null ? `${sr.attendanceRate}%` : "—"}
-                              </td>
-                              <td style={{ padding: "8px" }}>{sr.isSignedOff ? tr('Có') : tr('Chưa')}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <p style={{ color: "#64748b", fontSize: "12.5px" }}>{tr('Không có dữ liệu kết quả môn học.')}</p>
-                    )}
-
-                    {/* Evidence */}
-                    <p className="qa-eyebrow">{trEn('EVIDENCE FILES')}</p>
-                    {Array.isArray(detail?.evidenceFiles) && detail.evidenceFiles.length > 0 ? (
-                      <ul style={{ margin: "0 0 18px", paddingLeft: 18, fontSize: "12.5px", color: "#334155" }}>
-                        {detail.evidenceFiles.map((ev, i) => (
-                          <li key={ev.evidenceFileId ?? i}>
-                            {ev.fileUrl ? (
-                              <a href={ev.fileUrl} target="_blank" rel="noreferrer" style={{ color: "#0369a1" }}>
-                                {ev.fileName || `File #${i + 1}`}
-                              </a>
-                            ) : (
-                              ev.fileName || `File #${i + 1}`
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p style={{ color: "#64748b", fontSize: "12.5px" }}>{tr('Chưa có minh chứng.')}</p>
-                    )}
-
-                    {/* Approval History */}
-                    <p className="qa-eyebrow">{trEn('APPROVAL HISTORY')}</p>
-                    {Array.isArray(detail?.approvalHistories) && detail.approvalHistories.length > 0 ? (
-                      <ul style={{ margin: "0 0 18px", paddingLeft: 18, fontSize: "12.5px", color: "#334155" }}>
-                        {detail.approvalHistories.map((h, i) => (
-                          <li key={h.approvalHistoryId ?? i}>
-                            <strong>{h.actionType || "—"}</strong>
-                            {h.actionAt ? ` · ${formatDateTime(h.actionAt)}` : ""}
-                            {h.comments ? ` — ${h.comments}` : ""}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p style={{ color: "#64748b", fontSize: "12.5px" }}>{tr('Chưa có lịch sử phê duyệt.')}</p>
-                    )}
-
-                    {/* Audit Trail */}
-                    <p className="qa-eyebrow">{trEn('AUDIT TRAIL')}</p>
-                    {auditLogs.length > 0 ? (
-                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: "12.5px", color: "#334155" }}>
-                        {auditLogs.slice(0, 20).map((log, i) => (
-                          <li key={log.auditLogId ?? i}>
-                            <strong>{log.actionType || "—"}</strong>
-                            {log.createdAt ? ` · ${formatDateTime(log.createdAt)}` : ""}
-                            {log.entityName ? ` · ${log.entityName}` : ""}
-                            {log.description ? ` — ${log.description}` : ""}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p style={{ color: "#64748b", fontSize: "12.5px" }}>{tr('Chưa có bản ghi audit cho hồ sơ này.')}</p>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      {/* ===== Modal View Details (Rich Aviation ETR Dossier) ===== */}
+      <EtrDossierModal
+        etrId={detailRow?.etrCourseRecordId ?? detailRow?.eTRCourseRecordId}
+        isOpen={detailOpen}
+        onClose={closeDetails}
+      />
     </div>
   );
 };
