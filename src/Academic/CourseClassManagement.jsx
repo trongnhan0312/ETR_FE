@@ -67,14 +67,55 @@ const CourseClassManagement = () => {
 
   useEffect(() => {
     if (!openActionMenu) return;
-    const handleScrollOrResize = () => setOpenActionMenu(null);
-    window.addEventListener("scroll", handleScrollOrResize, true);
-    window.addEventListener("resize", handleScrollOrResize);
+    const handleResize = () => setOpenActionMenu(null);
+    window.addEventListener("resize", handleResize);
     return () => {
-      window.removeEventListener("scroll", handleScrollOrResize, true);
-      window.removeEventListener("resize", handleScrollOrResize);
+      window.removeEventListener("resize", handleResize);
     };
   }, [openActionMenu]);
+
+  const handleToggleActionMenu = (e, type, target) => {
+    e.stopPropagation();
+    const isSameTarget =
+      type === "class"
+        ? openActionMenu?.type === "class" &&
+          (openActionMenu?.target?.classId === target?.classId || openActionMenu?.target?.code === target?.code)
+        : openActionMenu?.type === "course" && openActionMenu?.target?.courseId === target?.courseId;
+
+    if (isSameTarget) {
+      setOpenActionMenu(null);
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const menuWidth = 250;
+    // Estimated height: class menu has ~7 items (~310px), course menu has ~4 items (~220px)
+    const estimatedHeight = type === "class" ? 310 : 220;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1200;
+
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    // If not enough room below and more room above, flip to dropup (open upwards)
+    const placeAbove = spaceBelow < estimatedHeight && spaceAbove > spaceBelow;
+
+    const top = placeAbove
+      ? rect.top + window.scrollY - 4
+      : rect.bottom + window.scrollY + 4;
+
+    const left = Math.max(
+      10,
+      Math.min(viewportWidth - menuWidth - 16, rect.right + window.scrollX - menuWidth)
+    );
+
+    setOpenActionMenu({
+      type,
+      target,
+      top,
+      left,
+      placeAbove,
+    });
+  };
 
   const [selectedClassForHistory, setSelectedClassForHistory] = useState(null);
 
@@ -1802,20 +1843,7 @@ const CourseClassManagement = () => {
                               lineHeight: 1,
                               flexShrink: 0,
                             }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setOpenActionMenu(
-                                openActionMenu?.target?.courseId === course.courseId
-                                  ? null
-                                  : {
-                                      type: "course",
-                                      target: course,
-                                      top: rect.bottom + window.scrollY + 4,
-                                      left: Math.max(10, rect.right + window.scrollX - 250),
-                                    }
-                              );
-                            }}
+                            onClick={(e) => handleToggleActionMenu(e, "course", course)}
                           >
                             ⋯
                           </button>
@@ -2061,20 +2089,7 @@ const CourseClassManagement = () => {
                                         lineHeight: 1,
                                         flexShrink: 0,
                                       }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        setOpenActionMenu(
-                                          openActionMenu?.target?.code === cls.code
-                                            ? null
-                                            : {
-                                                type: "class",
-                                                target: cls,
-                                                top: rect.bottom + window.scrollY + 4,
-                                                left: Math.max(10, rect.right + window.scrollX - 250),
-                                              }
-                                        );
-                                      }}
+                                      onClick={(e) => handleToggleActionMenu(e, "class", cls)}
                                     >
                                       ⋯
                                     </button>
@@ -2741,6 +2756,10 @@ const CourseClassManagement = () => {
               top: `${openActionMenu.top}px`,
               left: `${openActionMenu.left}px`,
               width: "250px",
+              maxHeight: "calc(100vh - 24px)",
+              overflowY: "auto",
+              transform: openActionMenu.placeAbove ? "translateY(-100%)" : "none",
+              transformOrigin: openActionMenu.placeAbove ? "bottom right" : "top right",
               backgroundColor: "#ffffff",
               borderRadius: "8px",
               boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",

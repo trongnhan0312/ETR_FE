@@ -193,4 +193,82 @@ describe('Course & Class Action Menu (⋯) & Status-based Direct Actions', () =>
       expect(screen.getByText(/Xóa Khóa học|Delete course/i)).toBeInTheDocument();
     });
   });
+
+  it('keeps action menu open when user scrolls (does not disappear on scroll)', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/Courses') return Promise.resolve(mockCourses);
+      if (url === '/Classes') return Promise.resolve(mockClasses);
+      return Promise.resolve([]);
+    });
+
+    render(
+      <MemoryRouter>
+        <LanguageProvider>
+          <CourseClassManagement />
+        </LanguageProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('CRS-DEMO')).toBeInTheDocument();
+    });
+
+    const allDots = screen.getAllByText('⋯');
+    fireEvent.click(allDots[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Tạo Lớp học mới|Create new Class/i)).toBeInTheDocument();
+    });
+
+    // Fire scroll events on window and document
+    fireEvent.scroll(window, { target: { scrollY: 300 } });
+    fireEvent.scroll(document, { target: { scrollY: 300 } });
+
+    // Menu MUST still be visible (NOT closed / NOT disappeared)
+    expect(screen.getByText(/Tạo Lớp học mới|Create new Class/i)).toBeInTheDocument();
+  });
+
+  it('flips to dropup when trigger button is near bottom of viewport', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/Courses') return Promise.resolve(mockCourses);
+      if (url === '/Classes') return Promise.resolve(mockClasses);
+      return Promise.resolve([]);
+    });
+
+    render(
+      <MemoryRouter>
+        <LanguageProvider>
+          <CourseClassManagement />
+        </LanguageProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('CRS-DEMO')).toBeInTheDocument();
+    });
+
+    const allDots = screen.getAllByText('⋯');
+    const courseDot = allDots[0];
+
+    // Simulate button near bottom of screen: bottom = 750, top = 720, window height = 800
+    // spaceBelow = 50px (< 220px), spaceAbove = 720px
+    vi.spyOn(courseDot, 'getBoundingClientRect').mockReturnValue({
+      top: 720,
+      bottom: 750,
+      left: 1000,
+      right: 1030,
+      width: 30,
+      height: 30,
+    });
+
+    fireEvent.click(courseDot);
+
+    await waitFor(() => {
+      const menuHeader = screen.getByText(/Thao tác khóa học|Course Actions/i, { selector: 'span' });
+      const menuContainer = menuHeader.closest('div[style*="position: absolute"]');
+      expect(menuContainer).toBeInTheDocument();
+      // Expect transform to contain translateY(-100%) for dropup
+      expect(menuContainer.style.transform).toContain('translateY(-100%)');
+    });
+  });
 });

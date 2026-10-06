@@ -319,7 +319,7 @@ const StudentDashboard = () => {
               <div className="student-table-cell student-table-cell--header">{tr('Tiến độ')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Ngày hết hạn')}</div>
               <div className="student-table-cell student-table-cell--header">{tr('Trạng thái')}</div>
-              <div className="student-table-cell student-table-cell--header student-table-cell--end">&nbsp;</div>
+              <div className="student-table-cell student-table-cell--header student-table-cell--end">{tr('Thao tác')}</div>
 
               {/* Data */}
               {mapped.slice(0, 5).map((e, idx) => (

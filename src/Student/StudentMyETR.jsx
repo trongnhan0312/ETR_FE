@@ -77,6 +77,10 @@ const formatDate = (d) => {
 const mapEtr = (e) => ({
   id: e.ETRCourseRecordId ?? e.etrCourseRecordId ?? null,
   enrollmentId: e.EnrollmentId ?? e.enrollmentId ?? null,
+  courseName: e.courseName ?? e.CourseName ?? null,
+  className: e.className ?? e.ClassName ?? null,
+  courseCode: e.courseCode ?? e.CourseCode ?? null,
+  classCode: e.classCode ?? e.ClassCode ?? null,
   status: e.Status ?? e.status ?? 'Draft',
   submittedAt: e.SubmittedAt ?? e.submittedAt ?? null,
   verifiedAt: e.VerifiedAt ?? e.verifiedAt ?? null,
@@ -502,6 +506,8 @@ const DetailView = ({ etr, onBack }) => {
             {s.id ? `ETR #${s.id}` : tr('Hồ sơ đào tạo')}
           </h1>
           <p className="student-detail-sub">
+            {s.courseName ? `${s.courseName} · ` : ''}
+            {s.className ? `${tr('Lớp')}: ${s.className} | ` : ''}
             {tr('Mã ghi danh:')} {s.enrollmentId || '--'}
             {s.submittedAt ? ` | ${tr('Nộp:')} ${formatDate(s.submittedAt)}` : ''}
           </p>
@@ -913,7 +919,30 @@ const StudentMyETR = () => {
     setLoading(true);
     try {
       const data = await api.get('/Etr/my-etr', { suppressAuthRedirect: true }).catch(() => []);
-      setEtrs(Array.isArray(data) ? data : []);
+      const etrList = Array.isArray(data) ? data : [];
+      // Enrich course & class names from dossier for each ETR
+      const enrichedList = await Promise.all(
+        etrList.map(async (item) => {
+          const id = item.ETRCourseRecordId ?? item.etrCourseRecordId;
+          if (!id) return item;
+          try {
+            const dossier = await api.get(`/Etr/${id}/dossier`, { suppressAuthRedirect: true }).catch(() => null);
+            if (dossier) {
+              return {
+                ...item,
+                courseName: dossier.course?.courseName,
+                courseCode: dossier.course?.courseCode,
+                className: dossier.class?.className,
+                classCode: dossier.class?.classCode,
+              };
+            }
+          } catch {
+            // fallback gracefully
+          }
+          return item;
+        })
+      );
+      setEtrs(enrichedList);
     } catch {
       setEtrs([]);
     } finally {
@@ -1028,7 +1057,14 @@ const StudentMyETR = () => {
   const filtered = mapped.filter((e) => {
     const term = searchTerm.toLowerCase().trim();
     if (!term) return true;
-    return String(e.id).includes(term) || String(e.enrollmentId).includes(term);
+    return (
+      String(e.id).includes(term) ||
+      String(e.enrollmentId).includes(term) ||
+      String(e.courseName || '').toLowerCase().includes(term) ||
+      String(e.className || '').toLowerCase().includes(term) ||
+      String(e.courseCode || '').toLowerCase().includes(term) ||
+      String(e.classCode || '').toLowerCase().includes(term)
+    );
   });
 
   // Detail view
@@ -1112,25 +1148,54 @@ const StudentMyETR = () => {
               <div className="student-empty">{searchTerm ? tr('Không tìm thấy hồ sơ phù hợp.') : tr('Bạn chưa có hồ sơ ETR nào.')}</div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <div className="student-table-grid" style={{ gridTemplateColumns: '48px 1.2fr 1.2fr 120px 140px 120px' }}>
-                  <div className="student-table-cell student-table-cell--header">{tr('STT')}</div>
+                <div
+                  className="student-table-grid"
+                  style={{
+                    gridTemplateColumns: '50px 130px minmax(220px, 2fr) 130px 140px 200px',
+                    minWidth: '870px',
+                  }}
+                >
+                  <div className="student-table-cell student-table-cell--header student-table-cell--index">{tr('STT')}</div>
                   <div className="student-table-cell student-table-cell--header">{tr('Mã hồ sơ')}</div>
-                  <div className="student-table-cell student-table-cell--header">{tr('Ghi danh')}</div>
-                  <div className="student-table-cell student-table-cell--header">{tr('Ngày')}</div>
+                  <div className="student-table-cell student-table-cell--header">{tr('Khóa đào tạo')}</div>
+                  <div className="student-table-cell student-table-cell--header">{tr('Ngày cập nhật')}</div>
                   <div className="student-table-cell student-table-cell--header">{tr('Trạng thái')}</div>
-                  <div className="student-table-cell student-table-cell--header student-table-cell--end">&nbsp;</div>
+                  <div className="student-table-cell student-table-cell--header student-table-cell--end">{tr('Thao tác')}</div>
 
                   {filtered.map((e, idx) => (
                     <div className="student-table-row" key={e.id || idx} style={{ cursor: 'pointer' }} onClick={() => e.id && setDossierEtrId(e.id)}>
                       <div className="student-table-cell student-table-cell--index">{idx + 1}</div>
                       <div className="student-table-cell student-table-cell--strong">{e.id ? `ETR #${e.id}` : `${tr('Hồ sơ #')}${idx + 1}`}</div>
-                      <div className="student-table-cell">{e.enrollmentId ? `${tr('Mã GD: ')}${e.enrollmentId}` : '--'}</div>
+                      <div className="student-table-cell">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontWeight: 600, color: '#002147' }}>
+                            {e.courseName || e.className || (e.enrollmentId ? `${tr('Ghi danh')} #${e.enrollmentId}` : '--')}
+                          </span>
+                          {e.className && e.courseName && (
+                            <span style={{ fontSize: '11px', color: 'rgba(0,33,71,0.55)' }}>
+                              {tr('Lớp')}: {e.className} {e.enrollmentId ? `· ${tr('Mã GD:')} ${e.enrollmentId}` : ''}
+                            </span>
+                          )}
+                          {!e.className && e.enrollmentId && (
+                            <span style={{ fontSize: '11px', color: 'rgba(0,33,71,0.55)' }}>
+                              {tr('Mã GD:')} {e.enrollmentId}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                       <div className="student-table-cell">{formatDate(e.completedAt || e.verifiedAt || e.submittedAt)}</div>
-                      <div className="student-table-cell"><Badge status={e.status} /></div>
-                      <div className="student-table-cell student-table-cell--end" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                      <div className="student-table-cell" style={{ whiteSpace: 'nowrap' }}><Badge status={e.status} /></div>
+                      <div className="student-table-cell student-table-cell--end" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center', whiteSpace: 'nowrap' }}>
                         <button
                           className="action-btn"
                           type="button"
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                          }}
                           onClick={(e2) => {
                             e2.stopPropagation();
                             openDetail(etrs.find((r) => (r.ETRCourseRecordId ?? r.etrCourseRecordId) === e.id) || etrs[idx]);
@@ -1153,6 +1218,7 @@ const StudentMyETR = () => {
                               alignItems: 'center',
                               gap: '4px',
                               fontSize: '11px',
+                              whiteSpace: 'nowrap',
                             }}
                             onClick={(e2) => {
                               e2.stopPropagation();
