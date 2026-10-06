@@ -112,7 +112,7 @@ export const VN_TO_EN = {
   "Bản nháp - Cần kích hoạt trước": "Draft - Needs activation first",
   "Quy định thời gian đào tạo chuẩn ICAO / CAAV:": "ICAO / CAAV standard training duration rules:",
   "Khóa học yêu cầu tối thiểu": "Course requires a minimum of",
-  "ngày học": "study days",
+  "ngày học": "training days",
   "ngày đệm 15% cho retake & bảo trì": "buffer days (15%) for retake & maintenance",
   "Ngày kết thúc sớm nhất cho phép:": "Earliest allowed end date:",
   "TẠO KHÓA HỌC MỚI (YÊU CẦU CẤU HÌNH MÔN HỌC)": "CREATE NEW COURSE (SYLLABUS CONFIGURATION REQUIRED)",
@@ -3336,6 +3336,12 @@ export const translateEn = (text) => {
  * sẽ được dịch sang tiếng Việt. Khi lang = 'en' giữ nguyên tiếng Anh.
  */
 export const EN_TO_VN = {
+  "ICAO / CAAV standard training duration rules:": "Quy định thời gian đào tạo chuẩn ICAO / CAAV:",
+  "ICAO / CAAV Standard Training Duration Rules:": "Quy định thời gian đào tạo chuẩn ICAO / CAAV:",
+  "Course requires a minimum of": "Khóa học yêu cầu tối thiểu",
+  "training days": "ngày học",
+  "buffer days (15%) for retake & maintenance": "ngày đệm 15% cho retake & bảo trì",
+  "Earliest allowed end date:": "Ngày kết thúc sớm nhất cho phép:",
   "Awaiting QA Verification": "Chờ QA duyệt",
   "AWAITING QA VERIFICATION": "CHỜ QA DUYỆT",
   "Academic Staff submits the record awaiting QA review": "Academic Staff gửi hồ sơ chờ QA thẩm định",

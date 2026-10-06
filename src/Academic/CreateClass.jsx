@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { formatFacilityType } from '../utils/translate';
 
 const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instructors = [], subjects = [], onSave, onCancel }) => {
-  const { tr } = useLanguage();
+  const { tr, lang } = useLanguage();
   const toast = useToast();
   const getInitialCourseId = () => {
     if (initialCourseId && courses.some(c => String(c.courseId) === String(initialCourseId))) {
@@ -146,14 +146,16 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
         } else if (initialSubs.length === 0) {
           const cName = cDetail.courseName || cDetail.courseCode || foundCourse?.name || foundCourse?.code || '';
           setSubjectWarning(
-            `${tr('⚠️ Khóa học')} "${cName}" ${tr('chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.')}`
+            lang === 'en'
+              ? `⚠️ Course "${cName}" has no Subjects configured. Per ETR business rules, a course must have subjects before opening Classes & Enrollment.`
+              : `⚠️ Khóa học "${cName}" chưa có Môn học (Subject). Theo quy định ETR, Khóa học cần có môn học trước khi mở Lớp & Ghi danh.`
           );
         }
       })
       .catch((err) => {
         console.error('Error fetching course subjects in CreateClass:', err);
       });
-  }, [parentCourse, courses, subjects]);
+  }, [parentCourse, courses, subjects, lang]);
 
   useEffect(() => {
     api.get('/TrainingFacilities')
@@ -170,15 +172,16 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
   }, []);
 
   const subjectName = (subjectId) => {
+    const defaultTag = lang === 'en' ? 'SUBJECT' : 'MÔN';
     const sub = subjects.find((s) => String(s.subjectId) === String(subjectId));
     if (sub) {
-      return `[${sub.subjectCode || 'MÔN'}] ${sub.subjectName || ''}`;
+      return `[${sub.subjectCode || defaultTag}] ${sub.subjectName || ''}`;
     }
     const fromCs = courseSubjects.find((cs) => String(cs.subjectId) === String(subjectId));
     if (fromCs && (fromCs.subjectCode || fromCs.subjectName)) {
-      return `[${fromCs.subjectCode || 'MÔN'}] ${fromCs.subjectName || ''}`;
+      return `[${fromCs.subjectCode || defaultTag}] ${fromCs.subjectName || ''}`;
     }
-    return `Môn #${subjectId}`;
+    return `${lang === 'en' ? 'Subject' : 'Môn'} #${subjectId}`;
   };
 
   const setSubjectInstructor = (subjectId, accountId) => {
@@ -240,7 +243,10 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
     }
 
     if (minEndDateStr && endDate < minEndDateStr) {
-      alert(`${tr('Thời gian kết thúc quá ngắn so với tổng số giờ học chuẩn ICAO/CAAV. Lớp học yêu cầu tối thiểu')} ${durationInfo.totalMinDays} ${tr('ngày (kết thúc từ ngày')} ${minEndDateStr}).`);
+      const msg = lang === 'en'
+        ? `Training end date is too short for ICAO/CAAV standards. The class requires at least ${durationInfo.totalMinDays} days (ending on or after ${minEndDateStr}).`
+        : `${tr('Thời gian kết thúc quá ngắn so với tổng số giờ học chuẩn ICAO/CAAV. Lớp học yêu cầu tối thiểu')} ${durationInfo.totalMinDays} ${tr('ngày (kết thúc từ ngày')} ${minEndDateStr}).`;
+      alert(msg);
       return;
     }
 
@@ -521,12 +527,25 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
                 lineHeight: '1.5'
               }}>
                 <div style={{ fontWeight: 700, marginBottom: '2px' }}>
-                  {tr('Quy định thời gian đào tạo chuẩn ICAO / CAAV:')}
+                  {lang === 'en'
+                    ? 'ICAO / CAAV Standard Training Duration Rules:'
+                    : tr('Quy định thời gian đào tạo chuẩn ICAO / CAAV:')}
                 </div>
                 <div>
-                  {tr('Khóa học yêu cầu tối thiểu')} <strong>{durationInfo.totalMinDays} {tr('ngày')}</strong> ({durationInfo.minTrainingDays} {tr('ngày học')} + {durationInfo.minBufferDays} {tr('ngày đệm 15% cho retake & bảo trì')}).
-                  {minEndDateStr && (
-                    <span> {tr('Ngày kết thúc sớm nhất cho phép:')} <strong style={{ color: '#0369a1' }}>{minEndDateStr}</strong>.</span>
+                  {lang === 'en' ? (
+                    <>
+                      Course requires a minimum of <strong>{durationInfo.totalMinDays} days</strong> ({durationInfo.minTrainingDays} training days + {durationInfo.minBufferDays} buffer days (15%) for retake & maintenance).
+                      {minEndDateStr && (
+                        <span> Earliest allowed end date: <strong style={{ color: '#0369a1' }}>{minEndDateStr}</strong>.</span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {tr('Khóa học yêu cầu tối thiểu')} <strong>{durationInfo.totalMinDays} {tr('ngày')}</strong> ({durationInfo.minTrainingDays} {tr('ngày học')} + {durationInfo.minBufferDays} {tr('ngày đệm 15% cho retake & bảo trì')}).
+                      {minEndDateStr && (
+                        <span> {tr('Ngày kết thúc sớm nhất cho phép:')} <strong style={{ color: '#0369a1' }}>{minEndDateStr}</strong>.</span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
