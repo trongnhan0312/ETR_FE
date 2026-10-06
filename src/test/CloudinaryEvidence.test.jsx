@@ -205,8 +205,8 @@ describe('StudentMyETR - hiển thị môn giữ nguyên / cần học lại', (
     fireEvent.click(await screen.findByRole('button', { name: /Chi tiết/i }))
 
     // Badge theo từng nhóm (legend cũng chứa 2 nhãn nên findAll >= 1 badge + 1 legend)
-    const carriedBadges = await screen.findAllByText('GIỮ NGUYÊN')
-    const retakeBadges = await screen.findAllByText('CẦN HỌC LẠI')
+    const carriedBadges = await screen.findAllByText(/(?:GIỮ NGUYÊN|RETAINED)/)
+    const retakeBadges = await screen.findAllByText(/(?:CẦN HỌC LẠI|RETAKE REQUIRED)/)
     expect(carriedBadges.length).toBeGreaterThanOrEqual(2) // 1 badge + 1 legend
     expect(retakeBadges.length).toBeGreaterThanOrEqual(2)
   })
@@ -219,8 +219,8 @@ describe('StudentMyETR - hiển thị môn giữ nguyên / cần học lại', (
       expect(screen.getAllByText('Môn #1').length).toBeGreaterThan(0)
       expect(screen.getAllByText('Môn #2').length).toBeGreaterThan(0)
     })
-    // Legend giải thích 2 nhóm có mặt
-    expect(screen.getByText(/giữ kết quả từ lần học trước/i)).toBeTruthy()
-    expect(screen.getByText(/phải học\/thi lại trong kỳ này/i)).toBeTruthy()
+    // Legend giải thích 2 nhóm có mặt (hỗ trợ cả tiếng Việt và tiếng Anh)
+    expect(screen.getByText(/(?:giữ kết quả từ lần học trước|carried over from prior)/i)).toBeTruthy()
+    expect(screen.getByText(/(?:phải học\/thi lại trong kỳ này|must be retaken)/i)).toBeTruthy()
   })
 })

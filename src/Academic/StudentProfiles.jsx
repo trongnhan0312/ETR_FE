@@ -183,6 +183,8 @@ const StudentProfiles = () => {
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [verifyError, setVerifyError] = useState('');
   const [viewingProfile, setViewingProfile] = useState(null);
+  const [learnerCerts, setLearnerCerts] = useState([]);
+  const [loadingCerts, setLoadingCerts] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
@@ -525,9 +527,21 @@ const StudentProfiles = () => {
     }
   };
 
-  const handleOpenViewModal = (profile) => {
+  const handleOpenViewModal = async (profile) => {
     setViewingProfile(profile);
     setIsViewOpen(true);
+    setLearnerCerts([]);
+    if (profile?.accountId) {
+      try {
+        setLoadingCerts(true);
+        const res = await api.get(`/Etr/student/${profile.accountId}/current-status`, { suppressAuthRedirect: true }).catch(() => []);
+        setLearnerCerts(Array.isArray(res) ? res : []);
+      } catch {
+        setLearnerCerts([]);
+      } finally {
+        setLoadingCerts(false);
+      }
+    }
   };
 
   const filteredProfiles = profiles.filter((p) => {
@@ -1024,7 +1038,7 @@ const StudentProfiles = () => {
       {/* VIEW PROFILE MODAL */}
       {isViewOpen && viewingProfile && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '520px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px 28px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>{tr('Hồ sơ học viên')}</h2>
               <button
@@ -1036,7 +1050,7 @@ const StudentProfiles = () => {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
                 { label: tr('Mã học viên'), value: viewingProfile.userCode },
                 { label: tr('ID tài khoản'), value: String(viewingProfile.accountId) },
@@ -1077,16 +1091,59 @@ const StudentProfiles = () => {
               ].map((row) => (
                 <div
                   key={typeof row.label === 'string' ? row.label : Math.random()}
-                  style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', alignItems: 'center' }}
+                  style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', alignItems: 'center' }}
                 >
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                     {row.label}
                   </span>
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a', textAlign: 'right' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a', textAlign: 'right' }}>
                     {row.value}
                   </span>
                 </div>
               ))}
+            </div>
+
+            {/* Aviation Certificates Section */}
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#002147', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0', paddingBottom: 6, marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>📜 {tr('Chứng chỉ & Năng định ETR đã cấp')}</span>
+                <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 600 }}>({learnerCerts.length})</span>
+              </div>
+              {loadingCerts ? (
+                <div style={{ padding: 12, fontSize: 12, color: '#64748b', textAlign: 'center' }}>{tr('Đang kiểm tra dữ liệu...')}</div>
+              ) : learnerCerts.length === 0 ? (
+                <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1', fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+                  {tr('Học viên chưa có chứng chỉ ETR nào được cấp.')}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 180, overflowY: 'auto' }}>
+                  {learnerCerts.map((c, idx) => {
+                    const isExp = c.validityStatus === 'Expired' || (c.expiryDate && new Date(c.expiryDate) < new Date());
+                    const isSoon = c.validityStatus === 'ExpiringSoon' || (c.expiryDate && new Date(c.expiryDate) - new Date() < 30 * 86400000);
+                    return (
+                      <div key={idx} style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: '#002147' }}>{c.courseName}</div>
+                          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                            #ETR-{String(c.etrCourseRecordId).padStart(4, '0')} · {tr('Cấp')}: {c.issuedDate ? new Date(c.issuedDate).toLocaleDateString('vi-VN') : '--'} · {tr('Hạn')}: {c.expiryDate ? new Date(c.expiryDate).toLocaleDateString('vi-VN') : tr('Vĩnh viễn')}
+                          </div>
+                        </div>
+                        <span style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 12,
+                          whiteSpace: 'nowrap',
+                          background: isExp ? '#fee2e2' : isSoon ? '#fef3c7' : '#dcfce7',
+                          color: isExp ? '#b91c1c' : isSoon ? '#b45309' : '#15803d'
+                        }}>
+                          {isExp ? tr('ĐÃ HẾT HẠN') : isSoon ? tr('SẮP HẾT HẠN') : tr('CÒN HIỆU LỰC')}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>

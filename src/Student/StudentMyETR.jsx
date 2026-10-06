@@ -561,8 +561,22 @@ const DetailView = ({ etr, onBack }) => {
             </div>
             <div className="student-field">
               <div className="student-field-label">{tr('Ngày hết hạn')}</div>
-              <div className="student-field-value" style={s.expiryDate && new Date(s.expiryDate) < new Date() ? { color: '#b91c1c' } : {}}>
-                {s.expiryDate ? formatDate(s.expiryDate) : tr('Vĩnh viễn')}
+              <div className="student-field-value" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={s.expiryDate && new Date(s.expiryDate) < new Date() ? { color: '#b91c1c', fontWeight: 700 } : {}}>
+                  {s.expiryDate ? formatDate(s.expiryDate) : (s.issuedDate ? formatDate(new Date(new Date(s.issuedDate).setFullYear(new Date(s.issuedDate).getFullYear() + 2))) : '--')}
+                </span>
+                {s.expiryDate && (
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    background: new Date(s.expiryDate) < new Date() ? '#fee2e2' : (new Date(s.expiryDate) - new Date() < 30 * 86400000 ? '#fef3c7' : '#dcfce7'),
+                    color: new Date(s.expiryDate) < new Date() ? '#b91c1c' : (new Date(s.expiryDate) - new Date() < 30 * 86400000 ? '#b45309' : '#15803d'),
+                  }}>
+                    {new Date(s.expiryDate) < new Date() ? tr('ĐÃ HẾT HẠN') : (new Date(s.expiryDate) - new Date() < 30 * 86400000 ? tr('SẮP HẾT HẠN') : tr('CÒN HIỆU LỰC'))}
+                  </span>
+                )}
               </div>
             </div>
             <div className="student-field">
@@ -811,8 +825,22 @@ const TrainingHistory = () => {
                 </div>
                 <div className="student-history-detail">
                   <span className="student-history-label">{tr('Ngày hết hạn')}</span>
-                  <span className="student-history-value" style={isExpired ? { color: '#b91c1c' } : {}}>
-                    {record.expiryDate ? formatDate(record.expiryDate) : tr('Vĩnh viễn')}
+                  <span className="student-history-value" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={isExpired ? { color: '#b91c1c', fontWeight: 700 } : {}}>
+                      {record.expiryDate ? formatDate(record.expiryDate) : (record.issuedDate ? formatDate(new Date(new Date(record.issuedDate).setFullYear(new Date(record.issuedDate).getFullYear() + 2))) : '--')}
+                    </span>
+                    {record.expiryDate && (
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        background: isExpired ? '#fee2e2' : '#dcfce7',
+                        color: isExpired ? '#b91c1c' : '#15803d'
+                      }}>
+                        {isExpired ? tr('ĐÃ HẾT HẠN') : tr('CÒN HIỆU LỰC')}
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="student-history-detail">
@@ -901,14 +929,15 @@ const StudentMyETR = () => {
     let loaded = false;
     try {
       if (id) {
-        const enriched = await api
-          .get(`/Etr/${id}`, { suppressAuthRedirect: true })
-          .catch(() => null);
-        if (enriched) {
+        const [enriched, dossier] = await Promise.all([
+          api.get(`/Etr/${id}`, { suppressAuthRedirect: true }).catch(() => null),
+          api.get(`/Etr/${id}/dossier`, { suppressAuthRedirect: true }).catch(() => null),
+        ]);
+        if (enriched || dossier) {
           loaded = true;
           // EtrDetailsResponse: SubjectResults, EvidenceFiles, ApprovalHistories →
           // DetailView expects subjectResults / evidences / historyLogs.
-          const subjects = Array.isArray(enriched.SubjectResults ?? enriched.subjectResults)
+          let subjects = Array.isArray(enriched?.SubjectResults ?? enriched?.subjectResults) && (enriched.SubjectResults ?? enriched.subjectResults).length > 0
             ? (enriched.SubjectResults ?? enriched.subjectResults).map((sr) => ({
                 ...sr,
                 SubjectId: sr.SubjectId ?? sr.subjectId,
@@ -919,25 +948,63 @@ const StudentMyETR = () => {
                 IsPassed: sr.IsPassed ?? sr.isPassed ?? sr.IsSignedOff ?? sr.isSignedOff ?? (Number(sr.Score ?? sr.score ?? 0) >= 50),
               }))
             : null;
-          const evidences = Array.isArray(enriched.EvidenceFiles ?? enriched.evidenceFiles)
+
+          if ((!subjects || subjects.length === 0) && Array.isArray(dossier?.subjects) && dossier.subjects.length > 0) {
+            subjects = dossier.subjects.map((sub, idx) => ({
+              SubjectId: sub.subjectId ?? idx + 1,
+              SubjectName: sub.subjectName || sub.subjectCode || `Môn #${idx + 1}`,
+              Score: sub.score,
+              PracticalScore: sub.practicalScore,
+              AttendanceRate: sub.attendanceRate,
+              IsPassed: sub.status === "Passed" || sub.status === "Exempted" || sub.isSignedOff || (Number(sub.score || 0) >= 50),
+              Status: sub.status,
+              IsSignedOff: sub.isSignedOff,
+              IsCarriedOver: sub.isCarriedOver,
+            }));
+          }
+
+          let evidences = Array.isArray(enriched?.EvidenceFiles ?? enriched?.evidenceFiles) && (enriched.EvidenceFiles ?? enriched.evidenceFiles).length > 0
             ? (enriched.EvidenceFiles ?? enriched.evidenceFiles).map((ev) => ({
                 ...ev,
                 FileName: ev.FileName ?? ev.fileName,
                 FileUrl: ev.FileUrl ?? ev.fileUrl,
               }))
             : null;
-          const historyLogs = Array.isArray(enriched.ApprovalHistories ?? enriched.approvalHistories)
+
+          if ((!evidences || evidences.length === 0) && Array.isArray(dossier?.evidences) && dossier.evidences.length > 0) {
+            evidences = dossier.evidences.map((ev, idx) => ({
+              FileName: ev.fileName || `Evidence #${idx + 1}`,
+              FileUrl: ev.fileUrl,
+            }));
+          }
+
+          let historyLogs = Array.isArray(enriched?.ApprovalHistories ?? enriched?.approvalHistories) && (enriched.ApprovalHistories ?? enriched.approvalHistories).length > 0
             ? (enriched.ApprovalHistories ?? enriched.approvalHistories).map((h) => ({
                 ...h,
                 Description: h.ActionType ?? h.actionType ?? h.Comment ?? h.comments,
                 Timestamp: h.ActionAt ?? h.actionAt ?? h.CreatedAt ?? h.createdAt,
               }))
             : null;
+
+          if ((!historyLogs || historyLogs.length === 0) && Array.isArray(dossier?.approvalHistory) && dossier.approvalHistory.length > 0) {
+            historyLogs = dossier.approvalHistory.map((h) => ({
+              Description: `${h.actionType || 'Step'}: ${h.comments || h.newStatus || ''}`.trim(),
+              Timestamp: h.actionAt,
+            }));
+          }
+
+          const issuedDate = enriched?.IssuedDate ?? enriched?.issuedDate ?? dossier?.completedAt ?? row?.issuedDate ?? row?.completedAt;
+          const expiryDate = enriched?.ExpiryDate ?? enriched?.expiryDate ?? dossier?.expiryDate ?? row?.expiryDate ?? (issuedDate ? new Date(new Date(issuedDate).setFullYear(new Date(issuedDate).getFullYear() + 2)).toISOString() : null);
+
           detail = {
-            ...enriched,
-            SubjectResults: subjects ?? enriched.SubjectResults ?? null,
-            Evidences: evidences ?? enriched.Evidences ?? null,
-            HistoryLogs: historyLogs ?? enriched.HistoryLogs ?? null,
+            ...(row || {}),
+            ...(enriched || {}),
+            ...(dossier ? { courseName: dossier.course?.courseName, className: dossier.class?.className } : {}),
+            IssuedDate: issuedDate,
+            ExpiryDate: expiryDate,
+            SubjectResults: subjects,
+            Evidences: evidences,
+            HistoryLogs: historyLogs,
           };
         }
       }

@@ -42,6 +42,17 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
   const [errorMsg, setErrorMsg] = useState('');
   const [courseSubjectWarning, setCourseSubjectWarning] = useState('');
   const [courseHasNoSubjects, setCourseHasNoSubjects] = useState(false);
+  const [selectedStudentCerts, setSelectedStudentCerts] = useState([]);
+
+  useEffect(() => {
+    if (selectedAccountId) {
+      api.get(`/Etr/student/${selectedAccountId}/current-status`, { suppressAuthRedirect: true })
+        .then((res) => setSelectedStudentCerts(Array.isArray(res) ? res : []))
+        .catch(() => setSelectedStudentCerts([]));
+    } else {
+      setSelectedStudentCerts([]);
+    }
+  }, [selectedAccountId]);
 
   // Fetch Accounts, UserProfiles, Enrollments & Etr records to detect ongoing ETRs and Departments
   useEffect(() => {
@@ -514,6 +525,16 @@ const EnrollStudentModal = ({ classes = [], initialClassId = null, onSave, onCan
                   <div><strong>{tr('Mã HV')}:</strong> {selectedStudentObj.userCode}</div>
                   <div><strong>{tr('Email/Username:')}</strong> {selectedStudentObj.email}</div>
                   <div><strong>{tr('Phòng ban')}:</strong> {selectedStudentObj.departmentName || tr('Chưa phân phòng ban')}</div>
+                  <div style={{ gridColumn: '1 / -1', marginTop: '4px', paddingTop: '6px', borderTop: '1px dashed #cbd5e1' }}>
+                    <strong>📜 {tr('Chứng chỉ hiện có của học viên:')}</strong>{' '}
+                    {selectedStudentCerts.length > 0 ? (
+                      <span style={{ color: '#0369a1', fontWeight: 600 }}>
+                        {selectedStudentCerts.map((c) => `${c.courseName} (${tr(c.validityStatus || 'Valid')})`).join(' · ')}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#64748b' }}>{tr('Không có chứng chỉ nào trước đó')}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
