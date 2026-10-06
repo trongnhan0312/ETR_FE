@@ -1056,7 +1056,7 @@ const InstructorAttendance = () => {
         </nav>
 
         {/* Cảnh báo: buổi học đã quá hạn điểm danh bù 48h — BE chặn Instructor ghi điểm danh */}
-        {isGraceExpired && !isConfirmed && (
+        {isGraceExpired && !isConfirmed && !isPracticalSession && (
           <div
             style={{
               display: "flex",
@@ -1200,13 +1200,13 @@ const InstructorAttendance = () => {
               }}
               className="create-btn"
               type="button"
-              disabled={isConfirmed || !isClassActive}
+              disabled={(isConfirmed && !isPracticalSession) || !isClassActive}
               title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
               style={{
                 background:
                   "linear-gradient(159.93deg, #0369a1 -27.55%, #075985 127.55%)",
-                opacity: isConfirmed || !isClassActive ? 0.6 : 1,
-                cursor: isConfirmed || !isClassActive ? "not-allowed" : "pointer",
+                opacity: (isConfirmed && !isPracticalSession) || !isClassActive ? 0.6 : 1,
+                cursor: (isConfirmed && !isPracticalSession) || !isClassActive ? "not-allowed" : "pointer",
               }}
             >
               <span>{tr("NHẬP DỮ LIỆU EXCEL")}</span>
@@ -1383,9 +1383,9 @@ const InstructorAttendance = () => {
                                 handleToggleStatus(student.code, st.value)
                               }
                               className={`status-${st.value.toLowerCase()}${student.status === st.value ? " active" : ""}`}
-                              disabled={isConfirmed || fileStaged}
+                              disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                               style={{
-                                cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
+                                cursor: (isConfirmed && !isPracticalSession) || fileStaged ? "not-allowed" : "pointer",
                                 opacity: fileStaged ? 0.5 : 1,
                               }}
                             >
@@ -1494,7 +1494,7 @@ const InstructorAttendance = () => {
                             setRemarkModalStudent(student);
                             setRemarkText(student.remarks || "");
                           }}
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             padding: "5px 12px",
                             borderRadius: "6px",
@@ -1503,7 +1503,7 @@ const InstructorAttendance = () => {
                             border: "1px solid #dfe6f1",
                             backgroundColor: student.remarks ? "#fffbeb" : "#f8fafc",
                             color: student.remarks ? "#d97706" : "#64748b",
-                            cursor: isConfirmed || fileStaged ? "not-allowed" : "pointer",
+                            cursor: (isConfirmed && !isPracticalSession) || fileStaged ? "not-allowed" : "pointer",
                             opacity: fileStaged ? 0.5 : 1,
                             display: "inline-flex",
                             alignItems: "center",
@@ -1550,7 +1550,7 @@ const InstructorAttendance = () => {
                           alignItems: "center",
                         }}
                       >
-                        {isConfirmed ? (
+                        {(isConfirmed && !isPracticalSession) ? (
                           <span
                             style={{
                               display: "inline-flex",
@@ -1665,7 +1665,7 @@ const InstructorAttendance = () => {
                   <textarea
                     value={remarkText}
                     onChange={(e) => setRemarkText(e.target.value)}
-                    disabled={isConfirmed || fileStaged}
+                    disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                     placeholder={tr("Nhập ghi chú nhận xét về học viên...")}
                     style={{
                       width: "100%",
@@ -1703,7 +1703,7 @@ const InstructorAttendance = () => {
                     </button>
                     <button
                       onClick={() => {
-                        if (!isConfirmed && !fileStaged) {
+                        if ((!isConfirmed || isPracticalSession) && !fileStaged) {
                           setSessionAttendance((prev) =>
                             prev.map((s) =>
                               s.code === remarkModalStudent.code
@@ -1851,7 +1851,7 @@ const InstructorAttendance = () => {
                           performanceGrade: e.target.value,
                         })
                       }
-                      disabled={isConfirmed || fileStaged}
+                      disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                       style={{
                         width: "100%",
                         padding: "8px 12px",
@@ -1909,7 +1909,7 @@ const InstructorAttendance = () => {
                                 flightHours: e.target.value,
                               })
                             }
-                            disabled={isConfirmed || fileStaged}
+                            disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                             style={{
                               width: "100%",
                               padding: "6px 8px",
@@ -1936,7 +1936,7 @@ const InstructorAttendance = () => {
                                 simulatorHours: e.target.value,
                               })
                             }
-                            disabled={isConfirmed || fileStaged}
+                            disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                             style={{
                               width: "100%",
                               padding: "6px 8px",
@@ -1963,7 +1963,7 @@ const InstructorAttendance = () => {
                               dualHours: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -1989,7 +1989,7 @@ const InstructorAttendance = () => {
                               soloHours: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2015,7 +2015,7 @@ const InstructorAttendance = () => {
                               picHours: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2041,7 +2041,7 @@ const InstructorAttendance = () => {
                               nightHours: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2067,7 +2067,7 @@ const InstructorAttendance = () => {
                               instrumentHours: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2093,7 +2093,7 @@ const InstructorAttendance = () => {
                               crossCountryHours: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2130,7 +2130,7 @@ const InstructorAttendance = () => {
                               dayLandings: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2155,7 +2155,7 @@ const InstructorAttendance = () => {
                               nightLandings: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2179,7 +2179,7 @@ const InstructorAttendance = () => {
                               aircraftRegistration: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2205,7 +2205,7 @@ const InstructorAttendance = () => {
                             simulatorDevice: e.target.value,
                           })
                         }
-                        disabled={isConfirmed || fileStaged}
+                        disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                         style={{
                           width: "100%",
                           padding: "6px 8px",
@@ -2240,7 +2240,7 @@ const InstructorAttendance = () => {
                               departureIcao: e.target.value.toUpperCase(),
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2264,7 +2264,7 @@ const InstructorAttendance = () => {
                               arrivalIcao: e.target.value.toUpperCase(),
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2288,7 +2288,7 @@ const InstructorAttendance = () => {
                               route: e.target.value,
                             })
                           }
-                          disabled={isConfirmed || fileStaged}
+                          disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                           style={{
                             width: "100%",
                             padding: "6px 8px",
@@ -2322,7 +2322,7 @@ const InstructorAttendance = () => {
                           instructorComments: e.target.value,
                         })
                       }
-                      disabled={isConfirmed || fileStaged}
+                      disabled={(isConfirmed && !isPracticalSession) || fileStaged}
                       placeholder="Nhận xét thao tác tiếp cận, hạ cánh, xử lý tình huống..."
                       style={{
                         width: "100%",
@@ -2394,14 +2394,13 @@ const InstructorAttendance = () => {
                         </div>
                       </div>
 
-                      {!flightSimModalStudent.instructorSignedAt &&
-                        flightSimModalStudent.attendanceRecordId && (
+                      {!flightSimModalStudent.instructorSignedAt && (
                           <button
                             type="button"
                             onClick={() =>
                               handleInstructorSignRecord(flightSimModalStudent)
                             }
-                            disabled={signingRecord || isConfirmed}
+                            disabled={signingRecord || (isConfirmed && !isPracticalSession)}
                             style={{
                               background:
                                 "linear-gradient(135deg, #10b981 0%, #059669 100%)",
@@ -2411,7 +2410,10 @@ const InstructorAttendance = () => {
                               borderRadius: "8px",
                               fontSize: "12px",
                               fontWeight: "700",
-                              cursor: "pointer",
+                              cursor:
+                                signingRecord || (isConfirmed && !isPracticalSession)
+                                  ? "not-allowed"
+                                  : "pointer",
                             }}
                           >
                             {signingRecord
@@ -2449,7 +2451,7 @@ const InstructorAttendance = () => {
                     <button
                       type="button"
                       onClick={handleSaveFlightSimModal}
-                      disabled={isConfirmed || fileStaged}
+                      disabled={(isConfirmed && !isPracticalSession) || fileStaged || savingModal}
                       style={{
                         padding: "8px 18px",
                         borderRadius: "8px",
@@ -2459,12 +2461,12 @@ const InstructorAttendance = () => {
                         fontSize: "12px",
                         fontWeight: "700",
                         cursor:
-                          isConfirmed || fileStaged
+                          (isConfirmed && !isPracticalSession) || fileStaged || savingModal
                             ? "not-allowed"
                             : "pointer",
                       }}
                     >
-                      {tr("LƯU THÔNG SỐ")}
+                      {savingModal ? tr("ĐANG LƯU...") : tr("LƯU THÔNG SỐ")}
                     </button>
                   </div>
                 </div>
@@ -3058,7 +3060,7 @@ const InstructorAttendance = () => {
                         }}
                       >
                         {`${group?.count ?? 1} ${tr("buổi")}`}
-                        {group
+                        {group && !session.isPractical
                           ? ` · ${group.confirmedCount}/${group.count} ${tr("đã chốt")}`
                           : ""}
                       </span>
@@ -3113,10 +3115,16 @@ const InstructorAttendance = () => {
                       textTransform: "uppercase",
                       padding: "4px 10px",
                       borderRadius: "999px",
-                      backgroundColor: session.isConfirmed
-                        ? "rgba(239, 68, 68, 0.08)"
-                        : "rgba(34, 197, 94, 0.08)",
-                      color: session.isConfirmed ? "#ef4444" : "#16a34a",
+                      backgroundColor: session.isPractical
+                        ? "rgba(14, 165, 233, 0.12)"
+                        : session.isConfirmed
+                          ? "rgba(239, 68, 68, 0.08)"
+                          : "rgba(34, 197, 94, 0.08)",
+                      color: session.isPractical
+                        ? "#0284c7"
+                        : session.isConfirmed
+                          ? "#ef4444"
+                          : "#16a34a",
                     }}
                   >
                     {session.attendance}

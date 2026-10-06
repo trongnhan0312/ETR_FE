@@ -383,6 +383,7 @@ const InstructorAssessments = () => {
               true,
             displayOrder:
               detail?.displayOrder ?? checklistDetail?.displayOrder ?? 0,
+            trainingType: s.trainingType || null,
             sessionId: s.sessionId,
             isConfirmed: s.isConfirmed === true || s.IsConfirmed === true,
             // Nguồn entry: "session" = gắn vào buổi học cụ thể; "course" = fallback nhập
@@ -582,6 +583,9 @@ const InstructorAssessments = () => {
       ]);
       if (sessionDetail && assessment) {
         assessment.isConfirmed = sessionDetail.isConfirmed === true || sessionDetail.IsConfirmed === true;
+        if (sessionDetail.trainingType) {
+          assessment.trainingType = sessionDetail.trainingType;
+        }
       }
       const evidencesArr = Array.isArray(allEvidences)
         ? allEvidences
@@ -1389,8 +1393,19 @@ const InstructorAssessments = () => {
       };
     }
 
-    // 1. Kiểm tra điểm danh buổi học đã chốt chưa (nếu bài đánh giá thuộc buổi học cụ thể)
-    if (selectedAssessment?.sessionId && selectedAssessment?.isConfirmed === false) {
+    // 1. Kiểm tra điểm danh buổi học đã chốt chưa (nếu bài đánh giá thuộc buổi học cụ thể).
+    // Các buổi thực hành (Flight, Simulator, Practical) không yêu cầu chốt điểm danh.
+    const isPracticalAssessment =
+      selectedAssessment?.trainingType === "Flight" ||
+      selectedAssessment?.trainingType === "Simulator" ||
+      selectedAssessment?.trainingType === "Practical" ||
+      selectedAssessment?.assessmentType === "practical";
+
+    if (
+      !isPracticalAssessment &&
+      selectedAssessment?.sessionId &&
+      selectedAssessment?.isConfirmed === false
+    ) {
       return {
         canFinalize: false,
         btnLabel: tr("CHƯA CHỐT ĐIỂM DANH"),
