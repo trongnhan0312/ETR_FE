@@ -83,6 +83,17 @@ const isBeyondAttendanceGrace = (rawSessionDate) => {
   return Date.now() > expiry;
 };
 
+const isSessionInFuture = (rawSessionDate) => {
+  if (!rawSessionDate) return false;
+  const d = new Date(rawSessionDate);
+  if (Number.isNaN(d.getTime())) return false;
+  // So sánh ngày theo lịch (00:00:00) so với hôm nay
+  const sessionDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return sessionDay > today;
+};
+
 const InstructorAttendance = () => {
   const { tr } = useLanguage();
   const navigate = useNavigate();
@@ -299,6 +310,7 @@ const InstructorAttendance = () => {
               // Giữ nguyên mốc thời gian gốc để kiểm tra grace period 48h của BE
               sessionDate: rawDate || null,
               graceExpired: isBeyondAttendanceGrace(rawDate),
+              isFuture: isSessionInFuture(rawDate),
               name: s.sessionTitle || tr("Buổi học"),
               room: s.location || tr("Phòng học"),
               instructor: getCurrentInstructorName(),
@@ -581,6 +593,10 @@ const InstructorAttendance = () => {
 
   const handleSaveAttendance = async () => {
     if (isConfirmed && !isPracticalSession) return;
+    if (isFutureSession) {
+      toast.error(tr("Không thể điểm danh trước cho buổi học trong tương lai."));
+      return;
+    }
     if (!isClassActive) {
       toast.error(isClassUpcoming
         ? tr("Không thể lưu điểm danh vì lớp học chưa bắt đầu.")
@@ -625,6 +641,11 @@ const InstructorAttendance = () => {
 
   const handleConfirmAttendance = async () => {
     if (isConfirmed || isPracticalSession) return;
+    if (isFutureSession) {
+      setConfirmPublishOpen(false);
+      toast.error(tr("Không thể chốt điểm danh cho buổi học trong tương lai."));
+      return;
+    }
     if (!isClassActive) {
       toast.error(isClassUpcoming
         ? tr("Không thể chốt buổi học vì lớp học chưa bắt đầu.")
@@ -665,6 +686,7 @@ const InstructorAttendance = () => {
       );
     } catch (err) {
       console.error("Lỗi khi chốt điểm danh:", err);
+      setConfirmPublishOpen(false);
       toast.error(parseApiError(err, tr("Chốt điểm danh thất bại!")));
     } finally {
       setPublishing(false);
@@ -697,6 +719,7 @@ const InstructorAttendance = () => {
   // liên hệ Academic Staff. FE cảnh báo trước (KHÔNG khóa cứng nút, giống cảnh báo lớp đã kết thúc).
   // Đã tính sẵn ở bước map danh sách buổi (xem fetchSessions) — không gọi Date.now() khi render.
   const isGraceExpired = selectedSession?.graceExpired === true;
+  const isFutureSession = isSessionInFuture(selectedSession?.sessionDate);
 
   // Nhãn trạng thái lớp hiển thị trong dropdown chọn lớp
   const getClassStatusLabel = (status) => {
@@ -892,6 +915,10 @@ const InstructorAttendance = () => {
   const handleCommitImport = async () => {
     setImportError("");
     if (!importFile) return;
+    if (isFutureSession) {
+      setImportError(tr("Không thể điểm danh trước cho buổi học trong tương lai."));
+      return;
+    }
     setImportCommitting(true);
     try {
       const fd = new FormData();
@@ -1186,6 +1213,29 @@ const InstructorAttendance = () => {
               {(selectedSession.date === "TBA" ? tr("Chưa xếp lịch (TBA)") : selectedSession.date)} · {selectedSession.room} · {tr("Lớp: ")}
               {selectedClass ? selectedClass.code : "N/A"}
             </p>
+            {isFutureSession && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "10px 16px",
+                  background: "#fffbeb",
+                  border: "1px solid #fef3c7",
+                  borderLeft: "4px solid #f59e0b",
+                  borderRadius: "8px",
+                  color: "#92400e",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  marginTop: "8px",
+                }}
+              >
+                <span style={{ fontSize: "16px" }}>⚠️</span>
+                <span>
+                  {tr("Buổi học được xếp lịch trong tương lai (")}{selectedSession.date}{tr("). Không thể điểm danh trước theo quy định đào tạo. Giảng viên chỉ được ghi nhận điểm danh vào ngày diễn ra hoặc sau buổi học.")}
+                </span>
+              </div>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
@@ -1200,13 +1250,13 @@ const InstructorAttendance = () => {
               }}
               className="create-btn"
               type="button"
-              disabled={(isConfirmed && !isPracticalSession) || !isClassActive}
-              title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
+              disabled={(isConfirmed && !isPracticalSession) || !isClassActive || isFutureSession}
+              title={isFutureSession ? tr("Không thể điểm danh trước cho buổi học trong tương lai") : (!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined)}
               style={{
                 background:
                   "linear-gradient(159.93deg, #0369a1 -27.55%, #075985 127.55%)",
-                opacity: (isConfirmed && !isPracticalSession) || !isClassActive ? 0.6 : 1,
-                cursor: (isConfirmed && !isPracticalSession) || !isClassActive ? "not-allowed" : "pointer",
+                opacity: (isConfirmed && !isPracticalSession) || !isClassActive || isFutureSession ? 0.6 : 1,
+                cursor: (isConfirmed && !isPracticalSession) || !isClassActive || isFutureSession ? "not-allowed" : "pointer",
               }}
             >
               <span>{tr("NHẬP DỮ LIỆU EXCEL")}</span>
@@ -1216,11 +1266,11 @@ const InstructorAttendance = () => {
               onClick={handleSaveAttendance}
               className="create-btn"
               type="button"
-              disabled={(isConfirmed && !isPracticalSession) || !isClassActive || saving || publishing}
-              title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
+              disabled={(isConfirmed && !isPracticalSession) || !isClassActive || saving || publishing || isFutureSession}
+              title={isFutureSession ? tr("Không thể điểm danh trước cho buổi học trong tương lai") : (!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined)}
               style={{
-                opacity: (isConfirmed && !isPracticalSession) || !isClassActive ? 0.6 : 1,
-                cursor: (isConfirmed && !isPracticalSession) || !isClassActive ? "not-allowed" : "pointer",
+                opacity: (isConfirmed && !isPracticalSession) || !isClassActive || isFutureSession ? 0.6 : 1,
+                cursor: (isConfirmed && !isPracticalSession) || !isClassActive || isFutureSession ? "not-allowed" : "pointer",
               }}
             >
               <span>{saving ? tr("ĐANG LƯU...") : tr("LƯU ĐIỂM DANH")}</span>
@@ -1231,14 +1281,14 @@ const InstructorAttendance = () => {
                 onClick={() => setConfirmPublishOpen(true)}
                 className="create-btn"
                 type="button"
-                disabled={isConfirmed || !isClassActive || saving}
-                title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
+                disabled={isConfirmed || !isClassActive || saving || publishing || isFutureSession}
+                title={isFutureSession ? tr("Không thể chốt điểm danh cho buổi học trong tương lai") : (!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined)}
                 style={{
-                  background: isConfirmed || !isClassActive
+                  background: isConfirmed || !isClassActive || isFutureSession
                     ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
                     : "linear-gradient(159.93deg, #e11d48 -27.55%, #be123c 127.55%)",
-                  opacity: isConfirmed || !isClassActive ? 0.7 : 1,
-                  cursor: isConfirmed || !isClassActive ? "not-allowed" : "pointer",
+                  opacity: isConfirmed || !isClassActive || isFutureSession ? 0.7 : 1,
+                  cursor: isConfirmed || !isClassActive || isFutureSession ? "not-allowed" : "pointer",
                 }}
               >
                 <span>
@@ -3115,19 +3165,23 @@ const InstructorAttendance = () => {
                       textTransform: "uppercase",
                       padding: "4px 10px",
                       borderRadius: "999px",
-                      backgroundColor: session.isPractical
-                        ? "rgba(14, 165, 233, 0.12)"
-                        : session.isConfirmed
-                          ? "rgba(239, 68, 68, 0.08)"
-                          : "rgba(34, 197, 94, 0.08)",
-                      color: session.isPractical
-                        ? "#0284c7"
-                        : session.isConfirmed
-                          ? "#ef4444"
-                          : "#16a34a",
+                      backgroundColor: session.isFuture
+                        ? "#fef3c7"
+                        : session.isPractical
+                          ? "rgba(14, 165, 233, 0.12)"
+                          : session.isConfirmed
+                            ? "rgba(239, 68, 68, 0.08)"
+                            : "rgba(34, 197, 94, 0.08)",
+                      color: session.isFuture
+                        ? "#b45309"
+                        : session.isPractical
+                          ? "#0284c7"
+                          : session.isConfirmed
+                            ? "#ef4444"
+                            : "#16a34a",
                     }}
                   >
-                    {session.attendance}
+                    {session.isFuture ? tr("Chưa diễn ra") : session.attendance}
                   </span>
                 </div>
                 <div style={{ textAlign: "right", paddingRight: "12px" }}>

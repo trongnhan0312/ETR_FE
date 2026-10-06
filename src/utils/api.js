@@ -531,6 +531,16 @@ export const parseApiError = (err, fallback) => {
     console.debug("Failed to parse API error payload", error);
   }
 
+  const cleanRaw = typeof raw === "string" && raw.startsWith("Error: ") ? raw.slice(7).trim() : (typeof raw === "string" ? raw.trim() : "");
+  if (
+    cleanRaw &&
+    !cleanRaw.startsWith("Request failed with status") &&
+    cleanRaw !== "Error" &&
+    cleanRaw !== "[object Object]"
+  ) {
+    return cleanRaw;
+  }
+
   return translateVn(fallback) || translateVn(raw);
 };
 
