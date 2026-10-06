@@ -44,6 +44,7 @@ const LearnerManagement = () => {
   // Verify Credentials / Attachments Modal State
   const [isVerifyOpen, setIsVerifyOpen] = useState(false);
   const [verifyingLearner, setVerifyingLearner] = useState(null);
+  const [verifyMode, setVerifyMode] = useState('attachments'); // 'attachments' | 'offline'
   const [verifyAttachments, setVerifyAttachments] = useState([]);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [selectedAttachmentIds, setSelectedAttachmentIds] = useState([]);
