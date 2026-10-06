@@ -14,7 +14,7 @@ import InstructorStudentDetailModal from "./InstructorStudentDetailModal";
 import "./instructor.scss";
 
 const InstructorClasses = () => {
-  const { tr } = useLanguage();
+  const { tr, lang } = useLanguage();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -1816,7 +1816,7 @@ const InstructorClasses = () => {
                           );
                           return currentMismatch ? (
                             <option key={currentMismatch.facilityId} value={currentMismatch.facilityId}>
-                              [{currentMismatch.facilityCode}] {currentMismatch.facilityName} ({formatFacilityType(currentMismatch.facilityType, tr)} - {tr('Không tương thích')})
+                              [{currentMismatch.facilityCode}] {currentMismatch.facilityName} ({formatFacilityType(currentMismatch.facilityType, tr)} - {lang === 'en' ? 'Incompatible' : tr('Không tương thích')})
                             </option>
                           ) : null;
                         })()}
@@ -1959,7 +1959,7 @@ const InstructorClasses = () => {
                       }}
                     >
                       <strong style={{ color: "#002147" }}>
-                        {tr("Giảng viên phụ trách môn:")}
+                        {lang === 'en' ? 'Subject Instructor:' : tr("Giảng viên phụ trách môn:")}
                       </strong>{" "}
                       <span>{selectedSubjectInstructor.name}</span>
                       {selectedSubjectInstructor.isMine && (
@@ -1974,7 +1974,7 @@ const InstructorClasses = () => {
                             textTransform: "uppercase",
                           }}
                         >
-                          {tr("Bạn")}
+                          {lang === 'en' ? 'YOU' : tr("Bạn")}
                         </span>
                       )}
                     </div>
@@ -2018,8 +2018,12 @@ const InstructorClasses = () => {
                         assessment.name ||
                         `Assessment #${assessment.assessmentId}`;
                       const type = assessment.assessmentType ? ` (${assessment.assessmentType})` : "";
-                      const passScore = assessment.passingScore != null ? ` · Đạt: ${assessment.passingScore}đ` : "";
-                      const weight = assessment.weight != null ? ` · Trọng số: ${assessment.weight}%` : "";
+                      const passScore = assessment.passingScore != null
+                        ? ` · ${lang === 'en' ? 'Pass' : 'Đạt'}: ${assessment.passingScore}${lang === 'en' ? ' pts' : 'đ'}`
+                        : "";
+                      const weight = assessment.weight != null
+                        ? ` · ${lang === 'en' ? 'Weight' : 'Trọng số'}: ${assessment.weight}%`
+                        : "";
                       return (
                         <option
                           key={assessment.assessmentId}
@@ -2084,8 +2088,12 @@ const InstructorClasses = () => {
                         pc.itemName ||
                         pc.name ||
                         `Practical Checklist #${pc.practicalChecklistId}`;
-                      const passScore = pc.passingScore != null ? ` · Đạt: ${pc.passingScore}đ` : "";
-                      const req = pc.isRequired ? ` · Bắt buộc` : "";
+                      const passScore = pc.passingScore != null
+                        ? ` · ${lang === 'en' ? 'Pass' : 'Đạt'}: ${pc.passingScore}${lang === 'en' ? ' pts' : 'đ'}`
+                        : "";
+                      const req = pc.isRequired
+                        ? ` · ${lang === 'en' ? 'Required' : 'Bắt buộc'}`
+                        : "";
                       return (
                         <option
                           key={pc.practicalChecklistId}
