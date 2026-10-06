@@ -46,7 +46,31 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
   // instructorBySubject: subjectId -> instructorAccountId ('' = Chưa phân công)
   const [instructorBySubject, setInstructorBySubject] = useState({});
 
-  // Tính thời lượng tối thiểu chuẩn ICAO/CAAV: Ground <= 8h/ngày, SIM <= 4h/ngày, đệm 15%
+  // Dynamic subject catalog to ensure complete metadata (especially subjectType)
+  const [subjectCatalog, setSubjectCatalog] = useState(Array.isArray(subjects) ? subjects : []);
+
+  useEffect(() => {
+    if (Array.isArray(subjects) && subjects.length > 0) {
+      setSubjectCatalog(subjects);
+    } else {
+      api.get('/Subjects')
+        .then((res) => {
+          if (Array.isArray(res) && res.length > 0) {
+            setSubjectCatalog(res);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [subjects]);
+
+  const findSubjectDetails = (sid, currentCatalog = subjectCatalog) => {
+    const pool = (Array.isArray(currentCatalog) && currentCatalog.length > 0)
+      ? currentCatalog
+      : (Array.isArray(subjects) ? subjects : []);
+    return pool.find((sub) => String(sub.subjectId ?? sub.SubjectId ?? sub.id ?? sub.Id) === String(sid));
+  };
+
+  // Tính thời lượng tối thiểu chuẩn ICAO/CAAV: Ground <= 8h/ngày, SIM/Practical <= 4h/ngày, đệm 15%
   const calculateMinDays = (subs) => {
     if (!subs || subs.length === 0) return { minTrainingDays: 1, minBufferDays: 1, totalMinDays: 2 };
     let totalDays = 0;
@@ -54,7 +78,25 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
       const hours = Number(s.requiredHours) || 0;
       if (hours <= 0) continue;
       const type = String(s.subjectType || '').toLowerCase();
-      const isSim = type.includes('practical') || type.includes('sim') || type.includes('simulator');
+      const code = String(s.subjectCode || '').toLowerCase();
+      const name = String(s.subjectName || '').toLowerCase();
+
+      // Check whether subject is Practical / SIM according to ICAO & CAAV standard
+      const isSim = type.includes('practical') ||
+                    type.includes('sim') ||
+                    type.includes('simulator') ||
+                    type.includes('thực hành') ||
+                    type.includes('mô phỏng') ||
+                    (!type && (
+                      code.includes('sim') ||
+                      code.includes('flt') ||
+                      code.includes('mnt') ||
+                      code.includes('pra') ||
+                      name.includes('simulator') ||
+                      name.includes('flight') ||
+                      name.includes('maintenance') ||
+                      name.includes('thực hành')
+                    ));
       const maxDaily = isSim ? 4 : 8;
       totalDays += hours / maxDaily;
     }
@@ -75,7 +117,23 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
 
   const minEndDateStr = computeMinEndDateStr(startDate, durationInfo.totalMinDays);
 
-  const extractSubjectsFromCourse = (courseObj) => {
+  const formatDisplayDate = (dStr) => {
+    if (!dStr) return '';
+    const parts = dStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dStr;
+  };
+
+  // Tự động điều chỉnh End Date nếu nhỏ hơn minEndDateStr
+  useEffect(() => {
+    if (minEndDateStr && endDate && endDate < minEndDateStr) {
+      setEndDate(minEndDateStr);
+    }
+  }, [minEndDateStr]);
+
+  const extractSubjectsFromCourse = (courseObj, currentCatalog = subjectCatalog) => {
     if (!courseObj) return [];
     const candidates = [
       courseObj.courseSubjects,
@@ -91,29 +149,35 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
         return item.map((s, idx) => {
           if (typeof s === 'object' && s !== null) {
             const sid = s.subjectId ?? s.SubjectId ?? s.id ?? s.Id;
-            const subDetails = subjects.find((sub) => String(sub.subjectId) === String(sid));
+            const subDetails = findSubjectDetails(sid, currentCatalog);
+            const rawType = s.subjectType || s.SubjectType || s.type || s.Type || subDetails?.subjectType || subDetails?.SubjectType || subDetails?.type || subDetails?.Type || '';
+            const code = s.subjectCode || s.SubjectCode || subDetails?.subjectCode || subDetails?.SubjectCode || '';
+            const sName = s.subjectName || s.SubjectName || subDetails?.subjectName || subDetails?.SubjectName || '';
             return {
               subjectId: Number(sid) || sid,
               sequenceNo: s.sequenceNo ?? s.SequenceNo ?? idx + 1,
-              requiredHours: s.requiredHours ?? s.RequiredHours ?? subDetails?.defaultHours ?? 0,
-              requiredSessions: s.requiredSessions ?? s.RequiredSessions ?? subDetails?.minSessions ?? 1,
+              requiredHours: s.requiredHours ?? s.RequiredHours ?? subDetails?.defaultHours ?? subDetails?.DefaultHours ?? 0,
+              requiredSessions: s.requiredSessions ?? s.RequiredSessions ?? subDetails?.minSessions ?? subDetails?.MinSessions ?? 1,
               isMandatory: s.isMandatory ?? s.IsMandatory ?? true,
               passingScore: s.passingScore ?? s.PassingScore ?? 5,
-              subjectCode: s.subjectCode || s.SubjectCode || subDetails?.subjectCode || '',
-              subjectName: s.subjectName || s.SubjectName || subDetails?.subjectName || '',
+              subjectCode: code,
+              subjectName: sName,
+              subjectType: rawType,
             };
           }
           const sid = Number(s) || s;
-          const subDetails = subjects.find((sub) => String(sub.subjectId) === String(sid));
+          const subDetails = findSubjectDetails(sid, currentCatalog);
+          const rawType = subDetails?.subjectType || subDetails?.SubjectType || subDetails?.type || subDetails?.Type || '';
           return {
             subjectId: sid,
             sequenceNo: idx + 1,
-            requiredHours: subDetails?.defaultHours ?? 0,
-            requiredSessions: subDetails?.minSessions ?? 1,
+            requiredHours: subDetails?.defaultHours ?? subDetails?.DefaultHours ?? 0,
+            requiredSessions: subDetails?.minSessions ?? subDetails?.MinSessions ?? 1,
             isMandatory: true,
             passingScore: 5,
-            subjectCode: subDetails?.subjectCode || '',
-            subjectName: subDetails?.subjectName || '',
+            subjectCode: subDetails?.subjectCode || subDetails?.SubjectCode || '',
+            subjectName: subDetails?.subjectName || subDetails?.SubjectName || '',
+            subjectType: rawType,
           };
         });
       }
@@ -127,8 +191,8 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
     setInstructorBySubject({});
 
     // 1. Immediately check course from props for instant subject display
-    const foundCourse = courses.find((c) => String(c.courseId) === String(parentCourse));
-    const initialSubs = extractSubjectsFromCourse(foundCourse);
+    const foundCourse = courses.find((c) => String(c.courseId ?? c.CourseId) === String(parentCourse));
+    const initialSubs = extractSubjectsFromCourse(foundCourse, subjectCatalog);
     if (initialSubs.length > 0) {
       setCourseSubjects(initialSubs);
     } else {
@@ -139,12 +203,12 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
     api.get(`/Courses/${parentCourse}`)
       .then((cDetail) => {
         if (!cDetail) return;
-        const apiSubs = extractSubjectsFromCourse(cDetail);
+        const apiSubs = extractSubjectsFromCourse(cDetail, subjectCatalog);
         if (apiSubs.length > 0) {
           setCourseSubjects(apiSubs);
           setSubjectWarning('');
         } else if (initialSubs.length === 0) {
-          const cName = cDetail.courseName || cDetail.courseCode || foundCourse?.name || foundCourse?.code || '';
+          const cName = cDetail.courseName || cDetail.CourseName || cDetail.courseCode || cDetail.CourseCode || foundCourse?.name || foundCourse?.code || '';
           setSubjectWarning(
             lang === 'en'
               ? `⚠️ Course "${cName}" has no Subjects configured. Per ETR business rules, a course must have subjects before opening Classes & Enrollment.`
@@ -155,7 +219,7 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
       .catch((err) => {
         console.error('Error fetching course subjects in CreateClass:', err);
       });
-  }, [parentCourse, courses, subjects, lang]);
+  }, [parentCourse, courses, subjectCatalog, lang]);
 
   useEffect(() => {
     api.get('/TrainingFacilities')
@@ -173,9 +237,9 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
 
   const subjectName = (subjectId) => {
     const defaultTag = lang === 'en' ? 'SUBJECT' : 'MÔN';
-    const sub = subjects.find((s) => String(s.subjectId) === String(subjectId));
+    const sub = findSubjectDetails(subjectId);
     if (sub) {
-      return `[${sub.subjectCode || defaultTag}] ${sub.subjectName || ''}`;
+      return `[${sub.subjectCode || sub.SubjectCode || defaultTag}] ${sub.subjectName || sub.SubjectName || ''}`;
     }
     const fromCs = courseSubjects.find((cs) => String(cs.subjectId) === String(subjectId));
     if (fromCs && (fromCs.subjectCode || fromCs.subjectName)) {
@@ -243,10 +307,11 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
     }
 
     if (minEndDateStr && endDate < minEndDateStr) {
+      const formattedMinEnd = formatDisplayDate(minEndDateStr);
       const msg = lang === 'en'
-        ? `Training end date is too short for ICAO/CAAV standards. The class requires at least ${durationInfo.totalMinDays} days (ending on or after ${minEndDateStr}).`
-        : `${tr('Thời gian kết thúc quá ngắn so với tổng số giờ học chuẩn ICAO/CAAV. Lớp học yêu cầu tối thiểu')} ${durationInfo.totalMinDays} ${tr('ngày (kết thúc từ ngày')} ${minEndDateStr}).`;
-      alert(msg);
+        ? `Training end date is too short for ICAO/CAAV standards. The class requires at least ${durationInfo.totalMinDays} days (ending on or after ${formattedMinEnd}, including ${durationInfo.minTrainingDays} training days and ${durationInfo.minBufferDays} buffer days).`
+        : `Thời gian kết thúc quá ngắn so với tổng số giờ học chuẩn ICAO/CAAV. Lớp học yêu cầu tối thiểu ${durationInfo.totalMinDays} ngày đào tạo (kết thúc từ ngày ${formattedMinEnd}, bao gồm ${durationInfo.minTrainingDays} ngày học và ${durationInfo.minBufferDays} ngày đệm).`;
+      toast.error(msg);
       return;
     }
 
@@ -536,14 +601,14 @@ const CreateClass = ({ courses = [], classes = [], initialCourseId = null, instr
                     <>
                       Course requires a minimum of <strong>{durationInfo.totalMinDays} days</strong> ({durationInfo.minTrainingDays} training days + {durationInfo.minBufferDays} buffer days (15%) for retake & maintenance).
                       {minEndDateStr && (
-                        <span> Earliest allowed end date: <strong style={{ color: '#0369a1' }}>{minEndDateStr}</strong>.</span>
+                        <span> Earliest allowed end date: <strong style={{ color: '#0369a1' }}>{formatDisplayDate(minEndDateStr)}</strong> ({minEndDateStr}).</span>
                       )}
                     </>
                   ) : (
                     <>
                       {tr('Khóa học yêu cầu tối thiểu')} <strong>{durationInfo.totalMinDays} {tr('ngày')}</strong> ({durationInfo.minTrainingDays} {tr('ngày học')} + {durationInfo.minBufferDays} {tr('ngày đệm 15% cho retake & bảo trì')}).
                       {minEndDateStr && (
-                        <span> {tr('Ngày kết thúc sớm nhất cho phép:')} <strong style={{ color: '#0369a1' }}>{minEndDateStr}</strong>.</span>
+                        <span> {tr('Ngày kết thúc sớm nhất cho phép:')} <strong style={{ color: '#0369a1' }}>{formatDisplayDate(minEndDateStr)}</strong> ({minEndDateStr}).</span>
                       )}
                     </>
                   )}
