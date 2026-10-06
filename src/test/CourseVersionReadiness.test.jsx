@@ -182,7 +182,7 @@ describe('Phase 4 — Course Version Readiness Check', () => {
     renderWithLanguage(<StudentReadinessCheckSection etrId={3} enrollmentId={30} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Cảnh báo & Lưu ý Hồ sơ Năng định/i)).toBeInTheDocument();
+      expect(screen.getByText(/(?:Cảnh báo & Lưu ý Hồ sơ Năng định|Pilot Rating Warnings)/i)).toBeInTheDocument();
     });
 
     expect(screen.getByText(/Hồ sơ năng định và tài liệu văn bằng của học viên chưa được xác minh/i)).toBeInTheDocument();

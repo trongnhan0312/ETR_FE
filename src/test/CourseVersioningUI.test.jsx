@@ -135,7 +135,7 @@ describe('Course Versioning Frontend UI Tests', () => {
     );
 
     // Verify immutability notice is rendered
-    expect(screen.getByText(/Lưu ý phiên bản giáo trình:/i)).toBeInTheDocument();
+    expect(screen.getByText(/(?:Lưu ý phiên bản giáo trình|Syllabus Version Notice)/i)).toBeInTheDocument();
     expect(screen.getByText(/(?:Tạo bản mới|Create New Version) \(Clone Version\)/i)).toBeInTheDocument();
   });
 
@@ -186,7 +186,7 @@ describe('Course Versioning Frontend UI Tests', () => {
     );
 
     // Verify Draft notice banner is shown
-    expect(screen.getByText(/Khóa học chưa kích hoạt:/i)).toBeInTheDocument();
+    expect(screen.getByText(/(?:Khóa học chưa kích hoạt|Course not activated)/i)).toBeInTheDocument();
 
     // Verify select options display version numbers
     expect(screen.getByText(/CRS-01 - Draft Syllabus \(v2\)/i)).toBeInTheDocument();
@@ -206,7 +206,7 @@ describe('Course Versioning Frontend UI Tests', () => {
 
     // Alert should have been called and onSave not invoked
     expect(globalThis.alert).toHaveBeenCalledWith(
-      expect.stringContaining('Không thể mở lớp học cho khóa học ở trạng thái Bản nháp (Draft)')
+      expect.stringMatching(/(?:Không thể mở lớp học cho khóa học ở trạng thái Bản nháp|Cannot open class for Draft course)/i)
     );
     expect(mockSave).not.toHaveBeenCalled();
   });
