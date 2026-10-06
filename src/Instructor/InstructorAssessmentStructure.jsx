@@ -17,24 +17,28 @@ const ASSESSMENT_TYPES = [
 const EMPTY_ASSESSMENT = {
   componentName: "",
   assessmentType: "Theory",
-  weight: 0,
-  passingScore: 0,
+  weight: "",
+  passingScore: "",
   isRequired: true,
-  displayOrder: 0,
+  displayOrder: 1,
 };
 
 const EMPTY_CHECKLIST = {
   itemName: "",
   description: "",
   isRequired: true,
-  displayOrder: 0,
+  displayOrder: 1,
 };
 
-const getAssessmentTypeName = (type) => {
+const getAssessmentTypeName = (type, tr, lang) => {
+  if (lang === "en") {
+    if (String(type).toLowerCase() === "theory") return "Theory (Graded %)";
+    if (String(type).toLowerCase() === "practical") return "Practical (Graded %)";
+  }
   const found = ASSESSMENT_TYPES.find(
     (t) => t.value.toLowerCase() === String(type || "").toLowerCase(),
   );
-  return found ? found.label : type || "—";
+  return found ? (tr ? tr(found.label) : found.label) : type || "—";
 };
 
 const AssessmentModal = ({
@@ -46,7 +50,7 @@ const AssessmentModal = ({
   onSubmit,
   onFormUpdate,
 }) => {
-  const { tr } = useLanguage();
+  const { tr, lang } = useLanguage();
   return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div
@@ -55,7 +59,11 @@ const AssessmentModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{isEdit ? tr("Cập nhật Assessment") : tr("Tạo Assessment")}</h2>
+          <h2>
+            {isEdit
+              ? (lang === 'en' ? 'Update Assessment' : tr("Cập nhật Assessment"))
+              : (lang === 'en' ? 'Create Assessment' : tr("Tạo Assessment"))}
+          </h2>
           <button
             className="close-btn"
             onClick={onCancel}
@@ -79,7 +87,9 @@ const AssessmentModal = ({
               marginBottom: "12px",
             }}
           >
-            💡 {tr("Assessment là bài thi/kiểm tra tính điểm số (0-100) và quy đổi theo Trọng số (%) vào điểm tổng kết môn. Bảng kiểm thao tác bắt buộc Đạt/Không đạt (Pass/Fail) được cấu hình tại Practical Checklists bên dưới.")}
+            💡 {lang === 'en'
+              ? "Assessments are tests graded 0-100 weighted (%) into course average. Mandatory Pass/Fail skill checks are configured in Practical Checklists below."
+              : tr("Assessment là bài thi/kiểm tra tính điểm số (0-100) và quy đổi theo Trọng số (%) vào điểm tổng kết môn. Bảng kiểm thao tác bắt buộc Đạt/Không đạt (Pass/Fail) được cấu hình tại Practical Checklists bên dưới.")}
           </div>
 
           {error && (
@@ -99,76 +109,78 @@ const AssessmentModal = ({
           )}
 
           <div className="form-group">
-            <label>{tr('Tên đánh giá')}</label>
+            <label>{lang === 'en' ? "Assessment Name" : tr('Tên đánh giá')}</label>
             <input
               type="text"
               value={form?.componentName || ""}
-              placeholder={tr('VD: Kiểm tra cuối kỳ LT')}
+              placeholder={lang === 'en' ? "e.g., Final Theory Exam" : tr('VD: Kiểm tra cuối kỳ LT')}
               onChange={(e) => onFormUpdate({ ...form, componentName: e.target.value })}
             />
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>{tr('Loại đánh giá')}</label>
+              <label>{lang === 'en' ? "Assessment Type" : tr('Loại đánh giá')}</label>
               <select
                 value={form?.assessmentType || "Theory"}
                 onChange={(e) => onFormUpdate({ ...form, assessmentType: e.target.value })}
               >
                 {ASSESSMENT_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
-                    {tr(t.label)}
+                    {lang === 'en'
+                      ? (t.value === 'Theory' ? 'Theory (Graded %)' : 'Practical (Graded %)')
+                      : tr(t.label)}
                   </option>
                 ))}
               </select>
             </div>
             <div className="form-group">
-              <label>{tr('Trọng số (%)')}</label>
+              <label>{lang === 'en' ? "Weight (%)" : tr('Trọng số (%)')}</label>
               <input
                 type="number"
                 min="0"
                 max="100"
                 step="any"
-                value={form?.weight ?? 0}
-                onChange={(e) =>
-                  onFormUpdate({ ...form, weight: parseFloat(e.target.value) || 0 })
-                }
+                value={form?.weight === "" || form?.weight == null ? "" : form.weight}
+                placeholder={lang === 'en' ? "e.g., 30" : "VD: 30"}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onFormUpdate({ ...form, weight: val === "" ? "" : val });
+                }}
               />
               <small style={{ fontSize: "10px", color: "rgba(0,33,71,0.5)" }}>
-                {tr('Tổng trọng số các assessment = 100%')}
+                {lang === 'en' ? "Total weight of all assessments = 100%" : tr('Tổng trọng số các assessment = 100%')}
               </small>
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>{tr('Điểm đạt')}</label>
+              <label>{lang === 'en' ? "Passing Score" : tr('Điểm đạt')}</label>
               <input
                 type="number"
                 min="0"
                 max="100"
                 step="any"
-                value={form?.passingScore ?? 0}
-                onChange={(e) =>
-                  onFormUpdate({
-                    ...form,
-                    passingScore: parseFloat(e.target.value) || 0,
-                  })
-                }
+                value={form?.passingScore === "" || form?.passingScore == null ? "" : form.passingScore}
+                placeholder={lang === 'en' ? "e.g., 80" : "VD: 80"}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onFormUpdate({ ...form, passingScore: val === "" ? "" : val });
+                }}
               />
             </div>
             <div className="form-group">
-              <label>{tr('Thứ tự hiển thị')}</label>
+              <label>{lang === 'en' ? "Display Order" : tr('Thứ tự hiển thị')}</label>
               <input
                 type="number"
                 min="0"
-                value={form?.displayOrder ?? 0}
-                onChange={(e) =>
-                  onFormUpdate({
-                    ...form,
-                    displayOrder: parseInt(e.target.value, 10) || 0,
-                  })
-                }
+                value={form?.displayOrder === "" || form?.displayOrder == null ? "" : form.displayOrder}
+                placeholder="1"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onFormUpdate({ ...form, displayOrder: val === "" ? "" : val });
+                }}
               />
             </div>
           </div>
@@ -188,14 +200,14 @@ const AssessmentModal = ({
                 onChange={(e) => onFormUpdate({ ...form, isRequired: e.target.checked })}
                 style={{ cursor: "pointer" }}
               />
-              <span style={{ textTransform: "none" }}>{tr('Bắt buộc')}</span>
+              <span style={{ textTransform: "none" }}>{lang === 'en' ? "Mandatory" : tr('Bắt buộc')}</span>
             </label>
           </div>
         </div>
 
         <div className="modal-footer">
           <button className="modal-cancel-btn" type="button" onClick={onCancel}>
-            {tr('Hủy bỏ')}
+            {lang === 'en' ? "Cancel" : tr('Hủy bỏ')}
           </button>
           <button
             className="modal-submit-btn"
@@ -207,7 +219,7 @@ const AssessmentModal = ({
               cursor: saving ? "not-allowed" : "pointer",
             }}
           >
-            {saving ? tr("Đang lưu...") : tr("Lưu")}
+            {saving ? (lang === 'en' ? "Saving..." : tr("Đang lưu...")) : (lang === 'en' ? "Save" : tr("Lưu"))}
           </button>
         </div>
       </div>
@@ -225,7 +237,7 @@ const ChecklistModal = ({
   onSubmit,
   onFormUpdate,
 }) => {
-  const { tr } = useLanguage();
+  const { tr, lang } = useLanguage();
   return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div
@@ -234,7 +246,11 @@ const ChecklistModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{isEdit ? tr("Cập nhật Mục thực hành") : tr("Tạo Mục thực hành")}</h2>
+          <h2>
+            {isEdit
+              ? (lang === 'en' ? 'Update Practical Item' : tr("Cập nhật Mục thực hành"))
+              : (lang === 'en' ? 'Create Practical Item' : tr("Tạo Mục thực hành"))}
+          </h2>
           <button
             className="close-btn"
             onClick={onCancel}
@@ -258,7 +274,9 @@ const ChecklistModal = ({
               marginBottom: "12px",
             }}
           >
-            💡 {tr("Practical Checklist là bảng kiểm thao tác / kỹ năng thực hành bắt buộc phải Đạt (Pass/Fail) để đủ điều kiện ký xác nhận hoàn thành môn học (không tính % trọng số vào điểm trung bình).")}
+            💡 {lang === 'en'
+              ? "Practical Checklist covers mandatory Pass/Fail skills required for subject sign-off (not weighted in average)."
+              : tr("Practical Checklist là bảng kiểm thao tác / kỹ năng thực hành bắt buộc phải Đạt (Pass/Fail) để đủ điều kiện ký xác nhận hoàn thành môn học (không tính % trọng số vào điểm trung bình).")}
           </div>
 
           {error && (
@@ -278,21 +296,21 @@ const ChecklistModal = ({
           )}
 
           <div className="form-group">
-            <label>{tr('Tên mục thực hành')}</label>
+            <label>{lang === 'en' ? "Practical Item Name" : tr('Tên mục thực hành')}</label>
             <input
               type="text"
               value={form.itemName}
-              placeholder={tr('VD: Ghi nhận và xử lý thông số chuyến bay')}
+              placeholder={lang === 'en' ? "e.g., Record and analyze flight parameters" : tr('VD: Ghi nhận và xử lý thông số chuyến bay')}
               onChange={(e) => onFormUpdate({ ...form, itemName: e.target.value })}
             />
           </div>
 
           <div className="form-group">
-            <label>{tr('Mô tả')}</label>
+            <label>{lang === 'en' ? "Description" : tr('Mô tả')}</label>
             <textarea
               value={form.description}
               rows={3}
-              placeholder={tr('Mô tả yêu cầu / tiêu chí đánh giá')}
+              placeholder={lang === 'en' ? "Requirement description / grading criteria" : tr('Mô tả yêu cầu / tiêu chí đánh giá')}
               onChange={(e) => onFormUpdate({ ...form, description: e.target.value })}
               style={{
                 padding: "10px 14px",
@@ -307,17 +325,19 @@ const ChecklistModal = ({
           </div>
 
           <div className="form-group">
-            <label>{tr('Thứ tự hiển thị')}</label>
+            <label>{lang === 'en' ? "Display Order" : tr('Thứ tự hiển thị')}</label>
             <input
               type="number"
               min="0"
-              value={form.displayOrder}
-              onChange={(e) =>
+              value={form?.displayOrder === "" || form?.displayOrder == null ? "" : form.displayOrder}
+              placeholder="1"
+              onChange={(e) => {
+                const val = e.target.value;
                 onFormUpdate({
                   ...form,
-                  displayOrder: parseInt(e.target.value, 10) || 0,
-                })
-              }
+                  displayOrder: val === "" ? "" : val,
+                });
+              }}
             />
           </div>
 
@@ -336,14 +356,14 @@ const ChecklistModal = ({
                 onChange={(e) => onFormUpdate({ ...form, isRequired: e.target.checked })}
                 style={{ cursor: "pointer" }}
               />
-              <span style={{ textTransform: "none" }}>{tr('Mục bắt buộc đạt')}</span>
+              <span style={{ textTransform: "none" }}>{lang === 'en' ? "Mandatory Item (Pass Required)" : tr('Mục bắt buộc đạt')}</span>
             </label>
           </div>
         </div>
 
         <div className="modal-footer">
           <button className="modal-cancel-btn" type="button" onClick={onCancel}>
-            {tr('Hủy bỏ')}
+            {lang === 'en' ? "Cancel" : tr('Hủy bỏ')}
           </button>
           <button
             className="modal-submit-btn"
@@ -355,7 +375,7 @@ const ChecklistModal = ({
               cursor: saving ? "not-allowed" : "pointer",
             }}
           >
-            {saving ? tr("Đang lưu...") : tr("Lưu")}
+            {saving ? (lang === 'en' ? "Saving..." : tr("Đang lưu...")) : (lang === 'en' ? "Save" : tr("Lưu"))}
           </button>
         </div>
       </div>
@@ -376,7 +396,7 @@ const getCurrentAccountId = () => {
 };
 
 const InstructorAssessmentStructure = () => {
-  const { tr } = useLanguage();
+  const { tr, lang } = useLanguage();
   const toast = useToast();
 
   // "Sân nhà ai nấy đá" — giống các màn Instructor khác: dropdown chọn LỚP của giảng
@@ -613,10 +633,10 @@ const InstructorAssessmentStructure = () => {
     setAssessmentForm({
       componentName: item.componentName || item.ComponentName || "",
       assessmentType: item.assessmentType || item.AssessmentType || "Theory",
-      weight: Number(item.weight ?? item.Weight ?? 0),
-      passingScore: Number(item.passingScore ?? item.PassingScore ?? 0),
+      weight: item.weight ?? item.Weight ?? "",
+      passingScore: item.passingScore ?? item.PassingScore ?? "",
       isRequired: (item.isRequired ?? item.IsRequired) ?? true,
-      displayOrder: Number(item.displayOrder ?? item.DisplayOrder ?? 0),
+      displayOrder: item.displayOrder ?? item.DisplayOrder ?? 1,
     });
     setAssessmentError("");
     setShowAssessmentModal(true);
@@ -624,11 +644,29 @@ const InstructorAssessmentStructure = () => {
 
   const handleSaveAssessment = async () => {
     if (!assessmentForm.componentName.trim()) {
-      setAssessmentError(tr("Vui lòng nhập tên đánh giá."));
+      setAssessmentError(
+        lang === "en"
+          ? "Please enter assessment name."
+          : tr("Vui lòng nhập tên đánh giá.")
+      );
       return;
     }
-    if (!(assessmentForm.weight >= 0 && assessmentForm.weight <= 100)) {
-      setAssessmentError(tr("Trọng số phải nằm trong khoảng 0 – 100."));
+    const w = assessmentForm.weight === "" ? NaN : Number(assessmentForm.weight);
+    if (isNaN(w) || w < 0 || w > 100) {
+      setAssessmentError(
+        lang === "en"
+          ? "Weight must be between 0 and 100."
+          : tr("Trọng số phải nằm trong khoảng 0 – 100.")
+      );
+      return;
+    }
+    const ps = assessmentForm.passingScore === "" ? NaN : Number(assessmentForm.passingScore);
+    if (isNaN(ps) || ps < 0 || ps > 100) {
+      setAssessmentError(
+        lang === "en"
+          ? "Passing score must be between 0 and 100."
+          : tr("Điểm đạt phải nằm trong khoảng 0 – 100.")
+      );
       return;
     }
     setSavingAssessment(true);
@@ -638,10 +676,10 @@ const InstructorAssessmentStructure = () => {
         subjectId: parseInt(selectedSubjectId, 10),
         componentName: assessmentForm.componentName.trim(),
         assessmentType: assessmentForm.assessmentType,
-        weight: Number(assessmentForm.weight),
+        weight: Number(assessmentForm.weight) || 0,
         passingScore: Number(assessmentForm.passingScore) || 0,
         isRequired: assessmentForm.isRequired,
-        displayOrder: Number(assessmentForm.displayOrder) || 0,
+        displayOrder: Number(assessmentForm.displayOrder) || 1,
       };
       let saved;
       const aId = editingAssessment?.assessmentId ?? editingAssessment?.AssessmentId;
@@ -696,7 +734,7 @@ const InstructorAssessmentStructure = () => {
       itemName: item.itemName || "",
       description: item.description || "",
       isRequired: item.isRequired ?? true,
-      displayOrder: Number(item.displayOrder) || 0,
+      displayOrder: item.displayOrder ?? item.DisplayOrder ?? 1,
     });
     setChecklistError("");
     setShowChecklistModal(true);
@@ -704,7 +742,11 @@ const InstructorAssessmentStructure = () => {
 
   const handleSaveChecklist = async () => {
     if (!checklistForm.itemName.trim()) {
-      setChecklistError("Vui lòng nhập tên mục thực hành.");
+      setChecklistError(
+        lang === "en"
+          ? "Please enter practical checklist item name."
+          : tr("Vui lòng nhập tên mục thực hành.")
+      );
       return;
     }
     setSavingChecklist(true);
@@ -714,7 +756,7 @@ const InstructorAssessmentStructure = () => {
         itemName: checklistForm.itemName.trim(),
         description: checklistForm.description || null,
         isRequired: checklistForm.isRequired,
-        displayOrder: Number(checklistForm.displayOrder) || 0,
+        displayOrder: Number(checklistForm.displayOrder) || 1,
       };
       let saved;
       if (editingChecklist) {
@@ -789,10 +831,12 @@ const InstructorAssessmentStructure = () => {
     <div className="page-container" style={{ padding: "24px" }}>
       <section className="content-header">
         <div className="header-left">
-          <h1>{tr("Cấu trúc đánh giá")}</h1>
+          <h1>{lang === 'en' ? "Assessment Structure" : tr("Cấu trúc đánh giá")}</h1>
           <div className="divider-gold" />
           <p className="header-description">
-            {tr("Tạo Assessments & Practical Checklists cho từng môn")}
+            {lang === 'en'
+              ? "Create Assessments & Practical Checklists for each subject"
+              : tr("Tạo Assessments & Practical Checklists cho từng môn")}
           </p>
         </div>
       </section>
@@ -812,7 +856,7 @@ const InstructorAssessmentStructure = () => {
           }}
         >
         <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
-          <label>{tr("Lớp của tôi")}</label>
+          <label>{lang === 'en' ? "My Classes" : tr("Lớp của tôi")}</label>
           <select
             value={selectedClassId}
             onChange={(e) => {
@@ -821,7 +865,7 @@ const InstructorAssessmentStructure = () => {
             }}
             style={{ padding: "12px 14px", borderRadius: "12px", fontSize: "13px", width: "100%", maxWidth: "100%", boxSizing: "border-box", minWidth: 0 }}
           >
-            <option value="">{tr("Chọn lớp")}</option>
+            <option value="">{lang === 'en' ? "Select Class" : tr("Chọn lớp")}</option>
             {classesData.map((c) => (
               <option key={c.classId} value={String(c.classId)}>
                 {c.name} ({c.code}) · {c.subName}
@@ -831,7 +875,7 @@ const InstructorAssessmentStructure = () => {
         </div>
 
         <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
-          <label>{tr("Môn học")}</label>
+          <label>{lang === 'en' ? "Subject" : tr("Môn học")}</label>
           <select
             value={selectedSubjectId}
             onChange={(e) => setSelectedSubjectId(e.target.value)}
@@ -840,8 +884,8 @@ const InstructorAssessmentStructure = () => {
           >
             <option value="">
               {assignedSubjects.length === 0
-                ? tr("Bạn chưa được phân công môn nào trong lớp này")
-                : tr("Chọn môn")}
+                ? (lang === 'en' ? "No subjects assigned to you in this class" : tr("Bạn chưa được phân công môn nào trong lớp này"))
+                : (lang === 'en' ? "Select Subject" : tr("Chọn môn"))}
             </option>
             {assignedSubjects.map((s) => (
               <option key={s.subjectId} value={String(s.subjectId)}>
@@ -863,12 +907,12 @@ const InstructorAssessmentStructure = () => {
           >
             <p style={{ color: "rgba(0,33,71,0.5)", fontSize: "14px" }}>
               {!selectedClassId
-                ? tr(
-                    "Chọn lớp của bạn để cấu hình Assessments & Practical Checklists.",
-                  )
-                : tr(
-                    "Bạn chưa được phân công môn nào trong lớp này. Liên hệ Academic để được phân công.",
-                  )}
+                ? (lang === 'en'
+                    ? "Select your class to configure Assessments & Practical Checklists."
+                    : tr("Chọn lớp của bạn để cấu hình Assessments & Practical Checklists."))
+                : (lang === 'en'
+                    ? "You are not assigned to any subjects in this class. Please contact Academic Staff."
+                    : tr("Bạn chưa được phân công môn nào trong lớp này. Liên hệ Academic để được phân công."))}
             </p>
           </div>
         ) : null
@@ -895,7 +939,7 @@ const InstructorAssessmentStructure = () => {
                     margin: 0,
                   }}
                 >
-                  {tr("Assessments (Bài kiểm tra / Thi tính điểm %)")}
+                  {lang === 'en' ? "Assessments (Graded Tests / Exams %)" : tr("Assessments (Bài kiểm tra / Thi tính điểm %)")}
                 </h3>
                 <p
                   style={{
@@ -904,7 +948,9 @@ const InstructorAssessmentStructure = () => {
                     margin: "4px 0 0",
                   }}
                 >
-                  {tr("Cấu trúc các bài kiểm tra / thi lý thuyết & thực hành có tính điểm số (%) vào điểm trung bình môn")}
+                  {lang === 'en'
+                    ? "Structure of theory & practical tests weighted (%) toward overall grade"
+                    : tr("Cấu trúc các bài kiểm tra / thi lý thuyết & thực hành có tính điểm số (%) vào điểm trung bình môn")}
                 </p>
               </div>
               <div
@@ -934,7 +980,7 @@ const InstructorAssessmentStructure = () => {
                     }`,
                   }}
                 >
-                  {tr("Tổng trọng số")}: {totalWeight}%
+                  {lang === 'en' ? "Total Weight" : tr("Tổng trọng số")}: {totalWeight}%
                 </span>
                 {!weightValid && (
                   <span
@@ -948,7 +994,7 @@ const InstructorAssessmentStructure = () => {
                       border: "1px solid rgba(245,158,11,0.3)",
                     }}
                   >
-                    {tr("Phải bằng 100%")}
+                    {lang === 'en' ? "Must equal 100%" : tr("Phải bằng 100%")}
                   </span>
                 )}
                 <button
@@ -966,7 +1012,7 @@ const InstructorAssessmentStructure = () => {
                     boxShadow: "0 2px 8px rgba(197,160,89,0.2)",
                   }}
                 >
-                  {tr("+ Tạo Assessment")}
+                  {lang === 'en' ? "+ Create Assessment" : tr("+ Tạo Assessment")}
                 </button>
               </div>
             </div>
@@ -979,7 +1025,7 @@ const InstructorAssessmentStructure = () => {
                   color: "rgba(0,33,71,0.4)",
                 }}
               >
-                {tr("Đang tải...")}
+                {lang === 'en' ? "Loading..." : tr("Đang tải...")}
               </div>
             ) : assessments.length === 0 ? (
               <div
@@ -987,7 +1033,7 @@ const InstructorAssessmentStructure = () => {
                 style={{ padding: "40px", textAlign: "center" }}
               >
                 <p style={{ color: "rgba(0,33,71,0.5)", fontSize: "14px", margin: 0 }}>
-                  {tr("Chưa có Assessment nào cho môn này.")}
+                  {lang === 'en' ? "No assessments for this subject yet." : tr("Chưa có Assessment nào cho môn này.")}
                 </p>
               </div>
             ) : (
@@ -999,13 +1045,13 @@ const InstructorAssessmentStructure = () => {
                     gridTemplateColumns: "3fr 2fr 1fr 1.2fr 1fr 1fr 1.4fr",
                   }}
                 >
-                  <div>{tr("Tên")}</div>
-                  <div>{tr("Loại")}</div>
-                  <div>{tr("Trọng số")}</div>
-                  <div>{tr("Điểm đạt")}</div>
-                  <div>{tr("Bắt buộc")}</div>
-                  <div>{tr("Thứ tự")}</div>
-                  <div>{tr("Thao tác")}</div>
+                  <div>{lang === 'en' ? "Name" : tr("Tên")}</div>
+                  <div>{lang === 'en' ? "Type" : tr("Loại")}</div>
+                  <div>{lang === 'en' ? "Weight" : tr("Trọng số")}</div>
+                  <div>{lang === 'en' ? "Passing Score" : tr("Điểm đạt")}</div>
+                  <div>{lang === 'en' ? "Mandatory" : tr("Bắt buộc")}</div>
+                  <div>{lang === 'en' ? "Order" : tr("Thứ tự")}</div>
+                  <div>{lang === 'en' ? "Actions" : tr("Thao tác")}</div>
                 </div>
                 <div className="table-body">
                   {assessmentPager.pageItems
@@ -1029,7 +1075,7 @@ const InstructorAssessmentStructure = () => {
                           {a.componentName || `Assessment ${a.assessmentId}`}
                         </div>
                         <div style={{ fontSize: "12px", color: "rgba(0,33,71,0.7)" }}>
-                          {getAssessmentTypeName(a.assessmentType)}
+                          {getAssessmentTypeName(a.assessmentType, tr, lang)}
                         </div>
                         <div style={{ fontSize: "13px", fontWeight: "700", color: "#c5a059" }}>
                           {Number(a.weight) || 0}%
@@ -1039,7 +1085,7 @@ const InstructorAssessmentStructure = () => {
                         </div>
                         <div style={{ fontSize: "12px", fontWeight: "700" }}>
                           {a.isRequired ? (
-                            <span style={{ color: "#15803d" }}>✓ {tr("Bắt buộc")}</span>
+                            <span style={{ color: "#15803d" }}>✓ {lang === 'en' ? "Mandatory" : tr("Bắt buộc")}</span>
                           ) : (
                             <span style={{ color: "rgba(0,33,71,0.4)" }}>—</span>
                           )}
@@ -1062,7 +1108,7 @@ const InstructorAssessmentStructure = () => {
                               cursor: "pointer",
                             }}
                           >
-                            {tr("Sửa")}
+                            {lang === 'en' ? "Edit" : tr("Sửa")}
                           </button>
                           <button
                             type="button"
@@ -1084,7 +1130,7 @@ const InstructorAssessmentStructure = () => {
                               cursor: "pointer",
                             }}
                           >
-                            {tr("Xóa")}
+                            {lang === 'en' ? "Delete" : tr("Xóa")}
                           </button>
                         </div>
                       </div>
@@ -1125,7 +1171,7 @@ const InstructorAssessmentStructure = () => {
                     margin: 0,
                   }}
                 >
-                  {tr("Practical Checklists (Bảng kiểm kỹ năng bắt buộc Đạt)")}
+                  {lang === 'en' ? "Practical Checklists (Mandatory Pass Skills)" : tr("Practical Checklists (Bảng kiểm kỹ năng bắt buộc Đạt)")}
                 </h3>
                 <p
                   style={{
@@ -1134,7 +1180,9 @@ const InstructorAssessmentStructure = () => {
                     margin: "4px 0 0",
                   }}
                 >
-                  {tr("Bảng kiểm kỹ năng / thao tác thực hành điều kiện tiên quyết (Pass/Fail) để ký xác nhận môn học")}
+                  {lang === 'en'
+                    ? "Prerequisite practical checklist (Pass/Fail) for subject sign-off"
+                    : tr("Bảng kiểm kỹ năng / thao tác thực hành điều kiện tiên quyết (Pass/Fail) để ký xác nhận môn học")}
                 </p>
               </div>
               <button
@@ -1152,7 +1200,7 @@ const InstructorAssessmentStructure = () => {
                   boxShadow: "0 2px 8px rgba(0,33,71,0.2)",
                 }}
               >
-                {tr("+ Tạo Mục thực hành")}
+                {lang === 'en' ? "+ Create Practical Item" : tr("+ Tạo Mục thực hành")}
               </button>
             </div>
 
@@ -1164,7 +1212,7 @@ const InstructorAssessmentStructure = () => {
                   color: "rgba(0,33,71,0.4)",
                 }}
               >
-                {tr("Đang tải...")}
+                {lang === 'en' ? "Loading..." : tr("Đang tải...")}
               </div>
             ) : checklists.length === 0 ? (
               <div
@@ -1172,7 +1220,7 @@ const InstructorAssessmentStructure = () => {
                 style={{ padding: "40px", textAlign: "center" }}
               >
                 <p style={{ color: "rgba(0,33,71,0.5)", fontSize: "14px", margin: 0 }}>
-                  {tr("Chưa có mục thực hành nào cho môn này.")}
+                  {lang === 'en' ? "No practical checklist items for this subject yet." : tr("Chưa có mục thực hành nào cho môn này.")}
                 </p>
               </div>
             ) : (
@@ -1184,11 +1232,11 @@ const InstructorAssessmentStructure = () => {
                     gridTemplateColumns: "2.2fr 2.5fr 1fr 1fr 1.4fr",
                   }}
                 >
-                  <div>{tr("Tên mục")}</div>
-                  <div>{tr("Mô tả")}</div>
-                  <div>{tr("Bắt buộc")}</div>
-                  <div>{tr("Thứ tự")}</div>
-                  <div>{tr("Thao tác")}</div>
+                  <div>{lang === 'en' ? "Item Name" : tr("Tên mục")}</div>
+                  <div>{lang === 'en' ? "Description" : tr("Mô tả")}</div>
+                  <div>{lang === 'en' ? "Mandatory" : tr("Bắt buộc")}</div>
+                  <div>{lang === 'en' ? "Order" : tr("Thứ tự")}</div>
+                  <div>{lang === 'en' ? "Actions" : tr("Thao tác")}</div>
                 </div>
                 <div className="table-body">
                   {checklistPager.pageItems
@@ -1216,11 +1264,11 @@ const InstructorAssessmentStructure = () => {
                         <div style={{ fontSize: "12px", fontWeight: "700" }}>
                           {c.isRequired ? (
                             <span style={{ color: "#b91c1c" }}>
-                              {tr("Bắt buộc Pass")}
+                              {lang === 'en' ? "Mandatory Pass" : tr("Bắt buộc Pass")}
                             </span>
                           ) : (
                             <span style={{ color: "rgba(0,33,71,0.4)" }}>
-                              {tr("Tự chọn")}
+                              {lang === 'en' ? "Optional" : tr("Tự chọn")}
                             </span>
                           )}
                         </div>
@@ -1242,7 +1290,7 @@ const InstructorAssessmentStructure = () => {
                               cursor: "pointer",
                             }}
                           >
-                            {tr("Sửa")}
+                            {lang === 'en' ? "Edit" : tr("Sửa")}
                           </button>
                           <button
                             type="button"
@@ -1264,7 +1312,7 @@ const InstructorAssessmentStructure = () => {
                               cursor: "pointer",
                             }}
                           >
-                            {tr("Xóa")}
+                            {lang === 'en' ? "Delete" : tr("Xóa")}
                           </button>
                         </div>
                       </div>
@@ -1317,10 +1365,10 @@ const InstructorAssessmentStructure = () => {
           onConfirm={handleConfirmDelete}
           loading={deleting}
           confirmVariant="danger"
-          title={tr('Xác nhận xóa')}
+          title={lang === 'en' ? "Confirm Delete" : tr('Xác nhận xóa')}
           message={confirmDelete.name}
-          bodyMessage={tr('Mục này sẽ bị xóa vĩnh viễn. Bạn chắc chắn chứ?')}
-          confirmText="XÓA"
+          bodyMessage={lang === 'en' ? "This item will be permanently deleted. Are you sure?" : tr('Mục này sẽ bị xóa vĩnh viễn. Bạn chắc chắn chứ?')}
+          confirmText={lang === 'en' ? "DELETE" : "XÓA"}
         />
       )}
     </div>

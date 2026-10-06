@@ -124,6 +124,7 @@ const InstructorAttendance = () => {
   const [flightSimModalStudent, setFlightSimModalStudent] = useState(null);
   const [flightSimForm, setFlightSimForm] = useState({});
   const [signingRecord, setSigningRecord] = useState(false);
+  const [savingModal, setSavingModal] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -283,6 +284,13 @@ const InstructorAttendance = () => {
               dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
             }
 
+            const sub = subjectsList.find((subItem) => subItem.subjectId === s.subjectId);
+            const isPractical =
+              s.trainingType === "Flight" ||
+              s.trainingType === "Simulator" ||
+              sub?.subjectType === "Practical" ||
+              sub?.subjectType === "Thực hành";
+
             return {
               sessionId: s.sessionId,
               subjectId: s.subjectId ?? null,
@@ -294,9 +302,14 @@ const InstructorAttendance = () => {
               name: s.sessionTitle || tr("Buổi học"),
               room: s.location || tr("Phòng học"),
               instructor: getCurrentInstructorName(),
-              attendance: s.isConfirmed ? tr("Đã chốt") : tr("Chưa chốt"),
+              attendance: isPractical
+                ? tr("Thực hành")
+                : s.isConfirmed
+                  ? tr("Đã chốt")
+                  : tr("Chưa chốt"),
               isConfirmed: s.isConfirmed || false,
-              trainingType: s.trainingType || "Theory",
+              isPractical,
+              trainingType: s.trainingType || (isPractical ? "Flight" : "Theory"),
               lessonCode: s.lessonCode || null,
             };
           }),
@@ -307,7 +320,7 @@ const InstructorAttendance = () => {
       }
     };
     fetchSessions();
-  }, [selectedClassId, classesData]);
+  }, [selectedClassId, classesData, subjectsList]);
 
   // Load students and attendance records when a session is selected
   const loadAttendance = async (session) => {
@@ -348,7 +361,7 @@ const InstructorAttendance = () => {
       // 2. Fetch attendance records
       const attendanceRecords = await api.get("/attendance").catch(() => []);
       const sessionRecords = attendanceRecords.filter(
-        (a) => a.sessionId === session.sessionId,
+        (a) => String(a.sessionId) === String(session.sessionId),
       );
 
       // Determine if session is confirmed
@@ -368,7 +381,7 @@ const InstructorAttendance = () => {
       const mappedAttendance = mappedStudents.map((student) => {
         // Match by enrollmentId instead of accountId
         const record = sessionRecords.find(
-          (r) => r.enrollmentId === student.enrollmentId,
+          (r) => String(r.enrollmentId) === String(student.enrollmentId),
         );
         return {
           code: student.code,
@@ -423,7 +436,7 @@ const InstructorAttendance = () => {
   };
 
   const handleToggleStatus = (code, status) => {
-    if (isConfirmed || !isClassActive || fileStaged) return; // Buổi đã chốt / lớp không InProgress / đang có file import
+    if ((isConfirmed && !isPracticalSession) || !isClassActive || fileStaged) return; // Buổi đã chốt / lớp không InProgress / đang có file import
     setSessionAttendance((prev) =>
       prev.map((s) => (s.code === code ? { ...s, status } : s)),
     );
@@ -453,30 +466,72 @@ const InstructorAttendance = () => {
     });
   };
 
-  const handleSaveFlightSimModal = () => {
-    if (isConfirmed || fileStaged) return;
+  const handleSaveFlightSimModal = async () => {
+    if ((isConfirmed && !isPracticalSession) || fileStaged || !flightSimModalStudent) return;
+    setSavingModal(true);
+
+    const updatedStudent = {
+      ...flightSimModalStudent,
+      ...flightSimForm,
+    };
+
+    // Update local state immediately so user sees changes
     setSessionAttendance((prev) =>
       prev.map((s) =>
-        s.code === flightSimModalStudent.code
-          ? {
-              ...s,
-              ...flightSimForm,
-            }
-          : s,
-      ),
+        s.code === flightSimModalStudent.code ? updatedStudent : s
+      )
     );
-    setFlightSimModalStudent(null);
-    toast.success(tr("Đã cập nhật chi tiết huấn luyện! Vui lòng nhấn 'LƯU ĐIỂM DANH' để lưu lên hệ thống."));
+
+    try {
+      const payload = buildPayloadForRecord(updatedStudent);
+      let res;
+      if (updatedStudent.attendanceRecordId) {
+        res = await api.put(`/attendance/${updatedStudent.attendanceRecordId}`, payload);
+      } else {
+        res = await api.post("/attendance/record", payload);
+      }
+
+      const savedId = res?.attendanceRecordId || res?.id || updatedStudent.attendanceRecordId;
+      setSessionAttendance((prev) =>
+        prev.map((s) =>
+          s.code === flightSimModalStudent.code
+            ? { ...s, ...updatedStudent, attendanceRecordId: savedId }
+            : s
+        )
+      );
+      toast.success(tr("Lưu thông số huấn luyện thành công!"), announce("edit", tr("Điểm danh")));
+      setFlightSimModalStudent(null);
+    } catch (err) {
+      console.error("Lỗi khi lưu thông số huấn luyện:", err);
+      toast.error(parseApiError(err, tr("Lưu thông số thất bại!")));
+    } finally {
+      setSavingModal(false);
+    }
   };
 
   const handleInstructorSignRecord = async (student) => {
-    if (!student.attendanceRecordId) {
-      toast.error(tr("Vui lòng nhấn 'LƯU ĐIỂM DANH' trước khi thực hiện ký xác nhận."));
-      return;
-    }
+    if (fileStaged) return;
     setSigningRecord(true);
     try {
-      await api.post(`/attendance/${student.attendanceRecordId}/instructor-sign`, {
+      let recordId = student.attendanceRecordId;
+      const currentData = {
+        ...student,
+        ...flightSimForm,
+      };
+      const payload = buildPayloadForRecord(currentData);
+
+      if (!recordId) {
+        const createRes = await api.post("/attendance/record", payload);
+        recordId = createRes?.attendanceRecordId || createRes?.id;
+      } else {
+        await api.put(`/attendance/${recordId}`, payload);
+      }
+
+      if (!recordId) {
+        throw new Error(tr("Không tìm thấy mã bản ghi điểm danh để ký."));
+      }
+
+      await api.post(`/attendance/${recordId}/instructor-sign`, {
         comments: flightSimForm.instructorComments || student.instructorComments || "",
       });
       toast.success(tr("Ký xác nhận huấn luyện thành công!"), announce("edit", tr("Ký huấn luyện")));
@@ -494,34 +549,38 @@ const InstructorAttendance = () => {
     const parseDecimal = (v) => (v === "" || v == null ? null : parseFloat(v));
     const parseIntVal = (v) => (v === "" || v == null ? null : parseInt(v, 10));
 
+    // Absent check: BE throws if status == Absent and performanceGrade == Satisfactory,
+    // or if status == Absent and hours/landings > 0.
+    const isAbsent = record.status === "Absent";
+
     return {
       sessionId: selectedSession.sessionId,
       enrollmentId: record.enrollmentId || 1,
-      status: record.status,
+      status: record.status || "Present",
       remarks: record.remarks || "",
-      performanceGrade: record.performanceGrade || null,
-      flightHours: parseDecimal(record.flightHours),
-      simulatorHours: parseDecimal(record.simulatorHours),
-      dualHours: parseDecimal(record.dualHours),
-      soloHours: parseDecimal(record.soloHours),
-      picHours: parseDecimal(record.picHours),
-      nightHours: parseDecimal(record.nightHours),
-      instrumentHours: parseDecimal(record.instrumentHours),
-      crossCountryHours: parseDecimal(record.crossCountryHours),
-      dayLandings: parseIntVal(record.dayLandings),
-      nightLandings: parseIntVal(record.nightLandings),
-      aircraftRegistration: record.aircraftRegistration || null,
-      simulatorDevice: record.simulatorDevice || null,
-      departureIcao: record.departureIcao || null,
-      arrivalIcao: record.arrivalIcao || null,
-      route: record.route || null,
+      performanceGrade: isAbsent ? null : (record.performanceGrade || null),
+      flightHours: isAbsent ? null : parseDecimal(record.flightHours),
+      simulatorHours: isAbsent ? null : parseDecimal(record.simulatorHours),
+      dualHours: isAbsent ? null : parseDecimal(record.dualHours),
+      soloHours: isAbsent ? null : parseDecimal(record.soloHours),
+      picHours: isAbsent ? null : parseDecimal(record.picHours),
+      nightHours: isAbsent ? null : parseDecimal(record.nightHours),
+      instrumentHours: isAbsent ? null : parseDecimal(record.instrumentHours),
+      crossCountryHours: isAbsent ? null : parseDecimal(record.crossCountryHours),
+      dayLandings: isAbsent ? null : parseIntVal(record.dayLandings),
+      nightLandings: isAbsent ? null : parseIntVal(record.nightLandings),
+      aircraftRegistration: isAbsent ? null : (record.aircraftRegistration || null),
+      simulatorDevice: isAbsent ? null : (record.simulatorDevice || null),
+      departureIcao: isAbsent ? null : (record.departureIcao || null),
+      arrivalIcao: isAbsent ? null : (record.arrivalIcao || null),
+      route: isAbsent ? null : (record.route || null),
       instructorComments: record.instructorComments || null,
       studentComments: record.studentComments || null,
     };
   };
 
   const handleSaveAttendance = async () => {
-    if (isConfirmed) return;
+    if (isConfirmed && !isPracticalSession) return;
     if (!isClassActive) {
       toast.error(isClassUpcoming
         ? tr("Không thể lưu điểm danh vì lớp học chưa bắt đầu.")
@@ -530,7 +589,7 @@ const InstructorAttendance = () => {
     }
     setSaving(true);
     try {
-      await Promise.all(
+      const results = await Promise.all(
         sessionAttendance.map(async (record) => {
           const payload = buildPayloadForRecord(record);
 
@@ -544,9 +603,18 @@ const InstructorAttendance = () => {
         }),
       );
 
+      // Cập nhật attendanceRecordId cho local state ngay
+      setSessionAttendance((prev) =>
+        prev.map((s, idx) => {
+          const res = results[idx];
+          const newId = res?.attendanceRecordId || res?.id;
+          return newId ? { ...s, attendanceRecordId: newId } : s;
+        }),
+      );
+
       toast.success(tr("Lưu điểm danh thành công!"), announce("edit", tr("Điểm danh")));
-      // Reload records to fetch new IDs
-      loadAttendance(selectedSession);
+      // Reload records to sync fresh state from server
+      await loadAttendance(selectedSession);
     } catch (err) {
       console.error("Lỗi khi lưu điểm danh:", err);
       toast.error(parseApiError(err, tr("Lưu điểm danh thất bại!")));
@@ -556,41 +624,12 @@ const InstructorAttendance = () => {
   };
 
   const handleConfirmAttendance = async () => {
-    if (isConfirmed) return;
+    if (isConfirmed || isPracticalSession) return;
     if (!isClassActive) {
       toast.error(isClassUpcoming
         ? tr("Không thể chốt buổi học vì lớp học chưa bắt đầu.")
         : tr("Không thể chốt buổi học vì lớp học đã kết thúc hoặc bị hủy."));
       return;
-    }
-
-    const isFlightOrSim =
-      selectedSession?.trainingType === "Flight" ||
-      selectedSession?.trainingType === "Simulator";
-    if (isFlightOrSim) {
-      const missingRecordsCount = (students || []).filter(
-        (st) => !(sessionAttendance || []).some((r) => r.enrollmentId === st.enrollmentId)
-      ).length;
-      if (missingRecordsCount > 0) {
-        toast.error(
-          tr(
-            `Không thể chốt điểm danh bài ${selectedSession.trainingType}: Còn ${missingRecordsCount} học viên trong lớp chưa có bản ghi điểm danh.`
-          )
-        );
-        return;
-      }
-
-      const unsignedCount = (sessionAttendance || []).filter(
-        (r) => !r.instructorSignedAt
-      ).length;
-      if (unsignedCount > 0) {
-        toast.error(
-          tr(
-            `Không thể chốt điểm danh bài ${selectedSession.trainingType}: Còn ${unsignedCount} hồ sơ chưa được giảng viên ký số.`
-          )
-        );
-        return;
-      }
     }
 
     setPublishing(true);
@@ -639,6 +678,19 @@ const InstructorAttendance = () => {
   const isClassClosed = isLockedStatus(selectedClass?.status);
   const isClassActive = isClassInProgress(selectedClass?.status);
   const isClassUpcoming = isClassNotStarted(selectedClass?.status);
+
+  // Môn thực hành (Practical, Flight, Simulator) chỉ cần lưu, không áp dụng xác nhận/chốt điểm danh
+  const isPracticalSession = useMemo(() => {
+    if (!selectedSession) return false;
+    if (
+      selectedSession.trainingType === "Flight" ||
+      selectedSession.trainingType === "Simulator"
+    ) {
+      return true;
+    }
+    const sub = subjectsList.find((s) => s.subjectId === selectedSession.subjectId);
+    return sub?.subjectType === "Practical" || sub?.subjectType === "Thực hành";
+  }, [selectedSession, subjectsList]);
 
   // BE (AttendanceService.RecordAttendanceAsync + BusinessRuleEngine.AttendanceGracePeriodHours = 48)
   // chỉ cho phép Instructor điểm danh bù trong vòng 48h sau ngày học; quá hạn → 400 và yêu cầu
@@ -1164,34 +1216,36 @@ const InstructorAttendance = () => {
               onClick={handleSaveAttendance}
               className="create-btn"
               type="button"
-              disabled={isConfirmed || !isClassActive || saving || publishing}
+              disabled={(isConfirmed && !isPracticalSession) || !isClassActive || saving || publishing}
               title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
               style={{
-                opacity: isConfirmed || !isClassActive ? 0.6 : 1,
-                cursor: isConfirmed || !isClassActive ? "not-allowed" : "pointer",
+                opacity: (isConfirmed && !isPracticalSession) || !isClassActive ? 0.6 : 1,
+                cursor: (isConfirmed && !isPracticalSession) || !isClassActive ? "not-allowed" : "pointer",
               }}
             >
-              <span>{tr("LƯU ĐIỂM DANH")}</span>
+              <span>{saving ? tr("ĐANG LƯU...") : tr("LƯU ĐIỂM DANH")}</span>
             </button>
 
-            <button
-              onClick={() => setConfirmPublishOpen(true)}
-              className="create-btn"
-              type="button"
-              disabled={isConfirmed || !isClassActive || saving}
-              title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
-              style={{
-                background: isConfirmed || !isClassActive
-                  ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
-                  : "linear-gradient(159.93deg, #e11d48 -27.55%, #be123c 127.55%)",
-                opacity: isConfirmed || !isClassActive ? 0.7 : 1,
-                cursor: isConfirmed || !isClassActive ? "not-allowed" : "pointer",
-              }}
-            >
-              <span>
-                {isConfirmed ? tr("ĐÃ KHÓA ĐIỂM DANH") : tr("CHỐT ĐIỂM DANH")}
-              </span>
-            </button>
+            {!isPracticalSession && (
+              <button
+                onClick={() => setConfirmPublishOpen(true)}
+                className="create-btn"
+                type="button"
+                disabled={isConfirmed || !isClassActive || saving}
+                title={!isClassActive ? (isClassUpcoming ? tr("Lớp học chưa bắt đầu") : tr("Lớp học đã kết thúc / bị hủy")) : undefined}
+                style={{
+                  background: isConfirmed || !isClassActive
+                    ? "linear-gradient(159.93deg, #475569 -27.55%, #334155 127.55%)"
+                    : "linear-gradient(159.93deg, #e11d48 -27.55%, #be123c 127.55%)",
+                  opacity: isConfirmed || !isClassActive ? 0.7 : 1,
+                  cursor: isConfirmed || !isClassActive ? "not-allowed" : "pointer",
+                }}
+              >
+                <span>
+                  {isConfirmed ? tr("ĐÃ KHÓA ĐIỂM DANH") : tr("CHỐT ĐIỂM DANH")}
+                </span>
+              </button>
+            )}
           </div>
         </section>
 
