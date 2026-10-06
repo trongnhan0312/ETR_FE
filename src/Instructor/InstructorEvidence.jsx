@@ -19,7 +19,7 @@ const normalizeDeptCode = (dept) => {
 };
 
 const InstructorEvidence = () => {
-  const { tr } = useLanguage();
+  const { tr, lang } = useLanguage();
   const toast = useToast();
   const [classesData, setClassesData] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -28,6 +28,7 @@ const InstructorEvidence = () => {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [subjectsList, setSubjectsList] = useState([]);
   const [studentSubjects, setStudentSubjects] = useState([]);
+  const [studentEtrRecord, setStudentEtrRecord] = useState(null);
   const [selectedSubjectResultId, setSelectedSubjectResultId] = useState("");
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState("");
   const [evidences, setEvidences] = useState([]);
@@ -130,6 +131,7 @@ const InstructorEvidence = () => {
       if (!selectedStudentId) {
         setStudentSubjects([]);
         setSelectedSubjectResultId("");
+        setStudentEtrRecord(null);
         return;
       }
       try {
@@ -140,12 +142,15 @@ const InstructorEvidence = () => {
         if (!studentEtr) {
           setStudentSubjects([]);
           setSelectedSubjectResultId("");
+          setStudentEtrRecord(null);
           return;
         }
 
         const etrDetails = await api
           .get(`/etr/${studentEtr.etrCourseRecordId}`)
           .catch(() => null);
+
+        setStudentEtrRecord(etrDetails);
 
         if (etrDetails && Array.isArray(etrDetails.subjectResults)) {
           const mapped = etrDetails.subjectResults.map((sr) => {
@@ -179,6 +184,7 @@ const InstructorEvidence = () => {
         console.error("Lỗi khi tải môn học của học viên:", err);
         setStudentSubjects([]);
         setSelectedSubjectResultId("");
+        setStudentEtrRecord(null);
       }
     };
     loadStudentSubjects();
@@ -240,6 +246,15 @@ const InstructorEvidence = () => {
       return true;
     });
   }, [evidenceTypes, selectedStudent, selectedSubject]);
+
+  // Chỉ cho upload khi ETR của học viên còn Draft hoặc ReturnedForCorrection và chưa khóa; sau Submit thì phải trả hồ sơ để bổ sung
+  const canUploadForStudent = useMemo(() => {
+    if (!studentEtrRecord) return true;
+    const isLocked = studentEtrRecord.isLocked || studentEtrRecord.IsLocked;
+    if (isLocked) return false;
+    const status = studentEtrRecord.status;
+    return status === "Draft" || status === "ReturnedForCorrection";
+  }, [studentEtrRecord]);
 
   // Tự động cập nhật selectedEvidenceTypeId nếu loại đang chọn không còn nằm trong danh sách áp dụng
   useEffect(() => {
@@ -394,6 +409,13 @@ const InstructorEvidence = () => {
     // Validate evidence type is selected
     if (!selectedEvidenceTypeId) {
       toast.warning(tr("Thiếu loại bằng chứng"));
+      return;
+    }
+
+    if (!canUploadForStudent) {
+      toast.error(
+        tr("Chỉ cho phép tải lên khi ETR còn Draft hoặc ReturnedForCorrection và chưa khóa. Sau Submit thì phải trả hồ sơ để bổ sung.")
+      );
       return;
     }
 
@@ -916,6 +938,24 @@ const InstructorEvidence = () => {
                         </svg>
                         {tr('Đã xác thực')}
                       </span>
+                    ) : !canUploadForStudent ? (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          backgroundColor: "rgba(245, 158, 11, 0.1)",
+                          color: "#b45309",
+                          cursor: "not-allowed",
+                        }}
+                        title={tr("ETR đã nộp hoặc bị khóa. Không thể xóa minh chứng.")}
+                      >
+                        🔒 {tr('Đã khóa')}
+                      </span>
                     ) : (
                       <button
                         onClick={() => setConfirmDeleteId(ev.evidenceFileId)}
@@ -1147,70 +1187,99 @@ const InstructorEvidence = () => {
               marginTop: "4px",
             }}
           >
-            <div
-              className={`evidence-dropzone${dragging ? " dragging" : ""}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <div className="dropzone-icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path>
-                </svg>
-              </div>
-              <span className="dropzone-title">
-                {tr('Kéo thả tệp minh chứng vào đây')}
-              </span>
-              <span className="dropzone-subtitle">
-                {tr('Hỗ trợ PDF, PNG, JPG, GIF, WEBP — lưu trữ trên Cloudinary')}
-              </span>
-              <span
-                className="dropzone-subtitle"
-                style={{ color: "rgba(197,160,89,0.9)" }}
-              >
-                {tr('Minh chứng mới sẽ chuyển về trạng thái Pending để QA duyệt lại.')}
-              </span>
-
-              <input
-                type="file"
-                id="file-upload-input"
-                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,image/jpeg,image/png,image/gif,image/webp,application/pdf"
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  if (e.target.files && e.target.files.length > 0) {
-                    handleUploadFile(e.target.files[0]);
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  document.getElementById("file-upload-input").click()
-                }
+            {!canUploadForStudent ? (
+              <div
                 style={{
-                  marginTop: "8px",
-                  padding: "8px 20px",
-                  borderRadius: "999px",
-                  fontSize: "11px",
-                  fontWeight: "700",
-                  border: "none",
-                  backgroundColor: "#002147",
-                  cursor: "pointer",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  color: "white",
+                  padding: "24px 20px",
+                  borderRadius: "16px",
+                  backgroundColor: "rgba(245,158,11,0.08)",
+                  border: "1px dashed rgba(245,158,11,0.4)",
+                  color: "#92400e",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  alignItems: "center",
+                  textAlign: "center",
                 }}
               >
-                {tr('Chọn tệp từ máy')}
-              </button>
-            </div>
+                <div style={{ fontSize: "28px" }}>🔒</div>
+                <div style={{ fontSize: "14px", fontWeight: "700", color: "#b45309" }}>
+                  {lang === 'en'
+                    ? "Evidence Upload Locked For This Student"
+                    : tr("Không thể tải lên minh chứng cho học viên này")}
+                </div>
+                <p style={{ margin: 0, fontSize: "12px", color: "rgba(146,64,14,0.9)", maxWidth: "440px", lineHeight: 1.5 }}>
+                  {lang === 'en'
+                    ? `ETR is currently in '${studentEtrRecord?.status}' status (or locked). Evidence can only be uploaded when ETR is in 'Draft' or 'ReturnedForCorrection'. After Submit, QA must return the dossier for correction to add more evidence.`
+                    : tr(`Hồ sơ đào tạo (ETR) của học viên đang ở trạng thái '${studentEtrRecord?.status}' (hoặc đã bị khóa). Chỉ cho phép tải lên khi ETR còn 'Draft' hoặc 'ReturnedForCorrection'. Sau khi nộp (Submit), QA phải trả lại hồ sơ để bổ sung.`)}
+                </p>
+              </div>
+            ) : (
+              <div
+                className={`evidence-dropzone${dragging ? " dragging" : ""}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="dropzone-icon">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path>
+                  </svg>
+                </div>
+                <span className="dropzone-title">
+                  {tr('Kéo thả tệp minh chứng vào đây')}
+                </span>
+                <span className="dropzone-subtitle">
+                  {tr('Hỗ trợ PDF, PNG, JPG, GIF, WEBP — lưu trữ trên Cloudinary')}
+                </span>
+                <span
+                  className="dropzone-subtitle"
+                  style={{ color: "rgba(197,160,89,0.9)" }}
+                >
+                  {tr('Minh chứng mới sẽ chuyển về trạng thái Pending để QA duyệt lại.')}
+                </span>
+
+                <input
+                  type="file"
+                  id="file-upload-input"
+                  accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleUploadFile(e.target.files[0]);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    document.getElementById("file-upload-input").click()
+                  }
+                  style={{
+                    marginTop: "8px",
+                    padding: "8px 20px",
+                    borderRadius: "999px",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    border: "none",
+                    backgroundColor: "#002147",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: "white",
+                  }}
+                >
+                  {tr('Chọn tệp từ máy')}
+                </button>
+              </div>
+            )}
             {uploading && (
               <div
                 style={{

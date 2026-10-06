@@ -416,6 +416,7 @@ const EtrManagement = ({ defaultView = "list" }) => {
         classCode: classObj?.classCode || "",
         status: canonicalStatus,
         rawStatus: etr.status,
+        isLocked: !!(etr.isLocked ?? etr.IsLocked),
         lastUpdated: etr.submittedAt
           ? new Date(etr.submittedAt).toLocaleString("vi-VN")
           : etr.verifiedAt
@@ -627,9 +628,24 @@ const EtrManagement = ({ defaultView = "list" }) => {
 
   useSubViewBack(viewMode === "evidence", handleBackToList);
 
+  // Chỉ cho upload khi ETR còn Draft hoặc ReturnedForCorrection và chưa khóa; sau Submit thì phải trả hồ sơ để bổ sung
+  const canUploadEvidence = useMemo(() => {
+    if (!selectedRecord) return false;
+    if (selectedRecord.isLocked) return false;
+    const s = normalizeEtrStatus(selectedRecord.rawStatus || selectedRecord.status);
+    return s === "Draft" || s === "ReturnedForCorrection";
+  }, [selectedRecord]);
+
   const handleUploadEvidence = async (e) => {
     e.preventDefault();
     if (!selectedRecord) return;
+
+    if (!canUploadEvidence) {
+      toast.error(
+        tr("Chỉ cho phép tải lên khi ETR còn Draft hoặc ReturnedForCorrection và chưa khóa. Sau Submit thì phải trả hồ sơ để bổ sung.")
+      );
+      return;
+    }
 
     try {
       if (!uploadFile) {
@@ -1115,33 +1131,48 @@ const EtrManagement = ({ defaultView = "list" }) => {
                     </p>
                   </div>
 
-                  <div
-                    className="flex justify-start items-center gap-3 px-6 py-2.5 rounded-lg bg-[#002147] cursor-pointer hover:bg-[#002147]/90 transition"
-                    onClick={() => {
-                      setUploadFile(null);
-                      setIsEvidenceUploadOpen(true);
-                    }}
-                    style={{ minHeight: "44px" }}
-                  >
-                    <svg
-                      width={12}
-                      height={12}
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
+                  {canUploadEvidence ? (
+                    <div
+                      className="flex justify-start items-center gap-3 px-6 py-2.5 rounded-lg bg-[#002147] cursor-pointer hover:bg-[#002147]/90 transition"
+                      onClick={() => {
+                        setUploadFile(null);
+                        setIsEvidenceUploadOpen(true);
+                      }}
+                      style={{ minHeight: "44px" }}
                     >
-                      <path
-                        d="M5.25 9V2.8875L3.3 4.8375L2.25 3.75L6 0L9.75 3.75L8.7 4.8375L6.75 2.8875V9H5.25ZM1.5 12C1.0875 12 0.734375 11.8531 0.440625 11.5594C0.146875 11.2656 0 10.9125 0 10.5V8.25H1.5V10.5H10.5V8.25H12V10.5C12 10.9125 11.8531 11.2656 11.5594 11.5594C11.2656 11.8531 10.9125 12 10.5 12H1.5Z"
-                        fill="white"
-                      />
-                    </svg>
-                    <p
-                      className="text-xs font-bold text-center uppercase text-white"
-                      style={{ margin: 0, lineHeight: 1.1 }}
+                      <svg
+                        width={12}
+                        height={12}
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M5.25 9V2.8875L3.3 4.8375L2.25 3.75L6 0L9.75 3.75L8.7 4.8375L6.75 2.8875V9H5.25ZM1.5 12C1.0875 12 0.734375 11.8531 0.440625 11.5594C0.146875 11.2656 0 10.9125 0 10.5V8.25H1.5V10.5H10.5V8.25H12V10.5C12 10.9125 11.8531 11.2656 11.5594 11.5594C11.2656 11.8531 10.9125 12 10.5 12H1.5Z"
+                          fill="white"
+                        />
+                      </svg>
+                      <p
+                        className="text-xs font-bold text-center uppercase text-white"
+                        style={{ margin: 0, lineHeight: 1.1 }}
+                      >
+                        {tr("TẢI LÊN EVIDENCE")}
+                      </p>
+                    </div>
+                  ) : (
+                    <div
+                      className="flex justify-start items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold select-none"
+                      style={{ minHeight: "44px" }}
+                      title={tr("Hồ sơ đã nộp hoặc bị khóa. Chỉ có thể tải lên minh chứng khi hồ sơ còn là Draft hoặc ReturnedForCorrection. Sau Submit thì cần trả hồ sơ để bổ sung.")}
                     >
-                      {tr("TẢI LÊN EVIDENCE")}
-                    </p>
-                  </div>
+                      <span>🔒</span>
+                      <span>
+                        {selectedRecord?.isLocked
+                          ? tr("ETR ĐÃ KHÓA (KHÔNG THỂ TẢI LÊN)")
+                          : tr("CẦN TRẢ HỒ SƠ ĐỂ BỔ SUNG MINH CHỨNG")}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
