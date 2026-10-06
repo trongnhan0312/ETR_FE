@@ -247,13 +247,13 @@ const InstructorEvidence = () => {
     });
   }, [evidenceTypes, selectedStudent, selectedSubject]);
 
-  // Chỉ cho upload khi ETR của học viên còn Draft hoặc ReturnedForCorrection và chưa khóa; sau Submit thì phải trả hồ sơ để bổ sung
+  // Chỉ cho upload khi ETR của học viên đang trong quá trình đào tạo (Draft/InProgress) hoặc ReturnedForCorrection và chưa khóa; sau Submit (Submitted/Verified/Completed) thì phải được QA trả hồ sơ để bổ sung
   const canUploadForStudent = useMemo(() => {
     if (!studentEtrRecord) return true;
     const isLocked = studentEtrRecord.isLocked || studentEtrRecord.IsLocked;
     if (isLocked) return false;
     const status = studentEtrRecord.status;
-    return status === "Draft" || status === "ReturnedForCorrection";
+    return status === "Draft" || status === "InProgress" || status === "ReturnedForCorrection";
   }, [studentEtrRecord]);
 
   // Tự động cập nhật selectedEvidenceTypeId nếu loại đang chọn không còn nằm trong danh sách áp dụng
@@ -1210,8 +1210,8 @@ const InstructorEvidence = () => {
                 </div>
                 <p style={{ margin: 0, fontSize: "12px", color: "rgba(146,64,14,0.9)", maxWidth: "440px", lineHeight: 1.5 }}>
                   {lang === 'en'
-                    ? `ETR is currently in '${studentEtrRecord?.status}' status (or locked). Evidence can only be uploaded when ETR is in 'Draft' or 'ReturnedForCorrection'. After Submit, QA must return the dossier for correction to add more evidence.`
-                    : tr(`Hồ sơ đào tạo (ETR) của học viên đang ở trạng thái '${studentEtrRecord?.status}' (hoặc đã bị khóa). Chỉ cho phép tải lên khi ETR còn 'Draft' hoặc 'ReturnedForCorrection'. Sau khi nộp (Submit), QA phải trả lại hồ sơ để bổ sung.`)}
+                    ? `ETR is currently in '${studentEtrRecord?.status}' status (or locked). Evidence can only be uploaded when ETR is ongoing ('Draft', 'InProgress') or 'ReturnedForCorrection'. After Submit, QA must return the dossier for correction to add more evidence.`
+                    : tr(`Hồ sơ đào tạo (ETR) của học viên đang ở trạng thái '${studentEtrRecord?.status}' (hoặc đã bị khóa). Chỉ cho phép tải lên khi ETR đang trong quá trình học ('Draft', 'InProgress') hoặc 'ReturnedForCorrection'. Sau khi nộp (Submit), QA phải trả lại hồ sơ để bổ sung.`)}
                 </p>
               </div>
             ) : (
