@@ -65,6 +65,10 @@ const CourseClassManagement = () => {
   const [classSubmitting, setClassSubmitting] = useState(false);
   const [openActionMenu, setOpenActionMenu] = useState(null);
 
+  // Withdraw / Remove Student from Class targets
+  const [withdrawingEnrollmentTarget, setWithdrawingEnrollmentTarget] = useState(null);
+  const [withdrawingSubmitting, setWithdrawingSubmitting] = useState(false);
+
   useEffect(() => {
     if (!openActionMenu) return;
     const handleResize = () => setOpenActionMenu(null);
@@ -1105,6 +1109,39 @@ const CourseClassManagement = () => {
     } catch (error) {
       console.error("Error creating enrollment:", error);
       throw error;
+    }
+  };
+
+  // Handler for Withdrawing / Removing Student from Class (DELETE /api/Enrollments/{id})
+  const handleDeleteEnrollmentConfirm = async () => {
+    if (!withdrawingEnrollmentTarget) return;
+    setWithdrawingSubmitting(true);
+    try {
+      await api.delete(`/Enrollments/${withdrawingEnrollmentTarget.enrollmentId}`);
+      toast.success(tr("Hủy ghi danh học viên thành công!"), announce("delete", tr("Ghi danh")));
+      
+      // Update viewingClassDetail if currently open
+      if (viewingClassDetail) {
+        setViewingClassDetail((prev) => {
+          if (!prev) return prev;
+          const updatedList = Array.isArray(prev.enrolledStudents)
+            ? prev.enrolledStudents.filter((s) => s.enrollmentId !== withdrawingEnrollmentTarget.enrollmentId)
+            : [];
+          return {
+            ...prev,
+            enrolledCount: Math.max(0, (prev.enrolledCount ?? updatedList.length) - 1),
+            enrolledStudents: updatedList,
+          };
+        });
+      }
+
+      setWithdrawingEnrollmentTarget(null);
+      await refreshData();
+    } catch (error) {
+      console.error("Error withdrawing student enrollment:", error);
+      toast.error(parseApiError(error, tr("Hủy ghi danh thất bại")));
+    } finally {
+      setWithdrawingSubmitting(false);
     }
   };
 
@@ -2436,6 +2473,24 @@ const CourseClassManagement = () => {
         />
       )}
 
+      {/* Modal: XÁC NHẬN HỦY GHI DANH HỌC VIÊN */}
+      {withdrawingEnrollmentTarget && (
+        <ConfirmModal
+          isOpen={!!withdrawingEnrollmentTarget}
+          title={`${tr("XÁC NHẬN HỦY GHI DANH")} #${withdrawingEnrollmentTarget.enrollmentId}`}
+          message={`${tr("Bạn có chắc chắn muốn hủy ghi danh học viên")} "${withdrawingEnrollmentTarget.fullName}" (${withdrawingEnrollmentTarget.userCode}) ${tr("khỏi lớp này")}?`}
+          bodyMessage={tr(
+            "Học viên sẽ được rút tên khỏi danh sách lớp học. Lưu ý: Chỉ có thể hủy ghi danh khi hồ sơ ETR còn ở trạng thái Khởi tạo (Draft/InProgress) và chưa bị khóa thẩm định.",
+          )}
+          confirmText={tr("HỦY GHI DANH")}
+          cancelText={tr("HỦY BỎ")}
+          confirmVariant="danger"
+          loading={withdrawingSubmitting}
+          onConfirm={handleDeleteEnrollmentConfirm}
+          onClose={() => setWithdrawingEnrollmentTarget(null)}
+        />
+      )}
+
       {/* Modal: GHI DANH HỌC VIÊN */}
       {isEnrollingStudent && (
         <EnrollStudentModal
@@ -2679,7 +2734,8 @@ const CourseClassManagement = () => {
                           <th style={{ padding: '8px 10px' }}>{tr('Họ và tên')}</th>
                           <th style={{ padding: '8px 10px' }}>{tr('Email')}</th>
                           <th style={{ padding: '8px 10px' }}>{tr('Ngày ghi danh')}</th>
-                          <th style={{ padding: '8px 10px', textAlign: 'right' }}>{tr('Trạng thái')}</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'center' }}>{tr('Trạng thái')}</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'center', width: '90px' }}>{tr('Thao tác')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2690,7 +2746,7 @@ const CourseClassManagement = () => {
                             <td style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a' }}>{st.fullName}</td>
                             <td style={{ padding: '8px 10px', color: '#475569' }}>{st.email}</td>
                             <td style={{ padding: '8px 10px', color: '#64748b' }}>{st.enrolledAt}</td>
-                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                               <span style={{
                                 padding: '2px 8px',
                                 borderRadius: '12px',
@@ -2701,6 +2757,35 @@ const CourseClassManagement = () => {
                               }}>
                                 {tr(st.status || 'Active')}
                               </span>
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                title={tr('Hủy ghi danh học viên khỏi lớp này')}
+                                style={{
+                                  background: '#fee2e2',
+                                  color: '#dc2626',
+                                  border: '1px solid #fecaca',
+                                  borderRadius: '4px',
+                                  padding: '4px 8px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  whiteSpace: 'nowrap',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#fecaca';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#fee2e2';
+                                }}
+                                onClick={() => setWithdrawingEnrollmentTarget(st)}
+                              >
+                                ✕ {tr('Hủy ghi danh')}
+                              </button>
                             </td>
                           </tr>
                         ))}

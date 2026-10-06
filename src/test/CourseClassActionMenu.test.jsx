@@ -271,4 +271,80 @@ describe('Course & Class Action Menu (⋯) & Status-based Direct Actions', () =>
       expect(menuContainer.style.transform).toContain('translateY(-100%)');
     });
   });
+
+  it('allows withdrawing student enrollment from class detail modal', async () => {
+    const mockEnrollments = [
+      { enrollmentId: 55, accountId: 10, classId: 201, status: 'Active', enrolledAt: '2026-08-05' },
+    ];
+    const mockAccounts = [
+      { accountId: 10, username: 'stu10', email: 'stu10@aviation.vn' },
+    ];
+    const mockProfiles = [
+      { accountId: 10, userCode: 'STU-010', fullName: 'Nguyen Van A', email: 'stu10@aviation.vn' },
+    ];
+
+    api.get.mockImplementation((url) => {
+      if (url === '/Courses') return Promise.resolve(mockCourses);
+      if (url === '/Classes') return Promise.resolve(mockClasses);
+      if (url === '/Subjects') return Promise.resolve([]);
+      if (url === '/TrainingSessions') return Promise.resolve([]);
+      if (url === '/Enrollments') return Promise.resolve(mockEnrollments);
+      if (url === '/AttendanceRecords') return Promise.resolve([]);
+      if (url === '/Accounts') return Promise.resolve(mockAccounts);
+      if (url === '/UserProfiles') return Promise.resolve(mockProfiles);
+      return Promise.resolve([]);
+    });
+    api.delete.mockResolvedValue({});
+
+    render(
+      <MemoryRouter>
+        <LanguageProvider>
+          <CourseClassManagement />
+        </LanguageProvider>
+      </MemoryRouter>
+    );
+
+    // Wait for data load
+    await waitFor(() => {
+      expect(screen.getByText('CRS-DEMO')).toBeInTheDocument();
+    });
+
+    // Expand course
+    const expandTrigger = screen.getByText('CRS-DEMO').closest('.table-row').querySelector('.col-expand-trigger');
+    fireEvent.click(expandTrigger);
+
+    await waitFor(() => {
+      expect(screen.getByText('CLS-ONGOING')).toBeInTheDocument();
+    });
+
+    // Click "Xem" on ongoing class to open detail modal
+    const viewButtons = screen.getAllByRole('button', { name: /Xem|View/i });
+    fireEvent.click(viewButtons[0]);
+
+    // Check detail modal opened and student appears
+    await waitFor(() => {
+      expect(screen.getByText('Chi tiết lớp học')).toBeInTheDocument();
+      expect(screen.getByText('Nguyen Van A')).toBeInTheDocument();
+    });
+
+    // Check "Hủy ghi danh" button exists
+    const withdrawBtn = screen.getByRole('button', { name: /Hủy ghi danh|Withdraw/i });
+    expect(withdrawBtn).toBeInTheDocument();
+
+    // Click "Hủy ghi danh" to open ConfirmModal
+    fireEvent.click(withdrawBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/XÁC NHẬN HỦY GHI DANH/i)).toBeInTheDocument();
+    });
+
+    // Confirm withdrawal
+    const confirmWithdrawBtn = screen.getByRole('button', { name: /^HỦY GHI DANH$/i });
+    fireEvent.click(confirmWithdrawBtn);
+
+    await waitFor(() => {
+      expect(api.delete).toHaveBeenCalledWith('/Enrollments/55');
+    });
+  });
 });
+
