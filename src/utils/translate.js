@@ -11,6 +11,9 @@
  */
 
 export const VN_TO_EN = {
+  "Số:": "No.:",
+  "Số": "No.",
+  "Hạn": "Expires",
   "LỌC LOẠI: ": "FILTER TYPE: ",
   "Lý do: ": "Reason: ",
   "Trạng thái: ": "Status: ",

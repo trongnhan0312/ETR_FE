@@ -591,14 +591,14 @@ const StudentProfile = () => {
               <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Bằng lái phi công')}</div>
                 <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{profile.licenseType || '--'}</div>
-                <div style={{ fontSize: '12px', color: '#475569' }}>Số: {profile.licenseNumber || '--'}</div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Hạn: {formatDate(profile.licenseExpiryDate)}</div>
+                <div style={{ fontSize: '12px', color: '#475569' }}>{tr('Số:')} {profile.licenseNumber || '--'}</div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>{tr('Hạn:')} {formatDate(profile.licenseExpiryDate)}</div>
               </div>
 
               <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{tr('Hạng sức khỏe hàng không')}</div>
                 <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{profile.medicalClass || '--'}</div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Hạn: {formatDate(profile.medicalExpiryDate)}</div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>{tr('Hạn:')} {formatDate(profile.medicalExpiryDate)}</div>
               </div>
 
               <div style={{ background: '#f8fafd', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
@@ -607,7 +607,7 @@ const StudentProfile = () => {
                   {profile.icaoElpLevel ? `Level ${profile.icaoElpLevel}` : '--'}
                 </div>
                 <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-                  {profile.icaoElpLevel === 6 ? tr('Vô thời hạn') : `Hạn: ${formatDate(profile.icaoElpExpiryDate)}`}
+                  {profile.icaoElpLevel === 6 ? tr('Vô thời hạn') : `${tr('Hạn:')} ${formatDate(profile.icaoElpExpiryDate)}`}
                 </div>
               </div>
 

@@ -1063,8 +1063,8 @@ const StudentProfiles = () => {
                 { label: tr('Tổ chức'), value: viewingProfile.organization || 'N/A' },
                 { label: tr('Bằng lái phi công'), value: viewingProfile.licenseType ? `${viewingProfile.licenseType} (${viewingProfile.licenseNumber || '--'})` : 'N/A' },
                 { label: tr('Hạn bằng lái'), value: formatDate(viewingProfile.licenseExpiryDate, lang) },
-                { label: tr('Hạng sức khỏe hàng không'), value: viewingProfile.medicalClass ? `${viewingProfile.medicalClass} (Hạn: ${formatDate(viewingProfile.medicalExpiryDate, lang)})` : 'N/A' },
-                { label: tr('Trình độ tiếng Anh ICAO'), value: viewingProfile.icaoElpLevel ? `Level ${viewingProfile.icaoElpLevel} (Hạn: ${formatDate(viewingProfile.icaoElpExpiryDate, lang)})` : 'N/A' },
+                { label: tr('Hạng sức khỏe hàng không'), value: viewingProfile.medicalClass ? `${viewingProfile.medicalClass} (${tr('Hạn:')} ${formatDate(viewingProfile.medicalExpiryDate, lang)})` : 'N/A' },
+                { label: tr('Trình độ tiếng Anh ICAO'), value: viewingProfile.icaoElpLevel ? `Level ${viewingProfile.icaoElpLevel} (${tr('Hạn:')} ${formatDate(viewingProfile.icaoElpExpiryDate, lang)})` : 'N/A' },
                 { label: tr('Định danh loại tàu bay'), value: viewingProfile.typeRatings || 'N/A' },
                 {
                   label: tr('Trạng thái năng định'),
